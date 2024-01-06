@@ -15,4 +15,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Messenger"
 include(":app")
- 
+include(":feature:chat")
+include(":feature:contracts")
