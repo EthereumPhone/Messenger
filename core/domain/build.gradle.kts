@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "org.ethereumhpone.database"
+    namespace = "org.ethereumhpone.domain"
     compileSdk = 34
 
     defaultConfig {

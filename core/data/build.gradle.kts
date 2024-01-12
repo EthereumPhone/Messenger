@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "org.ethereumhpone.database"
+    namespace = "org.ethereumhpone.data"
     compileSdk = 34
 
     defaultConfig {
@@ -41,4 +41,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
-}
+
+
+    implementation(project(":core:domain"))}
