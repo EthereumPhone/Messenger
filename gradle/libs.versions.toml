@@ -10,7 +10,6 @@ hiltWork = "1.1.0"
 hilt = "2.48.1"
 material = "1.11.0"
 material3 = "1.1.2"
-org-jetbrains-kotlin-jvm = "1.9.0"
 compose = "1.5.4"
 navigation = "2.7.6"
 lifecycle = "2.6.2"
@@ -72,11 +71,10 @@ androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
 [plugins]
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "org-jetbrains-kotlin-jvm" }
+org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 hilt-android = {id = "com.google.dagger.hilt.android", version.ref = "hilt"}
 kotlin-kapt = {id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin"}
 google-protobuf = {id = "com.google.protobuf", version.ref = "protobufPlugin"}
-kotlin-jvm = {id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin"}
 
 
 
