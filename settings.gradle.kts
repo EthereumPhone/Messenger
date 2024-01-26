@@ -17,7 +17,6 @@ rootProject.name = "Messenger"
 include(":app")
 include(":feature:chat")
 include(":feature:contracts")
-include(":core:model")
 include(":core:data")
 include(":core:domain")
 include(":core:database")

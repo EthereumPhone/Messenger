@@ -1,16 +1,18 @@
 package org.ethereumhpone.database.model
 
 import android.provider.Telephony
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
-@Entity
+@Entity("message")
 data class Message(
 
-    @PrimaryKey
-    val id: Long = 0,
-    val threadId: Long = 0,
-    // MMS-SMS content providers can return the same id, thus cant be used as the PK. Will use
+    @PrimaryKey val id: Long = 0,
+    @ColumnInfo(index = true) val threadId: Long = 0,
+    // MMS-SMS are stored in separate tables in Android and thus can return the same id.
+    // this contentId should be used if fetching from the content provider is needed.
     val contentId: Long = 0,
     val address: String = "",
     val boxId: Int = 0,
@@ -39,7 +41,7 @@ data class Message(
     val mmsStatus: Int = 0,
     val subject: String = "",
     val textContentType: String = "",
-    val parts: List<MmsPart> = listOf()
+    val parts: List<MmsPart> = emptyList()
 
 ) {
     enum class AttachmentType {

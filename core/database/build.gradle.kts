@@ -2,8 +2,9 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
-    alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.org.jetbrains.kotlin.serialization)
 }
 
 android {
@@ -45,7 +46,7 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
 
     implementation(libs.bundles.roomb)
-
+    kapt(libs.bundles.roomb)
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)

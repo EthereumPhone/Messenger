@@ -20,8 +20,7 @@ datastore = "1.0.0"
 protobuf = "3.24.4"
 protobufPlugin = "0.9.4"
 core = "1.12.0"
-
-
+serialization  = "1.0.1"
 
 
 [libraries]
@@ -47,6 +46,7 @@ compose-navigation = { group = "androidx.navigation", name = "navigation-compose
 room-runtime = {group = "androidx.room", name = "room-runtime", version.ref = "roomdb"}
 room-ktx = {group = "androidx.room", name = "room-ktx", version.ref = "roomdb"}
 room-compiler = {group = "androidx.room", name = "room-compiler", version.ref = "roomdb"}
+kotlin-serialization = {group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json" ,version.ref = "serialization"}
 
 # hilt
 hilt-android = {group = "com.google.dagger", name = "hilt-android", version.ref = "hilt"}
@@ -75,9 +75,8 @@ org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kot
 hilt-android = {id = "com.google.dagger.hilt.android", version.ref = "hilt"}
 kotlin-kapt = {id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin"}
 google-protobuf = {id = "com.google.protobuf", version.ref = "protobufPlugin"}
-
-
+org-jetbrains-kotlin-serialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
 
 [bundles]
-roomb = ["room-runtime", "room-ktx", "room-compiler"]
+roomb = ["room-runtime", "room-ktx", "room-compiler", "kotlin-serialization"]
 hilt = ["hilt-android", "hilt-compiler", "hilt-navigation", "androidx-hilt-compiler"]
