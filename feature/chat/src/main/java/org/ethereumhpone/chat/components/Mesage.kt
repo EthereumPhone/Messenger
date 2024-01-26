@@ -3,13 +3,16 @@ package org.ethereumhpone.chat.components
 import android.app.Notification
 import android.view.textclassifier.ConversationActions
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.paddingFrom
@@ -28,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
@@ -36,12 +40,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.model.Message
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
+import org.ethosmobile.components.library.theme.Colors
+import org.ethosmobile.components.library.theme.Fonts
 
 
 @Composable
@@ -65,14 +74,12 @@ fun Message(
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
 ) {
-    val borderColor = if (isUserMe) {
-        Color.Magenta
-    } else {
-        MaterialTheme.colorScheme.tertiary
-    }
 
-//    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier.padding(top = 8.dp) else Modifier
+    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier.padding(top = 8.dp).fillMaxWidth() else Modifier
+    val alignmessage = if(isUserMe) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp)
     Row(
+        modifier = spaceBetweenAuthors,
+        horizontalArrangement = Arrangement.End
     ) {
         AuthorAndTextMessage(
             msg = msg,
@@ -80,9 +87,7 @@ fun Message(
             isFirstMessageByAuthor = isFirstMessageByAuthor,
             isLastMessageByAuthor = isLastMessageByAuthor,
             authorClicked = onAuthorClick,
-            modifier = Modifier
-                .padding(end = 16.dp)
-                .weight(1f)
+            modifier = alignmessage
         )
     }
 }
@@ -96,8 +101,11 @@ fun AuthorAndTextMessage(
     authorClicked: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        ChatItemBubble(msg, isUserMe, authorClicked = authorClicked)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
+    ) {
+        ChatItemBubble(msg, isUserMe, authorClicked = authorClicked, isLastMessageByAuthor=isLastMessageByAuthor)
         if (isLastMessageByAuthor) {
             AuthorNameTimestamp(msg)
         }
@@ -117,24 +125,19 @@ fun AuthorAndTextMessage(
 private fun AuthorNameTimestamp(msg: Message) {
     // Combine author and timestamp for a11y.
     Row(modifier = Modifier.semantics(mergeDescendants = true) {}) {
-        Text(
-            text = msg.author,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier
-                .alignBy(LastBaseline)
-                .paddingFrom(LastBaseline, after = 8.dp) // Space to 1st bubble
-        )
-        Spacer(modifier = Modifier.width(8.dp))
+
         Text(
             text = msg.timestamp,
-            style = MaterialTheme.typography.bodySmall,
+            fontSize = 12.sp,
+            fontFamily = Fonts.INTER,
             modifier = Modifier.alignBy(LastBaseline),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = Colors.GRAY
         )
     }
 }
 
-private val ChatBubbleShape = RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
+private val ChatBubbleShape = RoundedCornerShape(4.dp, 32.dp, 32.dp, 20.dp)
+private val UserChatBubbleShape = RoundedCornerShape(32.dp, 4.dp, 20.dp, 32.dp)
 
 
 
@@ -142,19 +145,47 @@ private val ChatBubbleShape = RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
 fun ChatItemBubble(
     message: Message,
     isUserMe: Boolean,
-    authorClicked: (String) -> Unit
+    authorClicked: (String) -> Unit,
+    isLastMessageByAuthor: Boolean
 ) {
 
-    val backgroundBubbleColor = if (isUserMe) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
 
-    Column {
+    val gradient = Modifier.clip(if(isUserMe) UserChatBubbleShape else ChatBubbleShape).background(
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF8C7DF7),
+                Color(0xFF6555D8)
+            )
+        )
+    )
+    val nogradient = Modifier.clip(if(isUserMe) UserChatBubbleShape else ChatBubbleShape).background(
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF8C7DF7),
+                Color(0xFF8C7DF7)
+            )
+        )
+    )
+
+    val usercolor = if(isLastMessageByAuthor) nogradient else gradient
+
+    val reciepientcolor = Modifier.clip(if(isUserMe) UserChatBubbleShape else ChatBubbleShape).background(
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                Colors.DARK_GRAY,
+                Colors.DARK_GRAY
+            )
+        )
+    )
+
+    Column(
+        horizontalAlignment = Alignment.End
+    ) {
         Surface(
-            color = backgroundBubbleColor,
-            shape = ChatBubbleShape
+            modifier = if(isUserMe) usercolor else reciepientcolor,
+            color = Color.Transparent,//backgroundBubbleColor,
+            shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
+
         ) {
             ClickableMessage(
                 message = message,
@@ -166,8 +197,9 @@ fun ChatItemBubble(
         message.image?.let {
             Spacer(modifier = Modifier.height(4.dp))
             Surface(
-                color = backgroundBubbleColor,
-                shape = ChatBubbleShape
+                modifier = if(isUserMe) usercolor else reciepientcolor,
+                color = Color.Transparent,
+                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
             ) {
                 Image(
                     painter = painterResource(it),
@@ -195,7 +227,12 @@ fun ClickableMessage(
 
     ClickableText(
         text = styledMessage,
-        style = MaterialTheme.typography.bodyLarge.copy(color = LocalContentColor.current),
+        style = TextStyle(
+            fontSize = 16.sp,
+            fontWeight =  FontWeight.Normal,
+            color = Colors.WHITE,
+            fontFamily = Fonts.INTER
+        ),
         modifier = Modifier.padding(16.dp),
         onClick = {
             styledMessage
@@ -223,30 +260,83 @@ fun ConversationPreview() {
         ),
         Message(
             "me",
-            "Thank you! \\uD83E\\uDE77",
+            "Thank you!",
             "8:06 PM",
             R.drawable.ethos
+        ),
+        Message(
+            "Taylor Brooks",
+            "You can use all the same stuff",
+            "8:05 PM"
+        ),
+        Message(
+            "Taylor Brooks",
+            "@aliconors Take a look at the `Flow.collectAsStateWithLifecycle()` APIs",
+            "8:05 PM"
+        ),
+        Message(
+            "Taylor Brooks",
+            "Compose newbie as well, have you looked at the JetNews sample? " +
+                    "Most blog posts end up out of date pretty fast but this sample is always up to " +
+                    "date and deals with async data loading (it's faked but the same idea " +
+                    "applies)  https://goo.gle/jetnews",
+            "8:04 PM"
+        ),
+        Message(
+            "me",
+            "Compose newbie: I’ve scourged the internet for tutorials about async data " +
+                    "loading but haven’t found any good ones " +
+                    "What’s the recommended way to load async data and emit composable widgets?",
+            "8:03 PM"
         )
+
     )
 
     val authorMe = "me"
+
+
+//    LazyColumn(
+//        reverseLayout = true,
+//        modifier = Modifier
+//            .fillMaxSize()
+//    ){
+//        for (index in initialMessages.indices) {
+//            val prevAuthor = initialMessages.getOrNull(index - 1)?.author
+//            val nextAuthor = initialMessages.getOrNull(index + 1)?.author
+//            val content = initialMessages[index]
+//            val isFirstMessageByAuthor = prevAuthor != content.author
+//            val isLastMessageByAuthor = nextAuthor != content.author
+//            item {
+//                Message(
+//                    onAuthorClick = {  },
+//                    msg = content,
+//                    isUserMe = content.author == authorMe,
+//                    isFirstMessageByAuthor = isFirstMessageByAuthor,
+//                    isLastMessageByAuthor = isLastMessageByAuthor
+//                )
+//            }
+//
+//        }
+//    }
 
     LazyColumn(
         reverseLayout = true,
         modifier = Modifier
             .fillMaxSize()
     ){
-        for (index in initialMessages.indices) {
+        initialMessages.forEachIndexed {  index, message ->
+
             val prevAuthor = initialMessages.getOrNull(index - 1)?.author
             val nextAuthor = initialMessages.getOrNull(index + 1)?.author
             val content = initialMessages[index]
             val isFirstMessageByAuthor = prevAuthor != content.author
             val isLastMessageByAuthor = nextAuthor != content.author
+
             item {
                 Message(
                     onAuthorClick = {  },
-                    msg = content,
-                    isUserMe = content.author == authorMe,
+                    msg = message,
+                    isUserMe = message.author == authorMe,
                     isFirstMessageByAuthor = isFirstMessageByAuthor,
                     isLastMessageByAuthor = isLastMessageByAuthor
                 )

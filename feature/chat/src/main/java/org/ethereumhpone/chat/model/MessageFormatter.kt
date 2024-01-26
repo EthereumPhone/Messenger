@@ -23,12 +23,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
+import org.ethereumhpone.chat.R
+import org.ethosmobile.components.library.theme.Colors
+import org.ethosmobile.components.library.theme.Fonts
 
 // Regex containing the syntax tokens
 val symbolPattern by lazy {
@@ -68,9 +72,10 @@ fun messageFormatter(
 
         val codeSnippetBackground =
             if (primary) {
-                MaterialTheme.colorScheme.secondary
+
+                Color(0xFF1E1E1E)
             } else {
-                MaterialTheme.colorScheme.surface
+                Color(0xFF1E1E1E)
             }
 
         for (token in tokens) {
@@ -117,8 +122,9 @@ private fun getSymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value,
                 spanStyle = SpanStyle(
-                    color = if (primary) colorScheme.inversePrimary else colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    color = if (primary) Colors.WHITE else Color(0xFF8C7DF7),
+                    fontWeight = FontWeight.Bold,
+
                 )
             ),
             StringAnnotation(
@@ -153,7 +159,7 @@ private fun getSymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value.trim('`'),
                 spanStyle = SpanStyle(
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = SourceCodePro,
                     fontSize = 12.sp,
                     background = codeSnippetBackground,
                     baselineShift = BaselineShift(0.2f)
@@ -165,7 +171,10 @@ private fun getSymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value,
                 spanStyle = SpanStyle(
-                    color = if (primary) colorScheme.inversePrimary else colorScheme.primary
+                    fontFamily = Fonts.INTER,
+                    fontWeight = FontWeight.Medium,
+                    color = if (primary) colorScheme.inversePrimary else Color(0xFF8C7DF7),
+                    textDecoration = TextDecoration.Underline
                 )
             ),
             StringAnnotation(
@@ -178,3 +187,18 @@ private fun getSymbolAnnotation(
         else -> SymbolAnnotation(AnnotatedString(matchResult.value), null)
     }
 }
+
+
+val SourceCodePro = FontFamily(
+    Font(R.font.sourcecodepro_regular,FontWeight.Normal,FontStyle.Normal), //Normal
+    Font(R.font.sourcecodepro_italic,FontWeight.Normal,FontStyle.Normal), //Normal - italics
+
+    Font(R.font.sourcecodepro_medium,FontWeight.Medium,FontStyle.Normal), //Medium
+    Font(R.font.sourcecodepro_mediumitalic,FontWeight.Medium,FontStyle.Italic), //Medium - italics
+
+    Font(R.font.sourcecodepro_semibold,FontWeight.SemiBold,FontStyle.Normal), //Semibold
+    Font(R.font.sourcecodepro_semibolditalic,FontWeight.SemiBold,FontStyle.Italic), //Semibold - italics
+
+    Font(R.font.sourcecodepro_bold,FontWeight.Bold,FontStyle.Normal), //Bold
+    Font(R.font.sourcecodepro_bolditalic,FontWeight.Bold,FontStyle.Italic), //Bold - italics
+)
