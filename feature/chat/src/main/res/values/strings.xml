@@ -40,7 +40,7 @@
 
     <string name="emoji_selector_desc">Emoji selector</string>
     <string name="emoji_selector_bt_desc">Show Emoji selector</string>
-    <string name="dm_desc">Direct Message</string>
+    <string name="wallet">Wallet</string>
     <string name="attach_photo_desc">Attach Photo</string>
     <string name="map_selector_desc">Location selector</string>
     <string name="videochat_desc">Start videochat</string>

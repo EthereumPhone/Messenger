@@ -1,6 +1,7 @@
 package org.ethereumhpone.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,23 +17,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.ethereumhpone.chat.components.AssetPickerSheet
 import org.ethereumhpone.chat.components.Header
 import org.ethereumhpone.chat.components.Message
 import org.ethereumhpone.chat.components.UserInput
 import org.ethosmobile.components.library.core.ethOSHeader
 import org.ethosmobile.components.library.core.ethOSTextField
+import org.ethosmobile.components.library.theme.Colors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,11 +67,7 @@ fun ChatScreen(
 //
 //
         val initialMessages = listOf(
-            org.ethereumhpone.chat.model.Message(
-                "me",
-                "Check it out!",
-                "8:07 PM"
-            ),
+
             org.ethereumhpone.chat.model.Message(
                 "me",
                 "Thank you!",
@@ -146,6 +151,18 @@ fun ChatScreen(
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
+
+
+    //ModalSheets
+    var showAssetSheet by remember { mutableStateOf(false) }
+    val modalAssetSheetState = rememberModalBottomSheetState(true)
+
+    var showCameraWithPerm by remember {
+        mutableStateOf(false)
+    }
+
+
+
     Scaffold (
         containerColor = Color.Black,
         topBar = {
@@ -164,9 +181,19 @@ fun ChatScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
 
+//      Keyboard overlapping issue
+//    val imeState = rememberImeState()
+//    val scrollState = rememberScrollState()
+//
+//    LaunchedEffect(key1 = imeState.value) {
+//        if (imeState.value){
+//            scrollState.animateScrollTo(scrollState.maxValue, tween(300))
+//        }
+//    }
         Column(
             Modifier
                 .fillMaxSize()
+//                .verticalScroll(scrollState) // scrollable for keyboard issue
                 .padding(paddingValues)) {
 
             Box(modifier = Modifier.weight(1f)) {
@@ -197,23 +224,71 @@ fun ChatScreen(
             }
 
 
+//            UserInput(
+//                onMessageSent = { content ->
+////                    uiState.addMessage(
+////                        Message(authorMe, content, timeNow)
+////                    )
+//                },
+//                resetScroll = {
+//                    scope.launch {
+//                        scrollState.scrollToItem(0)
+//                    }
+//                },
+//                // let this element handle the padding so that the elevation is shown behind the
+//                // navigation bar
+//                modifier = Modifier
+//                    .navigationBarsPadding()
+//                    .imePadding()
+//            )
             UserInput(
-                onMessageSent = { content ->
-//                    uiState.addMessage(
-//                        Message(authorMe, content, timeNow)
-//                    )
-                },
-                resetScroll = {
-                    scope.launch {
-                        scrollState.scrollToItem(0)
-                    }
-                },
-                // let this element handle the padding so that the elevation is shown behind the
-                // navigation bar
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .imePadding()
+                onMessageSent = {},
+                onOpenAssetPicker = {
+                    showAssetSheet = true
+                }
             )
+
+
+
+            //Asset ModalSheet
+
+            if(showAssetSheet){
+                ModalBottomSheet(
+                    containerColor= Colors.BLACK,
+                    contentColor= Colors.WHITE,
+
+                    onDismissRequest = {
+                        scope.launch {
+                            modalAssetSheetState.hide()
+                        }.invokeOnCompletion {
+                            if(!modalAssetSheetState.isVisible) showAssetSheet = false
+                        }
+                    },
+                    sheetState = modalAssetSheetState
+                ) {
+
+
+                    AssetPickerSheet()
+
+//                    AssetPickerSheet(
+//                        assets = assets,
+//                        onChangeAssetClicked = { tokenAsset ->
+//                            //Toast.makeText(context, "Clicked - ${tokenAsset.symbol}", Toast.LENGTH_SHORT).show()
+//
+//                            onChangeAssetClicked(tokenAsset)
+//                            //SelectedTokenUiState.Selected(tokenAsset)
+//                            coroutineScope.launch {
+//                                modalAssetSheetState.hide()
+//                            }.invokeOnCompletion {
+//                                if (!modalAssetSheetState.isVisible) showAssetSheet = false
+//                            }
+//                        },
+//                        chainId = if(network != "N/A") chain.toInt() else 1
+//
+//                    )
+
+                }
+            }
 
         }
 
