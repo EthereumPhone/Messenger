@@ -2,9 +2,12 @@ package org.ethereumhpone.database.dao
 
 import android.provider.Telephony
 import androidx.room.Dao
+import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.MmsPart
 
 @Dao
 interface MessageDao {
@@ -31,9 +34,22 @@ interface MessageDao {
         mmsInboxTypes: IntArray = intArrayOf(Telephony.Mms.MESSAGE_BOX_INBOX, Telephony.Mms.MESSAGE_BOX_ALL)
     ): Flow<Message>
 
-    @Query("SELECT COUNT(*) FROM conversation WHERE archived = 0 AND blocked = 0")
+    @Query("SELECT COUNT(*) FROM conversation INNER JOIN message ON conversation.id = message.threadId WHERE conversation.archived = 0 AND conversation.blocked = 0 AND message.read = 0")
     fun getUnreadCount(): Long
 
+    @Query("")
+    fun getPart(id: Long): MmsPart?
+
+    fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>>
+
+    @Insert
+    fun savePart(mmsPart: MmsPart)
+
+    @Insert
+    fun insertMessage(message: Message)
+
+    @Update
+    fun updateMessage(message: Message)
 
 
 }
