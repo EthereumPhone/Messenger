@@ -1,6 +1,8 @@
 package org.ethereumhpone.chat
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,8 +32,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -66,7 +71,11 @@ fun ChatScreen(
 //
 //
 //
-        val initialMessages = listOf(
+
+    val focusManager: FocusManager = LocalFocusManager.current
+
+
+    val initialMessages = listOf(
 
             org.ethereumhpone.chat.model.Message(
                 "me",
@@ -181,25 +190,17 @@ fun ChatScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
 
-//      Keyboard overlapping issue
-//    val imeState = rememberImeState()
-//    val scrollState = rememberScrollState()
-//
-//    LaunchedEffect(key1 = imeState.value) {
-//        if (imeState.value){
-//            scrollState.animateScrollTo(scrollState.maxValue, tween(300))
-//        }
-//    }
+
+        val context =  LocalContext.current
         Column(
             Modifier
                 .fillMaxSize()
-//                .verticalScroll(scrollState) // scrollable for keyboard issue
                 .padding(paddingValues)) {
 
             Box(modifier = Modifier.weight(1f)) {
                 LazyColumn(
                     reverseLayout = true,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp,)
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp)
                 ){
                     initialMessages.forEachIndexed {  index, message ->
 
@@ -211,7 +212,8 @@ fun ChatScreen(
 
                         item {
                             Message(
-                                onAuthorClick = {  },
+                                onAuthorClick = {
+                                },
                                 msg = message,
                                 isUserMe = message.author == "me",
                                 isFirstMessageByAuthor = isFirstMessageByAuthor,

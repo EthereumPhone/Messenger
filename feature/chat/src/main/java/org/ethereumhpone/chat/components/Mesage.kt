@@ -2,6 +2,7 @@ package org.ethereumhpone.chat.components
 
 import android.app.Notification
 import android.view.textclassifier.ConversationActions
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -220,6 +222,8 @@ fun ClickableMessage(
 ) {
     val uriHandler = LocalUriHandler.current
 
+    val context =  LocalContext.current
+
     val styledMessage = messageFormatter(
         text = message.content,
         primary = isUserMe
@@ -235,6 +239,9 @@ fun ClickableMessage(
         ),
         modifier = Modifier.padding(16.dp),
         onClick = {
+            Toast.makeText(context, "This is a Sample Toast", Toast.LENGTH_SHORT).show()
+
+
             styledMessage
                 .getStringAnnotations(start = it, end = it)
                 .firstOrNull()

@@ -276,12 +276,6 @@
 //            description = stringResource(id = R.string.emoji_selector_bt_desc)
 //        )
 //        InputSelectorButton(
-//            onClick = { onSelectorChange(InputSelector.DM) },
-//            icon = Icons.Outlined.AlternateEmail,
-//            selected = currentInputSelector == InputSelector.DM,
-//            description = stringResource(id = R.string.dm_desc)
-//        )
-//        InputSelectorButton(
 //            onClick = { onSelectorChange(InputSelector.PICTURE) },
 //            icon = Icons.Outlined.InsertPhoto,
 //            selected = currentInputSelector == InputSelector.PICTURE,
