@@ -60,8 +60,8 @@ fun Header(
         ) {
 
             Row(
-                horizontalArrangement = Arrangement.Start,
-
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 IconButton(
                     onClick = onBackClick,
@@ -74,32 +74,41 @@ fun Header(
                         modifier = modifier.size(iconsize)
                     )
                 }
-            }
 
-            //Header title
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF262626))
-                ){
-                    if (image != ""){
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF262626))
+                    ){
+                        if (image != ""){
 //                    Image(painter = painterResource(id = R.drawable.nouns), contentDescription = "" )
-                        Image(
-                            painter = rememberImagePainter(image),
-                            contentDescription = "Contact Profile Pic",
-                            contentScale = ContentScale.Crop
-                        )
-                    } else{
-                        Image(painter = painterResource(id = R.drawable.nouns), contentDescription = "contact Profile Pic" )
+                            Image(
+                                painter = rememberImagePainter(image),
+                                contentDescription = "Contact Profile Pic",
+                                contentScale = ContentScale.Crop
+                            )
+                        } else{
+                            Image(painter = painterResource(id = R.drawable.nouns), contentDescription = "contact Profile Pic" )
+                        }
                     }
-                }
 
+                    Text(
+                        textAlign = TextAlign.Center,
+                        text = name,
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = Fonts.INTER,
+                    )
+
+                }
             }
+
 
 
 //      Warning or info
@@ -126,14 +135,6 @@ fun Header(
             }
         }
 
-        Text(
-            textAlign = TextAlign.Center,
-            text = name,
-            fontSize = 14.sp,
-            color = Color.White,
-            fontWeight = FontWeight.Medium,
-            fontFamily = Fonts.INTER,
-        )
     }
 
 }

@@ -214,7 +214,7 @@ fun UserInput(
     }
 }
 
-private fun TextFieldValue.addText(newString: String): TextFieldValue {
+fun TextFieldValue.addText(newString: String): TextFieldValue {
     val newText = this.text.replaceRange(
         this.selection.start,
         this.selection.end,
@@ -229,7 +229,7 @@ private fun TextFieldValue.addText(newString: String): TextFieldValue {
 }
 
 @Composable
-private fun SelectorExpanded(
+fun SelectorExpanded(
     currentSelector: InputSelector,
     onCloseRequested: () -> Unit,
     onTextAdded: (String) -> Unit,
@@ -287,7 +287,7 @@ fun FunctionalityNotAvailablePanel() {
 }
 
 @Composable
-private fun UserInputSelector(
+fun UserInputSelector(
     onSelectorChange: (InputSelector) -> Unit,
     currentInputSelector: InputSelector,
     modifier: Modifier = Modifier
@@ -330,7 +330,7 @@ private fun UserInputSelector(
 }
 
 @Composable
-private fun InputSelectorButton(
+fun InputSelectorButton(
     onClick: () -> Unit,
     icon: ImageVector,
     description: String,
@@ -376,7 +376,7 @@ var SemanticsPropertyReceiver.keyboardShownProperty by KeyboardShownKey
 @OptIn(ExperimentalAnimationApi::class)
 @ExperimentalFoundationApi
 @Composable
-private fun UserInputText(
+fun UserInputText(
     keyboardType: KeyboardType = KeyboardType.Text,
     onTextChanged: (TextFieldValue) -> Unit,
     textFieldValue: TextFieldValue,
