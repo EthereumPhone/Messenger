@@ -224,8 +224,8 @@ fun ChatScreen(
     }
 
 
-
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
+
     val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
 
     // Intercept back navigation if there's a InputSelector visible
@@ -244,6 +244,9 @@ fun ChatScreen(
     var textFieldFocusState by remember { mutableStateOf(false) }
 
     val context =  LocalContext.current
+    val controller = LocalSoftwareKeyboardController.current
+
+
 
     Scaffold (
         containerColor = Color.Black,
@@ -370,7 +373,14 @@ fun ChatScreen(
                         enabled = true,
                         onClick = {
                             //onChangeShowActionBar()
+                            dismissKeyboard()
+                            controller?.hide() // Keyboard
+
                             showActionbar = !showActionbar
+
+                            if(showSelectionbar){
+                                showSelectionbar = false
+                            }
                             startAnimation = !startAnimation
                         },
                     ) {
@@ -392,27 +402,39 @@ fun ChatScreen(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(35.dp))
-                            .border(1.dp, Color.White, RoundedCornerShape(35.dp))
+                            .border(2.dp, Colors.DARK_GRAY, RoundedCornerShape(35.dp))
                             .heightIn(min = 56.dp, max = 100.dp)
                             .onFocusChanged { state ->
                                 if (lastFocusState != state.isFocused) {
-                                    //onTextFieldFocused(state.isFocused)
+
+                                    if (state.isFocused) {
+                                        currentInputSelector = InputSelector.NONE
+                                        //resetScroll()
+                                    }
+                                    textFieldFocusState = state.isFocused
+
                                 }
                                 lastFocusState = state.isFocused
                             },
 
-                        placeholder = { Text("Type a message") },
+                        placeholder = {
+                            Text("Type a message")
+                                      },
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            containerColor= Color.Transparent,
-                            focusedBorderColor =  Color.Transparent,
-                            unfocusedBorderColor = Color.Blue,
+                            focusedTextColor = Colors.WHITE,
+                            unfocusedTextColor = Colors.WHITE,
+                            containerColor= Colors.TRANSPARENT,
+                            focusedBorderColor =  Colors.TRANSPARENT,
+                            unfocusedBorderColor = Colors.TRANSPARENT,
+                            cursorColor = Colors.WHITE,
+                            errorCursorColor = Colors.WHITE,
+                            focusedPlaceholderColor = Colors.GRAY,
+                            unfocusedPlaceholderColor = Colors.GRAY,
                         ),
                         textStyle =  TextStyle(
                             fontWeight = FontWeight.Medium,
                             fontFamily = Fonts.INTER,
-                            fontSize = 16.sp,
+                            fontSize = 18.sp,
                             color = Colors.WHITE,
                         )
 
@@ -435,6 +457,22 @@ fun ChatScreen(
                                 //resetScroll()
                                 dismissKeyboard()
 
+                                if(showSelectionbar){
+                                    showSelectionbar = false
+                                }
+
+                                if(showActionbar){
+                                    showActionbar = false
+                                    startAnimation = !startAnimation
+                                }
+
+
+
+                                controller?.hide() // Keyboard
+
+                                lastFocusState = false
+                                textFieldFocusState = false
+
                             },//onMessageSent,
                         ) {
                             Icon(imageVector = Icons.Rounded.ArrowUpward,modifier= Modifier
@@ -445,93 +483,122 @@ fun ChatScreen(
                 }
 
                 if (showActionbar){
-                    Row (
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-
-                    ){
-                        IconButton(
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .clip(CircleShape)
-                                .size(42.dp)
-                            ,
-                            enabled = true,
-                            onClick = {
-                                //onChangeShowActionBar()
-//                                showActionbar = !showActionbar
-                                dismissKeyboard()
-                                showSelectionbar = !showSelectionbar
-
-                            },
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center
-                            ){
-                                Icon(imageVector = Icons.Outlined.Mood, modifier= Modifier
-                                    .size(32.dp)
-                                    ,contentDescription = "Send",tint = Color.White)
+                    SelectorExpanded(
+                        onSelectorChange = {
+                            currentInputSelector = it
+                        },
+                        onShowSelectionbar = {
+                            if (!showSelectionbar) {
+                                showSelectionbar = true
                             }
+                        },
+                        onHideKeyboard = { controller?.hide() },
+                    )
 
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        IconButton(
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .clip(CircleShape)
-                                .size(42.dp)
-                            ,
-                            enabled = true,
-                            onClick = {
-                                //onChangeShowActionBar()
-//                                showActionbar = !showActionbar
-                                dismissKeyboard()
-                                showSelectionbar = !showSelectionbar
-
-                            },
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center
-                            ){
-                                Icon(imageVector = ImageVector.vectorResource(R.drawable.wallet), modifier= Modifier
-                                    .size(32.dp)
-                                    ,contentDescription = "Send",tint = Color.White)
-                            }
-
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        IconButton(
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .clip(CircleShape)
-                                .size(42.dp)
-                            ,
-                            enabled = true,
-                            onClick = {
-                                //onChangeShowActionBar()
-//                                showActionbar = !showActionbar
-                                dismissKeyboard()
-                                showSelectionbar = !showSelectionbar
-
-                            },
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center
-                            ){
-                                Icon(imageVector = Icons.Outlined.InsertPhoto, modifier= Modifier
-                                    .size(32.dp)
-                                    ,contentDescription = "Send",tint = Color.White)
-                            }
-
-                        }
-                    }
+//                    Row (
+//                        horizontalArrangement = Arrangement.Center,
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(vertical = 8.dp)
+//
+//                    ){
+//                        IconButton(
+//                            modifier = Modifier
+//                                .padding(top = 8.dp)
+//                                .clip(CircleShape)
+//                                .size(42.dp)
+//                            ,
+//                            enabled = true,
+//                            onClick = {
+//                                //onChangeShowActionBar()
+////                                showActionbar = !showActionbar
+//                                dismissKeyboard()
+//                                controller?.hide() // Keyboard
+//                                if (!showSelectionbar) {
+//                                    showSelectionbar = true
+//                                }
+//
+//                            },
+//                        ) {
+//                            Box(
+//                                contentAlignment = Alignment.Center
+//                            ){
+//                                Icon(imageVector = Icons.Outlined.Mood, modifier= Modifier
+//                                    .size(32.dp)
+//                                    ,contentDescription = "Send",tint = Color.White)
+//                            }
+//
+//                        }
+//                        Spacer(modifier = Modifier.width(12.dp))
+//                        IconButton(
+//                            modifier = Modifier
+//                                .padding(top = 8.dp)
+//                                .clip(CircleShape)
+//                                .size(42.dp)
+//                            ,
+//                            enabled = true,
+//                            onClick = {
+//                                //onChangeShowActionBar()
+////                                showActionbar = !showActionbar
+////                                dismissKeyboard()
+//                                controller?.hide() // Keyboard
+//                                if (!showSelectionbar) {
+//                                    showSelectionbar = true
+//                                }
+//
+//                            },
+//                        ) {
+//                            Box(
+//                                contentAlignment = Alignment.Center
+//                            ){
+//                                Icon(imageVector = ImageVector.vectorResource(R.drawable.wallet), modifier= Modifier
+//                                    .size(32.dp)
+//                                    ,contentDescription = "Send",tint = Color.White)
+//                            }
+//
+//                        }
+//                        Spacer(modifier = Modifier.width(12.dp))
+//                        IconButton(
+//                            modifier = Modifier
+//                                .padding(top = 8.dp)
+//                                .clip(CircleShape)
+//                                .size(42.dp)
+//                            ,
+//                            enabled = true,
+//                            onClick = {
+//                                //onChangeShowActionBar()
+////                                showActionbar = !showActionbar
+////                                dismissKeyboard()
+//                                controller?.hide() // Keyboard
+//                                if (!showSelectionbar) {
+//                                    showSelectionbar = true
+//                                }
+//
+//
+//                            },
+//                        ) {
+//                            Box(
+//                                contentAlignment = Alignment.Center
+//                            ){
+//                                Icon(imageVector = Icons.Outlined.InsertPhoto, modifier= Modifier
+//                                    .size(32.dp)
+//                                    ,contentDescription = "Send",tint = Color.White)
+//                            }
+//
+//                        }
+//                    }
                 }
 
                 if (showSelectionbar){
                     Surface(tonalElevation = 8.dp) {
-                        FunctionalityNotAvailablePanel()
+                        when (currentInputSelector) {
+                            InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
+                            InputSelector.WALLET -> FunctionalityNotAvailablePanel("Wallet")
+                            InputSelector.PICTURE -> FunctionalityNotAvailablePanel("Picture") // TODO: link to Camera
+                            else -> {
+                                throw NotImplementedError()
+                            }
+                        }
                     }
                 }
 
@@ -577,6 +644,95 @@ fun ChatScreen(
 //    }
 //    textFieldFocusState = focused
 //}
+
+@Composable
+fun SelectorExpanded(
+    onSelectorChange: (InputSelector) -> Unit,
+    onShowSelectionbar: () -> Unit,
+    onHideKeyboard: () -> Unit,
+){
+    Row (
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+
+    ){
+        IconButton(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .clip(CircleShape)
+                .size(42.dp)
+            ,
+            enabled = true,
+            onClick = {
+                onSelectorChange(InputSelector.EMOJI)
+                onHideKeyboard()
+                onShowSelectionbar()
+            },
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ){
+                Icon(imageVector = Icons.Outlined.Mood, modifier= Modifier
+                    .size(32.dp)
+                    ,contentDescription = "Send",tint = Color.White)
+            }
+
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        IconButton(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .clip(CircleShape)
+                .size(42.dp)
+            ,
+            enabled = true,
+            onClick = {
+                //onChangeShowActionBar()
+//                                showActionbar = !showActionbar
+                onSelectorChange(InputSelector.WALLET)
+                onHideKeyboard()
+                onShowSelectionbar()
+
+
+
+            },
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ){
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.wallet), modifier= Modifier
+                    .size(32.dp)
+                    ,contentDescription = "Send",tint = Color.White)
+            }
+
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        IconButton(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .clip(CircleShape)
+                .size(42.dp)
+            ,
+            enabled = true,
+            onClick = {
+                onSelectorChange(InputSelector.PICTURE)
+                onHideKeyboard()
+                onShowSelectionbar()
+            },
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ){
+                Icon(imageVector = Icons.Outlined.InsertPhoto, modifier= Modifier
+                    .size(32.dp)
+                    ,contentDescription = "Send",tint = Color.White)
+            }
+
+        }
+    }
+}
 
 @Composable
 @Preview

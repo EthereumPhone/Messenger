@@ -16,6 +16,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -100,7 +101,7 @@ fun Header(
                     Text(
                         textAlign = TextAlign.Center,
                         text = name,
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = Fonts.INTER,
@@ -125,7 +126,7 @@ fun Header(
                         modifier = modifier.size(iconsize)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Menu,
+                            imageVector = Icons.Rounded.Phone,
                             contentDescription = "Go back",
                             tint =  Colors.WHITE,
                             modifier = modifier.size(iconsize)
