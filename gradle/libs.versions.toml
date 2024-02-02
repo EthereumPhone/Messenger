@@ -21,6 +21,8 @@ protobuf = "3.24.4"
 protobufPlugin = "0.9.4"
 core = "1.12.0"
 serialization  = "1.0.1"
+navigationCommonKtx = "2.7.6"
+navigationRuntimeKtx = "2.7.6"
 
 
 [libraries]
@@ -66,6 +68,8 @@ androidx-datastore-proto = {group = "androidx.datastore", name = "datastore", ve
 protobuf-protoc = { group = "com.google.protobuf", name = "protoc", version.ref = "protobuf" }
 protobuf-kotlin-lite = { group = "com.google.protobuf", name = "protobuf-kotlin-lite", version.ref = "protobuf" }
 androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
+androidx-navigation-common-ktx = { group = "androidx.navigation", name = "navigation-common-ktx", version.ref = "navigationCommonKtx" }
+androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
 
 
 [plugins]

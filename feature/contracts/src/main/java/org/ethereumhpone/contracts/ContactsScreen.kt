@@ -69,9 +69,21 @@ import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
 
+@Composable
+fun ContactRoute(
+    modifier: Modifier = Modifier,
+    navigateToChat: () -> Unit,
+//    viewModel: ContactViewModel = hiltViewModel()
+){
+    ContactScreen(
+        navigateToChat = navigateToChat
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactScreen(
+    navigateToChat: () -> Unit,
     modifier: Modifier = Modifier
 ){
 
@@ -141,6 +153,7 @@ fun ContactScreen(
                             header = "Mark Katakowskihashvili",
                             subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
                             ens = "emunsi.eth",
+                            onClick = navigateToChat
                         )
                     }
 
@@ -179,5 +192,5 @@ fun ContactScreen(
     @Composable
 @Preview
 fun PreviewChatScreen(){
-    ContactScreen()
+    ContactScreen({})
 }

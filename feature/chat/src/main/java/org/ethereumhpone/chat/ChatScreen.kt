@@ -101,10 +101,21 @@ import org.ethereumhpone.chat.components.UserInputSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import org.ethereumhpone.chat.components.addText
 
+
+@Composable
+fun ChatRoute(
+    modifier: Modifier = Modifier,
+    navigateBackToConversations: () -> Unit
+){
+    ChatScreen(
+        navigateBackToConversations = navigateBackToConversations
+    )
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navigateBackToConversations: () -> Unit
 ){
 
 //    Column(
@@ -254,7 +265,7 @@ fun ChatScreen(
             Header(
                 name = "Mark Katakowski",
                 image = "",
-                onBackClick = {},
+                onBackClick = navigateBackToConversations,
                 isTrailContent = false,
                 trailContent= {},
             )
@@ -737,5 +748,5 @@ fun SelectorExpanded(
 @Composable
 @Preview
 fun PreviewChatScreen(){
-    ChatScreen()
+    ChatScreen(navigateBackToConversations={})
 }

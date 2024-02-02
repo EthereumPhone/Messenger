@@ -1,6 +1,9 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+//    alias(libs.plugins.hilt.android )
+//    alias(libs.plugins.kotlin.kapt)
+
 }
 
 android {
@@ -55,6 +58,15 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.compose.foundation:foundation:1.6.0-alpha02")
     implementation(project(":feature:chat"))
+    implementation(libs.androidx.navigation.common.ktx)
+    implementation(libs.androidx.navigation.runtime.ktx)
+
+    //implementation(libs.androidx.navigation.compose)
+    implementation("androidx.navigation:navigation-compose:2.7.6")
+
+
+
+
 
 
     debugImplementation("androidx.compose.ui:ui-tooling:1.2.1")
@@ -76,6 +88,7 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
 
 
     implementation("io.coil-kt:coil-compose:1.4.0")

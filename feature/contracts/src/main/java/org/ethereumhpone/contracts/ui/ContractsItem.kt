@@ -38,7 +38,7 @@ import org.ethosmobile.components.library.theme.Fonts
 @Composable
 fun ChatListItem(
     image: @Composable () -> Unit = {},
-    header: String = "Mark Katakowski",
+    header: String = "Header",
     subheader: String = "Subheader",
     ens: String = "",
     time: String = "0:00AM",
@@ -85,7 +85,7 @@ fun ChatListItem(
                         color = Colors.WHITE,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
-                        //modifier = Modifier.widthIn(min = 80.dp, max = 180.dp)
+                        modifier = Modifier.widthIn(min = 80.dp, max = 180.dp)
 
                     )
 //                    Text(
@@ -105,7 +105,7 @@ fun ChatListItem(
                     color = Colors.GRAY,
                     style = TextStyle(
                         color = Colors.GRAY,
-                        fontSize = 16.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         fontFamily = Fonts.INTER,
                     ),
