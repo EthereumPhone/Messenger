@@ -323,48 +323,6 @@ fun ChatScreen(
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
                 ) {
-//                var lastFocusState by remember { mutableStateOf(false) }
-//                BasicTextField(
-//                    value = textState,
-//                    onValueChange = { textState = it },
-//                    modifier = modifier
-//
-//                        .onFocusChanged { state ->
-//                            if (lastFocusState != state.isFocused) {
-//                                //onTextFieldFocused(state.isFocused)
-//                            }
-//                            lastFocusState = state.isFocused
-//                        },
-//                    keyboardOptions = KeyboardOptions(
-//                        keyboardType = KeyboardType.Text,
-//                        imeAction = ImeAction.Send
-//                    ),
-//
-//                    cursorBrush = SolidColor(
-//                        Colors.WHITE
-//                    ),
-//                    textStyle = TextStyle(
-//                        fontWeight = FontWeight.Medium,
-//                        fontFamily = Fonts.INTER,
-//                        fontSize = 16.sp,
-//                        color = Colors.WHITE,
-//                    )
-//                )
-//                { innerTextField ->
-//                    Row(
-//                        verticalAlignment = Alignment.CenterVertically,
-//                        horizontalArrangement = Arrangement.SpaceBetween,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(horizontal = 24.dp)
-//                    ) {
-//                        innerTextField()
-//                        // Send button
-//
-//
-//
-//                    }
-//                }
 
 
 
