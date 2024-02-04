@@ -477,103 +477,13 @@ fun ChatScreen(
                         },
                         onHideKeyboard = { controller?.hide() },
                     )
-
-//                    Row (
-//                        horizontalArrangement = Arrangement.Center,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(vertical = 8.dp)
-//
-//                    ){
-//                        IconButton(
-//                            modifier = Modifier
-//                                .padding(top = 8.dp)
-//                                .clip(CircleShape)
-//                                .size(42.dp)
-//                            ,
-//                            enabled = true,
-//                            onClick = {
-//                                //onChangeShowActionBar()
-////                                showActionbar = !showActionbar
-//                                dismissKeyboard()
-//                                controller?.hide() // Keyboard
-//                                if (!showSelectionbar) {
-//                                    showSelectionbar = true
-//                                }
-//
-//                            },
-//                        ) {
-//                            Box(
-//                                contentAlignment = Alignment.Center
-//                            ){
-//                                Icon(imageVector = Icons.Outlined.Mood, modifier= Modifier
-//                                    .size(32.dp)
-//                                    ,contentDescription = "Send",tint = Color.White)
-//                            }
-//
-//                        }
-//                        Spacer(modifier = Modifier.width(12.dp))
-//                        IconButton(
-//                            modifier = Modifier
-//                                .padding(top = 8.dp)
-//                                .clip(CircleShape)
-//                                .size(42.dp)
-//                            ,
-//                            enabled = true,
-//                            onClick = {
-//                                //onChangeShowActionBar()
-////                                showActionbar = !showActionbar
-////                                dismissKeyboard()
-//                                controller?.hide() // Keyboard
-//                                if (!showSelectionbar) {
-//                                    showSelectionbar = true
-//                                }
-//
-//                            },
-//                        ) {
-//                            Box(
-//                                contentAlignment = Alignment.Center
-//                            ){
-//                                Icon(imageVector = ImageVector.vectorResource(R.drawable.wallet), modifier= Modifier
-//                                    .size(32.dp)
-//                                    ,contentDescription = "Send",tint = Color.White)
-//                            }
-//
-//                        }
-//                        Spacer(modifier = Modifier.width(12.dp))
-//                        IconButton(
-//                            modifier = Modifier
-//                                .padding(top = 8.dp)
-//                                .clip(CircleShape)
-//                                .size(42.dp)
-//                            ,
-//                            enabled = true,
-//                            onClick = {
-//                                //onChangeShowActionBar()
-////                                showActionbar = !showActionbar
-////                                dismissKeyboard()
-//                                controller?.hide() // Keyboard
-//                                if (!showSelectionbar) {
-//                                    showSelectionbar = true
-//                                }
-//
-//
-//                            },
-//                        ) {
-//                            Box(
-//                                contentAlignment = Alignment.Center
-//                            ){
-//                                Icon(imageVector = Icons.Outlined.InsertPhoto, modifier= Modifier
-//                                    .size(32.dp)
-//                                    ,contentDescription = "Send",tint = Color.White)
-//                            }
-//
-//                        }
-//                    }
                 }
 
                 if (showSelectionbar){
-                    Surface(tonalElevation = 8.dp) {
+                    Surface(
+                        color = Colors.TRANSPARENT,
+                        tonalElevation = 8.dp
+                    ) {
                         when (currentInputSelector) {
                             InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
                             InputSelector.WALLET -> FunctionalityNotAvailablePanel("Wallet")

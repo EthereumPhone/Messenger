@@ -273,19 +273,29 @@ fun FunctionalityNotAvailablePanel(text: String) {
         Column(
             modifier = Modifier
                 .height(320.dp)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .background(Colors.TRANSPARENT),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Not available",
-                style = MaterialTheme.typography.titleMedium
+                text = "$text",
+                style =  TextStyle(
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Fonts.INTER,
+                    fontSize = 18.sp,
+                    color = Colors.WHITE,
+                )
             )
             Text(
-                text = "Not available $text",
+                text = "Not available ",
                 modifier = Modifier.paddingFrom(FirstBaseline, before = 32.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style =  TextStyle(
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Fonts.INTER,
+                    fontSize = 18.sp,
+                    color = Colors.WHITE,
+                )
             )
         }
     }
