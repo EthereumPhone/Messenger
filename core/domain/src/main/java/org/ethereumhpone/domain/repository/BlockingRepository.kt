@@ -7,10 +7,10 @@ interface BlockingRepository {
 
     fun blockNumber(vararg addresses: String)
     fun getBlockedNumbers(): Flow<List<BlockedNumber>>
-    fun getBlockedNumber(id: Long): BlockedNumber?
-    fun isBlocked(address: String): Boolean
-    fun unblockNumber(id: Long)
-    fun unblockNumbers(vararg addresses: String)
+    fun getBlockedNumber(id: Long): Flow<BlockedNumber?>
+    fun isBlocked(address: String): Flow<Boolean>
+    suspend fun unblockNumber(id: Long)
+    suspend fun unblockNumbers(vararg addresses: String)
 
 
 }

@@ -14,11 +14,11 @@ class MessageRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override fun getMessage(id: Long): Message? {
+    override fun getMessage(id: Long): Flow<Message?> {
         TODO("Not yet implemented")
     }
 
-    override fun getMessageForPart(id: Long): Message? {
+    override fun getMessageForPart(id: Long): Flow<Message?> {
         TODO("Not yet implemented")
     }
 
@@ -30,11 +30,11 @@ class MessageRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override fun getUnreadCount(): Long {
+    override fun getUnreadCount(): Flow<Long> {
         TODO("Not yet implemented")
     }
 
-    override fun getPart(id: Long): MmsPart? {
+    override fun getPart(id: Long): Flow<MmsPart?> {
         TODO("Not yet implemented")
     }
 
@@ -66,7 +66,7 @@ class MessageRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override fun sendMessage(
+    override suspend fun sendMessage(
         subId: Int,
         threadId: Long,
         addresses: List<String>,
@@ -76,54 +76,55 @@ class MessageRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override fun sendSms(message: Message) {
+    override suspend fun sendSms(message: Message) {
         TODO("Not yet implemented")
     }
 
-    override fun resendMms(message: Message) {
+    override suspend fun resendMms(message: Message) {
         TODO("Not yet implemented")
     }
 
-    override fun insertSentSms(
+    override suspend fun insertSentSms(
         subId: Int,
         threadId: Long,
         address: String,
         body: String,
         date: Long
-    ): Message {
+    ) {
         TODO("Not yet implemented")
     }
 
-    override fun insertReceivedSms(
+    override suspend fun insertReceivedSms(
         subId: Int,
         address: String,
         body: String,
         sentTime: Long
-    ): Message {
+    ) {
         TODO("Not yet implemented")
     }
 
-    override fun markSending(id: Long) {
+    override suspend fun markSending(id: Long) {
         TODO("Not yet implemented")
     }
 
-    override fun markSent(id: Long) {
+    override suspend fun markSent(id: Long) {
         TODO("Not yet implemented")
     }
 
-    override fun markFailed(id: Long, resultCode: Int) {
+    override suspend fun markFailed(id: Long, resultCode: Int) {
         TODO("Not yet implemented")
     }
 
-    override fun markDelivered(id: Long) {
+    override suspend fun markDelivered(id: Long) {
         TODO("Not yet implemented")
     }
 
-    override fun markDeliveryFailed(id: Long, resultCode: Int) {
+    override suspend fun markDeliveryFailed(id: Long, resultCode: Int) {
         TODO("Not yet implemented")
     }
 
-    override fun deleteMessage(vararg messageIds: Long) {
+    override suspend fun deleteMessage(vararg messageIds: Long) {
         TODO("Not yet implemented")
     }
+
 }

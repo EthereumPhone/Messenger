@@ -50,4 +50,6 @@ dependencies {
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
+
+    implementation("io.michaelrocks:libphonenumber-android:8.13.28")
 }

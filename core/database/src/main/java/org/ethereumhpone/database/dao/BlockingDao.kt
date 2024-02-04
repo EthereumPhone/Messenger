@@ -18,10 +18,13 @@ interface BlockingDao {
     @Insert
     fun insertBlockedNumber(blockedNumber: BlockedNumber)
 
-    @Update
-    fun updateBlockedNumber(blockedNumber: BlockedNumber)
+    @Insert
+    fun insertBlockedNumbers(blockedNumbers: List<BlockedNumber>)
 
     @Delete
     fun deleteBlockedNumber(blockedNumber: BlockedNumber)
+
+    @Delete
+    fun deleteBlockedNumbers(blockedNumbers: List<BlockedNumber>)
 
 }

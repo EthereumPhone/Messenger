@@ -9,7 +9,7 @@ interface SyncRepository {
         data class Running(val max: Int, val progress: Int, val indeterminate: Boolean): SyncProgress()
     }
 
-    fun syncMessages()
-    fun syncMessage(uri: Uri)
-    fun syncContacts()
+    suspend fun syncMessages()
+    suspend fun syncMessage(uri: Uri)
+    suspend fun syncContacts()
 }

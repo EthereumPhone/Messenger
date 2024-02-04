@@ -7,11 +7,11 @@ import org.ethereumhpone.database.model.ContactGroup
 
 interface ContactRepository {
 
-    fun findContactUri(address: String): Uri?
+    fun findContactUri(address: String): Flow<Uri?>
     fun getContacts(): Flow<List<Contact>>
-    fun getUnmanagedContact(lookupKey: String): Contact?
+    fun getUnmanagedContact(lookupKey: String): Flow<Contact?>
     fun getUnmanagedContacts(starred: Boolean = false): Flow<List<Contact>>
     fun getUnmanagedContactGroups(): Flow<List<ContactGroup>>
-    fun setDefaultPhoneNumber(lookupKey: String, phoneNumberId: Long)
+    suspend fun setDefaultPhoneNumber(lookupKey: String, phoneNumberId: Long)
 
 }
