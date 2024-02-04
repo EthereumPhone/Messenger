@@ -1,8 +1,10 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-//    alias(libs.plugins.hilt.android )
-//    alias(libs.plugins.kotlin.kapt)
+
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kotlin.kapt)
+
 
 }
 
@@ -93,4 +95,7 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:1.4.0")
     implementation("com.github.EthereumPhone:ethOS-Component-Library:1a10060494")
+
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
 }

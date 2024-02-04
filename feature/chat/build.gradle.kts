@@ -1,6 +1,10 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kotlin.kapt)
+
 }
 
 android {
@@ -85,8 +89,13 @@ dependencies {
 
     implementation("androidx.navigation:navigation-compose:2.7.6")
 
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+
 
 
 
 
 }
+
+
