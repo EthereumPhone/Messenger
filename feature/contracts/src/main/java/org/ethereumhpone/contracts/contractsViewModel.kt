@@ -6,7 +6,8 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class ConversationsViewModel @Inject constructor(
+class ContactViewModel @Inject constructor(
+
 
 ): ViewModel() {
 

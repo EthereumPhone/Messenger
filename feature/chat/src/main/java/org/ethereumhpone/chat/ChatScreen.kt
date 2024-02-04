@@ -103,17 +103,20 @@ import org.ethereumhpone.chat.components.SelectorExpanded
 import org.ethereumhpone.chat.components.UserInputSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import org.ethereumhpone.chat.components.addText
+import androidx.hilt.navigation.compose.hiltViewModel
 
 
 @Composable
 fun ChatRoute(
     modifier: Modifier = Modifier,
-    navigateBackToConversations: () -> Unit
+    navigateBackToConversations: () -> Unit,
+    viewModel: ChatViewModel = hiltViewModel()
 ){
     ChatScreen(
         navigateBackToConversations = navigateBackToConversations
     )
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
