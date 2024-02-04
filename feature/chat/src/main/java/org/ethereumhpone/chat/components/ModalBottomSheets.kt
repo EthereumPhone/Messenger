@@ -1,36 +1,167 @@
 package org.ethereumhpone.chat.components
 
+import android.content.Intent
+import android.net.Uri
+import android.view.View
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Contacts
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberImagePainter
+import org.ethereumhpone.chat.R
+import org.ethosmobile.components.library.core.ethOSIconButton
+import org.ethosmobile.components.library.haptics.EthOSHaptics
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+
+
+@Composable
+fun ContactSheet(
+    name: String = "Max Mustermann",
+    image: String = "",
+    ens: List<String> = emptyList()
+){
+    Column(
+        modifier = Modifier
+            .clip(
+                RoundedCornerShape(
+                    topStart = 12.dp,
+                    topEnd = 12.dp
+                )
+            )
+            //.background(Color(0xFF262626))
+            .padding(start = 24.dp, end = 24.dp, bottom = 48.dp)
+    ) {
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(86.dp)
+                    .clip(CircleShape)
+                    .background(Colors.DARK_GRAY)
+            ){
+                if (image != ""){
+                    Image(
+                        painter = rememberImagePainter(image),
+                        contentDescription = "Contact Profile Pic",
+                        contentScale = ContentScale.Crop
+                    )
+                } else{
+                    Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                }
+            }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = name,
+                    fontSize = 24.sp,
+                    color = Colors.WHITE,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = getEnsAddresses(ens),
+                    fontSize = 18.sp,
+                    color = Colors.GRAY,
+                    fontWeight = FontWeight.Normal
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(56.dp))
+
+
+        Column (
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+
+            ){
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+
+                ethOSIconButton(onClick = { /*TODO*/ }, icon = Icons.Outlined.Call, contentDescription="Call")
+                ethOSIconButton(onClick = { /*TODO*/ }, icon = Icons.Outlined.Contacts, contentDescription="Contact")
+
+            }
+            Divider(
+                modifier = Modifier.fillMaxWidth(),
+                color = Colors.DARK_GRAY
+            )
+        }
+
+        Spacer(modifier = Modifier.height(36.dp))
+        Box(
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+            ) {
+
+                ContactItem(
+                    title= "Phone Number",
+                    detail= "+430123456789"
+                )
+
+                ContactItem(
+                        title= "ENS",
+                detail= getEnsAddresses(ens)
+                )
+
+            }
+
+
+        }
+    }
+}
+
+@Composable
+@Preview
+fun ContactSheetPreview(){
+    ContactSheet(name = "Mark Katakowski", ens = listOf("mk.eth"))
+}
 
 @Composable
 fun AssetPickerSheet(
@@ -209,6 +340,77 @@ fun ethOSListItem(
     }
 
 }
+
+
+@Composable
+fun ContactItem(title: String, detail: String){//, view: View){
+    val interactionSource = remember { MutableInteractionSource() }
+    //when user hovers over ContactListItem
+    val isHover by interactionSource.collectIsHoveredAsState()
+    val context = LocalContext.current
+
+    val urlIntent = when(title){
+        "ENS" -> Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse(
+                "https://etherscan.io/name-lookup-search?id=${detail}"
+            )
+        )
+
+        "Ethereum Address" -> Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse(
+                "https://etherscan.io/address/${detail}"
+            )
+        )
+        else -> null
+
+    }
+
+    Row (
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (urlIntent !== null) {
+                    //view.performHapticFeedback(EthOSHaptics().NEUTRAL_HAPTIC)
+                    context.startActivity(urlIntent)
+                }
+            }
+            .background(
+                color = if (isHover) {
+                    Colors.DARK_GRAY
+                } else {
+                    Colors.TRANSPARENT
+                }
+            )
+            .padding(vertical = 12.dp, horizontal = 0.dp),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        verticalAlignment = Alignment.CenterVertically
+
+    ){
+
+        Column (
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ){
+            Text(
+                text = title,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color.Gray,
+                fontFamily = Fonts.INTER
+            )
+
+            Text(
+                text = detail,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                fontFamily = Fonts.INTER
+            )
+        }
+    }
+}
+
 
 
 @Composable
