@@ -250,7 +250,7 @@ fun SelectorExpanded(
         when (currentSelector) {
             InputSelector.EMOJI -> EmojiSelector(onTextAdded, focusRequester)
             InputSelector.WALLET -> WalletSelector(focusRequester = focusRequester, onOpenAssetPicker =  onOpenAssetPicker)
-            InputSelector.PICTURE -> FunctionalityNotAvailablePanel() // TODO: link to Camera
+            InputSelector.PICTURE -> FunctionalityNotAvailablePanel("Picture") // TODO: link to Camera
             else -> {
                 throw NotImplementedError()
             }
@@ -259,7 +259,7 @@ fun SelectorExpanded(
 }
 
 @Composable
-fun FunctionalityNotAvailablePanel() {
+fun FunctionalityNotAvailablePanel(text: String) {
     AnimatedVisibility(
         visibleState = remember { MutableTransitionState(false).apply { targetState = true } },
         enter = expandHorizontally() + fadeIn(),
@@ -277,7 +277,7 @@ fun FunctionalityNotAvailablePanel() {
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Not available",
+                text = "Not available $text",
                 modifier = Modifier.paddingFrom(FirstBaseline, before = 32.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

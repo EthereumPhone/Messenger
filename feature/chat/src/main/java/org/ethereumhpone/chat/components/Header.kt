@@ -16,6 +16,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +33,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberImagePainter
-import org.ethosmobile.components.library.R
+import org.ethereumhpone.chat.R
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
@@ -54,7 +55,7 @@ fun Header(
         Row(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp,top = 12.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -93,14 +94,14 @@ fun Header(
                                 contentScale = ContentScale.Crop
                             )
                         } else{
-                            Image(painter = painterResource(id = R.drawable.nouns), contentDescription = "contact Profile Pic" )
+                            Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
                         }
                     }
 
                     Text(
                         textAlign = TextAlign.Center,
                         text = name,
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = Fonts.INTER,
@@ -125,7 +126,123 @@ fun Header(
                         modifier = modifier.size(iconsize)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Menu,
+                            imageVector = Icons.Rounded.Phone,
+                            contentDescription = "Go back",
+                            tint =  Colors.WHITE,
+                            modifier = modifier.size(iconsize)
+                        )
+                    }
+                }
+            }
+        }
+
+    }
+
+}
+
+@Composable
+fun ChatHeader(
+    modifier: Modifier = Modifier,
+    name: String,
+    ens: List<String>,
+    image: String,
+    onBackClick: () -> Unit = {},
+    isTrailContent: Boolean = false,
+    trailContent: @Composable () -> Unit = {},
+){
+    val iconsize = 24.dp
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.padding(bottom = 8.dp),
+    ) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = modifier.size(iconsize)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowBackIosNew,
+                        contentDescription = "Go back",
+                        tint =  Colors.WHITE,
+                        modifier = modifier.size(iconsize)
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF262626))
+                    ){
+                        if (image != ""){
+//                    Image(painter = painterResource(id = R.drawable.nouns), contentDescription = "" )
+                            Image(
+                                painter = rememberImagePainter(image),
+                                contentDescription = "Contact Profile Pic",
+                                contentScale = ContentScale.Crop
+                            )
+                        } else{
+                            Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                        }
+                    }
+
+                    Column {
+                        Text(
+                            textAlign = TextAlign.Center,
+                            text = name,
+                            fontSize = 18.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Fonts.INTER,
+                        )
+
+                        Text(
+                            textAlign = TextAlign.Center,
+                            text = name,
+                            fontSize = 18.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Fonts.INTER,
+                        )
+                    }
+
+
+                }
+            }
+
+
+
+//      Warning or info
+            Row(
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+
+                ) {
+                Row(
+                    horizontalArrangement = Arrangement.Start,
+                ) {
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = modifier.size(iconsize)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Phone,
                             contentDescription = "Go back",
                             tint =  Colors.WHITE,
                             modifier = modifier.size(iconsize)
