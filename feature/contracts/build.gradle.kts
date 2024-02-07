@@ -107,5 +107,10 @@ dependencies {
 
     implementation(libs.hilt.navigation)
 
-    
+
+}
+
+// Allow references to generated code
+kapt {
+    correctErrorTypes = true
 }

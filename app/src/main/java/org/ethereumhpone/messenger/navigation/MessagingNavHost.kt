@@ -1,4 +1,4 @@
-package org.ethereumhpone.messenger
+package org.ethereumhpone.messenger.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
