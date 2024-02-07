@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.ethereumhpone.contracts.ui.ChatListItem
 import org.ethereumhpone.contracts.ui.ContactSheet
@@ -73,7 +74,7 @@ import org.ethosmobile.components.library.theme.Fonts
 fun ContactRoute(
     modifier: Modifier = Modifier,
     navigateToChat: () -> Unit,
-//    viewModel: ContactViewModel = hiltViewModel()
+    viewModel: ContactViewModel = hiltViewModel()
 ){
     ContactScreen(
         navigateToChat = navigateToChat

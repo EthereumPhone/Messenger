@@ -2,6 +2,7 @@ package org.ethereumhpone.chat.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -147,6 +148,7 @@ fun ChatHeader(
     ens: List<String>,
     image: String,
     onBackClick: () -> Unit = {},
+    onContactClick: () -> Unit = {},
     isTrailContent: Boolean = false,
     trailContent: @Composable () -> Unit = {},
 ){
@@ -191,7 +193,6 @@ fun ChatHeader(
                             .background(Color(0xFF262626))
                     ){
                         if (image != ""){
-//                    Image(painter = painterResource(id = R.drawable.nouns), contentDescription = "" )
                             Image(
                                 painter = rememberImagePainter(image),
                                 contentDescription = "Contact Profile Pic",
@@ -202,7 +203,11 @@ fun ChatHeader(
                         }
                     }
 
-                    Column {
+                    Column (
+                        modifier = modifier.clickable {
+                            onContactClick()
+                        }
+                    ){
                         Text(
                             textAlign = TextAlign.Center,
                             text = name,
@@ -212,14 +217,18 @@ fun ChatHeader(
                             fontFamily = Fonts.INTER,
                         )
 
-                        Text(
-                            textAlign = TextAlign.Center,
-                            text = name,
-                            fontSize = 18.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = Fonts.INTER,
-                        )
+                        if (ens.isNotEmpty()){
+                            val enss = getEnsAddresses(ens)
+                            Text(
+                                textAlign = TextAlign.Center,
+                                text = enss,
+                                fontSize = 14.sp,
+                                color = Colors.GRAY,
+                                fontWeight = FontWeight.Normal,
+                                fontFamily = Fonts.INTER,
+                            )
+                        }
+
                     }
 
 
@@ -254,6 +263,18 @@ fun ChatHeader(
 
     }
 
+}
+
+fun getEnsAddresses(ens: List<String>): String{
+    var res = ""
+
+    ens.forEachIndexed{ index, value ->
+        res += value
+        if (index < ens.size-1){
+            res += ", "
+        }
+    }
+    return res
 }
 
 @Composable

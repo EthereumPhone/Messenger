@@ -93,24 +93,30 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import org.ethereumhpone.chat.components.ChatHeader
+import org.ethereumhpone.chat.components.ContactSheet
 import org.ethereumhpone.chat.components.EmojiSelector
 import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
 import org.ethereumhpone.chat.components.InputSelectorButton
+import org.ethereumhpone.chat.components.ModalSelector
 import org.ethereumhpone.chat.components.SelectorExpanded
 import org.ethereumhpone.chat.components.UserInputSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import org.ethereumhpone.chat.components.addText
+import androidx.hilt.navigation.compose.hiltViewModel
 
 
 @Composable
 fun ChatRoute(
     modifier: Modifier = Modifier,
-    navigateBackToConversations: () -> Unit
+    navigateBackToConversations: () -> Unit,
+    viewModel: ChatViewModel = hiltViewModel()
 ){
     ChatScreen(
         navigateBackToConversations = navigateBackToConversations
     )
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -237,6 +243,9 @@ fun ChatScreen(
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
 
+    var currentModalSelector by rememberSaveable { mutableStateOf(ModalSelector.CONTACT) }
+
+
     val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
 
     // Intercept back navigation if there's a InputSelector visible
@@ -262,12 +271,20 @@ fun ChatScreen(
     Scaffold (
         containerColor = Color.Black,
         topBar = {
-            Header(
+            ChatHeader(
                 name = "Mark Katakowski",
                 image = "",
+                ens = listOf("mk.eth"),
                 onBackClick = navigateBackToConversations,
                 isTrailContent = false,
                 trailContent= {},
+                onContactClick = {
+
+                    currentModalSelector = ModalSelector.CONTACT
+
+                    showAssetSheet = true
+
+                }
             )
         },
         contentWindowInsets = ScaffoldDefaults
@@ -463,103 +480,13 @@ fun ChatScreen(
                         },
                         onHideKeyboard = { controller?.hide() },
                     )
-
-//                    Row (
-//                        horizontalArrangement = Arrangement.Center,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(vertical = 8.dp)
-//
-//                    ){
-//                        IconButton(
-//                            modifier = Modifier
-//                                .padding(top = 8.dp)
-//                                .clip(CircleShape)
-//                                .size(42.dp)
-//                            ,
-//                            enabled = true,
-//                            onClick = {
-//                                //onChangeShowActionBar()
-////                                showActionbar = !showActionbar
-//                                dismissKeyboard()
-//                                controller?.hide() // Keyboard
-//                                if (!showSelectionbar) {
-//                                    showSelectionbar = true
-//                                }
-//
-//                            },
-//                        ) {
-//                            Box(
-//                                contentAlignment = Alignment.Center
-//                            ){
-//                                Icon(imageVector = Icons.Outlined.Mood, modifier= Modifier
-//                                    .size(32.dp)
-//                                    ,contentDescription = "Send",tint = Color.White)
-//                            }
-//
-//                        }
-//                        Spacer(modifier = Modifier.width(12.dp))
-//                        IconButton(
-//                            modifier = Modifier
-//                                .padding(top = 8.dp)
-//                                .clip(CircleShape)
-//                                .size(42.dp)
-//                            ,
-//                            enabled = true,
-//                            onClick = {
-//                                //onChangeShowActionBar()
-////                                showActionbar = !showActionbar
-////                                dismissKeyboard()
-//                                controller?.hide() // Keyboard
-//                                if (!showSelectionbar) {
-//                                    showSelectionbar = true
-//                                }
-//
-//                            },
-//                        ) {
-//                            Box(
-//                                contentAlignment = Alignment.Center
-//                            ){
-//                                Icon(imageVector = ImageVector.vectorResource(R.drawable.wallet), modifier= Modifier
-//                                    .size(32.dp)
-//                                    ,contentDescription = "Send",tint = Color.White)
-//                            }
-//
-//                        }
-//                        Spacer(modifier = Modifier.width(12.dp))
-//                        IconButton(
-//                            modifier = Modifier
-//                                .padding(top = 8.dp)
-//                                .clip(CircleShape)
-//                                .size(42.dp)
-//                            ,
-//                            enabled = true,
-//                            onClick = {
-//                                //onChangeShowActionBar()
-////                                showActionbar = !showActionbar
-////                                dismissKeyboard()
-//                                controller?.hide() // Keyboard
-//                                if (!showSelectionbar) {
-//                                    showSelectionbar = true
-//                                }
-//
-//
-//                            },
-//                        ) {
-//                            Box(
-//                                contentAlignment = Alignment.Center
-//                            ){
-//                                Icon(imageVector = Icons.Outlined.InsertPhoto, modifier= Modifier
-//                                    .size(32.dp)
-//                                    ,contentDescription = "Send",tint = Color.White)
-//                            }
-//
-//                        }
-//                    }
                 }
 
                 if (showSelectionbar){
-                    Surface(tonalElevation = 8.dp) {
+                    Surface(
+                        color = Colors.TRANSPARENT,
+                        tonalElevation = 8.dp
+                    ) {
                         when (currentInputSelector) {
                             InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
                             InputSelector.WALLET -> FunctionalityNotAvailablePanel("Wallet")
@@ -581,26 +508,29 @@ fun ChatScreen(
 
             //Asset ModalSheet
 
-//            if(showAssetSheet){
-//                ModalBottomSheet(
-//                    containerColor= Colors.BLACK,
-//                    contentColor= Colors.WHITE,
-//
-//                    onDismissRequest = {
-//                        scope.launch {
-//                            modalAssetSheetState.hide()
-//                        }.invokeOnCompletion {
-//                            if(!modalAssetSheetState.isVisible) showAssetSheet = false
-//                        }
-//                    },
-//                    sheetState = modalAssetSheetState
-//                ) {
-//
-//
-//                    AssetPickerSheet()
-//
-//                }
-//            }
+            if(showAssetSheet){
+                ModalBottomSheet(
+                    containerColor= Colors.BLACK,
+                    contentColor= Colors.WHITE,
+
+                    onDismissRequest = {
+                        scope.launch {
+                            modalAssetSheetState.hide()
+                        }.invokeOnCompletion {
+                            if(!modalAssetSheetState.isVisible) showAssetSheet = false
+                        }
+                    },
+                    sheetState = modalAssetSheetState
+                ) {
+                    when(currentModalSelector){
+                        ModalSelector.CONTACT -> ContactSheet(
+                            name = "Mark Katakowski",
+                            image = "",
+                            ens = listOf("emunsi.eth"),)
+                        ModalSelector.ASSETS -> AssetPickerSheet()
+                    }
+                }
+            }
         }
 
     }
@@ -671,9 +601,12 @@ fun SelectorExpanded(
             Box(
                 contentAlignment = Alignment.Center
             ){
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.wallet), modifier= Modifier
-                    .size(32.dp)
-                    ,contentDescription = "Send",tint = Color.White)
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.wallet),
+                    modifier= Modifier.size(32.dp),
+                    contentDescription = "Send",
+                    tint = Color.White
+                )
             }
 
         }
