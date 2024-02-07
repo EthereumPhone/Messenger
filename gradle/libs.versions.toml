@@ -23,6 +23,7 @@ core = "1.12.0"
 serialization  = "1.0.1"
 navigationCommonKtx = "2.7.6"
 navigationRuntimeKtx = "2.7.6"
+firebaseCrashlyticsBuildtools = "2.9.9"
 
 
 [libraries]
@@ -70,6 +71,7 @@ protobuf-kotlin-lite = { group = "com.google.protobuf", name = "protobuf-kotlin-
 androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
 androidx-navigation-common-ktx = { group = "androidx.navigation", name = "navigation-common-ktx", version.ref = "navigationCommonKtx" }
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
+firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 
 
 [plugins]

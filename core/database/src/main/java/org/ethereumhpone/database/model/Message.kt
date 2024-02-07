@@ -9,7 +9,7 @@ import androidx.room.Relation
 @Entity("message")
 data class Message(
 
-    @PrimaryKey val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(index = true) val threadId: Long = 0,
     // MMS-SMS are stored in separate tables in Android and thus can return the same id.
     // this contentId should be used if fetching from the content provider is needed.
@@ -30,8 +30,9 @@ data class Message(
     val deliveryStatus: Int = Telephony.Sms.STATUS_NONE,
 
     //MMS ONLY
-    val attachmentTypeString: String = AttachmentType.NOT_LOADED.toString(),
-    val attachmentType: AttachmentType,
+    //TODO: Check if NONE causes problem
+    val attachmentTypeString: String = AttachmentType.NONE.toString(),
+    val attachmentType: AttachmentType = AttachmentType.NONE,
 
     val mmsDeliveryStatusString: String = "",
     val readReportString: String = "",
@@ -50,7 +51,8 @@ data class Message(
         VIDEO,
         AUDIO,
         SLIDESHOW,
-        NOT_LOADED
+        NOT_LOADED,
+        NONE
     }
 
     fun isMms(): Boolean = type == "mms"
