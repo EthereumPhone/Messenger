@@ -4,8 +4,8 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.Telephony
-import org.ethereumhpone.data.util.EncodedStringValue
-import org.ethereumhpone.data.util.pdu_alt.PduHeaders
+import org.ethereumhpone.common.mms.pdu_alt.EncodedStringValue
+import org.ethereumhpone.common.mms.pdu_alt.PduHeaders
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.mapper.MessageCursor

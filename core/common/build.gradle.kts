@@ -2,12 +2,10 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
-    alias(libs.plugins.hilt.android)
-    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
-    namespace = "org.ethereumhpone.data"
+    namespace = "org.ethereumhpone.common"
     compileSdk = 34
 
     defaultConfig {
@@ -40,20 +38,10 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.appcompat)
     implementation(libs.material)
-    implementation(project(":core:database"))
-    implementation(libs.firebase.crashlytics.buildtools)
-    implementation(project(":core:common"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
-
-    implementation(project(":core:domain"))
-
-    implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
-
-    implementation("io.michaelrocks:libphonenumber-android:8.13.28")
-
     implementation("com.jakewharton.timber:timber:4.7.1")
+
 }
