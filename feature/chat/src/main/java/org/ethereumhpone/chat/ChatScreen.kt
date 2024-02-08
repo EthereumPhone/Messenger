@@ -1,10 +1,18 @@
 package org.ethereumhpone.chat
 
+import androidx.compose.animation.AnimatedVisibility
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -146,13 +154,19 @@ fun ChatScreen(
 
 
     val initialMessages = listOf(
+        org.ethereumhpone.chat.model.Message(
+            "me",
+            "It's me!",
+            "8:07 PM",
 
-            org.ethereumhpone.chat.model.Message(
-                "me",
-                "Thank you!",
-                "8:06 PM",
-                R.drawable.ethos
             ),
+
+        org.ethereumhpone.chat.model.Message(
+            "me",
+            "Thank you!",
+            "8:06 PM",
+            R.drawable.ethos
+        ),
             org.ethereumhpone.chat.model.Message(
                 "Taylor Brooks",
                 "You can use all the same stuff",
@@ -164,7 +178,7 @@ fun ChatScreen(
                 "8:05 PM"
             ),
             org.ethereumhpone.chat.model.Message(
-                "John Glenn",
+                "Taylor Brooks",
                 "Compose newbie as well, have you looked at the JetNews sample? " +
                         "Most blog posts end up out of date pretty fast but this sample is always up to " +
                         "date and deals with async data loading (it's faked but the same idea " +
@@ -260,6 +274,8 @@ fun ChatScreen(
     var showActionbar by remember { mutableStateOf(false) }
     var showSelectionbar by remember { mutableStateOf(false) }
 
+
+
     // Used to decide if the keyboard should be shown
     var textFieldFocusState by remember { mutableStateOf(false) }
 
@@ -304,6 +320,7 @@ fun ChatScreen(
             reverseLayout = true,
             modifier = Modifier
                 .weight(1f)
+                .fillMaxWidth()
                 .padding(horizontal = 24.dp)
         ){
             initialMessages.forEachIndexed {  index, message ->
@@ -426,8 +443,11 @@ fun ChatScreen(
 
                     )
 
-
-                    if(textState.text.isNotBlank()){
+                    AnimatedVisibility(
+                        textState.text.isNotBlank(),
+                        enter = expandHorizontally(),
+                        exit = shrinkHorizontally(),
+                    ) {
                         IconButton(
                             modifier = Modifier
                                 .padding(top = 8.dp)
@@ -466,9 +486,17 @@ fun ChatScreen(
                         }
                     }
 
+//                    if(textState.text.isNotBlank()){
+//
+//                    }
+
                 }
 
-                if (showActionbar){
+
+                // Animated visibility will eventually remove the item from the composition once the animation has finished.
+                AnimatedVisibility(showActionbar) {
+//                    if (showActionbar){
+
                     SelectorExpanded(
                         onSelectorChange = {
                             currentInputSelector = it
@@ -480,22 +508,40 @@ fun ChatScreen(
                         },
                         onHideKeyboard = { controller?.hide() },
                     )
+                //}
                 }
+//                if (showActionbar){
+//
+//                    SelectorExpanded(
+//                        onSelectorChange = {
+//                            currentInputSelector = it
+//                        },
+//                        onShowSelectionbar = {
+//                            if (!showSelectionbar) {
+//                                showSelectionbar = true
+//                            }
+//                        },
+//                        onHideKeyboard = { controller?.hide() },
+//                    )
+//                }
 
-                if (showSelectionbar){
-                    Surface(
-                        color = Colors.TRANSPARENT,
-                        tonalElevation = 8.dp
-                    ) {
-                        when (currentInputSelector) {
-                            InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
-                            InputSelector.WALLET -> FunctionalityNotAvailablePanel("Wallet")
-                            InputSelector.PICTURE -> FunctionalityNotAvailablePanel("Picture") // TODO: link to Camera
-                            else -> {
-                                throw NotImplementedError()
+                AnimatedVisibility(showSelectionbar) {
+                    if(showActionbar){
+                        Surface(
+                            color = Colors.TRANSPARENT,
+                            tonalElevation = 8.dp
+                        ) {
+                            when (currentInputSelector) {
+                                InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
+                                InputSelector.WALLET -> FunctionalityNotAvailablePanel("Wallet")
+                                InputSelector.PICTURE -> FunctionalityNotAvailablePanel("Picture") // TODO: link to Camera
+                                else -> {
+                                    throw NotImplementedError()
+                                }
                             }
                         }
                     }
+
                 }
 
 
