@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 
 @Entity("conversation")
 data class Conversation(
-    @PrimaryKey val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(index = true) val archived: Boolean = false,
     @ColumnInfo(index = true) val blocked: Boolean = false,
     @ColumnInfo(index = true) val pinned: Boolean = false,

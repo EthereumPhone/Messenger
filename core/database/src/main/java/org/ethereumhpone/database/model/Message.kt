@@ -30,9 +30,8 @@ data class Message(
     val deliveryStatus: Int = Telephony.Sms.STATUS_NONE,
 
     //MMS ONLY
-    //TODO: Check if NONE causes problem
-    val attachmentTypeString: String = AttachmentType.NONE.toString(),
-    val attachmentType: AttachmentType = AttachmentType.NONE,
+    val attachmentTypeString: String = AttachmentType.NOT_LOADED.toString(),
+    val attachmentType: AttachmentType = AttachmentType.NOT_LOADED,
 
     val mmsDeliveryStatusString: String = "",
     val readReportString: String = "",
@@ -51,8 +50,7 @@ data class Message(
         VIDEO,
         AUDIO,
         SLIDESHOW,
-        NOT_LOADED,
-        NONE
+        NOT_LOADED
     }
 
     fun isMms(): Boolean = type == "mms"

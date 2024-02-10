@@ -78,7 +78,7 @@ class MessageCursorImpl @Inject constructor(
             subId = if (columnsMap.subId != -1) cursor.getInt(columnsMap.subId) else -1
         )
 
-        val newMessage = when (type) {
+        return when (type) {
             "sms" -> message.copy(
                 address = cursor.getString(columnsMap.smsAddress) ?: "",
                 boxId = cursor.getInt(columnsMap.smsType),
@@ -88,7 +88,6 @@ class MessageCursorImpl @Inject constructor(
                     ?.let { column -> cursor.getString(column) } ?: "", // cursor.getString() may return null
                 errorCode = cursor.getInt(columnsMap.smsErrorCode),
                 deliveryStatus = cursor.getInt(columnsMap.smsStatus),
-                attachmentType = message.attachmentType // Include attachmentType in the copy function
             )
 
             "mms" -> message.copy(
@@ -107,12 +106,11 @@ class MessageCursorImpl @Inject constructor(
                     ?.takeIf { it.isNotBlank() }
                     ?.let { EncodedStringValue(cursor.getInt(columnsMap.mmsSubjectCharset), it.toByteArray()).string } ?: "",
                 textContentType = "",
-                attachmentType = message.attachmentType // Include attachmentType in the copy function
+                attachmentType = Message.AttachmentType.NOT_LOADED,
+                attachmentTypeString = Message.AttachmentType.NOT_LOADED.toString()
             )
-            else -> message // Return original message for "unknown" type
+            else -> message // when unknown
         }
-
-        return newMessage
     }
 
     private fun getMmsAddress(messageId: Long): String {
