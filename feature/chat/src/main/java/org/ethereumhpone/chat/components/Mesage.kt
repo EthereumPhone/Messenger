@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -18,12 +19,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.paddingFrom
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CheckCircleOutline
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -77,12 +84,15 @@ fun Message(
     isLastMessageByAuthor: Boolean,
 ) {
 
-    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier.padding(top = 8.dp).fillMaxWidth() else Modifier
+    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
+        .padding(top = 8.dp)
+        .fillMaxWidth() else Modifier
     val alignmessage = if(isUserMe) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp)
     Row(
         modifier = spaceBetweenAuthors,
         horizontalArrangement = Arrangement.End
     ) {
+//        Text(text = ""+ isFirstMessageByAuthor)
         AuthorAndTextMessage(
             msg = msg,
             isUserMe = isUserMe,
@@ -107,8 +117,8 @@ fun AuthorAndTextMessage(
         modifier = modifier,
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
     ) {
-        ChatItemBubble(msg, isUserMe, authorClicked = authorClicked, isLastMessageByAuthor=isLastMessageByAuthor)
-        if (isLastMessageByAuthor) {
+        ChatItemBubble(msg, isUserMe, authorClicked = authorClicked, isLastMessageByAuthor=isLastMessageByAuthor, isFirstMessageByAuthor=isFirstMessageByAuthor)
+        if (isFirstMessageByAuthor) {
             AuthorNameTimestamp(msg)
         }
         if (isFirstMessageByAuthor) {
@@ -124,22 +134,43 @@ fun AuthorAndTextMessage(
 
 //TIMESTAMP
 @Composable
-private fun AuthorNameTimestamp(msg: Message) {
+private fun AuthorNameTimestamp(msg: Message, read: Boolean = true) {
     // Combine author and timestamp for a11y.
-    Row(modifier = Modifier.semantics(mergeDescendants = true) {}) {
+    Row(
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.semantics(mergeDescendants = true) {}
+    ) {
 
         Text(
             text = msg.timestamp,
             fontSize = 12.sp,
             fontFamily = Fonts.INTER,
             modifier = Modifier.alignBy(LastBaseline),
-            color = Colors.GRAY
+            color = Colors.WHITE,
+
         )
+
+        Spacer(modifier = Modifier.width(4.dp))
+
+        if(read){
+            Icon(
+                imageVector = Icons.Filled.CheckCircle,//Icons.Filled.CheckCircleOutline,
+                contentDescription = "Go back",
+                tint =  Colors.WHITE,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+
+
     }
 }
 
-private val ChatBubbleShape = RoundedCornerShape(4.dp, 32.dp, 32.dp, 20.dp)
-private val UserChatBubbleShape = RoundedCornerShape(32.dp, 4.dp, 20.dp, 32.dp)
+private val ChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
+private val UserChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
+
+private val LastChatBubbleShape = RoundedCornerShape(20.dp, 32.dp, 32.dp, 4.dp)
+private val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.dp)
 
 
 
@@ -148,69 +179,119 @@ fun ChatItemBubble(
     message: Message,
     isUserMe: Boolean,
     authorClicked: (String) -> Unit,
-    isLastMessageByAuthor: Boolean
+    isLastMessageByAuthor: Boolean,
+    isFirstMessageByAuthor: Boolean
 ) {
 
+    val Bubbleshape = if(isUserMe) {
+        if (isFirstMessageByAuthor){
+            LastUserChatBubbleShape
+        }else{
+            UserChatBubbleShape
+        }
+        //LastUserChatBubbleShape
 
-    val gradient = Modifier.clip(if(isUserMe) UserChatBubbleShape else ChatBubbleShape).background(
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFF8C7DF7),
-                Color(0xFF6555D8)
+    } else{
+        if (isFirstMessageByAuthor){
+            LastChatBubbleShape
+        }else{
+            ChatBubbleShape
+        }
+        //LastChatBubbleShape
+
+    }
+
+    val gradient = Modifier
+        .clip(Bubbleshape)
+        .background(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF8C7DF7),
+                    Color(0xFF6555D8)
+                )
             )
         )
-    )
-    val nogradient = Modifier.clip(if(isUserMe) UserChatBubbleShape else ChatBubbleShape).background(
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFF8C7DF7),
-                Color(0xFF8C7DF7)
+    val nogradient = Modifier
+        .clip(Bubbleshape)
+        .background(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF8C7DF7),
+                    Color(0xFF8C7DF7)
+                )
             )
         )
-    )
 
     val usercolor = if(isLastMessageByAuthor) nogradient else gradient
 
-    val reciepientcolor = Modifier.clip(if(isUserMe) UserChatBubbleShape else ChatBubbleShape).background(
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                Colors.DARK_GRAY,
-                Colors.DARK_GRAY
+    val reciepientcolor = Modifier
+        .clip(Bubbleshape)
+        .background(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Colors.DARK_GRAY,
+                    Colors.DARK_GRAY
+                )
             )
         )
-    )
+
 
     Column(
-        horizontalAlignment = Alignment.End
+        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Surface(
             modifier = if(isUserMe) usercolor else reciepientcolor,
             color = Color.Transparent,//backgroundBubbleColor,
-            shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
+            shape = Bubbleshape
 
         ) {
-            ClickableMessage(
-                message = message,
-                isUserMe = isUserMe,
-                authorClicked = authorClicked
-            )
+
+                Column {
+                    message.image?.let {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
+                        ){
+                            Image(
+                                painter = painterResource(it),
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .sizeIn(maxWidth = 240.dp)
+                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
+                                contentDescription = "Attached Image"
+                            )
+                        }
+
+
+
+                    }
+                    ClickableMessage(
+                        message = message,
+                        isUserMe = isUserMe,
+                        authorClicked = authorClicked
+                    )
+                }
+
+
+
         }
 
-        message.image?.let {
-            Spacer(modifier = Modifier.height(4.dp))
-            Surface(
-                modifier = if(isUserMe) usercolor else reciepientcolor,
-                color = Color.Transparent,
-                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
-            ) {
-                Image(
-                    painter = painterResource(it),
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(160.dp),
-                    contentDescription = "Attached Image"
-                )
-            }
-        }
+//        message.image?.let {
+//            Spacer(modifier = Modifier.height(4.dp))
+//            Surface(
+//                modifier = if(isUserMe) usercolor else reciepientcolor,
+//                color = Color.Transparent,
+//                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
+//            ) {
+//                Image(
+//                    painter = painterResource(it),
+//                    contentScale = ContentScale.Fit,
+//                    modifier = Modifier.size(160.dp),
+//                    contentDescription = "Attached Image"
+//                )
+//            }
+//        }
     }
 }
 
