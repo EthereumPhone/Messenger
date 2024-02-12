@@ -8,7 +8,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 
 import androidx.navigation.compose.rememberNavController
-import org.ethereumhpone.chat.navigation.chatGraph
+
+import org.ethereumhpone.chat.navigation.chatScreen
 import org.ethereumhpone.chat.navigation.navigateToChat
 import org.ethereumhpone.contracts.ContactScreen
 import org.ethereumhpone.contracts.navigation.conversationsGraph
@@ -34,12 +35,15 @@ fun MessagingNavHost(
         popExitTransition = { ExitTransition.None }
     ){
 
-        chatGraph(
-            navigateBackToConversations = navController::popBackStack
-        )
+
 
         conversationsGraph (
-            navigateToChat = navController::navigateToChat
+            navigateToChat = navController::navigateToChat,
+            nestedGraphs = {
+                chatScreen (
+                    onBackClick = navController::popBackStack,
+                )
+            }
         )
     }
 
