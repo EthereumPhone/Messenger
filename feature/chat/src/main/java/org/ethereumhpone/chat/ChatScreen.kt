@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat
 
+import android.os.Message
 import androidx.compose.animation.AnimatedVisibility
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -112,6 +113,7 @@ import org.ethereumhpone.chat.components.UserInputSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import org.ethereumhpone.chat.components.addText
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 
 @Composable
@@ -120,7 +122,10 @@ fun ChatRoute(
     navigateBackToConversations: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ){
+    val messages by viewModel.messages.collectAsStateWithLifecycle(emptyList())
+
     ChatScreen(
+        messages = messages,
         navigateBackToConversations = navigateBackToConversations
     )
 }
@@ -129,26 +134,10 @@ fun ChatRoute(
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
+    messages: List<Message>,
     navigateBackToConversations: () -> Unit
 ){
 
-//    Column(
-//        verticalArrangement = Arrangement.SpaceBetween,
-//        modifier = modifier
-//            .background(Color.Black)
-//            .fillMaxSize()
-//    ) {
-//
-//        Header(
-//            name = "Mark Katakowski",
-//            image = "",
-//            onBackClick = {},
-//            isTrailContent = false,
-//            trailContent= {},
-//        )
-//
-//
-//
 
     val focusManager: FocusManager = LocalFocusManager.current
 
@@ -323,6 +312,27 @@ fun ChatScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
         ){
+
+//            messages.forEachIndexed { index, message ->
+//                val prevAuthor = initialMessages.getOrNull(index - 1)?.author
+//                val nextAuthor = initialMessages.getOrNull(index + 1)?.author
+//                val content = initialMessages[index]
+//                val isFirstMessageByAuthor = prevAuthor != content.author
+//                val isLastMessageByAuthor = nextAuthor != content.author
+//
+//                item {
+//                    Message(
+//                        onAuthorClick = {  },
+//                        msg = message,
+//                        isUserMe = false,//message.author == authorMe,
+//                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+//                        isLastMessageByAuthor = isLastMessageByAuthor
+//                    )
+//                }
+//            }
+
+//            MOCK DATA
+
             initialMessages.forEachIndexed {  index, message ->
 
                 val prevAuthor = initialMessages.getOrNull(index - 1)?.author
@@ -510,20 +520,7 @@ fun ChatScreen(
                     )
                 //}
                 }
-//                if (showActionbar){
-//
-//                    SelectorExpanded(
-//                        onSelectorChange = {
-//                            currentInputSelector = it
-//                        },
-//                        onShowSelectionbar = {
-//                            if (!showSelectionbar) {
-//                                showSelectionbar = true
-//                            }
-//                        },
-//                        onHideKeyboard = { controller?.hide() },
-//                    )
-//                }
+
 
                 AnimatedVisibility(showSelectionbar) {
                     if(showActionbar){

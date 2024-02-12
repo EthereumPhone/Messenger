@@ -58,6 +58,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview:1.4.3")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.compose.foundation:foundation:1.6.0-alpha02")
+    implementation(project(":core:domain"))
 
 
     debugImplementation("androidx.compose.ui:ui-tooling:1.2.1")
@@ -92,6 +93,9 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.hilt.navigation)
+
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
+
 
 
 

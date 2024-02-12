@@ -17,8 +17,8 @@ fun NavController.navigateToConversations(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.conversationsGraph(
-    navigateToChat: () -> Unit,
-    //nestedGraphs: NavGraphBuilder.() -> Unit,
+    navigateToChat: (String) -> Unit, //threadId Long -> String
+    nestedGraphs: NavGraphBuilder.() -> Unit,
 ) {
     navigation(
         route = conversationsGraphRoutePattern,
@@ -31,7 +31,7 @@ fun NavGraphBuilder.conversationsGraph(
                 navigateToChat = navigateToChat
             )
         }
-        //nestedGraphs()
+        nestedGraphs()
     }
 }
 
