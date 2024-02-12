@@ -1,10 +1,11 @@
 package org.ethereumhpone.domain.repository
 
-import android.os.Message
 import android.provider.Telephony
 import kotlinx.coroutines.flow.Flow
+import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.domain.model.Attachment
+import java.io.File
 
 interface MessageRepository {
 
@@ -19,12 +20,13 @@ interface MessageRepository {
     fun getUnreadCount(): Flow<Long>
     fun getPart(id: Long): Flow<MmsPart?>
     fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>>
-    fun savePart()
-    fun insertSms()
-    fun markAllSeen()
-    fun markSeen(threadId: Long)
-    fun markRead(vararg threadIds: Long)
-    fun markUnread(vararg threadIds: Long)
+    suspend fun savePart(id: Long): File?
+    fun getUnreadUnseenMessages(threadId: Long): Flow<List<Message>>
+    suspend fun insertSms()
+    suspend fun markAllSeen()
+    suspend fun markSeen(threadId: Long)
+    suspend fun markRead(vararg threadIds: Long)
+    suspend fun markUnread(vararg threadIds: Long)
     suspend fun sendMessage(
         subId: Int,
         threadId: Long,

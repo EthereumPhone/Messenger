@@ -86,3 +86,4 @@ org-jetbrains-kotlin-serialization = {id = "org.jetbrains.kotlin.plugin.serializ
 [bundles]
 roomb = ["room-runtime", "room-ktx", "room-compiler", "kotlin-serialization"]
 hilt = ["hilt-android", "hilt-compiler", "hilt-navigation", "androidx-hilt-compiler"]
+datastore = ["androidx-datastore-preferences", "androidx-datastore-proto", "protobuf-kotlin-lite"]

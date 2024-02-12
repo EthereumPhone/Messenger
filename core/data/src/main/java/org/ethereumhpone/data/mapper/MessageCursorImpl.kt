@@ -4,8 +4,8 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.Telephony
-import org.ethereumhpone.common.mms.pdu_alt.EncodedStringValue
-import org.ethereumhpone.common.mms.pdu_alt.PduHeaders
+import org.ethereumhpone.common.mms.EncodedStringValue
+import org.ethereumhpone.common.mms.PduHeaders
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.mapper.MessageCursor
@@ -104,7 +104,10 @@ class MessageCursorImpl @Inject constructor(
                 mmsStatus = cursor.getInt(columnsMap.mmsStatus),
                 subject = cursor.getString(columnsMap.mmsSubject)
                     ?.takeIf { it.isNotBlank() }
-                    ?.let { EncodedStringValue(cursor.getInt(columnsMap.mmsSubjectCharset), it.toByteArray()).string } ?: "",
+                    ?.let { EncodedStringValue(
+                        cursor.getInt(columnsMap.mmsSubjectCharset),
+                        it.toByteArray()
+                    ).string } ?: "",
                 textContentType = "",
                 attachmentType = Message.AttachmentType.NOT_LOADED,
                 attachmentTypeString = Message.AttachmentType.NOT_LOADED.toString()

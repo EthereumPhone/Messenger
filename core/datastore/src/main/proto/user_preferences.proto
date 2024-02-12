@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option java_package = "org.ethereumhpone.datastore.proto";
+option java_multiple_files = true;
+
+message UserPreferences {
+    //internal
+    bool canUseSubId = 1;
+    bool shouldHideOnboarding 2;
+
+    // configurable
+    DarkThemeConfigProto darkThemeConfig = 11;
+    int32 mmsSize = 12
+    string signature = 13
+    bool unicode = 14
+
+}
+
+enum DarkThemeConfigProto {
+    DARK_THEME_CONFIG_UNSPECIFIED = 0;
+    DARK_THEME_CONFIG_FOLLOW_SYSTEM = 1;
+    DARK_THEME_CONFIG_LIGHT = 2;
+    DARK_THEME_CONFIG_DARK = 3;
+}

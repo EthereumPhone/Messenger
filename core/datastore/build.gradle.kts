@@ -2,6 +2,10 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
+
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.google.protobuf)
 }
 
 android {
@@ -33,6 +37,28 @@ android {
     }
 }
 
+// protobuf-protoc
+
+protobuf {
+    protoc {
+        artifact = libs.protobuf.protoc.get().toString()
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                register("java") {
+                    option("lite")
+                }
+                register("kotlin") {
+                    option("lite")
+                }
+            }
+        }
+    }
+}
+
+
+
 dependencies {
 
     implementation(libs.core.ktx)
@@ -41,4 +67,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    implementation(libs.bundles.datastore)
+
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
 }

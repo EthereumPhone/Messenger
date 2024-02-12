@@ -23,7 +23,7 @@ interface MessageDao {
     @Query("SELECT * FROM message where id == :id")
     fun getMessage(id: Long): Flow<Message?>
 
-    @Query("SELECT * FROM message where id = (SELECT id FROM mms_part WHERE id = :id)")
+    @Query("SELECT * FROM message where id IN (SELECT messageId FROM mms_part WHERE id = :id)")
     fun getMessageForPart(id: Long): Flow<Message?>
 
     @Query("SELECT * FROM message where threadId = :threadId ORDER BY date DESC LIMIT 1")
@@ -37,21 +37,27 @@ interface MessageDao {
             "ORDER BY date DESC LIMIT 1")
     fun getLastIncomingMessage(
         threadId: Long,
-        smsInboxTypes: IntArray = intArrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX, Telephony.Sms.MESSAGE_TYPE_ALL),
-        mmsInboxTypes: IntArray = intArrayOf(Telephony.Mms.MESSAGE_BOX_INBOX, Telephony.Mms.MESSAGE_BOX_ALL)
+        smsInboxTypes: IntArray,
+        mmsInboxTypes: IntArray
     ): Flow<Message>
 
     @Query("SELECT COUNT(*) FROM conversation INNER JOIN message ON conversation.id = message.threadId WHERE conversation.archived = 0 AND conversation.blocked = 0 AND message.read = 0")
     fun getUnreadCount(): Flow<Long>
 
+    @Query("SELECT * FROM message WHERE seen = 0 AND read = 0 ORDER BY date")
+    fun getUnreadUnseenMessages(): Flow<List<Message>>
+
+    @Query("SELECT * FROM message WHERE seen = 0")
+    fun getUnseenMessages(): Flow<List<Message>>
+
     @Query("SELECT * FROM mms_part WHERE id = :id")
-    fun getPart(id: Long): MmsPart?
+    fun getPart(id: Long): Flow<MmsPart?>
 
     @Query("SELECT * FROM mms_part WHERE messageId IN (SELECT id FROM Message WHERE threadId = :threadId) AND (type LIKE 'image/%' OR type LIKE 'video/%') ORDER BY id DESC")
     fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>>
 
-    @Query("SELECT * FROM Message WHERE threadId = :threadId")
-    fun getMessagesWithParts(threadId: Long): Flow<List<MessageWithParts>>
+    @Query("SELECT * FROM message WHERE id = :id")
+    fun getMessagesWithParts(id: Long): Flow<List<MessageWithParts>>
 
     @Query("SELECT * FROM message WHERE body LIKE '%' || :query || '%' OR " +
             "EXISTS (SELECT 1 FROM mms_part WHERE id = mms_part.id AND mms_part.text LIKE '%' || :query || '%')")
@@ -62,7 +68,7 @@ interface MessageDao {
     suspend fun insertMessage(message: Message)
 
     @Update
-    suspend fun updateMessage(message: Message)
+    suspend fun updateMessages(messages: List<Message>)
 
     @Delete
     suspend fun deleteMessage(message: List<Message>)

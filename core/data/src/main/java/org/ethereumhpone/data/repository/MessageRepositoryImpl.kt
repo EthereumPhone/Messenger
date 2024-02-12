@@ -1,69 +1,163 @@
 package org.ethereumhpone.data.repository
 
-import android.os.Message
+import android.content.ContentUris
+import android.content.ContentValues
+import android.content.Context
+import android.media.MediaScannerConnection
+import android.os.Environment
+import android.provider.Telephony
+import android.telephony.SmsManager
+import android.webkit.MimeTypeMap
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import org.ethereumhpone.common.send_message.SmsManagerFactory
+import org.ethereumhpone.database.dao.ConversationDao
+import org.ethereumhpone.database.dao.MessageDao
+import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.domain.manager.KeyManager
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.MessageRepository
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
+import java.io.IOException
+import javax.inject.Inject
 
-class MessageRepositoryImpl(
+class MessageRepositoryImpl @Inject constructor(
+    private val messageDao: MessageDao,
+    private val conversationDao: ConversationDao,
+    private val context: Context,
     private val keyManager: KeyManager,
 ): MessageRepository {
-    override fun getMessages(threadId: Long, query: String): Flow<List<Message>> {
-        TODO("Not yet implemented")
-    }
+    override fun getMessages(threadId: Long, query: String): Flow<List<Message>> =
+        messageDao.getMessages(threadId, query)
 
-    override fun getMessage(id: Long): Flow<Message?> {
-        TODO("Not yet implemented")
-    }
+    override fun getMessage(id: Long): Flow<Message?> =
+        messageDao.getMessage(id)
 
-    override fun getMessageForPart(id: Long): Flow<Message?> {
-        TODO("Not yet implemented")
-    }
+    override fun getMessageForPart(id: Long): Flow<Message?> =
+        messageDao.getMessageForPart(id)
 
     override fun getLastIncomingMessage(
         threadId: Long,
         smsInboxTypes: IntArray,
         mmsInboxTypes: IntArray
-    ): Flow<Message> {
+    ): Flow<Message> = messageDao.getLastIncomingMessage(threadId, smsInboxTypes, mmsInboxTypes)
+
+    override fun getUnreadCount(): Flow<Long> =
+        messageDao.getUnreadCount()
+
+    override fun getPart(id: Long): Flow<MmsPart?> =
+        messageDao.getPart(id)
+
+    override fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>> =
+        messageDao.getPartsForConversation(threadId)
+
+    override suspend fun savePart(id: Long): File? {
+        val part = getPart(id).first() ?: return null
+        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(part.type) ?: return null
+        val date = getMessageForPart(id).first()?.date
+        val dir = File(
+            Environment.getExternalStorageDirectory(),
+            "Messaging/Media")
+            .apply { mkdirs() }
+        val fileName = part.name?.takeIf { name -> name.endsWith(extension) }
+            ?: "${part.type.split("/").last()}_$date.$extension"
+        var file: File
+        var index = 0
+        do {
+            file = File(dir, if (index == 0) fileName else fileName.replace(".$extension", " ($index).$extension"))
+            index++
+        } while (file.exists())
+
+        try {
+            FileOutputStream(file).use { outputStream ->
+                context.contentResolver.openInputStream(part.getUri())?.use { inputStream ->
+                    inputStream.copyTo(outputStream, 1024)
+                }
+            }
+        } catch (e: FileNotFoundException) {
+            e.printStackTrace()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        MediaScannerConnection.scanFile(context, arrayOf(file.path), null, null)
+
+        return file.takeIf { it.exists() }
+    }
+
+    override fun getUnreadUnseenMessages(threadId: Long): Flow<List<Message>> =
+        messageDao.getUnreadUnseenMessages()
+
+
+    override suspend fun insertSms() {
         TODO("Not yet implemented")
     }
 
-    override fun getUnreadCount(): Flow<Long> {
-        TODO("Not yet implemented")
+    override suspend fun markAllSeen() {
+        messageDao.getUnseenMessages().collect { messages ->
+            messageDao.updateMessages(
+                messages.map {
+                    it.copy(
+                        seen = true
+                    )
+                }
+            )
+        }
     }
 
-    override fun getPart(id: Long): Flow<MmsPart?> {
-        TODO("Not yet implemented")
+    override suspend fun markSeen(threadId: Long) {
+        messageDao.getMessages(threadId).map { messages ->
+            messageDao.updateMessages(
+                messages
+                    .filter { !it.seen }
+                    .map { it.copy(
+                        seen = true
+                    ) }
+            )
+        }
     }
 
-    override fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>> {
-        TODO("Not yet implemented")
+    override suspend fun markRead(vararg threadIds: Long) {
+        threadIds.forEach { threadId ->
+            messageDao.getMessages(threadId).map { messages ->
+                messageDao.updateMessages(
+                    messages.filter { it.read && !it.seen }
+                        .map { it.copy(
+                            seen = true,
+                            read = true
+                        ) }
+                )
+            }
+        }
+        val values =  ContentValues()
+        values.put(Telephony.Sms.SEEN, true)
+        values.put(Telephony.Sms.READ, true)
+
+        threadIds.forEach { threadId ->
+            try {
+                val uri = ContentUris.withAppendedId(Telephony.MmsSms.CONTENT_CONVERSATIONS_URI, threadId)
+                context.contentResolver.update(uri, values, "${Telephony.Sms.READ} = 0", null)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
-    override fun savePart() {
-        TODO("Not yet implemented")
-    }
-
-    override fun insertSms() {
-        TODO("Not yet implemented")
-    }
-
-    override fun markAllSeen() {
-        TODO("Not yet implemented")
-    }
-
-    override fun markSeen(threadId: Long) {
-        TODO("Not yet implemented")
-    }
-
-    override fun markRead(vararg threadIds: Long) {
-        TODO("Not yet implemented")
-    }
-
-    override fun markUnread(vararg threadIds: Long) {
-        TODO("Not yet implemented")
+    override suspend fun markUnread(vararg threadIds: Long) {
+        conversationDao.getConversations(threadIds.toList()).map { conversations ->
+            conversations
+                .filter { it.lastMessage?.read == true }
+                .forEach { conversation ->
+                    conversationDao.updateConversation(
+                        conversation.copy(
+                            lastMessage = conversation.lastMessage?.copy(read = false)
+                        )
+                    )
+                }
+        }
     }
 
     override suspend fun sendMessage(
@@ -73,7 +167,15 @@ class MessageRepositoryImpl(
         body: String,
         attachments: List<Attachment>
     ) {
-        TODO("Not yet implemented")
+
+        val smsManager = subId.takeIf { it != -1 }
+            ?.let { SmsManagerFactory.createSmsManager(context, subId) }
+            ?: SmsManager.getDefault()
+
+
+
+
+
     }
 
     override suspend fun sendSms(message: Message) {

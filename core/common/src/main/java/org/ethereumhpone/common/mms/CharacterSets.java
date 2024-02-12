@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ethereumhpone.common.mms.pdu_alt;
+package org.ethereumhpone.common.mms;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
