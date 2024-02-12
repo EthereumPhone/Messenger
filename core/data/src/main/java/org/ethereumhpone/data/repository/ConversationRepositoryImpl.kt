@@ -4,6 +4,9 @@ import android.content.Context
 import com.moez.QKSMS.filter.ConversationFilter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -14,6 +17,7 @@ import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.common.extensions.removeAccents
 import org.ethereumhpone.common.util.tryOrNull
 import org.ethereumhpone.data.util.PhoneNumberUtils
+import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.dao.RecipientDao
@@ -29,6 +33,7 @@ class ConversationRepositoryImpl @Inject constructor(
     private val context: Context,
     private val conversationFilter: ConversationFilter,
     private val conversationDao: ConversationDao,
+    private val contactDao: ContactDao,
     private val recipientDao: RecipientDao,
     private val messageDao: MessageDao,
     private val conversationCursor: ConversationCursor,
@@ -98,8 +103,8 @@ class ConversationRepositoryImpl @Inject constructor(
     override fun getThreadId(recipient: String): Flow<Long?> = getThreadId(listOf(recipient))
 
     override fun getThreadId(recipients: Collection<String>): Flow<Long?> =
-        conversationDao.getConversations(null).map {
-            it.asSequence()
+        conversationDao.getConversations(null).map { conversations ->
+            conversations.asSequence()
                 .filter { conversation -> conversation.recipients.size == recipients.size }
                 .find { conversation ->
                     conversation.recipients.map { it.address }.all { address ->
@@ -264,14 +269,37 @@ class ConversationRepositoryImpl @Inject constructor(
      * we can return a [Conversation]. On some devices, the ContentProvider won't return the
      * conversation unless it contains at least 1 message
      */
-    private fun getConversationFromCp(threadId: Long): Flow<Conversation?> {
-        conversationCursor.getConversationsCursor()
-            ?.map(ConversationCursor::map)
+    private suspend fun getConversationFromCp(threadId: Long): Flow<Conversation?> {
+        return conversationCursor.getConversationsCursor()
+            ?.map(conversationCursor::map)
             ?.firstOrNull { it.id == threadId }
+            ?.let { conversation ->
+                val contactList = contactDao.getContacts()
+                val lastMessage = messageDao.getLastConversationMessage(conversation.id)
+                val recipients = conversation.recipients
+                    .map { recipient -> recipient.id  }
+                    .map { id -> recipientCursor.getRecipientCursor(id) }
+                    .mapNotNull { cursor ->
+                        cursor?.use { cursor.map { recipientCursor.map(cursor) } }
+                    }.flatten()
+                    .map { recipient ->
+                        recipient.copy(
+                            contact = contactList.map { contacts ->
+                                contacts.firstOrNull{ contact ->
+                                    contact.numbers.any { phoneNumberUtils.compare(recipient.address, it.address) }
+                                }
+                            }.firstOrNull()
+                        )
+                    }
 
-
-
-        return flow {  }
+                conversationDao.upsertConversation(
+                    conversation.copy(
+                        recipients = recipients,
+                        lastMessage = lastMessage.first()
+                    )
+                )
+                flowOf(conversation)
+            } ?: flowOf(null)
     }
 }
 
