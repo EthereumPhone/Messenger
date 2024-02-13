@@ -48,23 +48,20 @@ android {
 dependencies {
 
     implementation(libs.androidx.core)
-    implementation("androidx.compose.material3:material3:1.1.1")
 
 
-    implementation("androidx.activity:activity-compose:1.7.2")
+
+
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
     implementation("androidx.compose.material:material:1.4.3")
     implementation("androidx.compose.material:material-icons-extended:1.4.3")
     implementation("androidx.compose.runtime:runtime-livedata:1.4.3")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.4.3")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.compose.foundation:foundation:1.6.0-alpha02")
     implementation(project(":feature:chat"))
     implementation(libs.androidx.navigation.common.ktx)
     implementation(libs.androidx.navigation.runtime.ktx)
 
-    //implementation(libs.androidx.navigation.compose)
-    implementation("androidx.navigation:navigation-compose:2.7.6")
     implementation(project(":core:domain"))
     implementation(project(":core:database"))
 
@@ -73,14 +70,11 @@ dependencies {
 
 
 
-    debugImplementation("androidx.compose.ui:ui-tooling:1.2.1")
-    implementation("androidx.compose.ui:ui:1.2.1")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.2.1")
+
 
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("androidx.activity:activity-compose:1.8.2")
-    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
