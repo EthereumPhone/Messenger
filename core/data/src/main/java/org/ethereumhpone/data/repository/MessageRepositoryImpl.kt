@@ -1,8 +1,10 @@
 package org.ethereumhpone.data.repository
 
+import android.app.PendingIntent
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.MediaScannerConnection
 import android.os.Environment
@@ -10,14 +12,18 @@ import android.provider.Telephony
 import android.telephony.SmsManager
 import android.webkit.MimeTypeMap
 import androidx.core.content.contentValuesOf
+import com.google.android.mms.ContentType
+import com.google.android.mms.MMSPart
+import com.klinker.android.send_message.StripAccents
+import com.klinker.android.send_message.Transaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import org.ethereumhpone.common.mms.ContentType
-import org.ethereumhpone.common.mms.MMSPart
 import org.ethereumhpone.common.send_message.SmsManagerFactory
 import org.ethereumhpone.common.util.ImageUtils
 import org.ethereumhpone.common.util.removeAccents
+import org.ethereumhpone.data.receiver.SmsDeliveredReceiver
+import org.ethereumhpone.data.receiver.SmsSentReceiver
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
@@ -195,7 +201,7 @@ class MessageRepositoryImpl @Inject constructor(
             val forceMms = prefs.longAsMms && parts.size > 1
             if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // S
                 val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
-                sendSms(message)// MS
+                sendSms(message)
             } else { // MMS
                 val parts = arrayListOf<MMSPart>()
                 val maxWidth = smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_IMAGE_WIDTH)
@@ -227,7 +233,7 @@ class MessageRepositoryImpl @Inject constructor(
                     .mapNotNull { attachment -> attachment as? Attachment.Image }
                     .associateWith { attachment ->
                         val uri = attachment.getUri() ?: return@associateWith byteArrayOf()
-                        ImageUtils.getScaledDrawable(context, uri, maxHeight, maxHeight)
+                        ImageUtils.getScaledDrawable(context, uri, maxWidth, maxHeight)
                     }
                     .toMutableMap()
 
@@ -281,17 +287,53 @@ class MessageRepositoryImpl @Inject constructor(
                 }
 
                 val recipients = addresses.map(phoneNumberUtils::normalizeNumber)
+                val transaction = Transaction(context)
+                transaction.sendNewMessage(subId, threadId, recipients, parts,null, null)
             }
         }
     }
 
 
     override suspend fun sendSms(message: Message) {
-        TODO("Not yet implemented")
+        val smsManager = message.subId.takeIf { it != -1 }
+            ?.let { SmsManagerFactory.createSmsManager(context, message.subId) }
+            ?: SmsManager.getDefault()
+
+        messengerPreferences.prefs.collect{ prefs ->
+            val parts = smsManager
+                .divideMessage(if (prefs.unicode) StripAccents.stripAccents(message.body) else message.body)
+                ?: arrayListOf()
+
+            val sentIntents = parts.map {
+                val intent = Intent(context, SmsSentReceiver::class.java).putExtra("id", message.id)
+                PendingIntent.getBroadcast(context, message.id.toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            }
+
+            val deliveredIntents = parts.map {
+                val intent = Intent(context, SmsDeliveredReceiver::class.java).putExtra("id", message.id)
+                val pendingIntent = PendingIntent
+                    .getBroadcast(context, message.id.toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                if (prefs.delivery) pendingIntent else null
+            }
+
+            try {
+                smsManager.sendMultipartTextMessage(
+                    message.address,
+                    null,
+                    parts,
+                    ArrayList(sentIntents),
+                    ArrayList(deliveredIntents)
+                )
+            } catch (e: IllegalArgumentException) {
+                e.printStackTrace()
+                markFailed(message.id, Telephony.MmsSms.ERR_TYPE_GENERIC)
+
+            }
+        }
     }
 
     override suspend fun resendMms(message: Message) {
-        TODO("Not yet implemented")
+
     }
 
     override suspend fun insertSentSms(

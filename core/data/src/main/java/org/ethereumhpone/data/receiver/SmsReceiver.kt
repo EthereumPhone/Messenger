@@ -12,13 +12,10 @@ private const val TAG = "SmsReceiver"
 class SmsReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
-
-        if(intent?.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
-            val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent).toList()
-
-
-
-
+        if(intent?.action == Sms.Intents.SMS_RECEIVED_ACTION) {
+           Sms.Intents.getMessagesFromIntent(intent)?.let { messages ->
+               val subId = intent.extras?.getInt("subscription", -1) ?: -1
+           }
         }
     }
 }

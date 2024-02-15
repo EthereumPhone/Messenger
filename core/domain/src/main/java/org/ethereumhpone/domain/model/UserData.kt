@@ -7,6 +7,7 @@ data class UserData(
     val unicode: Boolean = false,
     val longAsMms: Boolean = false,
     val mmsSize: Int = 300,
+    val delivery: Boolean = false,
 
     //
     val shouldHideOnboarding: Boolean,

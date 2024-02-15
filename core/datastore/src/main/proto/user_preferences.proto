@@ -10,6 +10,7 @@ message UserPreferences {
     bool longAsMms = 3;
     string signature = 4;
     bool unicode = 5;
+    bool delivery = 6;
 
     // configurable
     DarkThemeConfigProto darkThemeConfig = 11;

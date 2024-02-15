@@ -19,6 +19,7 @@ class MessengerPreferences @Inject constructor(
                 signature = it.signature,
                 longAsMms = it.longAsMms,
                 mmsSize = it.mmsSize,
+                delivery = it.delivery,
                 shouldHideOnboarding = it.shouldHideOnboarding,
                 darkThemeConfig = when(it.darkThemeConfig) {
                     null,
@@ -49,6 +50,14 @@ class MessengerPreferences @Inject constructor(
         userPreferences.updateData {
             it.copy {
                 this.signature = signature
+            }
+        }
+    }
+
+    suspend fun setDelivery(delivery: Boolean) {
+        userPreferences.updateData {
+            it.copy {
+                this.delivery = delivery
             }
         }
     }
