@@ -3,31 +3,44 @@ package org.ethereumhpone.data.repository
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.media.MediaScannerConnection
 import android.os.Environment
 import android.provider.Telephony
 import android.telephony.SmsManager
 import android.webkit.MimeTypeMap
+import androidx.core.content.contentValuesOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import org.ethereumhpone.common.mms.ContentType
+import org.ethereumhpone.common.mms.MMSPart
 import org.ethereumhpone.common.send_message.SmsManagerFactory
+import org.ethereumhpone.common.util.ImageUtils
+import org.ethereumhpone.common.util.removeAccents
+import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
+import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.KeyManager
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.MessageRepository
+import timber.log.Timber
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import javax.inject.Inject
+import kotlin.math.sqrt
 
 class MessageRepositoryImpl @Inject constructor(
     private val messageDao: MessageDao,
     private val conversationDao: ConversationDao,
+    private val messengerPreferences: MessengerPreferences,
+    private val phoneNumberUtils: PhoneNumberUtils,
+
     private val context: Context,
     private val keyManager: KeyManager,
 ): MessageRepository {
@@ -90,11 +103,6 @@ class MessageRepositoryImpl @Inject constructor(
 
     override fun getUnreadUnseenMessages(threadId: Long): Flow<List<Message>> =
         messageDao.getUnreadUnseenMessages()
-
-
-    override suspend fun insertSms() {
-        TODO("Not yet implemented")
-    }
 
     override suspend fun markAllSeen() {
         messageDao.getUnseenMessages().collect { messages ->
@@ -167,16 +175,116 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         attachments: List<Attachment>
     ) {
+        messengerPreferences.prefs.collect { prefs ->
+            val signedBody = when {
+                prefs.signature.isEmpty() -> body
+                body.isNotBlank() -> body + '\n' + prefs.signature
+                else -> prefs.signature
+            }
 
-        val smsManager = subId.takeIf { it != -1 }
-            ?.let { SmsManagerFactory.createSmsManager(context, subId) }
-            ?: SmsManager.getDefault()
+            val smsManager = subId.takeIf { it != -1 }
+                ?.let { SmsManagerFactory.createSmsManager(context, subId) }
+                ?: SmsManager.getDefault()
 
+            val strippedBody = when(prefs.unicode) {
+                    true -> removeAccents(signedBody)
+                    false -> signedBody
+            }
 
+            val parts = smsManager.divideMessage(strippedBody).orEmpty()
+            val forceMms = prefs.longAsMms && parts.size > 1
+            if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // S
+                val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
+                sendSms(message)// MS
+            } else { // MMS
+                val parts = arrayListOf<MMSPart>()
+                val maxWidth = smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_IMAGE_WIDTH)
+                    .takeIf { prefs.mmsSize == -1 } ?: Int.MAX_VALUE
+                val maxHeight = smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_IMAGE_HEIGHT)
+                    .takeIf { prefs.mmsSize == -1 } ?: Int.MAX_VALUE
 
+                var remainingBytes = when (prefs.mmsSize) {
+                    -1 -> smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_MESSAGE_SIZE)
+                    0 -> Int.MAX_VALUE
+                    else -> prefs.mmsSize * 1024
+                } * 0.9 // Ugly, but buys us a bit of wiggle room
 
+                signedBody.takeIf { it.isNotEmpty() }?.toByteArray()?.let { bytes ->
+                    remainingBytes -= bytes.size
+                    parts += MMSPart("text", ContentType.TEXT_PLAIN, bytes)
+                }
 
+                // attach contacts
+                parts += attachments
+                    .mapNotNull { attachment -> attachment as? Attachment.Contact }
+                    .map { attachment -> attachment.vCard.toByteArray() }
+                    .map { vCard ->
+                        remainingBytes -= vCard.size
+                        MMSPart("contact", ContentType.TEXT_VCARD, vCard)
+                    }
+
+                val imageBytesByAttachment = attachments
+                    .mapNotNull { attachment -> attachment as? Attachment.Image }
+                    .associateWith { attachment ->
+                        val uri = attachment.getUri() ?: return@associateWith byteArrayOf()
+                        ImageUtils.getScaledDrawable(context, uri, maxHeight, maxHeight)
+                    }
+                    .toMutableMap()
+
+                val imageByteCount =
+                    imageBytesByAttachment.values.sumOf { byteArray -> byteArray.size }
+
+                if (imageByteCount > remainingBytes) {
+                    imageBytesByAttachment.forEach { (attachment, originalBytes) ->
+                        val uri = attachment.getUri() ?: return@forEach
+                        val maxBytes =
+                            originalBytes.size / imageByteCount.toFloat() * remainingBytes
+
+                        // Get the image dimensions
+                        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeStream(
+                            context.contentResolver.openInputStream(uri),
+                            null,
+                            options
+                        )
+                        val width = options.outWidth
+                        val height = options.outHeight
+                        val aspectRatio = width.toFloat() / height.toFloat()
+
+                        var attempts = 0
+                        var scaledBytes = originalBytes
+
+                        while (scaledBytes.size > maxBytes) {
+                            // Estimate how much we need to scale the image down by. If it's still too big, we'll need to
+                            // try smaller and smaller values
+                            val scale = maxBytes / originalBytes.size * (0.9 - attempts * 0.2)
+                            if (scale <= 0) {
+                                Timber.w("Failed to compress ${originalBytes.size / 1024}Kb to ${maxBytes.toInt() / 1024}Kb")
+                                return@forEach
+                            }
+
+                            val newArea = scale * width * height
+                            val newWidth = sqrt(newArea * aspectRatio).toInt()
+                            val newHeight = (newWidth / aspectRatio).toInt()
+
+                            attempts++
+                            scaledBytes = ImageUtils.getScaledDrawable(context, uri, newWidth, newHeight, 80)
+                        }
+                        imageBytesByAttachment[attachment] = scaledBytes
+                    }
+                }
+                imageBytesByAttachment.forEach { (attachment, bytes) ->
+                    parts += when (attachment.isGif(context)) {
+                        true -> MMSPart("image", ContentType.IMAGE_GIF, bytes)
+                        false -> MMSPart("image", ContentType.IMAGE_JPEG, bytes)
+                    }
+                }
+
+                val recipients = addresses.map(phoneNumberUtils::normalizeNumber)
+            }
+        }
     }
+
 
     override suspend fun sendSms(message: Message) {
         TODO("Not yet implemented")
@@ -192,8 +300,31 @@ class MessageRepositoryImpl @Inject constructor(
         address: String,
         body: String,
         date: Long
-    ) {
-        TODO("Not yet implemented")
+    ): Message {
+        val message = Message(
+            threadId = threadId,
+            address = address,
+            body = body,
+            date = date,
+            boxId = Telephony.Sms.MESSAGE_TYPE_OUTBOX,
+            type = "sms",
+            read = true,
+            seen = true
+        )
+
+        var managedMessage: Message? = null
+        messageDao.upsertMessage(message)
+        val values = contentValuesOf(
+            Telephony.Sms.ADDRESS to address,
+            Telephony.Sms.BODY to body,
+            Telephony.Sms.DATE to System.currentTimeMillis(),
+            Telephony.Sms.READ to true,
+            Telephony.Sms.SEEN to true,
+            Telephony.Sms.TYPE to Telephony.Sms.MESSAGE_TYPE_OUTBOX,
+            Telephony.Sms.THREAD_ID to threadId
+        )
+
+        return message
     }
 
     override suspend fun insertReceivedSms(

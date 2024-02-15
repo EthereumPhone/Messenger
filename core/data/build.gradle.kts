@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":core:database"))
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(project(":core:common"))
+    implementation(project(":core:datastore"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)

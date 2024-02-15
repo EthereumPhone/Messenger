@@ -43,5 +43,7 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
 
     implementation("com.jakewharton.timber:timber:4.7.1")
+    implementation("io.coil-kt:coil:2.4.0")
+    implementation("io.coil-kt:coil-gif:2.5.0")
 
 }

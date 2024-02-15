@@ -6,6 +6,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
@@ -69,6 +70,9 @@ interface MessageDao {
 
     @Update
     suspend fun updateMessages(messages: List<Message>)
+
+    @Upsert
+    suspend fun upsertMessage(message: Message)
 
     @Delete
     suspend fun deleteMessage(message: List<Message>)
