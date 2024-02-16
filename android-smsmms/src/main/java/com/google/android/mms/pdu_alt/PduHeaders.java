@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.google.android.mms.pdu_alt;
+package org.ethereumhpone.common.mms;
 
-import com.google.android.mms.InvalidHeaderValueException;
 
 import java.util.ArrayList;
 import java.util.HashMap;

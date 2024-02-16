@@ -100,6 +100,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import org.ethereumhpone.chat.components.ChatHeader
@@ -122,10 +123,10 @@ fun ChatRoute(
     navigateBackToConversations: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ){
-    val messages by viewModel.messages.collectAsStateWithLifecycle(emptyList())
+    val chatUIState by viewModel.chatState.collectAsStateWithLifecycle()
 
     ChatScreen(
-        messages = messages,
+        chatUIState = chatUIState,
         navigateBackToConversations = navigateBackToConversations
     )
 }
@@ -134,7 +135,7 @@ fun ChatRoute(
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
-    messages: List<Message>,
+    chatUIState: ChatUIState,
     navigateBackToConversations: () -> Unit
 ){
 
@@ -273,6 +274,7 @@ fun ChatScreen(
 
 
 
+
     Scaffold (
         containerColor = Color.Black,
         topBar = {
@@ -305,13 +307,66 @@ fun ChatScreen(
 
             val authorMe = "me"
 
-        LazyColumn(
-            reverseLayout = true,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-        ){
+
+
+
+
+            when(chatUIState){
+                is ChatUIState.Loading -> {
+                    Box(
+
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp)
+                        ,
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Loading...",
+                            fontSize = 12.sp,
+                            fontFamily = Fonts.INTER,
+
+                            color = Colors.WHITE,
+
+                            )
+                    }
+                }
+                is ChatUIState.Success -> {
+
+                    LazyColumn(
+                        reverseLayout = true,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                    ) {
+                        chatUIState.messages.forEachIndexed { index, message ->
+                            val prevAuthor = chatUIState.messages.getOrNull(index - 1)?.address
+                            val nextAuthor = chatUIState.messages.getOrNull(index + 1)?.address
+                            val content = chatUIState.messages[index]
+                            val isFirstMessageByAuthor = prevAuthor != content.address
+                            val isLastMessageByAuthor = nextAuthor != content.address
+
+                            item {
+                                Message(
+                                    onAuthorClick = {  },
+                                    msg = message,
+                                    isUserMe = false,//message.author == authorMe,
+                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                    isLastMessageByAuthor = isLastMessageByAuthor
+                                )
+                            }
+                        }
+                    }
+
+
+                }
+                else -> {}
+            }
+
+
+
 
 //            messages.forEachIndexed { index, message ->
 //                val prevAuthor = initialMessages.getOrNull(index - 1)?.author
@@ -331,27 +386,29 @@ fun ChatScreen(
 //                }
 //            }
 
+
+
 //            MOCK DATA
 
-            initialMessages.forEachIndexed {  index, message ->
-
-                val prevAuthor = initialMessages.getOrNull(index - 1)?.author
-                val nextAuthor = initialMessages.getOrNull(index + 1)?.author
-                val content = initialMessages[index]
-                val isFirstMessageByAuthor = prevAuthor != content.author
-                val isLastMessageByAuthor = nextAuthor != content.author
-
-                item {
-                    Message(
-                        onAuthorClick = {  },
-                        msg = message,
-                        isUserMe = message.author == authorMe,
-                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-                        isLastMessageByAuthor = isLastMessageByAuthor
-                    )
-                }
-
-            }
+//            initialMessages.forEachIndexed {  index, message ->
+//
+//                val prevAuthor = initialMessages.getOrNull(index - 1)?.author
+//                val nextAuthor = initialMessages.getOrNull(index + 1)?.author
+//                val content = initialMessages[index]
+//                val isFirstMessageByAuthor = prevAuthor != content.author
+//                val isLastMessageByAuthor = nextAuthor != content.author
+//
+//                item {
+//                    Message(
+//                        onAuthorClick = {  },
+//                        msg = message,
+//                        isUserMe = message.author == authorMe,
+//                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+//                        isLastMessageByAuthor = isLastMessageByAuthor
+//                    )
+//                }
+//
+//            }
         }
 
 
@@ -574,7 +631,7 @@ fun ChatScreen(
                     }
                 }
             }
-        }
+
 
     }
 }

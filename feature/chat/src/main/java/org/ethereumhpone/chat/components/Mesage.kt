@@ -55,25 +55,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.ethereumhpone.chat.R
-import org.ethereumhpone.chat.model.Message
+
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
+import org.ethereumhpone.database.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
 
-@Composable
-fun UserMessage(){
-
-    Column {
-        Surface(
-            color = Color.Magenta,
-            shape = RoundedCornerShape(20.dp, 4.dp, 20.dp, 20.dp)
-        ) {
-            //ClickableText(text = , onClick = )
-        }
-    }
-}
 
 @Composable
 fun Message(
@@ -143,7 +132,7 @@ private fun AuthorNameTimestamp(msg: Message, read: Boolean = true) {
     ) {
 
         Text(
-            text = msg.timestamp,
+            text = msg.getText(),
             fontSize = 12.sp,
             fontFamily = Fonts.INTER,
             modifier = Modifier.alignBy(LastBaseline),
@@ -161,8 +150,6 @@ private fun AuthorNameTimestamp(msg: Message, read: Boolean = true) {
                 modifier = Modifier.size(12.dp)
             )
         }
-
-
     }
 }
 
@@ -248,24 +235,27 @@ fun ChatItemBubble(
         ) {
 
                 Column {
-                    message.image?.let {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
-                        ){
-                            Image(
-                                painter = painterResource(it),
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier
-                                    .sizeIn(maxWidth = 240.dp)
-                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
-                                contentDescription = "Attached Image"
-                            )
-                        }
+//                    Text
+//                    message.contentId?.let {
+//                        Box(
+//                            contentAlignment = Alignment.Center,
+//                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
+//                        ){
+//                            Image(
+//                                painter = painterResource(it),
+//                                contentScale = ContentScale.Fit,
+//                                modifier = Modifier
+//                                    .sizeIn(maxWidth = 240.dp)
+//                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
+//                                contentDescription = "Attached Image"
+//                            )
+//                        }
+//
+//
+//
+//                    }
 
 
-
-                    }
                     ClickableMessage(
                         message = message,
                         isUserMe = isUserMe,
@@ -306,7 +296,7 @@ fun ClickableMessage(
     val context =  LocalContext.current
 
     val styledMessage = messageFormatter(
-        text = message.content,
+        text = message.subject,
         primary = isUserMe
     )
 
@@ -340,45 +330,45 @@ fun ClickableMessage(
 @Preview
 @Composable
 fun ConversationPreview() {
-    val initialMessages = listOf(
-        Message(
-            "me",
-            "Check it out!",
-            "8:07 PM"
-        ),
-        Message(
-            "me",
-            "Thank you!",
-            "8:06 PM",
-            R.drawable.ethos
-        ),
-        Message(
-            "Taylor Brooks",
-            "You can use all the same stuff",
-            "8:05 PM"
-        ),
-        Message(
-            "Taylor Brooks",
-            "@aliconors Take a look at the `Flow.collectAsStateWithLifecycle()` APIs",
-            "8:05 PM"
-        ),
-        Message(
-            "Taylor Brooks",
-            "Compose newbie as well, have you looked at the JetNews sample? " +
-                    "Most blog posts end up out of date pretty fast but this sample is always up to " +
-                    "date and deals with async data loading (it's faked but the same idea " +
-                    "applies)  https://goo.gle/jetnews",
-            "8:04 PM"
-        ),
-        Message(
-            "me",
-            "Compose newbie: I’ve scourged the internet for tutorials about async data " +
-                    "loading but haven’t found any good ones " +
-                    "What’s the recommended way to load async data and emit composable widgets?",
-            "8:03 PM"
-        )
-
-    )
+//    val initialMessages = listOf(
+//        Message(
+//            "me",
+//            "Check it out!",
+//            "8:07 PM"
+//        ),
+//        Message(
+//            "me",
+//            "Thank you!",
+//            "8:06 PM",
+//            R.drawable.ethos
+//        ),
+//        Message(
+//            "Taylor Brooks",
+//            "You can use all the same stuff",
+//            "8:05 PM"
+//        ),
+//        Message(
+//            "Taylor Brooks",
+//            "@aliconors Take a look at the `Flow.collectAsStateWithLifecycle()` APIs",
+//            "8:05 PM"
+//        ),
+//        Message(
+//            "Taylor Brooks",
+//            "Compose newbie as well, have you looked at the JetNews sample? " +
+//                    "Most blog posts end up out of date pretty fast but this sample is always up to " +
+//                    "date and deals with async data loading (it's faked but the same idea " +
+//                    "applies)  https://goo.gle/jetnews",
+//            "8:04 PM"
+//        ),
+//        Message(
+//            "me",
+//            "Compose newbie: I’ve scourged the internet for tutorials about async data " +
+//                    "loading but haven’t found any good ones " +
+//                    "What’s the recommended way to load async data and emit composable widgets?",
+//            "8:03 PM"
+//        )
+//
+//    )
 
     val authorMe = "me"
 
@@ -407,31 +397,31 @@ fun ConversationPreview() {
 //        }
 //    }
 
-    LazyColumn(
-        reverseLayout = true,
-        modifier = Modifier
-            .fillMaxSize()
-    ){
-        initialMessages.forEachIndexed {  index, message ->
-
-            val prevAuthor = initialMessages.getOrNull(index - 1)?.author
-            val nextAuthor = initialMessages.getOrNull(index + 1)?.author
-            val content = initialMessages[index]
-            val isFirstMessageByAuthor = prevAuthor != content.author
-            val isLastMessageByAuthor = nextAuthor != content.author
-
-            item {
-                Message(
-                    onAuthorClick = {  },
-                    msg = message,
-                    isUserMe = message.author == authorMe,
-                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                    isLastMessageByAuthor = isLastMessageByAuthor
-                )
-            }
-
-        }
-    }
+//    LazyColumn(
+//        reverseLayout = true,
+//        modifier = Modifier
+//            .fillMaxSize()
+//    ){
+//        initialMessages.forEachIndexed {  index, message ->
+//
+//            val prevAuthor = initialMessages.getOrNull(index - 1)?.author
+//            val nextAuthor = initialMessages.getOrNull(index + 1)?.author
+//            val content = initialMessages[index]
+//            val isFirstMessageByAuthor = prevAuthor != content.author
+//            val isLastMessageByAuthor = nextAuthor != content.author
+//
+//            item {
+//                Message(
+//                    onAuthorClick = {  },
+//                    msg = message,
+//                    isUserMe = message.author == authorMe,
+//                    isFirstMessageByAuthor = isFirstMessageByAuthor,
+//                    isLastMessageByAuthor = isLastMessageByAuthor
+//                )
+//            }
+//
+//        }
+//    }
 
 
 }
