@@ -1,5 +1,7 @@
 package org.ethereumhpone.database.model
 
+import android.content.ContentUris
+import android.net.Uri
 import android.provider.Telephony
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -51,6 +53,11 @@ data class Message(
         AUDIO,
         SLIDESHOW,
         NOT_LOADED
+    }
+
+    fun getUri(): Uri {
+        val baseUri = if (isMms()) Telephony.Mms.CONTENT_URI else Telephony.Sms.CONTENT_URI
+        return ContentUris.withAppendedId(baseUri, contentId)
     }
 
     fun isMms(): Boolean = type == "mms"

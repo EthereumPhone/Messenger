@@ -75,6 +75,9 @@ interface MessageDao {
     suspend fun upsertMessage(message: Message)
 
     @Delete
-    suspend fun deleteMessage(message: List<Message>)
+    suspend fun deleteAllMessage(message: List<Message>)
+
+    @Delete
+    suspend fun deleteMessage(message: Message)
 
 }

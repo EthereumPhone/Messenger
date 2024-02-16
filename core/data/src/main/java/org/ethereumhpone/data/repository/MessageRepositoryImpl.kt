@@ -14,14 +14,19 @@ import android.webkit.MimeTypeMap
 import androidx.core.content.contentValuesOf
 import com.google.android.mms.ContentType
 import com.google.android.mms.MMSPart
+import com.google.android.mms.pdu_alt.MultimediaMessagePdu
+import com.google.android.mms.pdu_alt.PduPersister
 import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Transaction
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.send_message.SmsManagerFactory
 import org.ethereumhpone.common.util.ImageUtils
 import org.ethereumhpone.common.util.removeAccents
+import org.ethereumhpone.common.util.tryOrNull
 import org.ethereumhpone.data.receiver.SmsDeliveredReceiver
 import org.ethereumhpone.data.receiver.SmsSentReceiver
 import org.ethereumhpone.data.util.PhoneNumberUtils
@@ -30,9 +35,11 @@ import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.datastore.MessengerPreferences
+import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.manager.KeyManager
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.MessageRepository
+import org.ethereumhpone.domain.repository.SyncRepository
 import timber.log.Timber
 import java.io.File
 import java.io.FileNotFoundException
@@ -46,7 +53,8 @@ class MessageRepositoryImpl @Inject constructor(
     private val conversationDao: ConversationDao,
     private val messengerPreferences: MessengerPreferences,
     private val phoneNumberUtils: PhoneNumberUtils,
-
+    private val syncRepository: SyncRepository,
+    private val activeConversationManager: ActiveConversationManager,
     private val context: Context,
     private val keyManager: KeyManager,
 ): MessageRepository {
@@ -333,6 +341,21 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
     override suspend fun resendMms(message: Message) {
+        val subId = message.subId
+        val threadId = message.threadId
+        val pdu = tryOrNull {
+            PduPersister.getPduPersister(context).load(message.getUri()) as MultimediaMessagePdu
+        } ?: return
+
+        val addresses = pdu.to.map { it.string }.filter { it.isNotBlank() }
+        val parts = message.parts.mapNotNull { part ->
+            val bytes = tryOrNull(false) {
+                context.contentResolver.openInputStream(part.getUri())?.use { inputStream -> inputStream.readBytes() }
+            } ?: return@mapNotNull null
+
+            MMSPart(part.name.orEmpty(), part.type, bytes)
+        }
+        Transaction(context).sendNewMessage(subId, threadId, addresses, parts, message.subject, message.getUri())
 
     }
 
@@ -354,7 +377,6 @@ class MessageRepositoryImpl @Inject constructor(
             seen = true
         )
 
-        var managedMessage: Message? = null
         messageDao.upsertMessage(message)
         val values = contentValuesOf(
             Telephony.Sms.ADDRESS to address,
@@ -366,6 +388,23 @@ class MessageRepositoryImpl @Inject constructor(
             Telephony.Sms.THREAD_ID to threadId
         )
 
+        messengerPreferences.prefs.collect{ prefs ->
+            if (prefs.canUseSubId) {
+                values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
+            }
+        }
+
+        val uri = context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values)
+        uri?.lastPathSegment?.toLong()?.let { id ->
+            messageDao.upsertMessage(
+                message.copy(contentId = id)
+            )
+        }
+
+        if (threadId == 0L) {
+            uri?.let { syncRepository.syncMessage(it) }
+        }
+
         return message
     }
 
@@ -375,31 +414,143 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         sentTime: Long
     ) {
-        TODO("Not yet implemented")
+        val threadId = TelephonyCompat.getOrCreateThreadId(context, address)
+        val message = Message(
+            threadId = threadId,
+            address = address,
+            body = body,
+            date = System.currentTimeMillis(),
+            boxId = Telephony.Sms.MESSAGE_TYPE_INBOX,
+            type = "sms",
+            read = activeConversationManager.getActiveConversation() == threadId,
+            seen = true
+        )
+
+        messageDao.upsertMessage(message)
+        val values = contentValuesOf(
+            Telephony.Sms.ADDRESS to address,
+            Telephony.Sms.BODY to body,
+            Telephony.Sms.DATE_SENT to sentTime
+        )
+
+        messengerPreferences.prefs.collect{ prefs ->
+            if (prefs.canUseSubId) {
+                values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
+            }
+        }
+
+        context.contentResolver.insert(Telephony.Sms.Inbox.CONTENT_URI, values)?.lastPathSegment?.toLong()?.let { id ->
+            messageDao.upsertMessage(
+                message.copy(contentId = id)
+            )
+        }
     }
 
     override suspend fun markSending(id: Long) {
-        TODO("Not yet implemented")
+        messageDao.getMessage(id).collect { message ->
+            message?.let {
+                messageDao.upsertMessage(
+                    it.copy(
+                        boxId = when(it.isSms()) {
+                            true -> Telephony.Sms.MESSAGE_TYPE_OUTBOX
+                            false -> Telephony.Mms.MESSAGE_BOX_OUTBOX
+                        }
+                    )
+                )
+                val values = when (message.isSms()) {
+                    true -> contentValuesOf(Telephony.Sms.TYPE to Telephony.Sms.MESSAGE_TYPE_OUTBOX)
+                    false -> contentValuesOf(Telephony.Mms.MESSAGE_BOX to Telephony.Mms.MESSAGE_BOX_OUTBOX)
+                }
+                context.contentResolver.update(message.getUri(), values, null, null)
+            }
+        }
+
     }
 
     override suspend fun markSent(id: Long) {
-        TODO("Not yet implemented")
+        messageDao.getMessage(id).collect { message ->
+            message?.let {
+                messageDao.upsertMessage(
+                    it.copy(
+                        boxId = Telephony.Sms.MESSAGE_TYPE_SENT
+                    )
+                )
+                val values = ContentValues()
+                values.put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_SENT)
+
+                context.contentResolver.update(message.getUri(), values, null, null)
+            }
+        }
     }
 
     override suspend fun markFailed(id: Long, resultCode: Int) {
-        TODO("Not yet implemented")
+        messageDao.getMessage(id).collect { message ->
+            message?.let {
+                messageDao.upsertMessage(
+                    it.copy(
+                        boxId = Telephony.Sms.MESSAGE_TYPE_FAILED,
+                        errorCode = resultCode
+                    )
+                )
+                val values = ContentValues()
+                values.put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_FAILED)
+                values.put(Telephony.Sms.ERROR_CODE, resultCode)
+
+                context.contentResolver.update(message.getUri(), values, null, null)
+            }
+        }
     }
 
     override suspend fun markDelivered(id: Long) {
-        TODO("Not yet implemented")
+        messageDao.getMessage(id).collect { message ->
+            message?.let {
+                messageDao.upsertMessage(
+                    it.copy(
+                        boxId = Telephony.Sms.STATUS_COMPLETE,
+                    )
+                )
+                val values = ContentValues()
+                values.put(Telephony.Sms.STATUS, Telephony.Sms.STATUS_COMPLETE)
+                values.put(Telephony.Sms.DATE_SENT, System.currentTimeMillis())
+                values.put(Telephony.Sms.READ, true)
+
+                context.contentResolver.update(message.getUri(), values, null, null)
+            }
+        }
     }
 
     override suspend fun markDeliveryFailed(id: Long, resultCode: Int) {
-        TODO("Not yet implemented")
+        messageDao.getMessage(id).collect { message ->
+            message?.let {
+                messageDao.upsertMessage(
+                    it.copy(
+                        deliveryStatus = Telephony.Sms.STATUS_FAILED,
+                        dateSent = System.currentTimeMillis(),
+                        read = true,
+                        errorCode = resultCode
+                    )
+                )
+                val values = ContentValues()
+                values.put(Telephony.Sms.STATUS, Telephony.Sms.STATUS_FAILED)
+                values.put(Telephony.Sms.DATE_SENT, System.currentTimeMillis())
+                values.put(Telephony.Sms.READ, true)
+                values.put(Telephony.Sms.ERROR_CODE, resultCode)
+
+                context.contentResolver.update(message.getUri(), values, null, null)
+            }
+        }
     }
 
     override suspend fun deleteMessage(vararg messageIds: Long) {
-        TODO("Not yet implemented")
+        messageIds.forEach { id ->
+            messageDao.getMessage(id).collect { message ->
+                message?.let {
+                    val uri = message.getUri()
+                    messageDao.deleteMessage(message)
+                    context.contentResolver.delete(uri, null, null)
+                }
+            }
+        }
     }
 
 }
