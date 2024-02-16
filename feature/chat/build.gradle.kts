@@ -50,11 +50,12 @@ dependencies {
 
 
     implementation("androidx.compose.material:material:1.4.3")
-    implementation("androidx.compose.material:material-icons-extended:1.4.3")
+    implementation("androidx.compose.material:material-icons-extended:1.6.1")
     implementation("androidx.compose.runtime:runtime-livedata:1.4.3")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.compose.foundation:foundation:1.6.0-alpha02")
     implementation(project(":core:domain"))
+    implementation(project(":core:database"))
 
 
 
