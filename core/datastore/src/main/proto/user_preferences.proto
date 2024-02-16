@@ -6,14 +6,15 @@ option java_multiple_files = true;
 message UserPreferences {
     //internal
     bool canUseSubId = 1;
-    bool shouldHideOnboarding 2;
+    int32 mmsSize = 2;
+    bool longAsMms = 3;
+    string signature = 4;
+    bool unicode = 5;
+    bool delivery = 6;
 
     // configurable
     DarkThemeConfigProto darkThemeConfig = 11;
-    int32 mmsSize = 12
-    string signature = 13
-    bool unicode = 14
-
+    bool shouldHideOnboarding = 12;
 }
 
 enum DarkThemeConfigProto {

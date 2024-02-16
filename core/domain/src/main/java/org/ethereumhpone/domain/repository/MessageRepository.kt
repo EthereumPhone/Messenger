@@ -22,7 +22,6 @@ interface MessageRepository {
     fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>>
     suspend fun savePart(id: Long): File?
     fun getUnreadUnseenMessages(threadId: Long): Flow<List<Message>>
-    suspend fun insertSms()
     suspend fun markAllSeen()
     suspend fun markSeen(threadId: Long)
     suspend fun markRead(vararg threadIds: Long)
@@ -42,7 +41,7 @@ interface MessageRepository {
         address: String,
         body: String,
         date: Long
-    )
+    ): Message
     suspend fun insertReceivedSms(
         subId: Int,
         address: String,

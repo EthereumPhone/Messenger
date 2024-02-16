@@ -43,6 +43,8 @@ dependencies {
     implementation(project(":core:database"))
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(project(":core:common"))
+    implementation(project(":core:datastore"))
+    implementation(project(":android-smsmms"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
@@ -56,4 +58,5 @@ dependencies {
     implementation("io.michaelrocks:libphonenumber-android:8.13.28")
 
     implementation("com.jakewharton.timber:timber:4.7.1")
+
 }

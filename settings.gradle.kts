@@ -23,3 +23,5 @@ include(":core:domain")
 include(":core:database")
 include(":core:datastore")
 include(":core:common")
+include(":android-smsmms")
+
