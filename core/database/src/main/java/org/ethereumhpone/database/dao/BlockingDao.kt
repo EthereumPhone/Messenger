@@ -1,5 +1,6 @@
 package org.ethereumhpone.database.dao
 
+import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
@@ -7,6 +8,8 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.BlockedNumber
 
+
+@Dao
 interface BlockingDao {
 
     @Query("SELECT * FROM blocked_number")

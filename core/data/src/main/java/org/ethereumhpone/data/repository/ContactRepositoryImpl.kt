@@ -7,8 +7,9 @@ import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.ContactGroup
 import org.ethereumhpone.domain.repository.ContactRepository
+import javax.inject.Inject
 
-class ContactRepositoryImpl(
+class ContactRepositoryImpl @Inject constructor(
     private val contactDao: ContactDao
 ): ContactRepository {
     override fun findContactUri(address: String): Flow<Uri?> {

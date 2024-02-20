@@ -49,14 +49,14 @@ import javax.inject.Inject
 import kotlin.math.sqrt
 
 class MessageRepositoryImpl @Inject constructor(
-    private val messageDao: MessageDao,
-    private val conversationDao: ConversationDao,
-    private val messengerPreferences: MessengerPreferences,
-    private val phoneNumberUtils: PhoneNumberUtils,
-    private val syncRepository: SyncRepository,
-    private val activeConversationManager: ActiveConversationManager,
+    private val messageDao: @JvmSuppressWildcards MessageDao,
+    private val conversationDao: @JvmSuppressWildcards ConversationDao,
+    private val messengerPreferences: @JvmSuppressWildcards MessengerPreferences,
+    private val phoneNumberUtils: @JvmSuppressWildcards PhoneNumberUtils,
+    private val syncRepository: @JvmSuppressWildcards SyncRepository,
+    private val activeConversationManager: @JvmSuppressWildcards ActiveConversationManager,
     private val context: Context,
-    private val keyManager: KeyManager,
+//    private val keyManager: KeyManager,
 ): MessageRepository {
     override fun getMessages(threadId: Long, query: String): Flow<List<Message>> =
         messageDao.getMessages(threadId, query)

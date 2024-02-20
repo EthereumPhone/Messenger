@@ -2,11 +2,13 @@ package org.ethereumhpone.data.repository
 
 import android.content.ContentResolver
 import android.net.Uri
+import dagger.Module
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
+import javax.inject.Inject
 
 
-class SyncRepositoryImpl(
+class SyncRepositoryImpl @Inject constructor(
     private val contentResolver: ContentResolver,
     private val conversationRepository: ConversationRepository
 ): SyncRepository {

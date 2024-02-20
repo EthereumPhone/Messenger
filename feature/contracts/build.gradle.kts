@@ -1,3 +1,5 @@
+import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.exclude
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -43,6 +45,12 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.2"
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains:annotations:23.0.0") // Use the latest version needed
+        }
+    }
 }
 
 dependencies {
@@ -85,7 +93,7 @@ dependencies {
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.08.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
 
 
 
@@ -104,6 +112,8 @@ dependencies {
 
 
     implementation(libs.hilt.navigation)
+
+
 
 
 }

@@ -2,9 +2,7 @@ package org.ethereumhpone.datastore
 
 import androidx.datastore.core.DataStore
 import kotlinx.coroutines.flow.map
-import org.ethereumhpone.datastore.proto.DarkThemeConfigProto
-import org.ethereumhpone.datastore.proto.UserPreferences
-import org.ethereumhpone.datastore.proto.copy
+
 import org.ethereumhpone.domain.model.DarkThemeConfig
 import org.ethereumhpone.domain.model.UserData
 import javax.inject.Inject

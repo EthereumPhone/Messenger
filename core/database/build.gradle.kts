@@ -34,9 +34,17 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains:annotations:23.0.0") // Use the latest version needed
+        }
+    }
 }
 
 dependencies {
+
+    implementation("com.google.code.gson:gson:2.8.6")
 
     implementation(libs.core.ktx)
     implementation(libs.appcompat)

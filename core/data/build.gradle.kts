@@ -33,6 +33,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains:annotations:23.0.0") // Use the latest version needed
+        }
+    }
 }
 
 dependencies {
@@ -45,6 +51,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:datastore"))
     implementation(project(":android-smsmms"))
+    implementation(project(":core:datastore"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)

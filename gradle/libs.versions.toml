@@ -1,5 +1,7 @@
 [versions]
+activityCompose = "1.8.2"
 agp = "8.2.1"
+annotations = "12.0"
 kotlin = "1.9.0"
 core-ktx = "1.12.0"
 junit = "4.13.2"
@@ -13,6 +15,7 @@ material3 = "1.1.2"
 compose = "1.5.4"
 navigation = "2.7.6"
 lifecycle = "2.6.2"
+protobufGradlePlugin = "3.14.0"
 roomdb = "2.6.1"
 hilt-jetpack = "1.1.0"
 work = "2.9.0"
@@ -24,9 +27,13 @@ serialization  = "1.0.1"
 navigationCommonKtx = "2.7.6"
 navigationRuntimeKtx = "2.7.6"
 firebaseCrashlyticsBuildtools = "2.9.9"
+datastoreCore = "1.0.0"
 
 
 [libraries]
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+annotations = { module = "com.intellij:annotations", version.ref = "annotations" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext-junit" }
@@ -46,6 +53,7 @@ compose-lifecycle = { group = "androidx.lifecycle", name = "lifecycle-runtime-co
 compose-navigation = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 
 # roomdb
+protobuf-gradle-plugin = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "protobufGradlePlugin" }
 room-runtime = {group = "androidx.room", name = "room-runtime", version.ref = "roomdb"}
 room-ktx = {group = "androidx.room", name = "room-ktx", version.ref = "roomdb"}
 room-compiler = {group = "androidx.room", name = "room-compiler", version.ref = "roomdb"}
@@ -72,6 +80,7 @@ androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
 androidx-navigation-common-ktx = { group = "androidx.navigation", name = "navigation-common-ktx", version.ref = "navigationCommonKtx" }
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
+androidx-datastore-core = { group = "androidx.datastore", name = "datastore-core", version.ref = "datastoreCore" }
 
 
 [plugins]
