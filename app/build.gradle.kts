@@ -1,11 +1,9 @@
-
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 
 
-    id("com.google.protobuf") version "0.8.17"
+    id("com.google.protobuf") version "0.9.4"
 
 
 
@@ -21,7 +19,7 @@ android {
 
     defaultConfig {
         applicationId = "org.ethereumhpone.messenger"
-        minSdk = 32
+        minSdk = 34
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -59,6 +57,12 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains:annotations:23.0.0")
+        }
+    }
 }
 
 dependencies {
@@ -92,28 +96,36 @@ dependencies {
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
 
-    // Jetpack DataStore
-//    implementation("androidx.datastore:datastore:1.0.0")
-//    implementation("androidx.datastore:datastore-preferences:1.0.0")
-//
-//
-//    // Protocol Buffers
-//    implementation("androidx.datastore:datastore-core:1.0.0") // Check for the latest version
-//    implementation("com.google.protobuf:protobuf-javalite:3.18.0") // Check for the latest version
-//    implementation("com.google.protobuf:protobuf-kotlin-lite:3.18.0")
 
-    implementation("androidx.datastore:datastore:1.0.0")
 
-    // optional - RxJava2 support
-    implementation("androidx.datastore:datastore-rxjava2:1.0.0")
-
-    // optional - RxJava3 support
-    implementation("androidx.datastore:datastore-rxjava3:1.0.0")
+    // For Proto DataStore
+    implementation("androidx.datastore:datastore-core:1.0.0")
+    implementation("com.google.protobuf:protobuf-javalite:3.24.3")
 
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.hilt.navigation)
+}
+
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.3"
+    }
+
+    // Generates the java Protobuf-lite code for the Protobufs in this project. See
+    // https://github.com/google/protobuf-gradle-plugin#customizing-protobuf-compilation
+    // for more information.
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
 }
 
 
