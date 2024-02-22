@@ -1,9 +1,10 @@
 package org.ethereumhpone.data.manager
 
 import org.ethereumhpone.domain.manager.ActiveConversationManager
+import javax.inject.Inject
 
 
-class ActiveConversationManagerImpl: ActiveConversationManager {
+class ActiveConversationManagerImpl @Inject constructor(): ActiveConversationManager {
     private var threadId: Long? = null
 
     override fun setActiveConversation(threadId: Long?) {

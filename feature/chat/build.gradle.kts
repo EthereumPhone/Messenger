@@ -42,6 +42,12 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.2"
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains:annotations:23.0.0") // Use the latest version needed
+        }
+    }
 }
 
 dependencies {
@@ -75,7 +81,7 @@ dependencies {
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.08.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
 
 
     implementation("io.coil-kt:coil-compose:1.4.0")

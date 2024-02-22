@@ -1,6 +1,8 @@
 package org.ethereumhpone.database.util
 
 import androidx.room.TypeConverter
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -13,6 +15,20 @@ import org.ethereumhpone.database.model.Recipient
 
 @OptIn(ExperimentalSerializationApi::class)
 class Converters {
+
+    private val gson = Gson()
+
+    @TypeConverter
+    fun fromContactsList(contacts: List<Contact>?): String? {
+        return gson.toJson(contacts)
+    }
+
+    @TypeConverter
+    fun toContactsList(contactsString: String?): List<Contact>? {
+        if (contactsString == null) return null
+        val type = object : TypeToken<List<Contact>>() {}.type
+        return gson.fromJson(contactsString, type)
+    }
     @TypeConverter
     fun fromPhoneNumberList(json: String?): List<PhoneNumber> {
         if (json == null) {

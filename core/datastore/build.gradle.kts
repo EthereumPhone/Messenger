@@ -35,6 +35,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains:annotations:23.0.0") // Use the latest version needed
+        }
+    }
 }
 
 // protobuf-protoc

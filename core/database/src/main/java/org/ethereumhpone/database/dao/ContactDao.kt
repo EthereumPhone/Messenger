@@ -1,11 +1,14 @@
 package org.ethereumhpone.database.dao
 
+import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.ContactGroup
 
+
+@Dao
 interface ContactDao {
 
     @Query("SELECT * FROM contact")

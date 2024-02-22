@@ -255,9 +255,11 @@ class ConversationRepositoryImpl @Inject constructor(
     override suspend fun deleteConversations(vararg threadIds: Long) {
         conversationDao.getConversations(threadIds.toList()).collect { conversations ->
             conversations.forEach { conversation ->
-                messageDao.getAllConversationMessages(conversation.id)
-                    .collect(messageDao::deleteMessage)
-                conversationDao.deleteConversation(listOf(conversation))
+                messageDao.getAllConversationMessages(conversation.id).collect { messages ->
+                    messages.forEach { message ->
+                        messageDao.deleteMessage(message)
+                    }
+                }
             }
         }
     }

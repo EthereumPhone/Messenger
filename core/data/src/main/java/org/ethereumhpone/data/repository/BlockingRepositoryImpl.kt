@@ -8,8 +8,9 @@ import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.BlockingDao
 import org.ethereumhpone.database.model.BlockedNumber
 import org.ethereumhpone.domain.repository.BlockingRepository
+import javax.inject.Inject
 
-class BlockingRepositoryImpl(
+class BlockingRepositoryImpl @Inject constructor(
     private val phoneNumberUtils: PhoneNumberUtils,
     private val blockingDao: BlockingDao
 ): BlockingRepository {
