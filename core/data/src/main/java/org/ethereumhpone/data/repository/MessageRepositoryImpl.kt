@@ -19,7 +19,6 @@ import com.google.android.mms.pdu_alt.PduPersister
 import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Transaction
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.ethereumhpone.common.compat.TelephonyCompat
@@ -36,7 +35,6 @@ import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
-import org.ethereumhpone.domain.manager.KeyManager
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
@@ -56,7 +54,6 @@ class MessageRepositoryImpl @Inject constructor(
     private val syncRepository: SyncRepository,
     private val activeConversationManager: ActiveConversationManager,
     private val context: Context,
-    private val keyManager: KeyManager,
 ): MessageRepository {
     override fun getMessages(threadId: Long, query: String): Flow<List<Message>> =
         messageDao.getMessages(threadId, query)
