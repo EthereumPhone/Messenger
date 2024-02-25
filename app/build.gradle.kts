@@ -99,8 +99,18 @@ dependencies {
 
 
     // For Proto DataStore
+
+    implementation("androidx.datastore:datastore:1.0.0")
+
     implementation("androidx.datastore:datastore-core:1.0.0")
     implementation("com.google.protobuf:protobuf-javalite:3.24.3")
+
+
+    // optional - RxJava2 support
+    implementation("androidx.datastore:datastore-rxjava2:1.0.0")
+
+    // optional - RxJava3 support
+    implementation("androidx.datastore:datastore-rxjava3:1.0.0")
 
 
     implementation(libs.hilt.android)

@@ -1,14 +1,13 @@
 package org.ethereumhpone.messenger.di
 
 
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+
 import android.app.Application
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
+import androidx.datastore.migrations.SharedPreferencesMigration
 import com.core.datastore.proto.UserPreferences
 import dagger.Module
 import dagger.Provides
@@ -21,15 +20,15 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.SupervisorJob
 import javax.inject.Singleton
 import org.ethereumhpone.datastore.UserPreferencesSerializer
+import java.util.prefs.Preferences
 
 
 
+private const val USER_PREFERENCES_NAME = "user_preferences"
+private const val DATA_STORE_FILE_NAME = "user_prefs.pb"
 @Module
 @InstallIn(SingletonComponent::class)
 object DataStoreModule {
-
-    private val Context.dataStore by preferencesDataStore(name = "user_preferences")ƒ
-            
 
     @Provides
     @Singleton
@@ -39,7 +38,8 @@ object DataStoreModule {
     ): DataStore<UserPreferences> {
         return DataStoreFactory.create(
             serializer = userPreferencesSerializer,
-            produceFile = { context.dataStoreFile("user_preferences.pb") },
+            produceFile = { context.dataStoreFile(DATA_STORE_FILE_NAME) },
+            corruptionHandler = null,
             scope = CoroutineScope(IO + SupervisorJob())
         )
     }
