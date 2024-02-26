@@ -1,5 +1,7 @@
 package org.ethereumhpone.contracts
 
+import android.Manifest
+import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,10 +22,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,9 +51,13 @@ import org.ethosmobile.components.library.core.ethOSHeader
 import org.ethosmobile.components.library.theme.Colors
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
+import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
 import java.util.Date
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
 
 @Composable
@@ -56,18 +66,28 @@ fun ContactRoute(
     navigateToChat: (String) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
 ){
-    val conversations by viewModel.conversations.collectAsStateWithLifecycle(emptyList())
+    val context = LocalContext.current
+
+    val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
+    val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
+
+
+
     ContactScreen(
-        conversations = conversations,
-        navigateToChat = navigateToChat
+        contacts = contacts,
+        conversationState = conversationState,
+        navigateToChat = navigateToChat,
+//        getContacts = viewModel::getContacts,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun ContactScreen(
-    conversations: List<Conversation>,
+    contacts: List<Contact>,
+    conversationState: ConversationUIState,
     navigateToChat: (String) -> Unit,
+//    getContacts: (Context) -> Unit,
     modifier: Modifier = Modifier
 ){
 
@@ -78,12 +98,22 @@ fun ContactScreen(
 
 
     //ModalSheets
-    var showAssetSheet by remember { mutableStateOf(false) }
-    val modalAssetSheetState = rememberModalBottomSheetState(true)
+    var showContactSheet by remember { mutableStateOf(false) }
+    val modalContactSheetState = rememberModalBottomSheetState(true)
 
     var showCameraWithPerm by remember {
         mutableStateOf(false)
     }
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val contactsPermissionsToRequest = listOf(
+        Manifest.permission.READ_CONTACTS
+    )
+
+    val contactsPermissionState = rememberMultiplePermissionsState(permissions = contactsPermissionsToRequest)
+
 
 
 
@@ -103,7 +133,7 @@ fun ContactScreen(
                         ,
                         enabled = true,
                         onClick = {
-                            showAssetSheet = true
+                            showContactSheet = true
                         },
                     ) {
                         Box(
@@ -127,55 +157,105 @@ fun ContactScreen(
                 .fillMaxSize()
                 .padding(paddingValues)) {
 
-            Box(modifier = Modifier.weight(1f)) {
-                LazyColumn(
-                    reverseLayout = true,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                ){
-//                    item {
-//                        ChatListItem(
-//                            header = "Mark Katakowskihashvili",
-//                            subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
-//                            ens = "emunsi.eth",
-//                            onClick = navigateToChat
-//                        )
-//                    }
-                    conversations.forEach { conversation ->
-                        item {
-                            ChatListItem(
-                                header = conversation.recipients.get(0).contact?.name!!,
-                                subheader = conversation.lastMessage?.getText()!!,
-                                ens = "",
-                                time = convertLongToTime(conversation.lastMessage?.date!!),
-                                unreadConversation = conversation.unread,
-                                onClick = { navigateToChat(conversation.id.toString()) }
-                            )
-                        }
-
+            when(conversationState){
+                is ConversationUIState.Loading ->{
+                    Box(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Loading",
+                            fontSize = 12.sp,
+                            fontFamily = Fonts.INTER,
+                            color = Colors.WHITE,
+                        )
                     }
+                }
+                is ConversationUIState.Empty ->{
+                    Box(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "No conversations",
+                            fontSize = 12.sp,
+                            fontFamily = Fonts.INTER,
+                            color = Colors.WHITE,
+                        )
+                    }
+                }
+                is ConversationUIState.Success -> {
+
+                   if(conversationState.conversations.isNotEmpty()){
+                       Box(modifier = Modifier.weight(1f)) {
+                           LazyColumn(
+                               reverseLayout = true,
+                               modifier = Modifier.padding(horizontal = 12.dp)
+                           ){
+                               conversationState.conversations.forEach { conversation ->
+                                   item {
+                                       ChatListItem(
+                                           header = conversation.recipients.get(0).contact?.name!!,
+                                           subheader = conversation.lastMessage?.getText()!!,
+                                           ens = "",
+                                           time = convertLongToTime(conversation.lastMessage?.date!!),
+                                           unreadConversation = conversation.unread,
+                                           onClick = { navigateToChat(conversation.id.toString()) }
+                                       )
+                                   }
+
+                               }
+
+                           }
+                       }
+                   }else{
+                       Box(
+                           modifier = Modifier.fillMaxSize(),
+                           contentAlignment = Alignment.Center
+                       ) {
+                           Text(
+                               text = "No conversations",
+                               fontSize = 20.sp,
+                               fontFamily = Fonts.INTER,
+                               fontWeight = FontWeight.Medium,
+                               color = Colors.GRAY,
+                           )
+                       }
+                   }
 
                 }
+
+                else -> {}
             }
+
         }
 
     }
 
-    if(showAssetSheet){
+    if(showContactSheet){
         ModalBottomSheet(
             containerColor= Colors.BLACK,
             contentColor= Colors.WHITE,
 
             onDismissRequest = {
                 scope.launch {
-                    modalAssetSheetState.hide()
+                    modalContactSheetState.hide()
                 }.invokeOnCompletion {
-                    if(!modalAssetSheetState.isVisible) showAssetSheet = false
+                    if(!modalContactSheetState.isVisible) showContactSheet = false
                 }
             },
-            sheetState = modalAssetSheetState
+            sheetState = modalContactSheetState
         ) {
 
-            ContactSheet()
+            LaunchedEffect(key1 = contactsPermissionState.allPermissionsGranted) {
+                if (!contactsPermissionState.allPermissionsGranted) {
+                    contactsPermissionState.launchMultiplePermissionRequest()
+                }
+            }
+
+            if (contactsPermissionState.allPermissionsGranted) {
+//                coroutineScope.launch {
+//                    getContacts(context)
+//                }
+                val allowedContacts = contacts//.filter { it.name.isNotEmpty() }
+
+                ContactSheet(allowedContacts)
+            }
+
 
         }
     }
@@ -202,5 +282,5 @@ fun convertDateToLong(date: String): Long {
     @Composable
 @Preview
 fun PreviewChatScreen(){
-    ContactScreen(emptyList(),{})
+//    ContactScreen(emptyList(),{})
 }

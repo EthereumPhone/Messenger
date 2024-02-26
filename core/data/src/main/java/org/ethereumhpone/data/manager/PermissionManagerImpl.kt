@@ -8,8 +8,11 @@ import android.os.Build
 import android.provider.Telephony
 import androidx.core.content.ContextCompat
 import org.ethereumhpone.domain.manager.PermissionManager
+import javax.inject.Inject
 
-class PermissionManagerImpl constructor(private val context: Context): PermissionManager {
+class PermissionManagerImpl @Inject constructor(
+    private val context: Context
+): PermissionManager {
     override fun isDefaultSms(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_SMS) == true

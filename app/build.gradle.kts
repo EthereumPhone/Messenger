@@ -90,6 +90,9 @@ dependencies {
 
     // For Proto DataStore
 
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
+
     //implementation("androidx.datastore:datastore:1.0.0")
 
     //implementation("androidx.datastore:datastore-core:1.0.0")
