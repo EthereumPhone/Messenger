@@ -1,7 +1,7 @@
 [versions]
 activityCompose = "1.8.2"
 agp = "8.2.1"
-annotations = "12.0"
+annotations = "23.0.0"
 kotlin = "1.9.0"
 core-ktx = "1.12.0"
 junit = "4.13.2"
@@ -9,7 +9,7 @@ androidx-test-ext-junit = "1.1.5"
 espresso-core = "3.5.1"
 appcompat = "1.6.1"
 hiltWork = "1.1.0"
-hilt = "2.48.1"
+hilt = "2.50"
 material = "1.11.0"
 material3 = "1.1.2"
 compose = "1.5.4"
@@ -33,7 +33,7 @@ datastoreCore = "1.0.0"
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
-annotations = { module = "com.intellij:annotations", version.ref = "annotations" }
+annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext-junit" }
