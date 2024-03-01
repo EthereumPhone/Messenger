@@ -51,6 +51,11 @@ interface ConversationDao {
     @Query("SELECT * FROM conversation WHERE blocked = true")
     fun getBlockedConversations(): Flow<List<Conversation>>
 
+    @Query("SELECT * FROM conversation WHERE " +
+        "archived == true OR blocked == true OR pinned == true OR title != ''" +
+        "OR blockingClient IS NOT NULL OR blockReason != ''")
+    fun getPersistedData(): Flow<List<Conversation>>
+
     @Update
     fun updateConversation(conversation: Conversation)
 
@@ -59,4 +64,6 @@ interface ConversationDao {
 
     @Delete
     fun deleteConversation(conversations: List<Conversation>)
+
+
 }
