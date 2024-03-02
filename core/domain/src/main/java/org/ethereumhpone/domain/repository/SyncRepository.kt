@@ -1,15 +1,14 @@
 package org.ethereumhpone.domain.repository
 
 import android.net.Uri
+import kotlinx.coroutines.flow.Flow
+import org.ethereumhpone.database.model.Message
 
 interface SyncRepository {
 
-    sealed class SyncProgress {
-        object Idle: SyncProgress()
-        data class Running(val max: Int, val progress: Int, val indeterminate: Boolean): SyncProgress()
-    }
+    val isSyncing: Flow<Boolean>
 
     suspend fun syncMessages()
-    suspend fun syncMessage(uri: Uri)
+    suspend fun syncMessage(uri: Uri): Message?
     suspend fun syncContacts()
 }

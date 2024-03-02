@@ -64,6 +64,12 @@ interface MessageDao {
             "EXISTS (SELECT 1 FROM mms_part WHERE id = mms_part.id AND mms_part.text LIKE '%' || :query || '%')")
     fun searchMessages(query: String): Flow<List<Message>>
 
+    @Query("SELECT * FROM mms_part WHERE messageId = :messageId")
+    fun getMmsPartByMessageId(messageId: Long): Flow<List<MmsPart>>
+
+    @Query("SELECT id FROM message WHERE contentId = :contentId AND type = :type LIMIT 1")
+    fun getMessageId(contentId: Long, type: String): Flow<Long?>
+
 
     @Insert
     suspend fun insertMessage(message: Message)
@@ -73,6 +79,9 @@ interface MessageDao {
 
     @Upsert
     suspend fun upsertMessage(message: Message)
+
+    @Upsert
+    suspend fun upsertMessagePart(mmsPart: MmsPart)
 
     @Delete
     suspend fun deleteAllMessage(message: List<Message>)
