@@ -58,6 +58,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import org.ethereumhpone.database.model.Message
 
 
 @Composable
@@ -281,6 +282,21 @@ fun convertDateToLong(date: String): Long {
 
     @Composable
 @Preview
-fun PreviewChatScreen(){
-//    ContactScreen(emptyList(),{})
+fun PreviewContactScreen(){
+    ContactScreen(
+        emptyList(),
+        ConversationUIState.Success(
+            conversations = listOf(
+                Conversation(
+                    id= 0,
+                    recipients = emptyList(),
+                lastMessage =  Message(
+                    body = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor"
+                ),
+                title = "Mark Katakowski"
+                )
+            )
+        ),
+        {}
+    )
 }

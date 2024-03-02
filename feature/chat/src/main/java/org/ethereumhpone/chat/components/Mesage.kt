@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
@@ -55,6 +56,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.chat.model.MockMessage
 
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
@@ -63,6 +65,55 @@ import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
 
+
+@Composable
+fun TxMessage(
+    msg: Message,
+    onAuthorClick: (String) -> Unit,
+    isUserMe: Boolean,
+    isFirstMessageByAuthor: Boolean,
+    isLastMessageByAuthor: Boolean,
+    modifier: Modifier = Modifier
+){
+    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
+        .padding(top = 8.dp)
+        .fillMaxWidth() else Modifier
+    val alignmessage = if(isUserMe) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp)
+
+    val txmessage = msg.body.split(",")
+
+    Row(
+        modifier = spaceBetweenAuthors,
+        horizontalArrangement = Arrangement.End
+    ) {
+//        Text(text = ""+ isFirstMessageByAuthor)
+        Column(
+            modifier = modifier,
+            horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
+        ) {
+            TxChatItemBubble(
+                network=txmessage.get(1),
+                amount= txmessage.get(2).toDouble(),
+                symbol= txmessage.get(3),
+                isUserMe = isUserMe,
+                authorClicked = onAuthorClick,
+                isLastMessageByAuthor=isLastMessageByAuthor,
+                isFirstMessageByAuthor=isFirstMessageByAuthor
+            )
+            if (isFirstMessageByAuthor) {
+                AuthorNameTimestamp(msg)
+            }
+            if (isFirstMessageByAuthor) {
+                // Last bubble before next author
+                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                // Between bubbles
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+    }
+
+}
 
 @Composable
 fun Message(
@@ -132,7 +183,7 @@ private fun AuthorNameTimestamp(msg: Message, read: Boolean = true) {
     ) {
 
         Text(
-            text = msg.getText(),
+            text = msg.subject,
             fontSize = 12.sp,
             fontFamily = Fonts.INTER,
             modifier = Modifier.alignBy(LastBaseline),
@@ -159,6 +210,154 @@ private val UserChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
 private val LastChatBubbleShape = RoundedCornerShape(20.dp, 32.dp, 32.dp, 4.dp)
 private val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.dp)
 
+
+private val TxChatBubbleShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 20.dp)
+
+
+@Composable
+fun TxChatItemBubble(
+    network: String,
+    symbol: String,
+    amount: Double,
+    isUserMe: Boolean,
+    authorClicked: (String) -> Unit,
+    isLastMessageByAuthor: Boolean,
+    isFirstMessageByAuthor: Boolean
+) {
+
+
+
+    val gradient = Modifier
+        .clip(TxChatBubbleShape)
+        .background(
+            Colors.WHITE
+        )
+        .border(1.dp,Color(0xFF8C7DF7),TxChatBubbleShape)
+    val nogradient = Modifier
+        .clip(TxChatBubbleShape)
+        .background(
+            Colors.WHITE
+        )
+        .border(1.dp,Color(0xFF8C7DF7),TxChatBubbleShape)
+
+    val usercolor = if(isLastMessageByAuthor) nogradient else gradient
+
+    val reciepientcolor = Modifier
+        .clip(TxChatBubbleShape)
+        .background(
+            Colors.WHITE
+        )
+        .border(1.dp,Colors.DARK_GRAY,TxChatBubbleShape)
+
+
+    Column(
+        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Surface(
+            modifier = if(isUserMe) usercolor else reciepientcolor,
+            color = Color.Transparent,//backgroundBubbleColor,
+            shape = TxChatBubbleShape
+
+        ) {
+
+            Column(
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(16.dp)
+            ) {
+////                    Text
+//                    message.mmsStatus?.let {
+//                        Box(
+//                            contentAlignment = Alignment.Center,
+//                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
+//                        ){
+//                            Image(
+//                                painter = painterResource(it),
+//                                contentScale = ContentScale.Fit,
+//                                modifier = Modifier
+//                                    .sizeIn(maxWidth = 240.dp)
+//                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
+//                                contentDescription = "Attached Image"
+//                            )
+//                        }
+//
+//
+//                    }
+
+                Text(
+                    text = "Sent",
+                    style = TextStyle(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY,
+                        fontFamily = Fonts.INTER
+                    )
+                )
+
+//                TxClickableMessage(
+//                    network = network,
+//                    symbol = symbol,
+//                    amount = amount,
+//                    isUserMe = isUserMe,
+//                    authorClicked = authorClicked
+//                )
+
+
+                Text(
+                    text = "$amount ${symbol.uppercase()}",
+                    style = TextStyle(
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY,
+                        fontFamily = Fonts.INTER
+                    )
+                )
+
+                Row (
+//                    modifier = Modifier.weight()
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+
+                ){
+                    Box ( modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
+                    Text(
+                        text = "Mainnet",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY,
+                            fontFamily = Fonts.INTER
+                        )
+                    )
+                }
+
+            }
+
+
+
+        }
+
+//        message.image?.let {
+//            Spacer(modifier = Modifier.height(4.dp))
+//            Surface(
+//                modifier = if(isUserMe) usercolor else reciepientcolor,
+//                color = Color.Transparent,
+//                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
+//            ) {
+//                Image(
+//                    painter = painterResource(it),
+//                    contentScale = ContentScale.Fit,
+//                    modifier = Modifier.size(160.dp),
+//                    contentDescription = "Attached Image"
+//                )
+//            }
+//        }
+    }
+}
 
 
 @Composable
@@ -235,8 +434,8 @@ fun ChatItemBubble(
         ) {
 
                 Column {
-//                    Text
-//                    message.contentId?.let {
+////                    Text
+//                    message.mmsStatus?.let {
 //                        Box(
 //                            contentAlignment = Alignment.Center,
 //                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
@@ -250,7 +449,6 @@ fun ChatItemBubble(
 //                                contentDescription = "Attached Image"
 //                            )
 //                        }
-//
 //
 //
 //                    }
@@ -287,7 +485,7 @@ fun ChatItemBubble(
 
 @Composable
 fun ClickableMessage(
-    message: Message,
+    message:Message,
     isUserMe: Boolean,
     authorClicked: (String) -> Unit
 ) {
@@ -296,7 +494,7 @@ fun ClickableMessage(
     val context =  LocalContext.current
 
     val styledMessage = messageFormatter(
-        text = message.subject,
+        text = message.body,// timestamp
         primary = isUserMe
     )
 
@@ -327,75 +525,125 @@ fun ClickableMessage(
     )
 }
 
+@Composable
+fun TxClickableMessage(
+    network: String,
+    symbol: String,
+    amount: Double,
+    isUserMe: Boolean,
+    authorClicked: (String) -> Unit
+) {
+    val uriHandler = LocalUriHandler.current
+
+    val context =  LocalContext.current
+
+    val styledMessage = messageFormatter(
+        text = "Sent $amount ${symbol.uppercase()}",
+        primary = isUserMe
+    )
+
+
+    ClickableText(
+        text = styledMessage,
+        style = TextStyle(
+            fontSize = 24.sp,
+            fontWeight =  FontWeight.SemiBold,
+            color = Colors.WHITE,
+            fontFamily = Fonts.INTER
+        ),
+        modifier = Modifier.padding(horizontal = 16.dp),
+        onClick = {
+            Toast.makeText(context, "This is a Sample Toast", Toast.LENGTH_SHORT).show()
+
+
+            styledMessage
+                .getStringAnnotations(start = it, end = it)
+                .firstOrNull()
+                ?.let { annotation ->
+                    when (annotation.tag) {
+                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
+                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
+                        else -> Unit
+                    }
+                }
+        }
+    )
+}
+
 @Preview
 @Composable
 fun ConversationPreview() {
-//    val initialMessages = listOf(
-//        Message(
-//            "me",
-//            "Check it out!",
-//            "8:07 PM"
-//        ),
-//        Message(
-//            "me",
-//            "Thank you!",
-//            "8:06 PM",
-//            R.drawable.ethos
-//        ),
-//        Message(
-//            "Taylor Brooks",
-//            "You can use all the same stuff",
-//            "8:05 PM"
-//        ),
-//        Message(
-//            "Taylor Brooks",
-//            "@aliconors Take a look at the `Flow.collectAsStateWithLifecycle()` APIs",
-//            "8:05 PM"
-//        ),
-//        Message(
-//            "Taylor Brooks",
-//            "Compose newbie as well, have you looked at the JetNews sample? " +
-//                    "Most blog posts end up out of date pretty fast but this sample is always up to " +
-//                    "date and deals with async data loading (it's faked but the same idea " +
-//                    "applies)  https://goo.gle/jetnews",
-//            "8:04 PM"
-//        ),
-//        Message(
-//            "me",
-//            "Compose newbie: I’ve scourged the internet for tutorials about async data " +
-//                    "loading but haven’t found any good ones " +
-//                    "What’s the recommended way to load async data and emit composable widgets?",
-//            "8:03 PM"
-//        )
-//
-//    )
+    val initialMessages = listOf(
+        Message(
+            address = "me",
+            body = "*txsent,1,0.08,ETH",
+            subject = "8:10 PM"
+        ),
+        Message(
+            address = "me",
+            body = "Check it out!",
+            subject = "8:07 PM"
+        ),
+        Message(
+            address = "me",
+            body = "Thank you!",
+            subject = "8:06 PM",
+            mmsStatus = R.drawable.ethos
+        ),
+        Message(
+            address = "Taylor Brooks",
+            body = "You can use all the same stuff",
+            subject = "8:05 PM"
+        ),
+        Message(
+            address = "Taylor Brooks",
+            body = "@aliconors Take a look at the `Flow.collectAsStateWithLifecycle()` APIs",
+            subject = "8:05 PM"
+        ),
+        Message(
+            address = "Taylor Brooks",
+            body = "Compose newbie as well, have you looked at the JetNews sample? " +
+                    "Most blog posts end up out of date pretty fast but this sample is always up to " +
+                    "date and deals with async data loading (it's faked but the same idea " +
+                    "applies)  https://goo.gle/jetnews",
+            subject = "8:04 PM"
+        ),
+        Message(
+            address = "me",
+            body = "Compose newbie: I’ve scourged the internet for tutorials about async data " +
+                    "loading but haven’t found any good ones " +
+                    "What’s the recommended way to load async data and emit composable widgets?",
+            subject = "8:03 PM"
+        )
+
+    )
 
     val authorMe = "me"
 
 
-//    LazyColumn(
-//        reverseLayout = true,
-//        modifier = Modifier
-//            .fillMaxSize()
-//    ){
-//        for (index in initialMessages.indices) {
-//            val prevAuthor = initialMessages.getOrNull(index - 1)?.author
-//            val nextAuthor = initialMessages.getOrNull(index + 1)?.author
-//            val content = initialMessages[index]
-//            val isFirstMessageByAuthor = prevAuthor != content.author
-//            val isLastMessageByAuthor = nextAuthor != content.author
-//            item {
-//                Message(
-//                    onAuthorClick = {  },
-//                    msg = content,
-//                    isUserMe = content.author == authorMe,
-//                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-//                    isLastMessageByAuthor = isLastMessageByAuthor
-//                )
-//            }
-//
-//        }
-//    }
+    LazyColumn(
+        reverseLayout = true,
+        modifier = Modifier
+            .fillMaxSize()
+    ){
+        for (index in initialMessages.indices) {
+            val prevAuthor = initialMessages.getOrNull(index - 1)?.address
+            val nextAuthor = initialMessages.getOrNull(index + 1)?.address
+            val content = initialMessages[index]
+            val isFirstMessageByAuthor = prevAuthor != content.address
+            val isLastMessageByAuthor = nextAuthor != content.address
+            item {
+                Message(
+                    onAuthorClick = {  },
+                    msg = content,
+                    isUserMe = content.address == authorMe,
+                    isFirstMessageByAuthor = isFirstMessageByAuthor,
+                    isLastMessageByAuthor = isLastMessageByAuthor
+                )
+            }
+
+        }
+    }
 
 //    LazyColumn(
 //        reverseLayout = true,

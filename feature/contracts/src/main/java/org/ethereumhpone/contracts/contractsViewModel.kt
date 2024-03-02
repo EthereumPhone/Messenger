@@ -21,13 +21,15 @@ import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
+import org.ethereumhpone.domain.repository.SyncRepository
 import javax.inject.Inject
 
 
 @HiltViewModel
 class ContactViewModel @Inject constructor(
     private val conversationRepository: ConversationRepository,
-    private val contactRepository: ContactRepository
+    private val contactRepository: ContactRepository,
+    private val syncRepository: SyncRepository
 //    private val contactCursor: ContactCursor
 ): ViewModel() {
 

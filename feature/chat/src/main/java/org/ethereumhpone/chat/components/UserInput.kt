@@ -663,23 +663,32 @@ fun WalletSelector(
     focusRequester: FocusRequester,
     onOpenAssetPicker: () -> Unit
 ) {
-
-    Column(
-        modifier = Modifier
-            .focusRequester(focusRequester) // Requests focus when the Emoji selector is displayed
-            // Make the emoji selector focusable so it can steal focus from TextField
-            .focusTarget()
-            .background(Colors.BLACK)
-            .semantics { contentDescription = "Send ETH" }
+    AnimatedVisibility(
+        visibleState = remember { MutableTransitionState(false).apply { targetState = true } },
+        enter = expandHorizontally() + fadeIn(),
+        exit = shrinkHorizontally() + fadeOut()
     ) {
-        Row(modifier = Modifier.verticalScroll(rememberScrollState())) {
-            WalletTable(
-                tokenBalance = 0.0,
-                modifier = Modifier.padding(8.dp),
-                onOpenAssetPicker = onOpenAssetPicker
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 12.dp,end = 12.dp, top=12.dp)
+                .focusRequester(focusRequester) // Requests focus when the Emoji selector is displayed
+                // Make the emoji selector focusable so it can steal focus from TextField
+                .focusTarget()
+                .background(Colors.BLACK)
+                .semantics { contentDescription = "Send ETH" }
+        ) {
+            Row(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                WalletTable(
+                    tokenBalance = 0.0,
+                    modifier = Modifier.padding(8.dp),
+                    onOpenAssetPicker = onOpenAssetPicker
+                )
+            }
         }
     }
+
+
 }
 
 @Composable
