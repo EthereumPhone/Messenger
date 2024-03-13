@@ -43,7 +43,9 @@ data class Message(
     val mmsStatus: Int = 0,
     val subject: String = "",
     val textContentType: String = "",
-    val parts: List<MmsPart> = emptyList()
+    val parts: List<MmsPart> = emptyList(),
+
+
 
 ) {
     enum class AttachmentType {

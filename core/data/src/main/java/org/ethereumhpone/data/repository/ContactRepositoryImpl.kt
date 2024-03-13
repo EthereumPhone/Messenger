@@ -34,7 +34,7 @@ class ContactRepositoryImpl @Inject constructor(
                 numbers = contact.numbers.map { number ->
                     number.copy(isDefault = number.id == phoneNumberId)
                 }
-            )?.let { contactDao.updateContract(it) }
+            )?.let { contactDao.upsertContact(it) }
         }
     }
 }

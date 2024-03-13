@@ -1,6 +1,7 @@
 package org.ethereumhpone.contracts.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,11 +10,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -37,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -48,13 +52,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberImagePainter
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.contracts.R
+import org.ethereumhpone.database.model.Contact
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
 @Composable
 fun ContactSheet(
+    contacts: List<Contact> = emptyList(),
+    onSelectContact: (Contact) -> Unit = {}
 ) {
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
@@ -93,58 +101,65 @@ fun ContactSheet(
                 fontWeight = FontWeight.SemiBold
             )
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        SearchTextField(
-            textFieldValue = textState,
-            onTextChanged = { textState = it},
-            onTextFieldFocused = { focused ->
-                if (focused) {
-                    currentInputSelector = InputSelector.NONE
-//                    resetScroll()
-                }
-                textFieldFocusState = focused
-            },
-            focusState = textFieldFocusState,
 
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Box(
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
+        if (contacts.isEmpty()){
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight(0.5f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-
-                //Mockdata
-                ethOSContactListItem(
-                    header = "Elie Munsi",
-                    withSubheader = true,
-                    subheader = "emunsi.eth",
-                    onClick = {}
+                Text(
+                    text = "No contacts available",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Fonts.INTER,
+                    color = Colors.GRAY,
                 )
-                ethOSContactListItem(
-                    header = "Markus",
-                    withSubheader = true,
-                    subheader = "mhaas.eth",
-                    onClick = {}
-                )
-                ethOSContactListItem(
-                    header = "Mark Katakowski",
-                    withSubheader = true,
-                    subheader = "mk.eth",
-                    onClick = { }
-                )
-                ethOSContactListItem(
-                    header = "Nicola Ceornea",
-                    withSubheader = true,
-                    subheader = "nceornea.eth",
-                    onClick = {}
-                )
-
             }
+        }else{
+            Spacer(modifier = Modifier.height(24.dp))
+            SearchTextField(
+                textFieldValue = textState,
+                onTextChanged = { textState = it},
+                onTextFieldFocused = { focused ->
+                    if (focused) {
+                        currentInputSelector = InputSelector.NONE
+//                    resetScroll()
+                    }
+                    textFieldFocusState = focused
+                },
+                focusState = textFieldFocusState,
 
+                )
 
+            Spacer(modifier = Modifier.height(24.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight(0.5f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                LazyColumn{
+                    contacts.forEach {
+                        item {
+                            ethOSContactListItem(
+                                withImage = it.photoUri != null,
+                                image = {
+                                    Image(
+                                        painter = rememberImagePainter(it.photoUri),
+                                        contentDescription = "Contact profile pic",
+                                        contentScale = ContentScale.Crop
+                                    )
+                                },
+                                header = it.name,
+                                withSubheader = false,// ens in future ?
+                                onClick = {}
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -170,7 +185,9 @@ private fun SearchTextField(
 
     var lastFocusState by remember { mutableStateOf(false) }
     Row (
-        modifier = Modifier.clip(CircleShape).border(1.dp,Colors.GRAY, CircleShape)
+        modifier = Modifier
+            .clip(CircleShape)
+            .border(1.dp, Colors.GRAY, CircleShape)
     ){
         BasicTextField(
             value = textFieldValue,
@@ -194,7 +211,7 @@ private fun SearchTextField(
             textStyle = TextStyle(
                 fontWeight = FontWeight.Medium,
                 fontFamily = Fonts.INTER,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 color = Colors.WHITE,
             )
         )
@@ -210,7 +227,7 @@ private fun SearchTextField(
                     imageVector = Icons.Rounded.Search,
                     contentDescription = "Searching",
                     tint = Colors.GRAY,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(28.dp)
                 )
                 if (textFieldValue.text.isEmpty() && !focusState) {
                     Text(
@@ -221,7 +238,7 @@ private fun SearchTextField(
                         textAlign = TextAlign.Start,
                         fontWeight = FontWeight.Medium,
                         fontFamily = Fonts.INTER,
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                         color = Colors.GRAY,
                     )
                 }else{

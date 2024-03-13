@@ -34,12 +34,6 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
-    configurations.all {
-        resolutionStrategy {
-            force("org.jetbrains:annotations:23.0.0") // Use the latest version needed
-        }
-    }
 }
 
 dependencies {
@@ -53,8 +47,12 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
-    implementation(libs.bundles.roomb)
-    kapt(libs.bundles.roomb)
+    implementation(libs.bundles.roomb) {
+        exclude(group = "com.intellij", module = "annotations")
+    }
+    kapt(libs.bundles.roomb) {
+        exclude(group = "com.intellij", module = "annotations")
+    }
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)

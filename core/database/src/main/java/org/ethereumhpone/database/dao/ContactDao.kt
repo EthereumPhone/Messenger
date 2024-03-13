@@ -2,7 +2,7 @@ package org.ethereumhpone.database.dao
 
 import androidx.room.Dao
 import androidx.room.Query
-import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.ContactGroup
@@ -23,6 +23,9 @@ interface ContactDao {
     @Query("SELECT * FROM contact_group WHERE contacts IS NOT NULL")
     fun getUnmanagedContactGroups(): Flow<List<ContactGroup>>
 
-    @Update
-    fun updateContract(contract: Contact)
+    @Upsert
+    fun upsertContact(contact: Contact)
+
+    @Upsert
+    fun upsertContactGroup(contactGroups: List<ContactGroup>)
 }

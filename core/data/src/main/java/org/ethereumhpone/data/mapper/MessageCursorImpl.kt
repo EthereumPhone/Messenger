@@ -6,8 +6,18 @@ import android.net.Uri
 import android.provider.Telephony
 import com.google.android.mms.pdu_alt.EncodedStringValue
 import com.google.android.mms.pdu_alt.PduHeaders
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import org.ethereumhpone.common.util.tryOrNull
+import org.ethereumhpone.data.util.SqliteWrapper
 
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.mapper.MessageCursor
 import org.ethereumhpone.domain.mapper.PartCursor
@@ -17,6 +27,7 @@ class MessageCursorImpl @Inject constructor(
     private val context: Context,
     private val partCursor: PartCursor,
     private val permissionManager: PermissionManager,
+    private val messengerPreferences: MessengerPreferences
 
 ) : MessageCursor {
 
@@ -49,7 +60,25 @@ class MessageCursorImpl @Inject constructor(
     )
 
     override fun getMessagesCursor(): Cursor? {
-        TODO("Not yet implemented")
+        return runBlocking {
+            val canUseSubId = tryOrNull {
+                SqliteWrapper.query(context, uri, arrayOf(Telephony.Mms.SUBSCRIPTION_ID), logError = false)?.use { true }
+            }
+            messengerPreferences.setCanUseSubId(canUseSubId ?: false)
+
+            val prefs = messengerPreferences.prefs.first()
+
+
+            val projection = when (prefs.canUseSubId) {
+                true -> projection + Telephony.Mms.SUBSCRIPTION_ID
+                false -> projection
+            }
+
+            when (permissionManager.hasReadSms()) {
+                true -> SqliteWrapper.query(context, uri, projection, sortOrder = "normalized_date desc")
+                false -> null
+            }
+        }
     }
 
     override fun getMessageCursor(id: Long): Cursor? {
@@ -134,5 +163,9 @@ class MessageCursorImpl @Inject constructor(
         }
 
         return ""
+    }
+
+    private suspend fun doStuff() {
+
     }
 }
