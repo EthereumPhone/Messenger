@@ -164,8 +164,4 @@ class MessageCursorImpl @Inject constructor(
 
         return ""
     }
-
-    private suspend fun doStuff() {
-
-    }
 }

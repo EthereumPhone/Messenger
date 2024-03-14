@@ -7,12 +7,20 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import android.app.NotificationManager
 import android.graphics.Color
-import android.net.Uri
+import org.ethereumhpone.data.util.PhoneNumberUtils
+import org.ethereumhpone.datastore.MessengerPreferences
+import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.repository.ConversationRepository
+import org.ethereumhpone.domain.repository.MessageRepository
+import javax.inject.Inject
 
-class NotificationManager(
+class NotificationManager @Inject constructor(
     private val context: Context,
+    private val messengerPreferences: MessengerPreferences,
+    private val permissionManager: PermissionManager,
     private val conversationRepository: ConversationRepository,
+    private val messageRepository: MessageRepository,
+    private val phoneNumberUtils: PhoneNumberUtils
 ): org.ethereumhpone.domain.manager.NotificationManager {
 
     companion object {
@@ -30,7 +38,7 @@ class NotificationManager(
     }
 
     override fun update(threadId: Long) {
-        TODO("Not yet implemented")
+
     }
 
     override fun notifyFailed(threadId: Long) {

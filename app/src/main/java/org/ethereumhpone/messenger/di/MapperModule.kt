@@ -4,10 +4,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import org.ethereumhpone.data.mapper.ContactCursorImpl
-import org.ethereumhpone.data.repository.ConversationCursorImpl
-import org.ethereumhpone.data.repository.RecipientCursorImpl
-import org.ethereumhpone.domain.mapper.ContactCursor
+import org.ethereumhpone.data.mapper.RecipientCursorImpl
 import org.ethereumhpone.domain.mapper.ConversationCursor
 import org.ethereumhpone.domain.mapper.RecipientCursor
 
@@ -17,10 +14,10 @@ import org.ethereumhpone.domain.mapper.RecipientCursor
 object MapperModule {
 
     @Provides
-    fun provideConversationCursor(): ConversationCursor = ConversationCursorImpl()// Initialize your ConversationCursor here
+    fun provideConversationCursor(cursor: ConversationCursor): ConversationCursor = cursor
 
     @Provides
-    fun provideRecipientCursor(): RecipientCursor = RecipientCursorImpl()// Initialize your RecipientCursor here
+    fun provideRecipientCursor(cursor: RecipientCursorImpl): RecipientCursor = cursor
 
 
 //    @Provides

@@ -9,8 +9,9 @@ data class UserData(
     val mmsSize: Int = 300,
     val delivery: Boolean = false,
 
-    //
-    val shouldHideOnboarding: Boolean,
+    // external
+    val shouldShowNotifications: Boolean = true,
+    val shouldHideOnboarding: Boolean = false,
     val darkThemeConfig: DarkThemeConfig,
 
 )

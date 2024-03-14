@@ -15,6 +15,7 @@ message UserPreferences {
     // configurable
     DarkThemeConfigProto darkThemeConfig = 11;
     bool shouldHideOnboarding = 12;
+    bool shouldShowNotifications = 13;
 }
 
 enum DarkThemeConfigProto {
