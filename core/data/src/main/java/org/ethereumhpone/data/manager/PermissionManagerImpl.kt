@@ -1,6 +1,7 @@
 package org.ethereumhpone.data.manager
 
 import android.Manifest
+import android.app.NotificationManager
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -11,8 +12,11 @@ import org.ethereumhpone.domain.manager.PermissionManager
 import javax.inject.Inject
 
 class PermissionManagerImpl @Inject constructor(
-    private val context: Context
+    private val context: Context,
 ): PermissionManager {
+
+    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
     override fun isDefaultSms(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_SMS) == true
@@ -26,6 +30,13 @@ class PermissionManagerImpl @Inject constructor(
     override fun hasSendSms(): Boolean = hasPermission(Manifest.permission.SEND_SMS)
 
     override fun hasContacts(): Boolean = hasPermission(Manifest.permission.READ_CONTACTS)
+
+    override fun hasNotifications(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return true
+        }
+        return notificationManager.areNotificationsEnabled()
+    }
 
     override fun hasPhone(): Boolean = hasPermission(Manifest.permission.READ_PHONE_STATE)
 

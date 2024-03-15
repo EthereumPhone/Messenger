@@ -4,7 +4,7 @@ option java_package = "com.core.datastore.proto";
 option java_multiple_files = true;
 
 message UserPreferences {
-    //internal
+    // internal
     bool canUseSubId = 1;
     int32 mmsSize = 2;
     bool longAsMms = 3;
@@ -16,6 +16,9 @@ message UserPreferences {
     DarkThemeConfigProto darkThemeConfig = 11;
     bool shouldHideOnboarding = 12;
     bool shouldShowNotifications = 13;
+
+    // Proto has no set, so have to do this instead, so ignore bool
+    map<string, bool> ThreadNotificationsIds = 14;
 }
 
 enum DarkThemeConfigProto {

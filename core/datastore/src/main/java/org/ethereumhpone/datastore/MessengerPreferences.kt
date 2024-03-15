@@ -34,7 +34,7 @@ class MessengerPreferences @Inject constructor(
                     DarkThemeConfigProto.DARK_THEME_CONFIG_DARK ->
                         DarkThemeConfig.DARK
                 },
-
+                threadNotificationsId = it.threadNotificationsIdsMap
             )
         }
 
@@ -43,6 +43,18 @@ class MessengerPreferences @Inject constructor(
         userPreferences.updateData {
             it.copy {
                 this.canUseSubId = canUseSubId
+            }
+        }
+    }
+
+    suspend fun setThreadNotifications(thread: String, value: Boolean) {
+        userPreferences.updateData {
+            it.copy {
+                if (value) {
+                    threadNotificationsIds.put(thread, true)
+                } else {
+                    threadNotificationsIds.remove(thread)
+                }
             }
         }
     }

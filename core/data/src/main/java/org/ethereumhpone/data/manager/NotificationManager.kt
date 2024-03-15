@@ -7,6 +7,12 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import android.app.NotificationManager
 import android.graphics.Color
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.PermissionManager
@@ -27,6 +33,9 @@ class NotificationManager @Inject constructor(
         const val DEFAULT_CHANNEL_ID = "notifications_default"
         const val BACKUP_RESTORE_CHANNEL_ID = "notifications_backup_restore"
 
+        const val NOTIFICATIONS_KEY = "notifications"
+        const val THREAD_NOTIFICATIONS_KEY = "thread_notifications"
+
         val VIBRATE_PATTERN = longArrayOf(0, 200, 0, 200)
     }
 
@@ -37,7 +46,16 @@ class NotificationManager @Inject constructor(
         createNotificationChannel()
     }
 
-    override fun update(threadId: Long) {
+    override suspend fun update(threadId: Long) {
+
+        // if check if notifications are disabled
+        if(!notifications(threadId)) {
+            return
+        }
+
+        if(!permissionManager.hasNotifications()) {
+            return
+        }
 
     }
 
@@ -60,18 +78,21 @@ class NotificationManager @Inject constructor(
                 vibrationPattern = VIBRATE_PATTERN
             }
             else -> {
-                /*
+
                 val conversation = conversationRepository.getConversation(threadId) ?: return
                 val channelId = buildNotificationChannelId(threadId)
-                val title = conversation.getTitle()
-                NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_HIGH).apply {
-                    enableLights(true)
-                    lightColor = Color.WHITE
-                    enableVibration(true)
-                    vibrationPattern = VIBRATE_PATTERN
-                    lockscreenVisibility = 1 //TODO: CHANGE
+                conversation.map {
+                    val title = it?.title
+                    NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_HIGH).apply {
+                        enableLights(true)
+                        lightColor = Color.WHITE
+                        enableVibration(true)
+                        vibrationPattern = VIBRATE_PATTERN
+                        lockscreenVisibility = 1 //TODO: CHANGE
+                    }
                 }
-                 */
+
+
 
             }
         }
@@ -96,6 +117,16 @@ class NotificationManager @Inject constructor(
         }
 
         return null
+    }
+
+    private suspend fun notifications(threadId: Long = 0): Boolean {
+        val threads = messengerPreferences.prefs.first().threadNotificationsId
+        val default = threads[NOTIFICATIONS_KEY] ?: true
+
+        return when(threadId) {
+            0L -> default
+            else -> threads["$THREAD_NOTIFICATIONS_KEY$threadId"] ?: default
+        }
     }
 }
 

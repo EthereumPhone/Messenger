@@ -4,7 +4,7 @@ import androidx.core.app.NotificationCompat
 
 interface NotificationManager {
 
-    fun update(threadId: Long)
+    suspend fun update(threadId: Long)
 
     fun notifyFailed(threadId: Long)
 

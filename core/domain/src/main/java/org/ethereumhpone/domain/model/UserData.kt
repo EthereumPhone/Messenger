@@ -10,9 +10,9 @@ data class UserData(
     val delivery: Boolean = false,
 
     // external
-    val shouldShowNotifications: Boolean = true,
     val shouldHideOnboarding: Boolean = false,
     val darkThemeConfig: DarkThemeConfig,
+    val threadNotificationsId: Map<String, Boolean>
 
 )
 

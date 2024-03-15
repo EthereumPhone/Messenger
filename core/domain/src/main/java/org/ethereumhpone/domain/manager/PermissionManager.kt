@@ -5,6 +5,7 @@ interface PermissionManager {
     fun hasReadSms(): Boolean
     fun hasSendSms(): Boolean
     fun hasContacts(): Boolean
+    fun hasNotifications(): Boolean
     fun hasPhone(): Boolean
     fun hasCalling(): Boolean
     fun hasStorage(): Boolean
