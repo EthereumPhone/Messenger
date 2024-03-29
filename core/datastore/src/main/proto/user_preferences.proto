@@ -19,6 +19,7 @@ message UserPreferences {
 
     // Proto has no set, so have to do this instead, so ignore bool
     map<string, bool> ThreadNotificationsIds = 14;
+    string ringTone = 15;
 }
 
 enum DarkThemeConfigProto {

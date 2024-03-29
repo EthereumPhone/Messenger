@@ -34,7 +34,8 @@ class MessengerPreferences @Inject constructor(
                     DarkThemeConfigProto.DARK_THEME_CONFIG_DARK ->
                         DarkThemeConfig.DARK
                 },
-                threadNotificationsId = it.threadNotificationsIdsMap
+                threadNotificationsId = it.threadNotificationsIdsMap,
+                ringTone = it.ringTone
             )
         }
 
@@ -95,6 +96,14 @@ class MessengerPreferences @Inject constructor(
         userPreferences.updateData {
             it.copy {
                 this.shouldHideOnboarding = shouldHideOnboarding
+            }
+        }
+    }
+
+    suspend fun setRingTone(ringTone: String) {
+        userPreferences.updateData {
+            it.copy {
+                this.ringTone = ringTone
             }
         }
     }

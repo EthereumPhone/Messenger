@@ -12,7 +12,8 @@ data class UserData(
     // external
     val shouldHideOnboarding: Boolean = false,
     val darkThemeConfig: DarkThemeConfig,
-    val threadNotificationsId: Map<String, Boolean>
+    val threadNotificationsId: Map<String, Boolean>,
+    val ringTone: String
 
 )
 

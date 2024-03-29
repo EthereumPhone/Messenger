@@ -112,7 +112,7 @@ class MessageRepositoryImpl @Inject constructor(
         return file.takeIf { it.exists() }
     }
 
-    override fun getUnreadUnseenMessages(threadId: Long): Flow<List<Message>> =
+    override suspend fun getUnreadUnseenMessages(threadId: Long): List<Message> =
         messageDao.getUnreadUnseenMessages()
 
     override suspend fun markAllSeen() {

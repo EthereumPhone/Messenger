@@ -46,7 +46,7 @@ interface MessageDao {
     fun getUnreadCount(): Flow<Long>
 
     @Query("SELECT * FROM message WHERE seen = 0 AND read = 0 ORDER BY date")
-    fun getUnreadUnseenMessages(): Flow<List<Message>>
+    suspend fun getUnreadUnseenMessages(): List<Message>
 
     @Query("SELECT * FROM message WHERE seen = 0")
     fun getUnseenMessages(): Flow<List<Message>>
