@@ -1,4 +1,4 @@
-package org.ethereumhpone.messenger.di
+package org.ethereumhpone.data.di
 
 import android.content.Context
 import dagger.Module

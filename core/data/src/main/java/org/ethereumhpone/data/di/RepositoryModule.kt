@@ -1,4 +1,4 @@
-package org.ethereumhpone.messenger.di
+package org.ethereumhpone.data.di
 
 import dagger.Binds
 import dagger.Module
@@ -48,20 +48,9 @@ abstract class RepositoryModule{
     @Singleton
     abstract fun bindActiveConversationManager(impl: ActiveConversationManagerImpl): ActiveConversationManager
 
-
-//    @Binds
-//    @Singleton
-//    abstract fun bindSyncRepository(impl: SyncRepositoryImpl): SyncRepositoryImpl
-
-//    @Provides
-//    @Singleton
-//    open fun provideSyncRepository(impl: SyncRepositoryImpl?): SyncRepository? {
-//        return impl
-//    }
-
-//    @Binds
-//    @Singleton
-//    abstract fun bindActiveConversationManager(impl: ActiveConversationManagerImpl): ActiveConversationManager
+    @Binds
+    @Singleton
+    abstract fun bindSyncRepository(impl: SyncRepositoryImpl): SyncRepositoryImpl
 
 //    @Binds
 //    @Singleton
