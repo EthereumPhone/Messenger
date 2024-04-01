@@ -4,12 +4,56 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application>
-
-        <receiver android:name=".receiver.SmsReceiver" android:exported="false">
+        <receiver
+            android:name=".receiver.DefaultSmsChangedReceiver"
+            android:exported="true">
             <intent-filter>
-                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+                <action android:name="android.provider.action.DEFAULT_SMS_PACKAGE_CHANGED" />
             </intent-filter>
         </receiver>
+        <receiver android:name=".receiver.DeleteMessagesReceiver" />
+        <receiver
+            android:name=".receiver.SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_DELIVER" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".receiver.MmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_WAP_PUSH">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
+                <data android:mimeType="application/vnd.wap.mms-message" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".receiver.SmsSentReceiver" />
+        <receiver android:name=".receiver.SmsDeliveredReceiver" />
+        <receiver
+            android:name=".receiver.MmsSentReceiver"
+            android:taskAffinity="dev.octoshrimpy.quik.MMS_SENT" />
+        <receiver
+            android:name=".receiver.MmsUpdatedReceiver"
+            android:taskAffinity="dev.octoshrimpy.quik.MMS_UPDATED" />
+        <receiver
+            android:name=".receiver.MmsReceivedReceiver"
+            android:taskAffinity="com.klinker.android.messaging.MMS_RECEIVED" />
+        <receiver android:name=".receiver.MarkArchivedReceiver" />
+        <receiver android:name=".receiver.BlockThreadReceiver" />
+        <receiver android:name=".receiver.MarkSeenReceiver" />
+        <receiver android:name=".receiver.MarkReadReceiver" />
+        <receiver android:name=".receiver.RemoteMessagingReceiver" />
+        <receiver
+            android:name=".receiver.SmsProviderChangedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.action.EXTERNAL_PROVIDER_CHANGE" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".receiver.SendSmsReceiver" />
+        <service android:name="com.android.mms.transaction.TransactionService" />
     </application>
 
 </manifest>
