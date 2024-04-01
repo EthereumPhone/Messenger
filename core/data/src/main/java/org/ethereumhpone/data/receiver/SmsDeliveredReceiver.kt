@@ -20,20 +20,19 @@ class SmsDeliveredReceiver @Inject constructor(
         val pendingResult = goAsync()
 
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                id?.let {
-                    when(resultCode) {
-                        Activity.RESULT_OK -> {
-                            messageRepositoryImpl.markDelivered(id)
-                        }
-                        else -> {
-                            messageRepositoryImpl.markFailed(id, resultCode)
-                        }
+            id?.let {
+                when(resultCode) {
+                    // TODO notify about delivery
+                    Activity.RESULT_OK -> {
+                        messageRepositoryImpl.markDelivered(id)
+                    }
+                    else -> {
+                        // TODO notify about delivery failure
+                        messageRepositoryImpl.markFailed(id, resultCode)
                     }
                 }
-            } finally {
-                pendingResult.finish()
             }
+            pendingResult.finish()
         }
     }
 }

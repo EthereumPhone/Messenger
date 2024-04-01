@@ -6,15 +6,18 @@ import android.content.Intent
 import android.os.Message
 import android.provider.Telephony
 import android.provider.Telephony.Sms
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.ethereumhpone.domain.usecase.MarkFailed
 import org.ethereumhpone.domain.usecase.MarkSent
+import org.ethereumhpone.domain.usecase.ReceiveSms
 import javax.inject.Inject
 
 
 private const val TAG = "SmsReceiver"
 class SmsReceiver @Inject constructor(
-    private val markSent: MarkSent,
-    private val markFailed: MarkFailed
+    private val recieveMessage: ReceiveSms
 ) : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -23,7 +26,10 @@ class SmsReceiver @Inject constructor(
                val subId = intent.extras?.getInt("subscription", -1) ?: -1
                val pendingResult = goAsync()
 
-
+               CoroutineScope(Dispatchers.IO).launch {
+                   recieveMessage(subId, messages)
+                   pendingResult.finish()
+               }
            }
         }
     }

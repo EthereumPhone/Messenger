@@ -410,7 +410,7 @@ class MessageRepositoryImpl @Inject constructor(
         address: String,
         body: String,
         sentTime: Long
-    ) {
+    ): Message {
         val threadId = TelephonyCompat.getOrCreateThreadId(context, address)
         val message = Message(
             threadId = threadId,
@@ -441,6 +441,8 @@ class MessageRepositoryImpl @Inject constructor(
                 message.copy(contentId = id)
             )
         }
+
+        return message
     }
 
     override suspend fun markSending(id: Long) {

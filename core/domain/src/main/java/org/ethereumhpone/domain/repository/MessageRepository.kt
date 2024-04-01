@@ -47,7 +47,7 @@ interface MessageRepository {
         address: String,
         body: String,
         sentTime: Long
-    )
+    ): Message
     suspend fun markSending(id: Long)
     suspend fun markSent(id: Long)
     suspend fun markFailed(id: Long, resultCode: Int)

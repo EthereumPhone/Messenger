@@ -8,10 +8,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.ethereumhpone.domain.repository.MessageRepository
+import org.ethereumhpone.domain.usecase.MarkFailed
 import javax.inject.Inject
 
 class SmsSentReceiver @Inject constructor(
-    private val messageRepositoryImpl: MessageRepository
+    private val messageRepositoryImpl: MessageRepository,
 ) : BroadcastReceiver() {
 
 
@@ -23,18 +24,15 @@ class SmsSentReceiver @Inject constructor(
         val pendingResult = goAsync()
 
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                when(resultCode) {
-                    Activity.RESULT_OK -> {
-                        messageRepositoryImpl.markSent(id)
-                    }
-                    else -> {
-                        messageRepositoryImpl.markFailed(id, resultCode)
-                    }
+            when(resultCode) {
+                Activity.RESULT_OK -> {
+                    messageRepositoryImpl.markSent(id)
                 }
-            } finally {
-                pendingResult.finish()
+                else -> {
+                    messageRepositoryImpl.markFailed(id, resultCode)
+                }
             }
+            pendingResult.finish()
         }
     }
 }
