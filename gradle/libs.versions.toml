@@ -42,7 +42,7 @@ appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "a
 
 # material
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 # compose
 compose-icons = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose" }

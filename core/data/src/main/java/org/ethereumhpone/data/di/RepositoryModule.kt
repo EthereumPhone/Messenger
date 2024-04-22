@@ -50,7 +50,7 @@ abstract class RepositoryModule{
 
     @Binds
     @Singleton
-    abstract fun bindSyncRepository(impl: SyncRepositoryImpl): SyncRepositoryImpl
+    abstract fun bindSyncRepository(impl: SyncRepositoryImpl): SyncRepository
 
 //    @Binds
 //    @Singleton
@@ -67,13 +67,4 @@ abstract class RepositoryModule{
 //        }
 //    }
 
-    companion object {
-        @JvmStatic
-        @Provides
-        @Singleton
-        fun provideSyncRepository(impl: SyncRepositoryImpl): SyncRepository {
-            // Ensure this method never returns null by not allowing the parameter to be null
-            return impl
-        }
-    }
 }
