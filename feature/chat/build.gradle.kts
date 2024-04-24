@@ -40,7 +40,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.2"
+        kotlinCompilerExtensionVersion = "1.5.5"
     }
 }
 
@@ -54,12 +54,8 @@ dependencies {
     implementation("androidx.compose.runtime:runtime-livedata:1.4.3")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.compose.foundation:foundation:1.6.0-alpha02")
-    implementation(project(":core:domain")) {
-        exclude(group = "org.intellij", module = "*")
-    }
-    implementation(project(":core:database")) {
-        exclude(group = "org.intellij", module = "*")
-    }
+    implementation(project(":core:domain"))
+    implementation(project(":core:database"))
 
 
 
