@@ -45,14 +45,6 @@ class ContactViewModel @Inject constructor(
 
     val contacts: Flow<List<Contact>> = contactRepository.getContacts()
 
-//    init {
-//        // Collect conversations from the repository and post values to the MutableStateFlow
-//        viewModelScope.launch {
-//            conversationRepository.getConversations().collect { conversationsList ->
-//                _conversations.value = conversationsList
-//            }
-//        }
-//    }
 
 
     @SuppressLint("Range")

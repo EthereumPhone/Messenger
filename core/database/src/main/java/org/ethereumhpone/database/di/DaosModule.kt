@@ -11,6 +11,7 @@ import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.dao.PhoneNumberDao
 import org.ethereumhpone.database.dao.RecipientDao
+import org.ethereumhpone.database.dao.SyncLogDao
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -45,4 +46,9 @@ object DaosModule {
     fun provideRecipientDao(
         database: MessengerDatabase
     ): RecipientDao = database.recipientDao
+
+    @Provides
+    fun provideSyncLogDao(
+        database: MessengerDatabase
+    ): SyncLogDao =  database.syncLogDao
 }

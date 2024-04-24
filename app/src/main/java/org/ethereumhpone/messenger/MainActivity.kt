@@ -3,6 +3,7 @@ package org.ethereumhpone.messenger
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,13 +16,40 @@ import androidx.core.content.ContextCompat
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.map
+import org.ethereumhpone.data.observer.observe
+import org.ethereumhpone.domain.manager.PermissionManager
+import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.messenger.ui.MessagingApp
 import org.ethereumhpone.messenger.ui.theme.MessengerTheme
+import javax.inject.Inject
+
+
+private val contactsURI = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var syncRepository: SyncRepository
+
+    @Inject
+    lateinit var permissionManager: PermissionManager
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // checks if android db contacts have been changed and adds them to the database
+        contentResolver.observe(contactsURI).map {
+            syncRepository.syncContacts()
+        }
+
+        // check if it has permissions and never never ran a message sync
+        if(permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
+
+        }
+
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
 
@@ -39,30 +67,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-//@SuppressLint("PermissionLaunchedDuringComposition")
-//@OptIn(ExperimentalPermissionsApi::class)
-//@Composable
-//fun ContactPermissionExample(content: @Composable () -> Unit) {
-//    val contactsPermissionState = rememberPermissionState(permission = Manifest.permission.READ_CONTACTS)
-//
-//    when {
-//        contactsPermissionState.hasPermission -> {
-//            // Permission granted: Show content
-//            content()
-//        }
-//        contactsPermissionState.shouldShowRationale -> {
-//            // Explain why the permission is needed and re-request permission
-//            // You can use a dialog or a simple Text composable for explanation
-//            Text("We need access to your contacts to show them in the app.")
-//            // Optionally, add a button or gesture to re-request permission
-//        }
-//        else -> {
-//            // Request permission
-//            contactsPermissionState.launchPermissionRequest()
-//        }
-//    }
-//}
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
