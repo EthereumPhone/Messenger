@@ -21,10 +21,12 @@ import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.dao.PhoneNumberDao
 import org.ethereumhpone.database.dao.RecipientDao
+import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.ContactGroup
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.PhoneNumber
+import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
@@ -55,6 +57,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val contactDao: ContactDao,
     private val recipientDao: RecipientDao,
     private val phoneNumberDao: PhoneNumberDao,
+    private val syncLogDao: SyncLogDao
 ): SyncRepository {
 
     private val _isSyncing = MutableStateFlow(false)
@@ -140,6 +143,7 @@ class SyncRepositoryImpl @Inject constructor(
             }
         }
 
+        syncLogDao.upsertSyncLog(SyncLog())
         _isSyncing.value = false
     }
 
@@ -185,12 +189,14 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun syncContacts() {
         val contacts = getContacts()
-        contacts.forEach { contactDao.upsertContact(it) }
 
+        contactDao.deleteAllContacts()
+        contactDao.deleteAllContactGroups()
         val recipients = recipientDao.getRecipients()
 
         recipients.collect { recipientList ->
             contactDao.upsertContactGroup(getContactGroups(contacts))
+            contactDao.upsertContact(contacts)
 
             recipientList.forEach { recipient ->
                 recipientDao.upsertRecipient(

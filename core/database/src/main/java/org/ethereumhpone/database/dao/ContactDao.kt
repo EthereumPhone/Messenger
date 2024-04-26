@@ -1,6 +1,7 @@
 package org.ethereumhpone.database.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -23,8 +24,14 @@ interface ContactDao {
     @Query("SELECT * FROM contact_group WHERE contacts IS NOT NULL")
     fun getUnmanagedContactGroups(): Flow<List<ContactGroup>>
 
+    @Query("DELETE FROM contact")
+    suspend fun deleteAllContacts()
+
+    @Query("DELETE FROM contact_group")
+    suspend fun deleteAllContactGroups()
+
     @Upsert
-    fun upsertContact(contact: Contact)
+    fun upsertContact(contacts: List<Contact>)
 
     @Upsert
     fun upsertContactGroup(contactGroups: List<ContactGroup>)

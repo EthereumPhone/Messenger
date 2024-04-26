@@ -33,16 +33,15 @@ class ContactViewModel @Inject constructor(
 //    private val contactCursor: ContactCursor
 ): ViewModel() {
 
-    val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations(false).map {
-        ConversationUIState.Success(it)
-    }.stateIn(
+    val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
+        .map(ConversationUIState::Success)
+        .stateIn(
         scope = viewModelScope,
         initialValue = ConversationUIState.Empty,
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
-
-
+    //val contacts: Flow<List<Contact>> = contactRepository.getContacts()
     val contacts: Flow<List<Contact>> = contactRepository.getContacts()
 
 
