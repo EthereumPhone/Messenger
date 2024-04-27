@@ -13,8 +13,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.ethereumhpone.data.observer.observe
 import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.domain.manager.PermissionManager
@@ -45,10 +48,13 @@ class MainActivity : ComponentActivity() {
 
 
         // checks if android db contacts have been changed and adds them to the database
-        contentResolver.observe(contactsURI).map {
-            Log.d("Resolver", "Got trigger")
-            syncRepository.syncContacts()
+        CoroutineScope(Dispatchers.Main).launch {
+            contentResolver.observe(contactsURI).collect {
+                Log.d("Resolver", it.toString())
+                withContext(Dispatchers.IO) { syncRepository.syncContacts() }
+            }
         }
+
 
 
         if (permissionManager.hasContacts()) {
