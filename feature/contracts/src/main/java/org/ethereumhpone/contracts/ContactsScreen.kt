@@ -58,6 +58,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.database.model.Message
 
 
