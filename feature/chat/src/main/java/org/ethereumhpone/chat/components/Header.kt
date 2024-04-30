@@ -33,7 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.R
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -90,7 +90,7 @@ fun Header(
                         if (image != ""){
 //                    Image(painter = painterResource(id = R.drawable.nouns), contentDescription = "" )
                             Image(
-                                painter = rememberImagePainter(image),
+                                painter = rememberAsyncImagePainter(image),
                                 contentDescription = "Contact Profile Pic",
                                 contentScale = ContentScale.Crop
                             )
@@ -194,7 +194,7 @@ fun ChatHeader(
                     ){
                         if (image != ""){
                             Image(
-                                painter = rememberImagePainter(image),
+                                painter = rememberAsyncImagePainter(image),
                                 contentDescription = "Contact Profile Pic",
                                 contentScale = ContentScale.Crop
                             )
