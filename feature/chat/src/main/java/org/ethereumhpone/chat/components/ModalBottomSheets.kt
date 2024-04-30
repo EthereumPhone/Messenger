@@ -44,7 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.R
 import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.haptics.EthOSHaptics
@@ -83,7 +83,7 @@ fun ContactSheet(
             ){
                 if (image != ""){
                     Image(
-                        painter = rememberImagePainter(image),
+                        painter = rememberAsyncImagePainter(image),
                         contentDescription = "Contact Profile Pic",
                         contentScale = ContentScale.Crop
                     )
