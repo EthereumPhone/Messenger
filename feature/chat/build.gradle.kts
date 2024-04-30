@@ -71,7 +71,7 @@ dependencies {
 
 
 
-    implementation("io.coil-kt:coil-compose:1.4.0")
+    implementation("io.coil-kt:coil-compose:2.1.0")
     implementation("com.github.EthereumPhone:ethOS-Component-Library:1a10060494")
 
     implementation(libs.androidx.navigation.common.ktx)

@@ -52,12 +52,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberImagePainter
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.contracts.R
 import org.ethereumhpone.database.model.Contact
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import coil.compose.rememberAsyncImagePainter
 
 @Composable
 fun ContactSheet(
@@ -147,7 +147,7 @@ fun ContactSheet(
                                 withImage = it.photoUri != null,
                                 image = {
                                     Image(
-                                        painter = rememberImagePainter(it.photoUri),
+                                        painter = rememberAsyncImagePainter(it.photoUri),
                                         contentDescription = "Contact profile pic",
                                         contentScale = ContentScale.Crop
                                     )
