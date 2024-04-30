@@ -138,10 +138,10 @@ fun ContactSheet(
                 modifier = Modifier
                     .fillMaxHeight(0.5f)
                     .fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.TopCenter
             ) {
                 LazyColumn{
-                    contacts.forEach {
+                    contacts.filter { it.name.contains(textState.text) }.forEach {
                         item {
                             ethOSContactListItem(
                                 withImage = it.photoUri != null,
