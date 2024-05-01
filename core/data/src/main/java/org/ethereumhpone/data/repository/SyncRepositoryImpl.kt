@@ -91,21 +91,31 @@ class SyncRepositoryImpl @Inject constructor(
             }
         }
 
+        var debugAmount = 0
+
         messagesCursor?.use {
-            val messageColumns = MessageCursor.MessageColumns(messagesCursor)
-            messagesCursor.forEach { cursor ->
-                CoroutineScope(Dispatchers.IO).launch {
-                    val message = messageCursor.map(Pair(cursor, messageColumns))
-                    messageDao.upsertMessage(message.copy(
-                        parts = if (message.isSms()) {
-                            messageDao.getPartsForConversation(message.contentId).first()
-                        } else {
-                            message.parts // If not SMS, keep the original parts
-                        }
-                    ))
+            val messageColumns = MessageCursor.MessageColumns(it)
+            val messages = mutableListOf<Message>()
+
+            while (it.moveToNext()) { // Properly iterate through the cursor
+                val message = messageCursor.map(Pair(it, messageColumns))
+                messages.add(message.copy(
+                    parts = if (message.isSms()) {
+                        messageDao.getPartsForConversation(message.contentId).first()
+                    } else {
+                        message.parts
+                    }
+                ))
+            }
+
+            CoroutineScope(Dispatchers.IO).launch { // Use one coroutine to handle all database writes
+                messages.forEach { message ->
+                    messageDao.upsertMessage(message)
                 }
             }
         }
+
+
         conversationsCursor?.use {
             conversationsCursor.forEach { cursor ->
 
