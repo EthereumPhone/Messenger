@@ -307,194 +307,96 @@ fun ChatScreen(
                                     .padding(paddingValues)
                                 //.background(Color.Blue)
                             ){
+                                when(chatUIState) {
+
+                                    is ChatUIState.Loading -> {
+
+                                        Box(
 
 
-                                //MOCKDATA
-                                val initialMessages = listOf(
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "me",
-                                        body = "*txsent,1,0.08,ETH",
-                                        subject = "8:10 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "me",
-                                        body = "Check it out!",
-                                        subject = "8:07 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "me",
-                                        body = "Thank you!",
-                                        subject = "8:06 PM",
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "Taylor Brooks",
-                                        body = "*txsent,1,0.001,ETH",
-                                        subject = "8:05 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "Taylor Brooks",
-                                        body = "You can use all the same stuff",
-                                        subject = "8:05 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "Taylor Brooks",
-                                        body = "@aliconors Take a look at the `Flow.collectAsStateWithLifecycle()` APIs",
-                                        subject = "8:05 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "Taylor Brooks",
-                                        body = "Compose newbie as well, have you looked at the JetNews sample? " +
-                                                "Most blog posts end up out of date pretty fast but this sample is always up to " +
-                                                "date and deals with async data loading (it's faked but the same idea " +
-                                                "applies)  https://goo.gle/jetnews",
-                                        subject = "8:04 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "me",
-                                        body = "Compose newbie: I’ve scourged the internet for tutorials about async data " +
-                                                "loading but haven’t found any good ones " +
-                                                "What’s the recommended way to load async data and emit composable widgets?",
-                                        subject = "8:03 PM"
-                                    )
+                                            modifier = Modifier
 
-                                )
+                                                .weight(1f)
 
-                                val authorMe = "me"
+                                                .fillMaxSize()
+
+                                                .padding(horizontal = 24.dp),
+
+                                            contentAlignment = Alignment.Center
+
+                                        ) {
+
+                                            Text(
+
+                                                text = "Loading...",
+
+                                                fontSize = 12.sp,
+
+                                                fontFamily = Fonts.INTER,
 
 
-                                //MOCK
-                                LazyColumn(
-                                    reverseLayout = true,
-                                    verticalArrangement = Arrangement.Bottom,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(horizontal = 12.dp)
-                                ){
-                                    for (index in initialMessages.indices) {
+                                                color = Colors.WHITE,
 
 
-
-                                        val prevAuthor = initialMessages.getOrNull(index - 1)?.address
-                                        val nextAuthor = initialMessages.getOrNull(index + 1)?.address
-                                        val content = initialMessages[index]
-                                        val isFirstMessageByAuthor = prevAuthor != content.address
-                                        val isLastMessageByAuthor = nextAuthor != content.address
-                                        item {
-                                            if(content.body.startsWith("*txsent,")){
-                                                TxMessage(
-                                                    onAuthorClick = {  },
-                                                    msg = content,
-                                                    isUserMe = content.address == authorMe,
-                                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                    isLastMessageByAuthor = isLastMessageByAuthor
                                                 )
-                                            }else{
-                                                Message(
-                                                    onAuthorClick = {  },
-                                                    msg = content,
-                                                    isUserMe = content.address == authorMe,
-                                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                    isLastMessageByAuthor = isLastMessageByAuthor
-                                                )
-                                            }
 
                                         }
 
                                     }
-                                }
 
-                                //REAL
-                                /*           when(chatUIState) {
-                                //
-                                //                is ChatUIState.Loading -> {
-                                //
-                                //                    Box(
-                                //
-                                //
-                                //                        modifier = Modifier
-                                //
-                                //                            .weight(1f)
-                                //
-                                //                            .fillMaxSize()
-                                //
-                                //                            .padding(horizontal = 24.dp),
-                                //
-                                //                        contentAlignment = Alignment.Center
-                                //
-                                //                    ) {
-                                //
-                                //                        Text(
-                                //
-                                //                            text = "Loading...",
-                                //
-                                //                            fontSize = 12.sp,
-                                //
-                                //                            fontFamily = Fonts.INTER,
-                                //
-                                //
-                                //                            color = Colors.WHITE,
-                                //
-                                //
-                                //                            )
-                                //
-                                //                    }
-                                //
-                                //                }
-                                //
-                                //                is ChatUIState.Success -> {
-                                //
-                                //
-                                //                    LazyColumn(
-                                //
-                                //                        reverseLayout = true,
-                                //
-                                //                        modifier = Modifier
-                                //
-                                //                            .weight(1f)
-                                //
-                                //                            .fillMaxWidth()
-                                //
-                                //                            .padding(horizontal = 24.dp)
-                                //
-                                //                    ) {
-                                //
-                                //                        chatUIState.messages.forEachIndexed { index, message ->
-                                //
-                                //                            val prevAuthor = chatUIState.messages.getOrNull(index - 1)?.address
-                                //
-                                //                            val nextAuthor = chatUIState.messages.getOrNull(index + 1)?.address
-                                //
-                                //                            val content = chatUIState.messages[index]
-                                //
-                                //                            val isFirstMessageByAuthor = prevAuthor != content.address
-                                //
-                                //                            val isLastMessageByAuthor = nextAuthor != content.address
-                                //
-                                //
-                                //
-                                //                            item {
-                                //
-                                //                                Message(
-                                //
-                                //                                    onAuthorClick = { },
-                                //
-                                //                                    msg = message,
-                                //
-                                //                                    isUserMe = false,//message.author == authorMe,
-                                //
-                                //                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                //
-                                //                                    isLastMessageByAuthor = isLastMessageByAuthor
-                                //
-                                //                                )
-                                //
-                                //                            }
-                                //
-                                //                        }
-                                //                    }
-                                //                }
-                                //            }*/
+                                    is ChatUIState.Success -> {
 
+
+                                        LazyColumn(
+
+                                            reverseLayout = true,
+
+                                            modifier = Modifier
+
+                                                .weight(1f)
+
+                                                .fillMaxWidth()
+
+                                                .padding(horizontal = 24.dp)
+
+                                        ) {
+
+                                            chatUIState.messages.forEachIndexed { index, message ->
+
+                                                val prevAuthor = chatUIState.messages.getOrNull(index - 1)?.address
+
+                                                val nextAuthor = chatUIState.messages.getOrNull(index + 1)?.address
+
+                                                val content = chatUIState.messages[index]
+
+                                                val isFirstMessageByAuthor = prevAuthor != content.address
+
+                                                val isLastMessageByAuthor = nextAuthor != content.address
+
+
+
+                                                item {
+
+                                                    Message(
+
+                                                        onAuthorClick = { },
+
+                                                        msg = message,
+
+                                                        isUserMe = false,//message.author == authorMe,
+
+                                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+
+                                                        isLastMessageByAuthor = isLastMessageByAuthor
+
+                                                    )
+
+                                                }
+
+                                            }
+                                        }
+                                    }
+                               }
                                 Column(
                                     modifier = modifier.padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
                                 ) {
