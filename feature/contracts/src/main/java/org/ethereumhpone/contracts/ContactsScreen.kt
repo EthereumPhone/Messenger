@@ -185,13 +185,12 @@ fun ContactScreen(
                    if(conversationState.conversations.isNotEmpty()){
                        Box(modifier = Modifier.weight(1f)) {
                            LazyColumn(
-                               reverseLayout = true,
                                modifier = Modifier.padding(horizontal = 12.dp)
                            ){
-                               conversationState.conversations.forEach { conversation ->
+                               conversationState.conversations.sortedBy { it.date }.reversed().forEach { conversation ->
                                    item {
-                                       ChatListItem(
-                                           header = conversation.recipients.get(0).contact?.name ?: "",
+                                       ChatListInfo(
+                                           header = conversation.recipients.get(0).getDisplayName(),
                                            subheader = conversation.lastMessage?.getText() ?: "",
                                            ens = "",
                                            time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
