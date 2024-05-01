@@ -1,14 +1,19 @@
 package org.ethereumhpone.data.mapper
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
+import android.provider.ContactsContract
 import android.provider.Telephony
+import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.mapper.ConversationCursor
+import java.util.UUID
 import javax.inject.Inject
 
 class ConversationCursorImpl @Inject constructor(
@@ -20,12 +25,19 @@ class ConversationCursorImpl @Inject constructor(
         val URI: Uri = Uri.parse("content://mms-sms/conversations?simple=true")
         val PROJECTION = arrayOf(
             Telephony.Threads._ID,
-            Telephony.Threads.RECIPIENT_IDS
+            Telephony.Threads.RECIPIENT_IDS,
+            Telephony.Threads.DATE, // This might be the date of the last message.
+            Telephony.Threads.SNIPPET, // This is typically the last message snippet.
+            Telephony.Threads.READ // Indicates if the last message was read.
         )
 
         const val ID = 0
         const val RECIPIENT_IDS = 1
+        const val DATE = 2
+        const val SNIPPET = 3
+        const val READ = 4
     }
+
     override fun getConversationsCursor(): Cursor? {
         return when (permissionManager.hasReadSms()) {
             true -> context.contentResolver.query(URI, PROJECTION, null, null, "date desc")
@@ -34,88 +46,163 @@ class ConversationCursorImpl @Inject constructor(
     }
 
     override fun map(from: Cursor): Conversation {
-        // Primary Conversation fields
-        val id = from.getLong(from.getColumnIndexOrThrow("id"))
-        val archived = from.getInt(from.getColumnIndexOrThrow("archived")) > 0
-        val blocked = from.getInt(from.getColumnIndexOrThrow("blocked")) > 0
-        val pinned = from.getInt(from.getColumnIndexOrThrow("pinned")) > 0
-        val draft = from.getString(from.getColumnIndexOrThrow("draft"))
-        val blockingClient = from.getInt(from.getColumnIndexOrThrow("blockingClient")).takeIf { it != 0 }
-        val blockReason = from.getString(from.getColumnIndexOrThrow("blockReason"))
-        val title = from.getString(from.getColumnIndexOrThrow("title"))
-
-        // Recipient processing
-        val recipientIds = from.getString(from.getColumnIndexOrThrow("recipient_ids"))
+        val id = from.getLong(ID)
+        val recipientIds = from.getString(RECIPIENT_IDS)
             .split(" ")
             .filter { it.isNotBlank() }
-            .mapNotNull { it.toLongOrNull() }
-        val recipients = recipientIds.map { Recipient(id = it) }
+            .map { recipientId -> recipientId.toLong() }
 
-        // Message processing
-        val lastMessage = getMessageFromCursor(from)
+        val recipientList = recipientIds.mapNotNull { recipientId ->
+            fetchRecipientDetails(recipientId)
+        }
 
-        return Conversation(
-            id = id,
-            archived = archived,
-            blocked = blocked,
-            pinned = pinned,
-            recipients = recipients,
-            lastMessage = lastMessage,
-            draft = draft,
-            blockingClient = blockingClient,
-            blockReason = blockReason,
-            title = title
+        val date = from.getLong(DATE) // Last message date
+        val snippet = from.getString(SNIPPET) // Snippet of the last message
+        val read = from.getInt(READ) > 0 // Whether the last message was read
+
+        // Assuming defaults for non-available values
+        val conversation = try {
+            Conversation(
+                id = id,
+                recipients = recipientList,
+                lastMessage = if (snippet != null) Message(body = snippet, date = date, read = read, type = "sms") else null,
+                archived = false,
+                blocked = false,
+                pinned = false,
+                draft = "",
+                title = "" // This needs to be populated if you have a logic to set titles
+            )
+        } catch (e: Exception) {
+            Conversation(id = id, recipients = recipientList)
+        }
+
+        return conversation
+    }
+
+    private fun fetchRecipientDetails(recipientId: Long): Recipient {
+        // This method should query your data source for the recipient's address and contact info
+        // Here's a placeholder implementation; you need to replace this with actual fetching logic
+        val address = fetchAddressForRecipient(context, recipientId)
+        val contact = getContactFromRecipientId(context, recipientId)
+
+        return Recipient(
+            id = recipientId,
+            address = address,
+            contact = contact,
+            lastUpdate = System.currentTimeMillis() // Example: updating with current timestamp
         )
     }
 
-    private fun getMessageFromCursor(cursor: Cursor): Message? {
-        // Check if the cursor has message related data; adjust depending on your database schema
-        // Here we assume that you have column names that match those in the Message data class
-        try {
-            val messageId = cursor.getLong(cursor.getColumnIndexOrThrow("message_id"))
-            val threadId = cursor.getLong(cursor.getColumnIndexOrThrow("threadId"))
-            val contentId = cursor.getLong(cursor.getColumnIndexOrThrow("contentId"))
-            val address = cursor.getString(cursor.getColumnIndexOrThrow("address"))
-            val boxId = cursor.getInt(cursor.getColumnIndexOrThrow("boxId"))
-            val type = cursor.getString(cursor.getColumnIndexOrThrow("type"))
-            val date = cursor.getLong(cursor.getColumnIndexOrThrow("date"))
-            val dateSent = cursor.getLong(cursor.getColumnIndexOrThrow("dateSent"))
-            val seen = cursor.getInt(cursor.getColumnIndexOrThrow("seen")) > 0
-            val read = cursor.getInt(cursor.getColumnIndexOrThrow("read")) > 0
-            val locked = cursor.getInt(cursor.getColumnIndexOrThrow("locked")) > 0
-            val subId = cursor.getInt(cursor.getColumnIndexOrThrow("subId"))
-            val body = cursor.getString(cursor.getColumnIndexOrThrow("body"))
-            val errorCode = cursor.getInt(cursor.getColumnIndexOrThrow("errorCode"))
-            val deliveryStatus = cursor.getInt(cursor.getColumnIndexOrThrow("deliveryStatus"))
-
-            // Assuming defaults for MMS fields as these might not be present in every cursor row
-            // You may need to handle these conditionally based on message type (SMS/MMS)
-            val attachmentTypeString = Message.AttachmentType.NOT_LOADED.toString()
-            val attachmentType = Message.AttachmentType.NOT_LOADED
-
-            // Create and return the Message object
-            return Message(
-                id = messageId,
-                threadId = threadId,
-                contentId = contentId,
-                address = address,
-                boxId = boxId,
-                type = type,
-                date = date,
-                dateSent = dateSent,
-                seen = seen,
-                read = read,
-                locked = locked,
-                subId = subId,
-                body = body,
-                errorCode = errorCode,
-                deliveryStatus = deliveryStatus,
-                attachmentTypeString = attachmentTypeString,
-                attachmentType = attachmentType
-            )
-        } catch (e: Exception) {
-            // Log or handle the absence of message data appropriately
-            return null
+    @SuppressLint("Range")
+    private fun fetchAddressForRecipient(context: Context, recipientId: Long): String {
+        val addressCursor = context.getContentResolver().query(
+            Uri.parse("content://mms-sms/canonical-addresses"), null,
+            "_id = $recipientId", null, null
+        )
+        if (addressCursor == null || !addressCursor.moveToFirst()) {
+            return ""
         }
+        val phoneNumber = addressCursor.getString(addressCursor.getColumnIndex("address"))
+        addressCursor.close()
+        return phoneNumber ?: ""
     }
+
+    @SuppressLint("Range")
+    private
+    fun getContactFromRecipientId(ctx: Context, recipientId: Long): Contact? {
+        // Fetch the phone number using recipient ID
+        val phoneNumber = ctx.contentResolver.query(
+            Uri.parse("content://mms-sms/canonical-addresses"),
+            null,
+            "_id = ?",
+            arrayOf(recipientId.toString()),
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(cursor.getColumnIndex("address")) else null
+        } ?: return null
+
+        // Use the phone number to look up the contact's details in the Contacts content provider
+        val uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber))
+        ctx.contentResolver.query(
+            uri,
+            null,
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val lookupKey = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY))
+                val name = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
+                val photoUri = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.PHOTO_URI))
+                val isFavorite = cursor.getInt(cursor.getColumnIndex(ContactsContract.Contacts.STARRED)) == 1
+
+                // Fetch all phone numbers for this contact
+                val numbers = mutableListOf<PhoneNumber>()
+                val phonesCursor = ctx.contentResolver.query(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    arrayOf(ContactsContract.CommonDataKinds.Phone._ID, ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.ACCOUNT_TYPE_AND_DATA_SET),
+                    ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY + " = ?",
+                    arrayOf(lookupKey),
+                    null
+                )
+                phonesCursor?.use {
+                    var isDefaultSet = false
+                    while (it.moveToNext()) {
+                        val id = it.getLong(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone._ID)) ?: UUID.randomUUID().mostSignificantBits
+                        val address = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)) ?: ""
+                        val type = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.TYPE)) ?: ""
+                        val accountType = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.ACCOUNT_TYPE_AND_DATA_SET)) ?: ""
+                        val isDefault = if (!isDefaultSet) { isDefaultSet = true; true } else false // Assume the first number is the default
+                        numbers.add(PhoneNumber(id, accountType, address, type, isDefault))
+                    }
+                }
+
+                return Contact(lookupKey, numbers, name, photoUri, isFavorite, System.currentTimeMillis())
+            }
+        }
+        return null
+    }
+
+    private fun fetchPhoneNumbersForContact(context: Context, lookupKey: String): List<PhoneNumber> {
+        val uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+        val projection = arrayOf(
+            ContactsContract.CommonDataKinds.Phone.NUMBER,
+            ContactsContract.CommonDataKinds.Phone.TYPE,
+            ContactsContract.CommonDataKinds.Phone.LABEL,
+            ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
+            ContactsContract.CommonDataKinds.Phone.ACCOUNT_TYPE_AND_DATA_SET
+        )
+        val selection = "${ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY} = ?"
+        val selectionArgs = arrayOf(lookupKey)
+        val phoneNumbers = mutableListOf<PhoneNumber>()
+
+        val phoneCursor = context.contentResolver.query(uri, projection, selection, selectionArgs, null)
+        phoneCursor?.use { cursor ->
+            val numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+            val typeIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.TYPE)
+            val labelIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.LABEL)
+            val primaryIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.IS_PRIMARY)
+            val accountTypeIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.ACCOUNT_TYPE_AND_DATA_SET)
+
+            while (cursor.moveToNext()) {
+                val id = UUID.randomUUID().mostSignificantBits // Generate a pseudo-random ID
+                val number = cursor.getString(numberIndex)
+                val type = ContactsContract.CommonDataKinds.Phone.getTypeLabel(context.resources, cursor.getInt(typeIndex), cursor.getString(labelIndex)).toString()
+                val isDefault = cursor.getInt(primaryIndex) > 0
+                val accountType = cursor.getString(accountTypeIndex)
+
+                phoneNumbers.add(PhoneNumber(
+                    id = id,
+                    accountType = accountType,
+                    address = number,
+                    type = type,
+                    isDefault = isDefault
+                ))
+            }
+        }
+
+        return phoneNumbers
+    }
+
+
 }
