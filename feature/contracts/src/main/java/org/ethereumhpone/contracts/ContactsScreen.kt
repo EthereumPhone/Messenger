@@ -191,10 +191,10 @@ fun ContactScreen(
                                conversationState.conversations.forEach { conversation ->
                                    item {
                                        ChatListItem(
-                                           header = conversation.recipients.get(0).contact?.name!!,
-                                           subheader = conversation.lastMessage?.getText()!!,
+                                           header = conversation.recipients.get(0).contact?.name ?: "",
+                                           subheader = conversation.lastMessage?.getText() ?: "",
                                            ens = "",
-                                           time = convertLongToTime(conversation.lastMessage?.date!!),
+                                           time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                            unreadConversation = conversation.unread,
                                            onClick = { navigateToChat(conversation.id.toString()) }
                                        )
