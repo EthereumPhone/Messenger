@@ -7,8 +7,10 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Relation
+import kotlinx.serialization.Serializable
 
 @Entity("message")
+@Serializable
 data class Message(
 
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
