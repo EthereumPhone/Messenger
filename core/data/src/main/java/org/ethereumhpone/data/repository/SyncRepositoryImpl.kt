@@ -225,49 +225,51 @@ class SyncRepositoryImpl @Inject constructor(
             numbers.map { it.id }
         }.first()
 
-        return contactCursor.getContactsCursor()
-            ?.map { cursor -> contactCursor.map(cursor) }
-            ?.groupBy { contact -> contact.lookupKey }
-            ?.map { contacts ->
-                // Sometimes, contacts providers on the phone will create duplicate phone number entries. This
-                // commonly happens with Whatsapp. Let's try to detect these duplicate entries and filter them out
-                val uniqueNumbers = mutableListOf<PhoneNumber>()
-                contacts.value
-                    .flatMap { it.numbers }
-                    .forEach { number ->
-                        val isDefault = defaultNumberIds.any { id -> id == number.id }
-                        val updatedNumber = number.copy(isDefault = isDefault)
-                        var duplicate = uniqueNumbers.find { other ->
-                            phoneNumberUtils.compare(number.address, other.address)
-                        }
+        return contactCursor.getContactsCursor()?.use { cursor ->
+            cursor.map { contactCursor.map(it) }
+                .groupBy { contact -> contact.lookupKey }
+                .map { (key, contacts) ->
+                    // Sometimes, contacts providers on the phone will create duplicate phone number entries. This
+                    // commonly happens with Whatsapp. Let's try to detect these duplicate entries and filter them out
+                    val uniqueNumbers = mutableListOf<PhoneNumber>()
+                    contacts.flatMap { it.numbers }
+                        .forEach { number ->
+                            val isDefault = defaultNumberIds.any { id -> id == number.id }
+                            val updatedNumber = number.copy(isDefault = isDefault)
+                            var duplicate = uniqueNumbers.find { other ->
+                                phoneNumberUtils.compare(number.address, other.address)
+                            }
 
-                        if (duplicate == null) {
-                            uniqueNumbers += number
-                        } else if (!duplicate.isDefault && updatedNumber.isDefault) {
-                            duplicate = duplicate.copy(isDefault = true)
+                            if (duplicate == null) {
+                                uniqueNumbers += updatedNumber
+                            } else if (!duplicate.isDefault && updatedNumber.isDefault) {
+                                uniqueNumbers[uniqueNumbers.indexOf(duplicate)] = duplicate.copy(isDefault = true)
+                            }
                         }
-                    }
-                contacts.value.first().copy(
-                    numbers = uniqueNumbers
-                )
-            } ?: listOf()
+                    contacts.first().copy(
+                        numbers = uniqueNumbers
+                    )
+                }
+        } ?: listOf()
     }
 
-    private fun getContactGroups(contacts: List<Contact>): List<ContactGroup> {
-        val groupMembers = contactGroupMemberCursor.getGroupMembersCursor()
-            ?.map(contactGroupMemberCursor::map)
-            .orEmpty()
 
-        val groups = contactGroupCursor.getContactGroupsCursor()
-            ?.map(contactGroupCursor::map)
-            .orEmpty()
+    private fun getContactGroups(contacts: List<Contact>): List<ContactGroup> {
+        val groupMembers = contactGroupMemberCursor.getGroupMembersCursor()?.use { cursor ->
+            cursor.map(contactGroupMemberCursor::map).toList()
+        }.orEmpty()
+
+        val groups = contactGroupCursor.getContactGroupsCursor()?.use { cursor ->
+            cursor.map(contactGroupCursor::map).toList()
+        }.orEmpty()
 
         return groups.map { group ->
             group.copy(
                 contacts = groupMembers
                     .filter { member -> member.groupId == group.id }
-                    .mapNotNull { member -> contacts.find { contact -> contact.lookupKey == member.lookupKey  } }
+                    .mapNotNull { member -> contacts.find { contact -> contact.lookupKey == member.lookupKey } }
             )
         }
     }
+
 }
