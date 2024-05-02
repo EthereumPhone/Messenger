@@ -2,6 +2,7 @@ package org.ethereumhpone.contracts
 
 import android.Manifest
 import android.content.Context
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -195,7 +196,11 @@ fun ContactScreen(
                                            ens = "",
                                            time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                            unreadConversation = conversation.unread,
-                                           onClick = { navigateToChat(conversation.id.toString()) }
+                                           onClick = {
+                                           },
+                                           modifier = modifier.clickable {
+                                               navigateToChat(conversation.id.toString())
+                                           }
                                        )
                                    }
 
