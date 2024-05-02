@@ -146,18 +146,22 @@ import org.ethereumhpone.chat.components.BlurContainer
 import org.ethereumhpone.chat.components.TxMessage
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.model.MockMessage
+import org.ethereumhpone.database.model.Recipient
 
 
 @Composable
 fun ChatRoute(
     modifier: Modifier = Modifier,
     navigateBackToConversations: () -> Unit,
+    threadId: String?,
     viewModel: ChatViewModel = hiltViewModel()
 ){
     val chatUIState by viewModel.chatState.collectAsStateWithLifecycle()
+    val recipient by viewModel.recipient.collectAsStateWithLifecycle()
 
     ChatScreen(
         chatUIState = chatUIState,
+        recipient = recipient,
         navigateBackToConversations = navigateBackToConversations
     )
 }
@@ -167,61 +171,9 @@ fun ChatRoute(
 fun ChatScreen(
     modifier: Modifier = Modifier,
     chatUIState: ChatUIState,
+    recipient: Recipient?,
     navigateBackToConversations: () -> Unit
 ){
-
-
-    val focusManager: FocusManager = LocalFocusManager.current
-
-
-
-//
-//        val authorMe = "me"
-//
-//        LazyColumn(
-//            reverseLayout = true,
-//            modifier = Modifier
-//
-//                .padding(start = 24.dp, end = 24.dp,)
-//        ){
-//            initialMessages.forEachIndexed {  index, message ->
-//
-//                val prevAuthor = initialMessages.getOrNull(index - 1)?.author
-//                val nextAuthor = initialMessages.getOrNull(index + 1)?.author
-//                val content = initialMessages[index]
-//                val isFirstMessageByAuthor = prevAuthor != content.author
-//                val isLastMessageByAuthor = nextAuthor != content.author
-//
-//                item {
-//                    Message(
-//                        onAuthorClick = {  },
-//                        msg = message,
-//                        isUserMe = message.author == authorMe,
-//                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-//                        isLastMessageByAuthor = isLastMessageByAuthor
-//                    )
-//                }
-//
-//            }
-//        }
-//
-//
-//
-//
-//        Column {
-//            UserInput(onMessageSent = {})
-//        }
-//
-//
-//
-//
-//
-//
-//    }
-
-
-
-    val scrollState = rememberLazyListState()
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -231,9 +183,6 @@ fun ChatScreen(
     var showAssetSheet by remember { mutableStateOf(false) }
     val modalAssetSheetState = rememberModalBottomSheetState(true)
 
-    var showCameraWithPerm by remember {
-        mutableStateOf(false)
-    }
 
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
@@ -260,42 +209,41 @@ fun ChatScreen(
     // Used to decide if the keyboard should be shown
     var textFieldFocusState by remember { mutableStateOf(false) }
 
-    val context =  LocalContext.current
     val controller = LocalSoftwareKeyboardController.current
 
 
 
 
-        Scaffold (
-            containerColor = Color.Black,
-            topBar = {
-            },
-            contentWindowInsets = ScaffoldDefaults
-                .contentWindowInsets
-                .exclude(WindowInsets.navigationBars)
-                .exclude(WindowInsets.ime),
-            modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-        ){ paddingValues ->
-
-
+    Scaffold (
+        containerColor = Color.Black,
+        topBar = {
+        },
+        contentWindowInsets = ScaffoldDefaults
+            .contentWindowInsets
+            .exclude(WindowInsets.navigationBars)
+            .exclude(WindowInsets.ime),
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+    ){ paddingValues ->
             Box(modifier = modifier.fillMaxSize()) {
-                Box(modifier = modifier.fillMaxSize().customBlur(100f)){
+                Box(modifier = modifier.fillMaxSize()){
                     Column(modifier = Modifier.fillMaxSize()) {
-                        ChatHeader(
-                            name = "Mark Katakowski",
-                            image = "",
-                            ens = listOf("mk.eth"),
-                            onBackClick = navigateBackToConversations,
-                            isTrailContent = false,
-                            trailContent= {},
-                            onContactClick = {
+                        recipient?.let {
+                            ChatHeader(
+                                name = it.getDisplayName(),
+                                image = "",
+                                ens = listOf(""),
+                                onBackClick = navigateBackToConversations,
+                                isTrailContent = false,
+                                trailContent= {},
+                                onContactClick = {
 
-                                currentModalSelector = ModalSelector.CONTACT
+                                    currentModalSelector = ModalSelector.CONTACT
 
-                                showAssetSheet = true
+                                    showAssetSheet = true
 
-                            }
-                        )
+                                }
+                            )
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -305,7 +253,6 @@ fun ChatScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(paddingValues)
-                                //.background(Color.Blue)
                             ){
                                 when(chatUIState) {
 
@@ -361,7 +308,7 @@ fun ChatScreen(
 
                                         ) {
 
-                                            chatUIState.messages.forEachIndexed { index, message ->
+                                            chatUIState.messages.sortedBy { it.date }.reversed().forEachIndexed { index, message ->
 
                                                 val prevAuthor = chatUIState.messages.getOrNull(index - 1)?.address
 
@@ -383,7 +330,7 @@ fun ChatScreen(
 
                                                         msg = message,
 
-                                                        isUserMe = false,//message.author == authorMe,
+                                                        isUserMe = message.isMe(),
 
                                                         isFirstMessageByAuthor = isFirstMessageByAuthor,
 
@@ -539,15 +486,10 @@ fun ChatScreen(
                                             }
                                         }
 
-//                    if(textState.text.isNotBlank()){
-//
-//                    }
-
                                     }
 
                                     // Animated visibility will eventually remove the item from the composition once the animation has finished.
                                     AnimatedVisibility(showActionbar) {
-//                    if (showActionbar){
 
                                         SelectorExpanded(
                                             onSelectorChange = {
@@ -560,7 +502,6 @@ fun ChatScreen(
                                             },
                                             onHideKeyboard = { controller?.hide() },
                                         )
-                                        //}
                                     }
 
 
@@ -595,7 +536,7 @@ fun ChatScreen(
                         }
                     }
                 }
-                MessageOptionsScreen()
+                //MessageOptionsScreen()
             }
 
             //Asset ModalSheet
@@ -847,79 +788,5 @@ fun SelectorExpanded(
 @Composable
 @Preview
 fun PreviewChatScreen(){
-    ChatScreen(navigateBackToConversations={},chatUIState=ChatUIState.Loading)
+    //ChatScreen(navigateBackToConversations={},chatUIState=ChatUIState.Success(listOf()))
 }
-
-
-
-private const val FRACTAL_SHADER_SRC = """
-    uniform float2 size;
-    uniform float time;
-    uniform shader composable;
-    
-    float f(float3 p) {
-        p.z -= time * 5.;
-        float a = p.z * .1;
-        p.xy *= mat2(cos(a), sin(a), -sin(a), cos(a));
-        return .1 - length(cos(p.xy) + sin(p.yz));
-    }
-    
-    half4 main(float2 fragcoord) { 
-        float3 d = .5 - fragcoord.xy1 / size.y;
-        float3 p=float3(0);
-        for (int i = 0; i < 32; i++) {
-          p += f(p) * d;
-        }
-        return ((sin(p) + float3(2, 5, 12)) / length(p)).xyz1;
-    }
-"""
-
-@Composable
-@Preview
-fun TestComposable(){
-
-
-    val shader = RuntimeShader(FRACTAL_SHADER_SRC)
-//        val shader = RuntimeShader(FRACTAL_SHADER_SRC) // TODO: uncomment to see 2nd shader
-
-    val COLOR_SHADER_SRC =
-        """half4 main(float2 fragCoord) {
-      return half4(1,0,0,1);
-   }""".trimIndent()
-    val fixedColorShader = RuntimeShader(COLOR_SHADER_SRC)
-
-
-    Box(
-        modifier =
-        Modifier
-            .size(500.dp)
-    ) {
-        BlurContainer(){
-            Image(
-                painter = painterResource(id = R.drawable.butterfly),
-                modifier = Modifier
-                    .onSizeChanged { size ->
-                        shader.setFloatUniform(
-                            "size",
-                            size.width.toFloat(),
-                            size.height.toFloat()
-                        )
-                    }
-//                .graphicsLayer {
-//                    clip = true
-//                    //shader.setFloatUniform("time",timeMs.value)
-//                    renderEffect =
-//                        RenderEffect
-//                            .createRuntimeShaderEffect(shader, "composable")
-//                            .asComposeRenderEffect()
-//                },
-                ,
-                contentScale = ContentScale.Crop,
-                contentDescription = null)
-        }
-
-
-    }
-}
-
-
