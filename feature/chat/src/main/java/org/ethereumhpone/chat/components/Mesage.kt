@@ -1,12 +1,16 @@
 package org.ethereumhpone.chat.components
 
 import android.app.Notification
+import android.util.Log
 import android.view.textclassifier.ConversationActions
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +29,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -37,13 +42,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -55,6 +70,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.ethereumhpone.chat.ComposablePosition
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.model.MockMessage
 
@@ -115,61 +131,96 @@ fun TxMessage(
 
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Message(
-    onAuthorClick: (String) -> Unit,
+//    onAuthorClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
     msg: Message, //Message from core/model
     isUserMe: Boolean,
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
+    composablePositionState: MutableState<ComposablePosition>,
+    onLongClick: () -> Unit = {}
+
 ) {
+
+    var positionComp by remember { mutableStateOf(Offset.Zero) }
+
+    var compSize by remember { mutableStateOf(0) }
 
     val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
         .padding(top = 8.dp)
         .fillMaxWidth() else Modifier
-    val alignmessage = if(isUserMe) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp)
+    val alignmessage =
+        if(isUserMe) {
+            Modifier
+                .padding(start = 16.dp)
+
+                .onGloballyPositioned { coordinates ->
+//                    println(
+//                        "Message is me - coordinates.size.height:${compSize} " +
+//                                "- Offset(positionComp.x,positionComp.y:${coordinates.positionInRoot().x},${coordinates.positionInRoot().y}"
+//                    )
+
+                    compSize = coordinates.size.height
+                    positionComp = coordinates.positionInRoot()
+                }
+        } else {
+            Modifier
+                .padding(end = 16.dp)
+                .onGloballyPositioned { coordinates ->
+//
+                    compSize = coordinates.size.height
+                    positionComp = coordinates.positionInRoot()
+                }
+        }
+
+
+    val context = LocalContext.current
     Row(
         modifier = spaceBetweenAuthors,
         horizontalArrangement = Arrangement.End
     ) {
 //        Text(text = ""+ isFirstMessageByAuthor)
-        AuthorAndTextMessage(
-            msg = msg,
-            isUserMe = isUserMe,
-            isFirstMessageByAuthor = isFirstMessageByAuthor,
-            isLastMessageByAuthor = isLastMessageByAuthor,
-            authorClicked = onAuthorClick,
-            modifier = alignmessage
-        )
+        Column(
+            modifier = alignmessage,
+            horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
+        ) {
+            ChatItemBubble(
+
+                modifier = Modifier,
+                message = msg,
+                isUserMe = isUserMe,
+                isLastMessageByAuthor=isLastMessageByAuthor,
+                isFirstMessageByAuthor=isFirstMessageByAuthor,
+                composablePositionState = composablePositionState,
+                onLongClick = {
+                    composablePositionState.value.height = compSize
+                    composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
+
+
+                    //Toast.makeText(context,"Longclick ChatItemBubble",Toast.LENGTH_LONG).show()
+                    onLongClick()
+                }
+            )
+            if (isFirstMessageByAuthor) {
+                AuthorNameTimestamp(msg)
+            }
+            if (isFirstMessageByAuthor) {
+                // Last bubble before next author
+                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                // Between bubbles
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
     }
 }
 
-@Composable
-fun AuthorAndTextMessage(
-    msg: Message,
-    isUserMe: Boolean,
-    isFirstMessageByAuthor: Boolean,
-    isLastMessageByAuthor: Boolean,
-    authorClicked: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
-    ) {
-        ChatItemBubble(msg, isUserMe, authorClicked = authorClicked, isLastMessageByAuthor=isLastMessageByAuthor, isFirstMessageByAuthor=isFirstMessageByAuthor)
-        if (isFirstMessageByAuthor) {
-            AuthorNameTimestamp(msg)
-        }
-        if (isFirstMessageByAuthor) {
-            // Last bubble before next author
-            Spacer(modifier = Modifier.height(8.dp))
-        } else {
-            // Between bubbles
-            Spacer(modifier = Modifier.height(4.dp))
-        }
-    }
-}
+
+
+
 
 
 //TIMESTAMP
@@ -232,13 +283,13 @@ fun TxChatItemBubble(
         .background(
             Colors.WHITE
         )
-        .border(1.dp,Color(0xFF8C7DF7),TxChatBubbleShape)
+        .border(1.dp, Color(0xFF8C7DF7), TxChatBubbleShape)
     val nogradient = Modifier
         .clip(TxChatBubbleShape)
         .background(
             Colors.WHITE
         )
-        .border(1.dp,Color(0xFF8C7DF7),TxChatBubbleShape)
+        .border(1.dp, Color(0xFF8C7DF7), TxChatBubbleShape)
 
     val usercolor = if(isLastMessageByAuthor) nogradient else gradient
 
@@ -247,7 +298,7 @@ fun TxChatItemBubble(
         .background(
             Colors.WHITE
         )
-        .border(1.dp,Colors.DARK_GRAY,TxChatBubbleShape)
+        .border(1.dp, Colors.DARK_GRAY, TxChatBubbleShape)
 
 
     Column(
@@ -323,7 +374,7 @@ fun TxChatItemBubble(
                     Box ( modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
+                        .background(if (isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
                     Text(
                         text = "Mainnet",
                         style = TextStyle(
@@ -360,14 +411,21 @@ fun TxChatItemBubble(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatItemBubble(
+    modifier: Modifier = Modifier,
     message: Message,
     isUserMe: Boolean,
-    authorClicked: (String) -> Unit,
     isLastMessageByAuthor: Boolean,
-    isFirstMessageByAuthor: Boolean
+    isFirstMessageByAuthor: Boolean,
+    composablePositionState: MutableState<ComposablePosition>,
+    onLongClick: () -> Unit = {}
 ) {
+
+    var positionComp by remember { mutableStateOf(Offset.Zero) }
+
+    var compSize by remember { mutableStateOf(0) }
 
     val Bubbleshape = if(isUserMe) {
         if (isFirstMessageByAuthor){
@@ -387,83 +445,156 @@ fun ChatItemBubble(
 
     }
 
-    val gradient = Modifier
-        .clip(Bubbleshape)
-        .background(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF8C7DF7),
-                    Color(0xFF6555D8)
-                )
-            )
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF8C7DF7),
+            Color(0xFF6555D8)
         )
-    val nogradient = Modifier
-        .clip(Bubbleshape)
-        .background(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF8C7DF7),
-                    Color(0xFF8C7DF7)
-                )
-            )
-        )
+    )
 
-    val usercolor = if(isLastMessageByAuthor) nogradient else gradient
-
-    val reciepientcolor = Modifier
-        .clip(Bubbleshape)
-        .background(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Colors.DARK_GRAY,
-                    Colors.DARK_GRAY
-                )
-            )
+    val nogradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF8C7DF7),
+            Color(0xFF8C7DF7)
         )
+    )
+
+    val reciepientcolor = Brush.verticalGradient(
+        colors = listOf(
+            Colors.DARK_GRAY,
+            Colors.DARK_GRAY
+        )
+    )
+
+    val messageBrush = when(isUserMe){
+        true -> { //message from user
+            if(isLastMessageByAuthor){
+                nogradient
+            } else {
+                gradient
+            }
+        }
+        false -> { //message not from user
+            reciepientcolor
+        }
+    }
+
+
+
+
+
+
+
 
 
     Column(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
-        Surface(
-            modifier = if(isUserMe) usercolor else reciepientcolor,
-            color = Color.Transparent,//backgroundBubbleColor,
-            shape = Bubbleshape
-
-        ) {
-
-                Column {
-////                    Text
-//                    message.mmsStatus?.let {
-//                        Box(
-//                            contentAlignment = Alignment.Center,
-//                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
-//                        ){
-//                            Image(
-//                                painter = painterResource(it),
-//                                contentScale = ContentScale.Fit,
-//                                modifier = Modifier
-//                                    .sizeIn(maxWidth = 240.dp)
-//                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
-//                                contentDescription = "Attached Image"
-//                            )
-//                        }
+        Box (
+            modifier = modifier
+                .clip(Bubbleshape)
+                .background(
+                    brush = messageBrush
+                )
 //
-//
-//                    }
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = {println("Clickable Longclick test")}
+                )
+        ){
 
+            val styledMessage = messageFormatter(
+                text = message.body,// timestamp
+                primary = isUserMe
+            )
 
-                    ClickableMessage(
-                        message = message,
-                        isUserMe = isUserMe,
-                        authorClicked = authorClicked
-                    )
-                }
+            BasicText(
+                text = styledMessage,
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    fontWeight =  FontWeight.Normal,
+                    color = Colors.WHITE,
+                    fontFamily = Fonts.INTER
+                ),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onLongPress = {
+                                println("BasicText onLongPress")
+                                onLongClick()
+                            }
+                        )
+                    }
 
-
-
+                ,
+//                onClick = {}
+            )
         }
+
+//        Surface(
+////            modifier = modifier
+////
+////                .background(Color.Red)
+////                .clickable {
+////                    println("Clickable test")
+////                }
+////                .clip(Bubbleshape)
+//////                .background(
+//////                    brush = messageBrush
+//////                )
+////                .onGloballyPositioned { coordinates ->
+////                    compSize = coordinates.size.height
+////                    positionComp = coordinates.positionInRoot()
+////                }
+////                .combinedClickable(
+////                    onClick = {
+////                        //Log.d("BUG","clickable --")
+////                    },
+////                    onLongClick = onLongClick
+////                )
+////            ,
+//            color = Color.Transparent,//backgroundBubbleColor,
+//            shape = Bubbleshape
+//
+//        ) {
+//
+//            Column(
+//                modifier.combinedClickable (
+//                    onClick = {},
+//                    onLongClick = onLongClick
+//                )
+//            ) {
+//////                    Text
+////                    message.mmsStatus?.let {
+////                        Box(
+////                            contentAlignment = Alignment.Center,
+////                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
+////                        ){
+////                            Image(
+////                                painter = painterResource(it),
+////                                contentScale = ContentScale.Fit,
+////                                modifier = Modifier
+////                                    .sizeIn(maxWidth = 240.dp)
+////                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
+////                                contentDescription = "Attached Image"
+////                            )
+////                        }
+////
+////
+////                    }
+//
+//
+//                ClickableMessage(
+//                    message = message,
+//                    isUserMe = isUserMe,
+//                    onLongClick = { onLongClick() }
+//
+//                )
+//            }
+//        }
+
 
 //        message.image?.let {
 //            Spacer(modifier = Modifier.height(4.dp))
@@ -483,11 +614,12 @@ fun ChatItemBubble(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClickableMessage(
     message:Message,
     isUserMe: Boolean,
-    authorClicked: (String) -> Unit
+    onLongClick: () -> Unit = {}
 ) {
     val uriHandler = LocalUriHandler.current
 
@@ -506,24 +638,38 @@ fun ClickableMessage(
             color = Colors.WHITE,
             fontFamily = Fonts.INTER
         ),
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier
+            .padding(16.dp)
+            .combinedClickable(
+                onClick = {
+                    print("Clicked ClickableText")
+                    onLongClick()
+                },
+                onLongClick = {
+                    print("Clicked ClickableText")
+//                    onLongClick()
+                },
+            )
+        ,
         onClick = {
-            Toast.makeText(context, "This is a Sample Toast", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(context, "This is a Sample Toast", Toast.LENGTH_SHORT).show()
+            //onLongClick()
 
-
-            styledMessage
-                .getStringAnnotations(start = it, end = it)
-                .firstOrNull()
-                ?.let { annotation ->
-                    when (annotation.tag) {
-                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-                        else -> Unit
-                    }
-                }
+//            styledMessage
+//                .getStringAnnotations(start = it, end = it)
+//                .firstOrNull()
+//                ?.let { annotation ->
+//                    when (annotation.tag) {
+//                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
+//                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
+//                        else -> Unit
+//                    }
+//                }
         }
     )
 }
+
+
 
 @Composable
 fun TxClickableMessage(
@@ -633,13 +779,13 @@ fun ConversationPreview() {
             val isFirstMessageByAuthor = prevAuthor != content.address
             val isLastMessageByAuthor = nextAuthor != content.address
             item {
-                Message(
-                    onAuthorClick = {  },
-                    msg = content,
-                    isUserMe = content.address == authorMe,
-                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                    isLastMessageByAuthor = isLastMessageByAuthor
-                )
+//                Message(
+//                    onAuthorClick = {  },
+//                    msg = content,
+//                    isUserMe = content.address == authorMe,
+//                    isFirstMessageByAuthor = isFirstMessageByAuthor,
+//                    isLastMessageByAuthor = isLastMessageByAuthor
+//                )
             }
 
         }

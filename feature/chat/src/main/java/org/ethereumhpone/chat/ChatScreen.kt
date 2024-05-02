@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat
 
+import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
@@ -8,37 +9,45 @@ import android.os.Message
 import androidx.compose.animation.AnimatedVisibility
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -114,10 +123,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -125,10 +137,16 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import org.ethereumhpone.chat.components.ChatHeader
 import org.ethereumhpone.chat.components.ContactSheet
 import org.ethereumhpone.chat.components.EmojiSelector
@@ -143,9 +161,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.Lazy
 import org.ethereumhpone.chat.components.BlurContainer
+import org.ethereumhpone.chat.components.FocusMessage
 import org.ethereumhpone.chat.components.TxMessage
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.model.MockMessage
+import kotlin.math.roundToInt
 
 
 @Composable
@@ -162,6 +182,13 @@ fun ChatRoute(
     )
 }
 
+
+
+data class ComposablePosition(
+    var offset: Offset = Offset.Zero,
+    var height: Int = 0
+)
+@SuppressLint("SuspiciousIndentation")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -172,6 +199,8 @@ fun ChatScreen(
 
 
     val focusManager: FocusManager = LocalFocusManager.current
+
+
 
 
 
@@ -265,8 +294,30 @@ fun ChatScreen(
 
 
 
+    val focusMode = remember {
+        mutableStateOf(false)
+    }
 
-        Scaffold (
+    val composablePositionState = remember { mutableStateOf(ComposablePosition()) }//gets offset of message composable
+
+
+    var focusedmessage by remember { mutableStateOf(
+        org.ethereumhpone.database.model.Message(
+            address = "me",
+            body = "Test",
+            subject = "1:00 PM"
+        )
+    ) }
+
+
+
+
+
+
+
+
+
+    Scaffold (
             containerColor = Color.Black,
             topBar = {
             },
@@ -279,7 +330,9 @@ fun ChatScreen(
 
 
             Box(modifier = modifier.fillMaxSize()) {
-                Box(modifier = modifier.fillMaxSize().customBlur(100f)){
+                Box(modifier = modifier
+                    .fillMaxSize()
+                    .customBlur(if (focusMode.value) 100f else 0f)){
                     Column(modifier = Modifier.fillMaxSize()) {
                         ChatHeader(
                             name = "Mark Katakowski",
@@ -390,11 +443,20 @@ fun ChatScreen(
                                                 )
                                             }else{
                                                 Message(
-                                                    onAuthorClick = {  },
+//                                                    modifier = Modifier
+//                                                        .onGloballyPositioned { coordinates ->
+//                                                        compSize = coordinates.size.height
+//                                                        positionComp = coordinates.positionInRoot()
+//                                                    },
                                                     msg = content,
                                                     isUserMe = content.address == authorMe,
                                                     isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                    isLastMessageByAuthor = isLastMessageByAuthor
+                                                    isLastMessageByAuthor = isLastMessageByAuthor,
+                                                    onLongClick = {
+                                                        focusedmessage = content
+                                                        focusMode.value = true
+                                                    },
+                                                    composablePositionState = composablePositionState
                                                 )
                                             }
 
@@ -661,7 +723,6 @@ fun ChatScreen(
                                         //}
                                     }
 
-
                                     AnimatedVisibility(showSelectionbar) {
                                         if(showActionbar){
                                             Surface(
@@ -680,10 +741,6 @@ fun ChatScreen(
                                         }
 
                                     }
-
-
-
-
                                 }
 
                             }
@@ -693,7 +750,20 @@ fun ChatScreen(
                         }
                     }
                 }
-                MessageOptionsScreen()
+                AnimatedVisibility(
+                    focusMode.value,
+                    enter = fadeIn(
+                        animationSpec = tween(300),
+                    ),
+                    exit = fadeOut(
+                        animationSpec = tween(300,),
+                    )
+                ){
+                    MessageOptionsScreen(
+                        focusedmessage,composablePositionState, focusMode
+                    )
+                }
+
             }
 
             //Asset ModalSheet
@@ -727,54 +797,142 @@ fun ChatScreen(
 
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
-@Preview
-fun MessageOptionsScreen(){
-    Box(modifier = Modifier
-        .fillMaxSize()
-        //.background(Brush.horizontalGradient(colorStops = colorStops), alpha = 0.5f)
-        .padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
-    ){
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            MessageReactions()
-            Message(
-                onAuthorClick = {  },
-                msg = org.ethereumhpone.database.model.Message(
-                    address = "me",
-                    body = "Check it out!",
-                    subject = "8:07 PM"
-                ),
-                isUserMe = true,
-                isFirstMessageByAuthor = true,
-                isLastMessageByAuthor = true
-            )
-            MessageActionList()
-        }
+fun MessageOptionsScreen(
+    message: org.ethereumhpone.database.model.Message,
+    composablePositionState: MutableState<ComposablePosition>,
+    focusMode: MutableState<Boolean>,
+){
 
+//    val configuration = LocalConfiguration.current
+//    val screenMidddleHeight = configuration.screenHeightDp/2//mitte des screens
+//
+//    val pxYToMove = with(LocalDensity.current) {
+//        val move = (screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt())
+//        println("move: ${move}, " +
+//                "cal: ${screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt()}, " +
+//                "creenMidddleHeight.dp: ${screenMidddleHeight.dp.toPx()}, " +
+//                "positionState.value.y): ${composablePositionState.value.offset.y.roundToInt()}")
+//        move.roundToInt()
+//    }
+//
+//    val animatedProgress = remember { Animatable(composablePositionState.value.offset.y) }//position
+//
+//    val animatedWidth = remember { Animatable(0f) }
+//
+//    LaunchedEffect(animatedProgress) {
+//        animatedProgress.animateTo(composablePositionState.value.offset.y + pxYToMove.toFloat(),
+//            animationSpec = tween(
+//                durationMillis = 300,
+//                delayMillis = 240
+//            )
+//        )
+//    }
+//
+//    LaunchedEffect(animatedWidth) {
+//        animatedWidth.animateTo(1f,
+//            animationSpec = tween(
+//                durationMillis = 300,
+//                delayMillis = 240
+//            )
+//        )
+//    }
+
+    val composableScope = rememberCoroutineScope()
+
+
+//    if(!focusMode.value){
+//        composableScope.launch {
+//            animatedProgress.animateTo(composablePositionState.value.offset.y,
+//                animationSpec = tween(
+//                    durationMillis = 300,
+//                    delayMillis = 0
+//                ))
+//
+//
+//        }
+//
+//    }
+
+
+
+
+
+//    println("pxYToMove: ${pxYToMove}")
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+
+            .clickable {
+                focusMode.value = false //else focusMode = true
+            }
+        ,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment =  if (message.address != "me") Alignment.Start else Alignment.End ,
+            modifier = Modifier
+
+                .padding(horizontal = 12.dp)
+
+//
+        ) {
+//            MessageReactions(
+//                composablePositionState = composablePositionState,
+//                focusMode = focusMode
+//            )
+            FocusMessage(
+                msg = message,
+                isUserMe = message.address == "me",
+                isFirstMessageByAuthor = true,
+                isLastMessageByAuthor = false,
+                onLongClick = {
+                    focusMode.value = false
+                },
+                composablePositionState = composablePositionState,
+                focusMode = focusMode
+            )
+
+//            MessageActionList(
+//                Modifier
+//                    .width((200f * animatedWidth.value).toInt().dp)
+//            )
+        }
     }
 }
 
 
 @Composable
-@Preview
-fun MessageReactions() {
-    Box(modifier = Modifier
+fun MessageReactions(
+    modifier: Modifier = Modifier,
+//    focusMode: MutableState<Boolean>,
+//    composablePositionState: MutableState<ComposablePosition>,
+) {
 
 
-    ) {
-        Row {
+    val animatedSize = remember { Animatable(0f) }
+
+
+    LaunchedEffect(animatedSize) {
+        animatedSize.animateTo(1f,
+            animationSpec = tween(
+                durationMillis = 300,
+                delayMillis = 240
+            )
+        )
+    }
+
+        Surface(
+            modifier = Modifier.width((270f * animatedSize.value).toInt().dp),
+            shape = CircleShape,
+            color = Colors.DARK_GRAY,
+        ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-
-                    .clip(CircleShape)
-                    .background(Colors.DARK_GRAY)
-                    .padding(horizontal = 4.dp, vertical = 4.dp)
             ) {
                 IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
                     Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.Favorite, contentDescription = "")
@@ -796,22 +954,33 @@ fun MessageReactions() {
                 }
 
             }
-
         }
-    }
+
+
 }
 
 
 @Composable
-@Preview
-fun MessageActionList() {
-    Box(modifier = Modifier
-        .graphicsLayer {
-            shape = RoundedCornerShape(12.dp)
-            clip = true
-        }
-        .background(Colors.DARK_GRAY)
-        .width(200.dp)
+fun MessageActionList(
+    modifier: Modifier = Modifier,
+) {
+
+    val animatedSize = remember { Animatable(0f) }
+
+    val context = LocalContext.current
+
+    LaunchedEffect(animatedSize) {
+        animatedSize.animateTo(1f,
+            animationSpec = tween(
+                durationMillis = 300,
+                delayMillis = 240
+            )
+        )
+    }
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Colors.DARK_GRAY,
+        modifier = modifier.width((250f * animatedSize.value).toInt().dp)
 
     ) {
         Column {
@@ -820,10 +989,13 @@ fun MessageActionList() {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+
+                    .clickable {
+                        Toast.makeText(context,"Copy",Toast.LENGTH_LONG).show()
+                    }.padding(16.dp)
             ) {
-                Text(text = "Copy", fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color=Colors.WHITE)
-                Icon(tint= Colors.WHITE, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.ContentCopy, contentDescription = "")
+                Text(text = "Copy", fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color=Colors.WHITE, fontSize = 16.sp)
+                Icon(tint= Colors.WHITE, modifier = modifier.size(24.dp), imageVector = Icons.Outlined.ContentCopy, contentDescription = "")
             }
             Divider(color=Colors.GRAY)
             Row(
@@ -831,10 +1003,12 @@ fun MessageActionList() {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .clickable {
+                        Toast.makeText(context,"Info",Toast.LENGTH_LONG).show()
+                    }.padding(16.dp)
             ) {
-                Text(text = "Info", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.WHITE)
-                Icon(tint= Colors.WHITE, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Info, contentDescription = "")
+                Text(text = "Info", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.WHITE, fontSize = 16.sp)
+                Icon(tint= Colors.WHITE, modifier = Modifier.size(24.dp), imageVector = Icons.Outlined.Info, contentDescription = "")
             }
             Divider(color=Colors.GRAY)
             Row(
@@ -842,11 +1016,12 @@ fun MessageActionList() {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .clickable {
+                        Toast.makeText(context,"Delete",Toast.LENGTH_LONG).show()
+                    }.padding(16.dp)
             ) {
-                Text(text = "Delete", fontFamily = Fonts.INTER,
-                    fontWeight = FontWeight.Medium, color=Colors.ERROR)
-                Icon(tint= Colors.ERROR, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Delete, contentDescription = "")
+                Text(text = "Delete", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.ERROR, fontSize = 16.sp)
+                Icon(tint= Colors.ERROR, modifier = Modifier.size(24.dp), imageVector = Icons.Outlined.Delete, contentDescription = "")
             }
 
         }
