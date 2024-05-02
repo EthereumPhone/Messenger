@@ -44,16 +44,4 @@ fun MessagingNavHost(
             }
         )
     }
-
-//    NavHost(navController = navController, startDestination = "home") {
-//        composable("home") {
-//            ContactScreen(navigateToChat={})
-//        }
-////        composable("addProject") {
-////            AddProjectScreen()
-////        }
-////        composable("addTask") {
-////            AddTaskScreen()
-////        }
-//    }
 }
