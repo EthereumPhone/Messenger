@@ -80,7 +80,6 @@ fun ContactRoute(
         contacts = contacts,
         conversationState = conversationState,
         navigateToChat = navigateToChat,
-//        getContacts = viewModel::getContacts,
     )
 }
 
@@ -90,7 +89,6 @@ fun ContactScreen(
     contacts: List<Contact>,
     conversationState: ConversationUIState,
     navigateToChat: (String) -> Unit,
-//    getContacts: (Context) -> Unit,
     modifier: Modifier = Modifier
 ){
 
