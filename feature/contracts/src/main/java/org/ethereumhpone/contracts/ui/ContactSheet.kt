@@ -150,7 +150,9 @@ fun ContactSheet(
                                 },
                                 header = it.name,
                                 withSubheader = false,// ens in future ?
-                                onClick = {  }
+                                onClick = {
+                                    onSelectContact(it)
+                                }
                             )
                         }
                     }

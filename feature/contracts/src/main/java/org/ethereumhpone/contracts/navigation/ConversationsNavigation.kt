@@ -7,6 +7,7 @@ import androidx.navigation.navigation
 import org.ethereumhpone.contracts.ContactRoute
 
 import androidx.navigation.compose.*
+import org.ethereumhpone.database.model.Contact
 
 
 const val conversationsGraphRoutePattern = "conversations_graph"
@@ -17,7 +18,7 @@ fun NavController.navigateToConversations(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.conversationsGraph(
-    navigateToChat: (String) -> Unit, //threadId Long -> String
+    navigateToChat: (String, Contact?) -> Unit, //threadId Long -> String
     nestedGraphs: NavGraphBuilder.() -> Unit,
 ) {
     navigation(

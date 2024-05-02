@@ -66,7 +66,7 @@ import org.ethereumhpone.database.model.Message
 @Composable
 fun ContactRoute(
     modifier: Modifier = Modifier,
-    navigateToChat: (String) -> Unit,
+    navigateToChat: (String, Contact?) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
 ){
     val context = LocalContext.current
@@ -88,7 +88,7 @@ fun ContactRoute(
 fun ContactScreen(
     contacts: List<Contact>,
     conversationState: ConversationUIState,
-    navigateToChat: (String) -> Unit,
+    navigateToChat: (String, Contact?) -> Unit,
     modifier: Modifier = Modifier
 ){
 
@@ -197,7 +197,7 @@ fun ContactScreen(
                                            onClick = {
                                            },
                                            modifier = modifier.clickable {
-                                               navigateToChat(conversation.id.toString())
+                                               navigateToChat(conversation.id.toString(), null)
                                            }
                                        )
                                    }
@@ -257,7 +257,12 @@ fun ContactScreen(
 //                }
                 val allowedContacts = contacts//.filter { it.name.isNotEmpty() }
 
-                ContactSheet(allowedContacts)
+                ContactSheet(allowedContacts) {
+                    showContactSheet = false
+                    println("Contact clicked ${it.name}")
+                    navigateToChat("0", it)
+
+                }
             }
 
 
@@ -300,6 +305,6 @@ fun PreviewContactScreen(){
                 )
             )
         ),
-        {}
+        { _, _ -> }
     )
 }

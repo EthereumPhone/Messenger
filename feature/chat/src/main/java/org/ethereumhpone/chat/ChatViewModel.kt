@@ -17,9 +17,11 @@ import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.util.Converters
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MessageRepository
+import java.net.URLDecoder
 import javax.inject.Inject
 
 
@@ -32,8 +34,7 @@ class ChatViewModel @Inject constructor(
 
     private val threadIdArgs: ThreadIdArgs = ThreadIdArgs(savedStateHandle)
 
-    private var addressNoContact: MutableStateFlow<String> = MutableStateFlow("")
-
+    val contact = if (savedStateHandle.get<String>("contact") != null) Converters().fromContact(URLDecoder.decode(savedStateHandle.get<String>("contact"), Charsets.UTF_8.name())) else null
 
     val chatState: StateFlow<ChatUIState> = messageRepository.getMessages(threadId = threadIdArgs.threadId.toLong(),"").flowOn(Dispatchers.IO).map {
         ChatUIState.Success(it)
@@ -43,11 +44,15 @@ class ChatViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
-    val recipient: StateFlow<Recipient?> = conversationRepository.getConversation(threadIdArgs.threadId.toLong()).flowOn(Dispatchers.IO).map {
-        it?.recipients?.get(0) ?: Recipient(
-            id = 0,
-            address = addressNoContact.value
-        )
+    val recipient: StateFlow<Recipient?> = conversationRepository.getConversation(threadIdArgs.threadId.toLong()).flowOn(Dispatchers.IO).map { it ->
+        it?.recipients?.get(0) ?: contact?.let { realContact ->
+            Recipient(
+                id = 0L,
+                contact = realContact,
+                lastUpdate = realContact.lastUpdate,
+                address = realContact.numbers[0].address
+            )
+        }
     }.stateIn(
         scope = viewModelScope,
         initialValue = null,
