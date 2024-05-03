@@ -10,10 +10,8 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.Color
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.app.TaskStackBuilder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.single
 import org.ethereumhpone.data.receiver.MarkSeenReceiver
 import org.ethereumhpone.datastore.MessengerPreferences
@@ -30,7 +28,7 @@ private const val CHAT_PATH = "chat"
 private const val NOTIFICATION_REQUEST_CODE = 0
 
 
-class NotificationManager @Inject constructor(
+class NotificationManagerImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val messengerPreferences: MessengerPreferences,
     private val permissionManager: PermissionManager,
