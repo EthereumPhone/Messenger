@@ -147,6 +147,7 @@ import org.ethereumhpone.chat.components.TxMessage
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.model.MockMessage
 import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.domain.model.Attachment
 
 
 @Composable
@@ -162,7 +163,8 @@ fun ChatRoute(
     ChatScreen(
         chatUIState = chatUIState,
         recipient = recipient,
-        navigateBackToConversations = navigateBackToConversations
+        navigateBackToConversations = navigateBackToConversations,
+        onSendMessageClicked = viewModel::sendMessage
     )
 }
 
@@ -172,7 +174,8 @@ fun ChatScreen(
     modifier: Modifier = Modifier,
     chatUIState: ChatUIState,
     recipient: Recipient?,
-    navigateBackToConversations: () -> Unit
+    navigateBackToConversations: () -> Unit,
+    onSendMessageClicked: (String, List<Attachment>) -> Unit
 ){
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
@@ -478,8 +481,8 @@ fun ChatScreen(
 
                                                     lastFocusState = false
                                                     textFieldFocusState = false
-
-                                                },//onMessageSent,
+                                                    onSendMessageClicked(textState.text, listOf())
+                                                },
                                             ) {
                                                 Icon(imageVector = Icons.Rounded.ArrowUpward,modifier= Modifier
                                                     .size(32.dp), contentDescription = "Send",tint = Color.White)
