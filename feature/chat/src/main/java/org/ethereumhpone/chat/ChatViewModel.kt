@@ -18,9 +18,12 @@ import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.database.util.Converters
+import org.ethereumhpone.domain.manager.PermissionManager
+import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MessageRepository
+import org.ethereumhpone.domain.usecase.SendMessage
 import java.net.URLDecoder
 import javax.inject.Inject
 
@@ -29,7 +32,9 @@ import javax.inject.Inject
 class ChatViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val messageRepository: MessageRepository,
-    private val conversationRepository: ConversationRepository
+    private val conversationRepository: ConversationRepository,
+    private val sendMessage: SendMessage,
+    private val permissionManager: PermissionManager
 ): ViewModel() {
 
     private val threadIdArgs: ThreadIdArgs = ThreadIdArgs(savedStateHandle)
@@ -44,7 +49,16 @@ class ChatViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
-    val recipient: StateFlow<Recipient?> = conversationRepository.getConversation(threadIdArgs.threadId.toLong()).flowOn(Dispatchers.IO).map { it ->
+    val conversation = conversationRepository.getConversation(threadIdArgs.threadId.toLong())
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = null,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
+
+
+    val recipient: StateFlow<Recipient?> = conversation.map {
         it?.recipients?.get(0) ?: contact?.let { realContact ->
             Recipient(
                 id = 0L,
@@ -58,6 +72,30 @@ class ChatViewModel @Inject constructor(
         initialValue = null,
         started = SharingStarted.WhileSubscribed(5_000)
     )
+
+    fun sendMessage(messageBody: String, attachments: List<Attachment>) {
+        //if(!permissionManager.isDefaultSms()) return
+        if(!permissionManager.hasSendSms()) return
+
+        val subId = -1 //TODO: Add sunscroptionId logic
+
+
+        // this sends a message for an existing conversation
+        conversation.value?.let {
+            // send message to convo with only one recipient
+            if(it.recipients.size == 1) {
+                val address = it.recipients.map { it.address }
+
+                viewModelScope.launch {
+                    sendMessage(subId, it.id, address, messageBody, attachments)
+                }
+            }
+        }
+
+        //TODO: Create a new conversation with one address
+
+
+    }
 
 
 }

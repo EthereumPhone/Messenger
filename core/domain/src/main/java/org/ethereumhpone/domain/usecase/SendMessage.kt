@@ -8,7 +8,7 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import javax.inject.Inject
 
-class sendMessage @Inject constructor(
+class SendMessage @Inject constructor(
     private val context: Context,
     private val conversationRepository: ConversationRepository,
     private val messageRepository: MessageRepository
