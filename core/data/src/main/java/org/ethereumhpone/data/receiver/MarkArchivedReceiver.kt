@@ -15,8 +15,9 @@ class MarkArchivedReceiver @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val messageRepository: MessageRepository,
     private val notificationManager: NotificationManager
-    ) : BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent) {
+    ) : HiltBroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
         val pendingResult = goAsync()
         val threadId = intent.getLongExtra("threadId", 0)
 

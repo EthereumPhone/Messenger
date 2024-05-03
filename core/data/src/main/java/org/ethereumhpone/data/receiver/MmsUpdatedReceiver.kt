@@ -18,9 +18,10 @@ class MmsUpdatedReceiver @Inject constructor(
     private val syncRepository: SyncRepository,
     private val conversationRepository: ConversationRepository,
 
-    ): BroadcastReceiver() {
+    ): HiltBroadcastReceiver() {
 
-    override fun onReceive(context: Context?, intent: Intent) {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
         intent.getStringExtra(URI)?.let { uriString ->
 
             val pendingResult = goAsync()

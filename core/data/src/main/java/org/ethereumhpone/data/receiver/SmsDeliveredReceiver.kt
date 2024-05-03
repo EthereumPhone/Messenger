@@ -12,10 +12,11 @@ import javax.inject.Inject
 
 class SmsDeliveredReceiver @Inject constructor(
     private val messageRepositoryImpl: MessageRepository
-): BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent?) {
+): HiltBroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
 
-        val id = intent?.getLongExtra("id", 0L)
+        val id = intent.getLongExtra("id", 0L)
 
         val pendingResult = goAsync()
 

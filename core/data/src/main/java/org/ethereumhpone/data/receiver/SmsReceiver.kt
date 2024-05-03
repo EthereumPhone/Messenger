@@ -18,10 +18,11 @@ import javax.inject.Inject
 private const val TAG = "SmsReceiver"
 class SmsReceiver @Inject constructor(
     private val recieveMessage: ReceiveSms
-) : BroadcastReceiver() {
+) : HiltBroadcastReceiver() {
 
-    override fun onReceive(context: Context?, intent: Intent?) {
-        if(intent?.action == Sms.Intents.SMS_RECEIVED_ACTION) {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if(intent.action == Sms.Intents.SMS_RECEIVED_ACTION) {
            Sms.Intents.getMessagesFromIntent(intent)?.let { messages ->
                val subId = intent.extras?.getInt("subscription", -1) ?: -1
                val pendingResult = goAsync()

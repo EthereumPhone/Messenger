@@ -11,8 +11,9 @@ import javax.inject.Inject
 
 class SendSmsReceiver @Inject constructor(
     private val retrySending: retrySending
-): BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent) {
+): HiltBroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
         val messageId = intent.getLongExtra("id", -1L).takeIf { it >= 0 } ?: return
 
         val result = goAsync()
