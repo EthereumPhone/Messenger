@@ -9,7 +9,7 @@ import java.io.File
 
 interface MessageRepository {
 
-    fun getMessages(threadId: Long, query: String): Flow<List<Message>>
+    fun getMessages(threadId: Long, query: String = ""): Flow<List<Message>>
     fun getMessage(id: Long): Flow<Message?>
     fun getMessageForPart(id: Long): Flow<Message?>
     fun getLastIncomingMessage(
