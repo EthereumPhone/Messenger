@@ -459,9 +459,6 @@ fun ChatScreen(
                                                     .size(42.dp),
                                                 enabled = true,
                                                 onClick = {
-                                                    //onMessageSent(textState.text)
-                                                    // Reset text field and close keyboard
-                                                    textState = TextFieldValue()
                                                     // Move scroll to bottom
                                                     //resetScroll()
                                                     dismissKeyboard()
@@ -482,6 +479,7 @@ fun ChatScreen(
                                                     lastFocusState = false
                                                     textFieldFocusState = false
                                                     onSendMessageClicked(textState.text, listOf())
+                                                    textState = TextFieldValue()
                                                 },
                                             ) {
                                                 Icon(imageVector = Icons.Rounded.ArrowUpward,modifier= Modifier
