@@ -163,6 +163,7 @@ import dagger.Lazy
 import org.ethereumhpone.chat.components.BlurContainer
 import org.ethereumhpone.chat.components.FocusMessage
 import org.ethereumhpone.chat.components.TxMessage
+import org.ethereumhpone.chat.components.WritingBubble
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.model.MockMessage
 import kotlin.math.roundToInt
@@ -416,6 +417,7 @@ fun ChatScreen(
 
 
                                 //MOCK
+
                                 LazyColumn(
                                     reverseLayout = true,
                                     verticalArrangement = Arrangement.Bottom,
@@ -443,11 +445,7 @@ fun ChatScreen(
                                                 )
                                             }else{
                                                 Message(
-//                                                    modifier = Modifier
-//                                                        .onGloballyPositioned { coordinates ->
-//                                                        compSize = coordinates.size.height
-//                                                        positionComp = coordinates.positionInRoot()
-//                                                    },
+//
                                                     msg = content,
                                                     isUserMe = content.address == authorMe,
                                                     isFirstMessageByAuthor = isFirstMessageByAuthor,
@@ -991,8 +989,11 @@ fun MessageActionList(
                     .fillMaxWidth()
 
                     .clickable {
-                        Toast.makeText(context,"Copy",Toast.LENGTH_LONG).show()
-                    }.padding(16.dp)
+                        Toast
+                            .makeText(context, "Copy", Toast.LENGTH_LONG)
+                            .show()
+                    }
+                    .padding(16.dp)
             ) {
                 Text(text = "Copy", fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color=Colors.WHITE, fontSize = 16.sp)
                 Icon(tint= Colors.WHITE, modifier = modifier.size(24.dp), imageVector = Icons.Outlined.ContentCopy, contentDescription = "")
@@ -1004,8 +1005,11 @@ fun MessageActionList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        Toast.makeText(context,"Info",Toast.LENGTH_LONG).show()
-                    }.padding(16.dp)
+                        Toast
+                            .makeText(context, "Info", Toast.LENGTH_LONG)
+                            .show()
+                    }
+                    .padding(16.dp)
             ) {
                 Text(text = "Info", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.WHITE, fontSize = 16.sp)
                 Icon(tint= Colors.WHITE, modifier = Modifier.size(24.dp), imageVector = Icons.Outlined.Info, contentDescription = "")
@@ -1017,8 +1021,11 @@ fun MessageActionList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        Toast.makeText(context,"Delete",Toast.LENGTH_LONG).show()
-                    }.padding(16.dp)
+                        Toast
+                            .makeText(context, "Delete", Toast.LENGTH_LONG)
+                            .show()
+                    }
+                    .padding(16.dp)
             ) {
                 Text(text = "Delete", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.ERROR, fontSize = 16.sp)
                 Icon(tint= Colors.ERROR, modifier = Modifier.size(24.dp), imageVector = Icons.Outlined.Delete, contentDescription = "")

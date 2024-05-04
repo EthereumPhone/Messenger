@@ -12,7 +12,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +32,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -42,6 +46,19 @@ import kotlin.math.roundToInt
 fun WritingBubble(
     isUser: Boolean
 ){
+
+
+    val alignmessage =
+        if(isUser) {
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp)
+        } else {
+            Modifier
+                .fillMaxWidth()
+                .padding(end = 16.dp)
+
+        }
 
     val inital = -5f
     val target = 5f
@@ -66,39 +83,45 @@ fun WritingBubble(
         animationSpec = infiniteRepeatable(tween(duration,20), mode),
         label = "posY3"
     )
-
-    Surface(
-        modifier = Modifier,
-        shape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp),
-        color = if(isUser) Color(0xFF8C7DF7) else Colors.DARK_GRAY,
+    Column(
+        modifier = alignmessage,
+        horizontalAlignment = if(isUser) Alignment.End else Alignment.Start
     ) {
-        Row(
-            modifier = Modifier.padding(top = 16.dp,end = 16.dp,bottom = 16.dp,start = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        Surface(
+            modifier = Modifier,
+            shape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp),
+            color = if(isUser) Color(0xFF8C7DF7) else Colors.DARK_GRAY,
         ) {
+            Row(
+                modifier = Modifier.padding(top = 16.dp,end = 16.dp,bottom = 16.dp,start = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
 
-            BubbleCircle(
-                circleSize = 8.dp,
-                modifier = Modifier.graphicsLayer {
-                    translationY = posY1
-                }
-            )
-            BubbleCircle(
-                circleSize = 8.dp,
-                modifier = Modifier.graphicsLayer {
-                    translationY = posY2
-                }
-            )
-            BubbleCircle(
-                circleSize = 8.dp,
-                modifier = Modifier.graphicsLayer {
-                    translationY = posY3
-                }
-            )
+                BubbleCircle(
+                    circleSize = 8.dp,
+                    modifier = Modifier.graphicsLayer {
+                        translationY = posY1
+                    }
+                )
+                BubbleCircle(
+                    circleSize = 8.dp,
+                    modifier = Modifier.graphicsLayer {
+                        translationY = posY2
+                    }
+                )
+                BubbleCircle(
+                    circleSize = 8.dp,
+                    modifier = Modifier.graphicsLayer {
+                        translationY = posY3
+                    }
+                )
+            }
+
+
         }
-
-
     }
+
+
 }
 @Composable
 @Preview

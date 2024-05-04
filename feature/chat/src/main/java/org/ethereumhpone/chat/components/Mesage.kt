@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -102,9 +103,8 @@ fun TxMessage(
         modifier = spaceBetweenAuthors,
         horizontalArrangement = Arrangement.End
     ) {
-//        Text(text = ""+ isFirstMessageByAuthor)
         Column(
-            modifier = modifier,
+            modifier = alignmessage,
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
             TxChatItemBubble(
@@ -112,9 +112,7 @@ fun TxMessage(
                 amount= txmessage.get(2).toDouble(),
                 symbol= txmessage.get(3),
                 isUserMe = isUserMe,
-                authorClicked = onAuthorClick,
                 isLastMessageByAuthor=isLastMessageByAuthor,
-                isFirstMessageByAuthor=isFirstMessageByAuthor
             )
             if (isFirstMessageByAuthor) {
                 AuthorNameTimestamp(msg)
@@ -134,7 +132,6 @@ fun TxMessage(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Message(
-//    onAuthorClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     msg: Message, //Message from core/model
     isUserMe: Boolean,
@@ -142,27 +139,21 @@ fun Message(
     isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
     onLongClick: () -> Unit = {}
-
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
 
-    var compSize by remember { mutableStateOf(0) }
+    var compSize by remember { mutableIntStateOf(0) }
 
     val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
         .padding(top = 8.dp)
         .fillMaxWidth() else Modifier
+
     val alignmessage =
         if(isUserMe) {
             Modifier
                 .padding(start = 16.dp)
-
                 .onGloballyPositioned { coordinates ->
-//                    println(
-//                        "Message is me - coordinates.size.height:${compSize} " +
-//                                "- Offset(positionComp.x,positionComp.y:${coordinates.positionInRoot().x},${coordinates.positionInRoot().y}"
-//                    )
-
                     compSize = coordinates.size.height
                     positionComp = coordinates.positionInRoot()
                 }
@@ -170,37 +161,29 @@ fun Message(
             Modifier
                 .padding(end = 16.dp)
                 .onGloballyPositioned { coordinates ->
-//
                     compSize = coordinates.size.height
                     positionComp = coordinates.positionInRoot()
                 }
         }
 
 
-    val context = LocalContext.current
     Row(
         modifier = spaceBetweenAuthors,
         horizontalArrangement = Arrangement.End
     ) {
-//        Text(text = ""+ isFirstMessageByAuthor)
         Column(
             modifier = alignmessage,
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
             ChatItemBubble(
-
                 modifier = Modifier,
                 message = msg,
                 isUserMe = isUserMe,
                 isLastMessageByAuthor=isLastMessageByAuthor,
                 isFirstMessageByAuthor=isFirstMessageByAuthor,
-                composablePositionState = composablePositionState,
                 onLongClick = {
                     composablePositionState.value.height = compSize
                     composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
-
-
-                    //Toast.makeText(context,"Longclick ChatItemBubble",Toast.LENGTH_LONG).show()
                     onLongClick()
                 }
             )
@@ -271,13 +254,22 @@ fun TxChatItemBubble(
     symbol: String,
     amount: Double,
     isUserMe: Boolean,
-    authorClicked: (String) -> Unit,
     isLastMessageByAuthor: Boolean,
-    isFirstMessageByAuthor: Boolean
 ) {
 
+    val networkname = when(network.toInt()){
 
+        1 -> "Mainnet"
+        11155111 -> "Sepolia"
+        10 -> "Opimism"
+        42161 -> "Arbitrum"
+        137 -> "Polygon"
+        8453 -> "Base"
 
+        else -> {
+            "N/A"
+        }
+    }
     val gradient = Modifier
         .clip(TxChatBubbleShape)
         .background(
@@ -317,24 +309,6 @@ fun TxChatItemBubble(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(16.dp)
             ) {
-////                    Text
-//                    message.mmsStatus?.let {
-//                        Box(
-//                            contentAlignment = Alignment.Center,
-//                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
-//                        ){
-//                            Image(
-//                                painter = painterResource(it),
-//                                contentScale = ContentScale.Fit,
-//                                modifier = Modifier
-//                                    .sizeIn(maxWidth = 240.dp)
-//                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
-//                                contentDescription = "Attached Image"
-//                            )
-//                        }
-//
-//
-//                    }
 
                 Text(
                     text = "Sent",
@@ -345,14 +319,6 @@ fun TxChatItemBubble(
                         fontFamily = Fonts.INTER
                     )
                 )
-
-//                TxClickableMessage(
-//                    network = network,
-//                    symbol = symbol,
-//                    amount = amount,
-//                    isUserMe = isUserMe,
-//                    authorClicked = authorClicked
-//                )
 
 
                 Text(
@@ -366,17 +332,15 @@ fun TxChatItemBubble(
                 )
 
                 Row (
-//                    modifier = Modifier.weight()
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
-
                 ){
                     Box ( modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
                         .background(if (isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
                     Text(
-                        text = "Mainnet",
+                        text = networkname,
                         style = TextStyle(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal,
@@ -391,27 +355,10 @@ fun TxChatItemBubble(
 
 
         }
-
-//        message.image?.let {
-//            Spacer(modifier = Modifier.height(4.dp))
-//            Surface(
-//                modifier = if(isUserMe) usercolor else reciepientcolor,
-//                color = Color.Transparent,
-//                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
-//            ) {
-//                Image(
-//                    painter = painterResource(it),
-//                    contentScale = ContentScale.Fit,
-//                    modifier = Modifier.size(160.dp),
-//                    contentDescription = "Attached Image"
-//                )
-//            }
-//        }
     }
 }
 
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatItemBubble(
     modifier: Modifier = Modifier,
@@ -419,13 +366,9 @@ fun ChatItemBubble(
     isUserMe: Boolean,
     isLastMessageByAuthor: Boolean,
     isFirstMessageByAuthor: Boolean,
-    composablePositionState: MutableState<ComposablePosition>,
     onLongClick: () -> Unit = {}
 ) {
 
-    var positionComp by remember { mutableStateOf(Offset.Zero) }
-
-    var compSize by remember { mutableStateOf(0) }
 
     val Bubbleshape = if(isUserMe) {
         if (isFirstMessageByAuthor){
@@ -433,16 +376,12 @@ fun ChatItemBubble(
         }else{
             UserChatBubbleShape
         }
-        //LastUserChatBubbleShape
-
     } else{
         if (isFirstMessageByAuthor){
             LastChatBubbleShape
         }else{
             ChatBubbleShape
         }
-        //LastChatBubbleShape
-
     }
 
     val gradient = Brush.verticalGradient(
@@ -497,11 +436,6 @@ fun ChatItemBubble(
                 .background(
                     brush = messageBrush
                 )
-//
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = {println("Clickable Longclick test")}
-                )
         ){
 
             val styledMessage = messageFormatter(
@@ -522,152 +456,16 @@ fun ChatItemBubble(
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {
-                                println("BasicText onLongPress")
                                 onLongClick()
                             }
                         )
                     }
 
-                ,
-//                onClick = {}
             )
         }
-
-//        Surface(
-////            modifier = modifier
-////
-////                .background(Color.Red)
-////                .clickable {
-////                    println("Clickable test")
-////                }
-////                .clip(Bubbleshape)
-//////                .background(
-//////                    brush = messageBrush
-//////                )
-////                .onGloballyPositioned { coordinates ->
-////                    compSize = coordinates.size.height
-////                    positionComp = coordinates.positionInRoot()
-////                }
-////                .combinedClickable(
-////                    onClick = {
-////                        //Log.d("BUG","clickable --")
-////                    },
-////                    onLongClick = onLongClick
-////                )
-////            ,
-//            color = Color.Transparent,//backgroundBubbleColor,
-//            shape = Bubbleshape
-//
-//        ) {
-//
-//            Column(
-//                modifier.combinedClickable (
-//                    onClick = {},
-//                    onLongClick = onLongClick
-//                )
-//            ) {
-//////                    Text
-////                    message.mmsStatus?.let {
-////                        Box(
-////                            contentAlignment = Alignment.Center,
-////                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
-////                        ){
-////                            Image(
-////                                painter = painterResource(it),
-////                                contentScale = ContentScale.Fit,
-////                                modifier = Modifier
-////                                    .sizeIn(maxWidth = 240.dp)
-////                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
-////                                contentDescription = "Attached Image"
-////                            )
-////                        }
-////
-////
-////                    }
-//
-//
-//                ClickableMessage(
-//                    message = message,
-//                    isUserMe = isUserMe,
-//                    onLongClick = { onLongClick() }
-//
-//                )
-//            }
-//        }
-
-
-//        message.image?.let {
-//            Spacer(modifier = Modifier.height(4.dp))
-//            Surface(
-//                modifier = if(isUserMe) usercolor else reciepientcolor,
-//                color = Color.Transparent,
-//                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
-//            ) {
-//                Image(
-//                    painter = painterResource(it),
-//                    contentScale = ContentScale.Fit,
-//                    modifier = Modifier.size(160.dp),
-//                    contentDescription = "Attached Image"
-//                )
-//            }
-//        }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun ClickableMessage(
-    message:Message,
-    isUserMe: Boolean,
-    onLongClick: () -> Unit = {}
-) {
-    val uriHandler = LocalUriHandler.current
-
-    val context =  LocalContext.current
-
-    val styledMessage = messageFormatter(
-        text = message.body,// timestamp
-        primary = isUserMe
-    )
-
-    ClickableText(
-        text = styledMessage,
-        style = TextStyle(
-            fontSize = 16.sp,
-            fontWeight =  FontWeight.Normal,
-            color = Colors.WHITE,
-            fontFamily = Fonts.INTER
-        ),
-        modifier = Modifier
-            .padding(16.dp)
-            .combinedClickable(
-                onClick = {
-                    print("Clicked ClickableText")
-                    onLongClick()
-                },
-                onLongClick = {
-                    print("Clicked ClickableText")
-//                    onLongClick()
-                },
-            )
-        ,
-        onClick = {
-            //Toast.makeText(context, "This is a Sample Toast", Toast.LENGTH_SHORT).show()
-            //onLongClick()
-
-//            styledMessage
-//                .getStringAnnotations(start = it, end = it)
-//                .firstOrNull()
-//                ?.let { annotation ->
-//                    when (annotation.tag) {
-//                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-//                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-//                        else -> Unit
-//                    }
-//                }
-        }
-    )
-}
 
 
 

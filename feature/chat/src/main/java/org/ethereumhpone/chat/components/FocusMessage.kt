@@ -64,7 +64,6 @@ import kotlin.math.roundToInt
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun FocusMessage(
-//    onAuthorClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     focusMode: MutableState<Boolean>,
     msg: Message, //Message from core/model
@@ -76,25 +75,15 @@ fun FocusMessage(
 
 ) {
 
-//    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
-//        .padding(top = 8.dp)
-//        .fillMaxWidth() else Modifier
-
-
     //animate
 
     val configuration = LocalConfiguration.current
     val screenMidddleHeight = configuration.screenHeightDp/2//mitte des screens
 
     val pxYToMove = with(LocalDensity.current) {
-//        val move = (screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt())
-//        println("move: ${move}, " +
-//                "cal: ${screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt()}, " +
-//                "creenMidddleHeight.dp: ${screenMidddleHeight.dp.toPx()}, " +
-//                "positionState.value.y): ${composablePositionState.value.offset.y.roundToInt()}")
         val move = (screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt()) - (composablePositionState.value.height/2).dp.toPx().roundToInt()
 
-        println("move focus: ${move}, ")
+        println("move focus: ${move} ")
         move.roundToInt()
     }
 
@@ -102,8 +91,7 @@ fun FocusMessage(
 
 
     LaunchedEffect(animatedProgress) {
-        //composablePositionState.value.offset.y - 60.dp.value - composablePositionState.value.height.toFloat(),
-        animatedProgress.animateTo(composablePositionState.value.offset.y + pxYToMove.toFloat(),
+       animatedProgress.animateTo(composablePositionState.value.offset.y + pxYToMove.toFloat(),
             animationSpec = tween(
                 durationMillis = 300,
                 delayMillis = 240
@@ -143,9 +131,6 @@ fun FocusMessage(
             }
         }
 
-//    var positionComp by remember { mutableStateOf(Offset.Zero) }
-//
-//    var compSize by remember { mutableStateOf(0) }
 
     val Bubbleshape = if(isUserMe) {
         if (isFirstMessageByAuthor){
@@ -205,10 +190,18 @@ fun FocusMessage(
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            MessageReactions()//focusMode = focusMode, composablePositionState = composablePositionState)
+            //TODO: Add Reaction
+            //MessageReactions()
 
+            FocusChatItemBubble(
+                message = msg,
+                isUserMe = isUserMe,
+                isFirstMessageByAuthor = isFirstMessageByAuthor,
+                bubbleshape = Bubbleshape,
+                messageBrush = messageBrush,
+                onLongClick = onLongClick
+            )
             Column(
-                //modifier = alignmessage,
                 horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
             ) {
                 Surface(
@@ -227,7 +220,6 @@ fun FocusMessage(
                             message = msg,
                             isUserMe = isUserMe,
                             onLongClick = {
-
                                 onLongClick()
                             }
 
@@ -250,11 +242,7 @@ fun FocusMessage(
                 }
             }
 
-            MessageActionList(
-//                focusMode = focusMode, composablePositionState = composablePositionState
-//                Modifier
-//                    .width((200f * animatedWidth.value).toInt().dp)
-            )
+            MessageActionList()
 
         }
 
@@ -266,172 +254,13 @@ private val UserChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
 private val LastChatBubbleShape = RoundedCornerShape(20.dp, 32.dp, 32.dp, 4.dp)
 private val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.dp)
 
-
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FocusChatItemBubble(
-    modifier: Modifier = Modifier,
-    message: Message,
-    isUserMe: Boolean,
-    isLastMessageByAuthor: Boolean,
-    isFirstMessageByAuthor: Boolean,
-    //composablePositionState: MutableState<ComposablePosition>,
-    onLongClick: () -> Unit = {}
-) {
-
-    var positionComp by remember { mutableStateOf(Offset.Zero) }
-
-    var compSize by remember { mutableStateOf(0) }
-
-    val Bubbleshape = if(isUserMe) {
-        if (isFirstMessageByAuthor){
-            LastUserChatBubbleShape
-        }else{
-            UserChatBubbleShape
-        }
-        //LastUserChatBubbleShape
-
-    } else{
-        if (isFirstMessageByAuthor){
-            LastChatBubbleShape
-        }else{
-            ChatBubbleShape
-        }
-        //LastChatBubbleShape
-
-    }
-
-    val gradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF6555D8)
-        )
-    )
-
-    val nogradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF8C7DF7)
-        )
-    )
-
-    val reciepientcolor = Brush.verticalGradient(
-        colors = listOf(
-            Colors.DARK_GRAY,
-            Colors.DARK_GRAY
-        )
-    )
-
-    val messageBrush = when(isUserMe){
-        true -> { //message from user
-            if(isLastMessageByAuthor){
-                nogradient
-            } else {
-                gradient
-            }
-        }
-        false -> { //message not from user
-            reciepientcolor
-        }
-    }
-
-
-
-
-
-
-
-
-
-    Column(
-        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Surface(
-            modifier = Modifier
-                .combinedClickable(
-                    onClick = {
-
-                    },
-                    onLongClick = {
-                        print("Clicked ClickableText")
-                    }
-                )
-                .clip(Bubbleshape)
-                .background(
-                    brush = messageBrush
-                )
-                .onGloballyPositioned { coordinates ->
-                    compSize = coordinates.size.height
-                    positionComp = coordinates.positionInRoot()
-                }
-            ,
-            color = Color.Transparent,//backgroundBubbleColor,
-            shape = Bubbleshape
-
-        ) {
-
-            Column {
-////                    Text
-//                    message.mmsStatus?.let {
-//                        Box(
-//                            contentAlignment = Alignment.Center,
-//                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
-//                        ){
-//                            Image(
-//                                painter = painterResource(it),
-//                                contentScale = ContentScale.Fit,
-//                                modifier = Modifier
-//                                    .sizeIn(maxWidth = 240.dp)
-//                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
-//                                contentDescription = "Attached Image"
-//                            )
-//                        }
-//
-//
-//                    }
-
-
-//                ClickableMessage(
-//                    message = message,
-//                    isUserMe = isUserMe,
-//                    onLongClick = onLongClick
-//
-//                )
-
-            }
-        }
-
-//        message.image?.let {
-//            Spacer(modifier = Modifier.height(4.dp))
-//            Surface(
-//                modifier = if(isUserMe) usercolor else reciepientcolor,
-//                color = Color.Transparent,
-//                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
-//            ) {
-//                Image(
-//                    painter = painterResource(it),
-//                    contentScale = ContentScale.Fit,
-//                    modifier = Modifier.size(160.dp),
-//                    contentDescription = "Attached Image"
-//                )
-//            }
-//        }
-    }
-}
-
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun FocusClickableMessage(
+fun ClickableMessage(
     message:Message,
     isUserMe: Boolean,
     onLongClick: () -> Unit = {}
 ) {
-    val uriHandler = LocalUriHandler.current
-
-    val context =  LocalContext.current
 
     val styledMessage = messageFormatter(
         text = message.body,// timestamp
@@ -449,29 +278,71 @@ fun FocusClickableMessage(
         modifier = Modifier
             .padding(16.dp)
             .combinedClickable(
-                onClick = { },
-                onLongClick = {
+                onClick = {
                     onLongClick()
+                },
+                onLongClick = {
+
                 },
             )
         ,
         onClick = {
-            //Toast.makeText(context, "This is a Sample Toast", Toast.LENGTH_SHORT).show()
             onLongClick()
-
-//            styledMessage
-//                .getStringAnnotations(start = it, end = it)
-//                .firstOrNull()
-//                ?.let { annotation ->
-//                    when (annotation.tag) {
-//                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-//                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-//                        else -> Unit
-//                    }
-//                }
         }
     )
 }
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun FocusChatItemBubble(
+    message: Message,
+    isUserMe: Boolean,
+    messageBrush: Brush,
+    bubbleshape:  RoundedCornerShape,
+    isFirstMessageByAuthor: Boolean,
+    onLongClick: () -> Unit = {}
+) {
+    Column(
+        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
+    ) {
+        Surface(
+            modifier = Modifier
+                .clip(bubbleshape)
+                .background(
+                    brush = messageBrush
+                )
+            ,
+            color = Color.Transparent,//backgroundBubbleColor,
+            shape = bubbleshape
+
+        ) {
+            Column {
+                ClickableMessage(
+                    message = message,
+                    isUserMe = isUserMe,
+                    onLongClick = {
+                        onLongClick()
+                    }
+                )
+            }
+        }
+
+
+
+
+        if (isFirstMessageByAuthor) {
+            FocusAuthorNameTimestamp(message)
+        }
+        if (isFirstMessageByAuthor) {
+            // Last bubble before next author
+            Spacer(modifier = Modifier.height(8.dp))
+        } else {
+            // Between bubbles
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
+
 
 
 @Composable
