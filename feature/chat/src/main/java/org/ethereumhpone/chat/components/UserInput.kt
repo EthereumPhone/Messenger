@@ -142,7 +142,7 @@ enum class ModalSelector {
 
 @Preview
 @Composable
-fun UserInputPreview() {{}
+fun UserInputPreview() {
     UserInput(onMessageSent = {},onOpenAssetPicker = {})
 }
 

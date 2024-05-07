@@ -43,11 +43,14 @@ fun NavGraphBuilder.chatScreen(
         composable(
             route = "$chatRoute/{$threadIdArg}",
             arguments = listOf(
-                navArgument(threadIdArg) { type = NavType.StringType },
+                navArgument("threadId") { type = NavType.StringType },
             ),
         ) {
+            val threadId = it.arguments?.getString("threadId")
+
             ChatRoute(
-                navigateBackToConversations = onBackClick
+                navigateBackToConversations = onBackClick,
+                threadId = threadId
             )
         }
 }

@@ -1,6 +1,5 @@
 package org.ethereumhpone.chat
 
-import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
@@ -9,45 +8,37 @@ import android.os.Message
 import androidx.compose.animation.AnimatedVisibility
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -123,13 +114,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -137,16 +125,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.zIndex
 import org.ethereumhpone.chat.components.ChatHeader
 import org.ethereumhpone.chat.components.ContactSheet
 import org.ethereumhpone.chat.components.EmojiSelector
@@ -161,12 +143,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.Lazy
 import org.ethereumhpone.chat.components.BlurContainer
-import org.ethereumhpone.chat.components.FocusMessage
 import org.ethereumhpone.chat.components.TxMessage
-import org.ethereumhpone.chat.components.WritingBubble
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.model.MockMessage
-import kotlin.math.roundToInt
 
 
 @Composable
@@ -183,13 +162,6 @@ fun ChatRoute(
     )
 }
 
-
-
-data class ComposablePosition(
-    var offset: Offset = Offset.Zero,
-    var height: Int = 0
-)
-@SuppressLint("SuspiciousIndentation")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -200,8 +172,6 @@ fun ChatScreen(
 
 
     val focusManager: FocusManager = LocalFocusManager.current
-
-
 
 
 
@@ -295,30 +265,8 @@ fun ChatScreen(
 
 
 
-    val focusMode = remember {
-        mutableStateOf(false)
-    }
 
-    val composablePositionState = remember { mutableStateOf(ComposablePosition()) }//gets offset of message composable
-
-
-    var focusedmessage by remember { mutableStateOf(
-        org.ethereumhpone.database.model.Message(
-            address = "me",
-            body = "Test",
-            subject = "1:00 PM"
-        )
-    ) }
-
-
-
-
-
-
-
-
-
-    Scaffold (
+        Scaffold (
             containerColor = Color.Black,
             topBar = {
             },
@@ -331,9 +279,7 @@ fun ChatScreen(
 
 
             Box(modifier = modifier.fillMaxSize()) {
-                Box(modifier = modifier
-                    .fillMaxSize()
-                    .customBlur(if (focusMode.value) 100f else 0f)){
+                Box(modifier = modifier.fillMaxSize().customBlur(100f)){
                     Column(modifier = Modifier.fillMaxSize()) {
                         ChatHeader(
                             name = "Mark Katakowski",
@@ -361,200 +307,96 @@ fun ChatScreen(
                                     .padding(paddingValues)
                                 //.background(Color.Blue)
                             ){
+                                when(chatUIState) {
+
+                                    is ChatUIState.Loading -> {
+
+                                        Box(
 
 
-                                //MOCKDATA
-                                val initialMessages = listOf(
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "me",
-                                        body = "*txsent,1,0.08,ETH",
-                                        subject = "8:10 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "me",
-                                        body = "Check it out!",
-                                        subject = "8:07 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "me",
-                                        body = "Thank you!",
-                                        subject = "8:06 PM",
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "Taylor Brooks",
-                                        body = "*txsent,1,0.001,ETH",
-                                        subject = "8:05 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "Taylor Brooks",
-                                        body = "You can use all the same stuff",
-                                        subject = "8:05 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "Taylor Brooks",
-                                        body = "@aliconors Take a look at the `Flow.collectAsStateWithLifecycle()` APIs",
-                                        subject = "8:05 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "Taylor Brooks",
-                                        body = "Compose newbie as well, have you looked at the JetNews sample? " +
-                                                "Most blog posts end up out of date pretty fast but this sample is always up to " +
-                                                "date and deals with async data loading (it's faked but the same idea " +
-                                                "applies)  https://goo.gle/jetnews",
-                                        subject = "8:04 PM"
-                                    ),
-                                    org.ethereumhpone.database.model.Message(
-                                        address = "me",
-                                        body = "Compose newbie: I’ve scourged the internet for tutorials about async data " +
-                                                "loading but haven’t found any good ones " +
-                                                "What’s the recommended way to load async data and emit composable widgets?",
-                                        subject = "8:03 PM"
-                                    )
+                                            modifier = Modifier
 
-                                )
+                                                .weight(1f)
 
-                                val authorMe = "me"
+                                                .fillMaxSize()
+
+                                                .padding(horizontal = 24.dp),
+
+                                            contentAlignment = Alignment.Center
+
+                                        ) {
+
+                                            Text(
+
+                                                text = "Loading...",
+
+                                                fontSize = 12.sp,
+
+                                                fontFamily = Fonts.INTER,
 
 
-                                //MOCK
-
-                                LazyColumn(
-                                    reverseLayout = true,
-                                    verticalArrangement = Arrangement.Bottom,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(horizontal = 12.dp)
-                                ){
-                                    for (index in initialMessages.indices) {
+                                                color = Colors.WHITE,
 
 
-
-                                        val prevAuthor = initialMessages.getOrNull(index - 1)?.address
-                                        val nextAuthor = initialMessages.getOrNull(index + 1)?.address
-                                        val content = initialMessages[index]
-                                        val isFirstMessageByAuthor = prevAuthor != content.address
-                                        val isLastMessageByAuthor = nextAuthor != content.address
-                                        item {
-                                            if(content.body.startsWith("*txsent,")){
-                                                TxMessage(
-                                                    onAuthorClick = {  },
-                                                    msg = content,
-                                                    isUserMe = content.address == authorMe,
-                                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                    isLastMessageByAuthor = isLastMessageByAuthor
                                                 )
-                                            }else{
-                                                Message(
-//
-                                                    msg = content,
-                                                    isUserMe = content.address == authorMe,
-                                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                    isLastMessageByAuthor = isLastMessageByAuthor,
-                                                    onLongClick = {
-                                                        focusedmessage = content
-                                                        focusMode.value = true
-                                                    },
-                                                    composablePositionState = composablePositionState
-                                                )
-                                            }
 
                                         }
 
                                     }
-                                }
 
-                                //REAL
-                                /*           when(chatUIState) {
-                                //
-                                //                is ChatUIState.Loading -> {
-                                //
-                                //                    Box(
-                                //
-                                //
-                                //                        modifier = Modifier
-                                //
-                                //                            .weight(1f)
-                                //
-                                //                            .fillMaxSize()
-                                //
-                                //                            .padding(horizontal = 24.dp),
-                                //
-                                //                        contentAlignment = Alignment.Center
-                                //
-                                //                    ) {
-                                //
-                                //                        Text(
-                                //
-                                //                            text = "Loading...",
-                                //
-                                //                            fontSize = 12.sp,
-                                //
-                                //                            fontFamily = Fonts.INTER,
-                                //
-                                //
-                                //                            color = Colors.WHITE,
-                                //
-                                //
-                                //                            )
-                                //
-                                //                    }
-                                //
-                                //                }
-                                //
-                                //                is ChatUIState.Success -> {
-                                //
-                                //
-                                //                    LazyColumn(
-                                //
-                                //                        reverseLayout = true,
-                                //
-                                //                        modifier = Modifier
-                                //
-                                //                            .weight(1f)
-                                //
-                                //                            .fillMaxWidth()
-                                //
-                                //                            .padding(horizontal = 24.dp)
-                                //
-                                //                    ) {
-                                //
-                                //                        chatUIState.messages.forEachIndexed { index, message ->
-                                //
-                                //                            val prevAuthor = chatUIState.messages.getOrNull(index - 1)?.address
-                                //
-                                //                            val nextAuthor = chatUIState.messages.getOrNull(index + 1)?.address
-                                //
-                                //                            val content = chatUIState.messages[index]
-                                //
-                                //                            val isFirstMessageByAuthor = prevAuthor != content.address
-                                //
-                                //                            val isLastMessageByAuthor = nextAuthor != content.address
-                                //
-                                //
-                                //
-                                //                            item {
-                                //
-                                //                                Message(
-                                //
-                                //                                    onAuthorClick = { },
-                                //
-                                //                                    msg = message,
-                                //
-                                //                                    isUserMe = false,//message.author == authorMe,
-                                //
-                                //                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                //
-                                //                                    isLastMessageByAuthor = isLastMessageByAuthor
-                                //
-                                //                                )
-                                //
-                                //                            }
-                                //
-                                //                        }
-                                //                    }
-                                //                }
-                                //            }*/
+                                    is ChatUIState.Success -> {
 
+
+                                        LazyColumn(
+
+                                            reverseLayout = true,
+
+                                            modifier = Modifier
+
+                                                .weight(1f)
+
+                                                .fillMaxWidth()
+
+                                                .padding(horizontal = 24.dp)
+
+                                        ) {
+
+                                            chatUIState.messages.forEachIndexed { index, message ->
+
+                                                val prevAuthor = chatUIState.messages.getOrNull(index - 1)?.address
+
+                                                val nextAuthor = chatUIState.messages.getOrNull(index + 1)?.address
+
+                                                val content = chatUIState.messages[index]
+
+                                                val isFirstMessageByAuthor = prevAuthor != content.address
+
+                                                val isLastMessageByAuthor = nextAuthor != content.address
+
+
+
+                                                item {
+
+                                                    Message(
+
+                                                        onAuthorClick = { },
+
+                                                        msg = message,
+
+                                                        isUserMe = false,//message.author == authorMe,
+
+                                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+
+                                                        isLastMessageByAuthor = isLastMessageByAuthor
+
+                                                    )
+
+                                                }
+
+                                            }
+                                        }
+                                    }
+                               }
                                 Column(
                                     modifier = modifier.padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
                                 ) {
@@ -721,6 +563,7 @@ fun ChatScreen(
                                         //}
                                     }
 
+
                                     AnimatedVisibility(showSelectionbar) {
                                         if(showActionbar){
                                             Surface(
@@ -739,6 +582,10 @@ fun ChatScreen(
                                         }
 
                                     }
+
+
+
+
                                 }
 
                             }
@@ -748,20 +595,7 @@ fun ChatScreen(
                         }
                     }
                 }
-                AnimatedVisibility(
-                    focusMode.value,
-                    enter = fadeIn(
-                        animationSpec = tween(300),
-                    ),
-                    exit = fadeOut(
-                        animationSpec = tween(300,),
-                    )
-                ){
-                    MessageOptionsScreen(
-                        focusedmessage,composablePositionState, focusMode
-                    )
-                }
-
+                MessageOptionsScreen()
             }
 
             //Asset ModalSheet
@@ -795,142 +629,54 @@ fun ChatScreen(
 
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
-fun MessageOptionsScreen(
-    message: org.ethereumhpone.database.model.Message,
-    composablePositionState: MutableState<ComposablePosition>,
-    focusMode: MutableState<Boolean>,
-){
-
-//    val configuration = LocalConfiguration.current
-//    val screenMidddleHeight = configuration.screenHeightDp/2//mitte des screens
-//
-//    val pxYToMove = with(LocalDensity.current) {
-//        val move = (screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt())
-//        println("move: ${move}, " +
-//                "cal: ${screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt()}, " +
-//                "creenMidddleHeight.dp: ${screenMidddleHeight.dp.toPx()}, " +
-//                "positionState.value.y): ${composablePositionState.value.offset.y.roundToInt()}")
-//        move.roundToInt()
-//    }
-//
-//    val animatedProgress = remember { Animatable(composablePositionState.value.offset.y) }//position
-//
-//    val animatedWidth = remember { Animatable(0f) }
-//
-//    LaunchedEffect(animatedProgress) {
-//        animatedProgress.animateTo(composablePositionState.value.offset.y + pxYToMove.toFloat(),
-//            animationSpec = tween(
-//                durationMillis = 300,
-//                delayMillis = 240
-//            )
-//        )
-//    }
-//
-//    LaunchedEffect(animatedWidth) {
-//        animatedWidth.animateTo(1f,
-//            animationSpec = tween(
-//                durationMillis = 300,
-//                delayMillis = 240
-//            )
-//        )
-//    }
-
-    val composableScope = rememberCoroutineScope()
-
-
-//    if(!focusMode.value){
-//        composableScope.launch {
-//            animatedProgress.animateTo(composablePositionState.value.offset.y,
-//                animationSpec = tween(
-//                    durationMillis = 300,
-//                    delayMillis = 0
-//                ))
-//
-//
-//        }
-//
-//    }
-
-
-
-
-
-//    println("pxYToMove: ${pxYToMove}")
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-
-            .clickable {
-                focusMode.value = false //else focusMode = true
-            }
-        ,
-    ) {
+@Preview
+fun MessageOptionsScreen(){
+    Box(modifier = Modifier
+        .fillMaxSize()
+        //.background(Brush.horizontalGradient(colorStops = colorStops), alpha = 0.5f)
+        .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ){
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment =  if (message.address != "me") Alignment.Start else Alignment.End ,
-            modifier = Modifier
-
-                .padding(horizontal = 12.dp)
-
-//
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-//            MessageReactions(
-//                composablePositionState = composablePositionState,
-//                focusMode = focusMode
-//            )
-            FocusMessage(
-                msg = message,
-                isUserMe = message.address == "me",
+            MessageReactions()
+            Message(
+                onAuthorClick = {  },
+                msg = org.ethereumhpone.database.model.Message(
+                    address = "me",
+                    body = "Check it out!",
+                    subject = "8:07 PM"
+                ),
+                isUserMe = true,
                 isFirstMessageByAuthor = true,
-                isLastMessageByAuthor = false,
-                onLongClick = {
-                    focusMode.value = false
-                },
-                composablePositionState = composablePositionState,
-                focusMode = focusMode
+                isLastMessageByAuthor = true
             )
-
-//            MessageActionList(
-//                Modifier
-//                    .width((200f * animatedWidth.value).toInt().dp)
-//            )
+            MessageActionList()
         }
+
     }
 }
 
 
 @Composable
-fun MessageReactions(
-    modifier: Modifier = Modifier,
-//    focusMode: MutableState<Boolean>,
-//    composablePositionState: MutableState<ComposablePosition>,
-) {
+@Preview
+fun MessageReactions() {
+    Box(modifier = Modifier
 
 
-    val animatedSize = remember { Animatable(0f) }
-
-
-    LaunchedEffect(animatedSize) {
-        animatedSize.animateTo(1f,
-            animationSpec = tween(
-                durationMillis = 300,
-                delayMillis = 240
-            )
-        )
-    }
-
-        Surface(
-            modifier = Modifier.width((270f * animatedSize.value).toInt().dp),
-            shape = CircleShape,
-            color = Colors.DARK_GRAY,
-        ) {
+    ) {
+        Row {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+
+                    .clip(CircleShape)
+                    .background(Colors.DARK_GRAY)
+                    .padding(horizontal = 4.dp, vertical = 4.dp)
             ) {
                 IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
                     Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.Favorite, contentDescription = "")
@@ -952,33 +698,22 @@ fun MessageReactions(
                 }
 
             }
+
         }
-
-
+    }
 }
 
 
 @Composable
-fun MessageActionList(
-    modifier: Modifier = Modifier,
-) {
-
-    val animatedSize = remember { Animatable(0f) }
-
-    val context = LocalContext.current
-
-    LaunchedEffect(animatedSize) {
-        animatedSize.animateTo(1f,
-            animationSpec = tween(
-                durationMillis = 300,
-                delayMillis = 240
-            )
-        )
-    }
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = Colors.DARK_GRAY,
-        modifier = modifier.width((250f * animatedSize.value).toInt().dp)
+@Preview
+fun MessageActionList() {
+    Box(modifier = Modifier
+        .graphicsLayer {
+            shape = RoundedCornerShape(12.dp)
+            clip = true
+        }
+        .background(Colors.DARK_GRAY)
+        .width(200.dp)
 
     ) {
         Column {
@@ -987,16 +722,10 @@ fun MessageActionList(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-
-                    .clickable {
-                        Toast
-                            .makeText(context, "Copy", Toast.LENGTH_LONG)
-                            .show()
-                    }
-                    .padding(16.dp)
+                    .padding(12.dp)
             ) {
-                Text(text = "Copy", fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color=Colors.WHITE, fontSize = 16.sp)
-                Icon(tint= Colors.WHITE, modifier = modifier.size(24.dp), imageVector = Icons.Outlined.ContentCopy, contentDescription = "")
+                Text(text = "Copy", fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color=Colors.WHITE)
+                Icon(tint= Colors.WHITE, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.ContentCopy, contentDescription = "")
             }
             Divider(color=Colors.GRAY)
             Row(
@@ -1004,15 +733,10 @@ fun MessageActionList(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        Toast
-                            .makeText(context, "Info", Toast.LENGTH_LONG)
-                            .show()
-                    }
-                    .padding(16.dp)
+                    .padding(12.dp)
             ) {
-                Text(text = "Info", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.WHITE, fontSize = 16.sp)
-                Icon(tint= Colors.WHITE, modifier = Modifier.size(24.dp), imageVector = Icons.Outlined.Info, contentDescription = "")
+                Text(text = "Info", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.WHITE)
+                Icon(tint= Colors.WHITE, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Info, contentDescription = "")
             }
             Divider(color=Colors.GRAY)
             Row(
@@ -1020,15 +744,11 @@ fun MessageActionList(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        Toast
-                            .makeText(context, "Delete", Toast.LENGTH_LONG)
-                            .show()
-                    }
-                    .padding(16.dp)
+                    .padding(12.dp)
             ) {
-                Text(text = "Delete", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.ERROR, fontSize = 16.sp)
-                Icon(tint= Colors.ERROR, modifier = Modifier.size(24.dp), imageVector = Icons.Outlined.Delete, contentDescription = "")
+                Text(text = "Delete", fontFamily = Fonts.INTER,
+                    fontWeight = FontWeight.Medium, color=Colors.ERROR)
+                Icon(tint= Colors.ERROR, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Delete, contentDescription = "")
             }
 
         }
