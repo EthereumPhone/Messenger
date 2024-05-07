@@ -5,15 +5,19 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import org.ethereumhpone.data.blocking.MessengerBlockingClient
 import org.ethereumhpone.data.manager.ActiveConversationManagerImpl
 import org.ethereumhpone.data.manager.KeyManagerImpl
+import org.ethereumhpone.data.manager.NotificationManagerImpl
 import org.ethereumhpone.data.repository.BlockingRepositoryImpl
 import org.ethereumhpone.data.repository.ContactRepositoryImpl
 import org.ethereumhpone.data.repository.ConversationRepositoryImpl
 import org.ethereumhpone.data.repository.MessageRepositoryImpl
 import org.ethereumhpone.data.repository.SyncRepositoryImpl
+import org.ethereumhpone.domain.blocking.BlockingClient
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.manager.KeyManager
+import org.ethereumhpone.domain.manager.NotificationManager
 import org.ethereumhpone.domain.repository.BlockingRepository
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
@@ -51,6 +55,12 @@ abstract class RepositoryModule{
     @Binds
     @Singleton
     abstract fun bindSyncRepository(impl: SyncRepositoryImpl): SyncRepository
+
+    @Binds
+    abstract fun provideBlockingClient(message: MessengerBlockingClient): BlockingClient
+
+    @Binds
+    abstract fun provideNotificationManager(message: NotificationManagerImpl): NotificationManager
 
 //    @Binds
 //    @Singleton

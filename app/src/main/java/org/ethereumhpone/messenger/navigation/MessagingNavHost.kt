@@ -1,7 +1,9 @@
 package org.ethereumhpone.messenger.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -29,10 +31,6 @@ fun MessagingNavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier,
-        enterTransition = { EnterTransition.None },
-        exitTransition = { ExitTransition.None },
-        popEnterTransition = { EnterTransition.None },
-        popExitTransition = { ExitTransition.None }
     ){
 
 

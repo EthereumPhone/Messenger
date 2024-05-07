@@ -3,17 +3,15 @@ package org.ethereumhpone.data.receiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.annotation.CallSuper
 import com.klinker.android.send_message.MmsReceivedReceiver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
-import org.ethereumhpone.data.manager.NotificationManager
-import org.ethereumhpone.database.model.Conversation
+import org.ethereumhpone.data.manager.NotificationManagerImpl
 import org.ethereumhpone.domain.blocking.BlockingClient
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.repository.ConversationRepository
@@ -27,14 +25,11 @@ class MmsReceivedReceiver @Inject constructor(
     private val activeConversationManager: ActiveConversationManager,
     private val blockingClient: BlockingClient,
     private val messageRepository: MessageRepository,
-    private val notificationManager: NotificationManager
-) : MmsReceivedReceiver() {
-
-    override fun onReceive(context: Context?, intent: Intent?) {
-        super.onReceive(context, intent)
-    }
+    private val notificationManager: NotificationManagerImpl
+) : HiltMmsReceivedReceiver() {
 
     override fun onMessageReceived(messageUri: Uri?) {
+        super.onMessageReceived(messageUri)
         messageUri?.let { uri ->
             val pendingResult = goAsync()
 
@@ -73,4 +68,12 @@ class MmsReceivedReceiver @Inject constructor(
             }
         }
     }
+}
+
+abstract class HiltMmsReceivedReceiver : MmsReceivedReceiver() {
+    @CallSuper
+    override fun onReceive(context: Context, intent: Intent) {}
+
+    @CallSuper
+    override fun onMessageReceived(messageUri: Uri?) {}
 }

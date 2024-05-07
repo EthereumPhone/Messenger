@@ -14,9 +14,10 @@ import javax.inject.Inject
 
 class DefaultSmsChangedReceiver @Inject constructor(
     private val syncRepository: SyncRepository
-): BroadcastReceiver() {
+): HiltBroadcastReceiver() {
 
-    override fun onReceive(context: Context?, intent: Intent) {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
 
         if (intent.getBooleanExtra(Telephony.Sms.Intents.EXTRA_IS_DEFAULT_SMS_APP, false)) {
             val pendingResult = goAsync()

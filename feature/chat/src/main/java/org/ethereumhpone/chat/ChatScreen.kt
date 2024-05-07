@@ -1,33 +1,17 @@
 package org.ethereumhpone.chat
 
-import android.graphics.BitmapFactory
-import android.graphics.RenderEffect
-import android.graphics.RuntimeShader
-import android.graphics.Shader
-import android.os.Message
 import androidx.compose.animation.AnimatedVisibility
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -36,25 +20,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.TextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
-
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
@@ -66,38 +44,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.AssetPickerSheet
-import org.ethereumhpone.chat.components.Header
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.chat.components.Message
-import org.ethereumhpone.chat.components.UserInput
-import org.ethosmobile.components.library.core.ethOSHeader
-import org.ethosmobile.components.library.core.ethOSTextField
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
-
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddComment
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
@@ -115,50 +80,36 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.draw.paint
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.LastBaseline
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import org.ethereumhpone.chat.components.ChatHeader
 import org.ethereumhpone.chat.components.ContactSheet
-import org.ethereumhpone.chat.components.EmojiSelector
 import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
-import org.ethereumhpone.chat.components.InputSelectorButton
 import org.ethereumhpone.chat.components.ModalSelector
-import org.ethereumhpone.chat.components.SelectorExpanded
-import org.ethereumhpone.chat.components.UserInputSelector
 import org.ethereumhpone.chat.components.WalletSelector
-import org.ethereumhpone.chat.components.addText
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dagger.Lazy
-import org.ethereumhpone.chat.components.BlurContainer
-import org.ethereumhpone.chat.components.TxMessage
-import org.ethereumhpone.chat.components.customBlur
-import org.ethereumhpone.chat.model.MockMessage
+import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.domain.model.Attachment
 
 
 @Composable
 fun ChatRoute(
     modifier: Modifier = Modifier,
     navigateBackToConversations: () -> Unit,
+    threadId: String?,
     viewModel: ChatViewModel = hiltViewModel()
 ){
     val chatUIState by viewModel.chatState.collectAsStateWithLifecycle()
+    val recipient by viewModel.recipient.collectAsStateWithLifecycle()
 
     ChatScreen(
         chatUIState = chatUIState,
-        navigateBackToConversations = navigateBackToConversations
+        recipient = recipient,
+        navigateBackToConversations = navigateBackToConversations,
+        onSendMessageClicked = viewModel::sendMessage
     )
 }
 
@@ -167,61 +118,10 @@ fun ChatRoute(
 fun ChatScreen(
     modifier: Modifier = Modifier,
     chatUIState: ChatUIState,
-    navigateBackToConversations: () -> Unit
+    recipient: Recipient?,
+    navigateBackToConversations: () -> Unit,
+    onSendMessageClicked: (String, List<Attachment>) -> Unit
 ){
-
-
-    val focusManager: FocusManager = LocalFocusManager.current
-
-
-
-//
-//        val authorMe = "me"
-//
-//        LazyColumn(
-//            reverseLayout = true,
-//            modifier = Modifier
-//
-//                .padding(start = 24.dp, end = 24.dp,)
-//        ){
-//            initialMessages.forEachIndexed {  index, message ->
-//
-//                val prevAuthor = initialMessages.getOrNull(index - 1)?.author
-//                val nextAuthor = initialMessages.getOrNull(index + 1)?.author
-//                val content = initialMessages[index]
-//                val isFirstMessageByAuthor = prevAuthor != content.author
-//                val isLastMessageByAuthor = nextAuthor != content.author
-//
-//                item {
-//                    Message(
-//                        onAuthorClick = {  },
-//                        msg = message,
-//                        isUserMe = message.author == authorMe,
-//                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-//                        isLastMessageByAuthor = isLastMessageByAuthor
-//                    )
-//                }
-//
-//            }
-//        }
-//
-//
-//
-//
-//        Column {
-//            UserInput(onMessageSent = {})
-//        }
-//
-//
-//
-//
-//
-//
-//    }
-
-
-
-    val scrollState = rememberLazyListState()
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -231,9 +131,6 @@ fun ChatScreen(
     var showAssetSheet by remember { mutableStateOf(false) }
     val modalAssetSheetState = rememberModalBottomSheetState(true)
 
-    var showCameraWithPerm by remember {
-        mutableStateOf(false)
-    }
 
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
@@ -260,42 +157,41 @@ fun ChatScreen(
     // Used to decide if the keyboard should be shown
     var textFieldFocusState by remember { mutableStateOf(false) }
 
-    val context =  LocalContext.current
     val controller = LocalSoftwareKeyboardController.current
 
 
 
 
-        Scaffold (
-            containerColor = Color.Black,
-            topBar = {
-            },
-            contentWindowInsets = ScaffoldDefaults
-                .contentWindowInsets
-                .exclude(WindowInsets.navigationBars)
-                .exclude(WindowInsets.ime),
-            modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-        ){ paddingValues ->
-
-
+    Scaffold (
+        containerColor = Color.Black,
+        topBar = {
+        },
+        contentWindowInsets = ScaffoldDefaults
+            .contentWindowInsets
+            .exclude(WindowInsets.navigationBars)
+            .exclude(WindowInsets.ime),
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+    ){ paddingValues ->
             Box(modifier = modifier.fillMaxSize()) {
-                Box(modifier = modifier.fillMaxSize().customBlur(100f)){
+                Box(modifier = modifier.fillMaxSize()){
                     Column(modifier = Modifier.fillMaxSize()) {
-                        ChatHeader(
-                            name = "Mark Katakowski",
-                            image = "",
-                            ens = listOf("mk.eth"),
-                            onBackClick = navigateBackToConversations,
-                            isTrailContent = false,
-                            trailContent= {},
-                            onContactClick = {
+                        recipient?.let {
+                            ChatHeader(
+                                name = it.getDisplayName(),
+                                image = "",
+                                ens = listOf(""),
+                                onBackClick = navigateBackToConversations,
+                                isTrailContent = false,
+                                trailContent= {},
+                                onContactClick = {
 
-                                currentModalSelector = ModalSelector.CONTACT
+                                    currentModalSelector = ModalSelector.CONTACT
 
-                                showAssetSheet = true
+                                    showAssetSheet = true
 
-                            }
-                        )
+                                }
+                            )
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -305,7 +201,6 @@ fun ChatScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(paddingValues)
-                                //.background(Color.Blue)
                             ){
                                 when(chatUIState) {
 
@@ -361,7 +256,7 @@ fun ChatScreen(
 
                                         ) {
 
-                                            chatUIState.messages.forEachIndexed { index, message ->
+                                            chatUIState.messages.sortedBy { it.date }.reversed().forEachIndexed { index, message ->
 
                                                 val prevAuthor = chatUIState.messages.getOrNull(index - 1)?.address
 
@@ -383,7 +278,7 @@ fun ChatScreen(
 
                                                         msg = message,
 
-                                                        isUserMe = false,//message.author == authorMe,
+                                                        isUserMe = message.isMe(),
 
                                                         isFirstMessageByAuthor = isFirstMessageByAuthor,
 
@@ -509,9 +404,6 @@ fun ChatScreen(
                                                     .size(42.dp),
                                                 enabled = true,
                                                 onClick = {
-                                                    //onMessageSent(textState.text)
-                                                    // Reset text field and close keyboard
-                                                    textState = TextFieldValue()
                                                     // Move scroll to bottom
                                                     //resetScroll()
                                                     dismissKeyboard()
@@ -531,23 +423,19 @@ fun ChatScreen(
 
                                                     lastFocusState = false
                                                     textFieldFocusState = false
-
-                                                },//onMessageSent,
+                                                    onSendMessageClicked(textState.text, listOf())
+                                                    textState = TextFieldValue()
+                                                },
                                             ) {
                                                 Icon(imageVector = Icons.Rounded.ArrowUpward,modifier= Modifier
                                                     .size(32.dp), contentDescription = "Send",tint = Color.White)
                                             }
                                         }
 
-//                    if(textState.text.isNotBlank()){
-//
-//                    }
-
                                     }
 
                                     // Animated visibility will eventually remove the item from the composition once the animation has finished.
                                     AnimatedVisibility(showActionbar) {
-//                    if (showActionbar){
 
                                         SelectorExpanded(
                                             onSelectorChange = {
@@ -560,7 +448,6 @@ fun ChatScreen(
                                             },
                                             onHideKeyboard = { controller?.hide() },
                                         )
-                                        //}
                                     }
 
 
@@ -595,7 +482,7 @@ fun ChatScreen(
                         }
                     }
                 }
-                MessageOptionsScreen()
+                //MessageOptionsScreen()
             }
 
             //Asset ModalSheet
@@ -847,79 +734,5 @@ fun SelectorExpanded(
 @Composable
 @Preview
 fun PreviewChatScreen(){
-    ChatScreen(navigateBackToConversations={},chatUIState=ChatUIState.Loading)
+    //ChatScreen(navigateBackToConversations={},chatUIState=ChatUIState.Success(listOf()))
 }
-
-
-
-private const val FRACTAL_SHADER_SRC = """
-    uniform float2 size;
-    uniform float time;
-    uniform shader composable;
-    
-    float f(float3 p) {
-        p.z -= time * 5.;
-        float a = p.z * .1;
-        p.xy *= mat2(cos(a), sin(a), -sin(a), cos(a));
-        return .1 - length(cos(p.xy) + sin(p.yz));
-    }
-    
-    half4 main(float2 fragcoord) { 
-        float3 d = .5 - fragcoord.xy1 / size.y;
-        float3 p=float3(0);
-        for (int i = 0; i < 32; i++) {
-          p += f(p) * d;
-        }
-        return ((sin(p) + float3(2, 5, 12)) / length(p)).xyz1;
-    }
-"""
-
-@Composable
-@Preview
-fun TestComposable(){
-
-
-    val shader = RuntimeShader(FRACTAL_SHADER_SRC)
-//        val shader = RuntimeShader(FRACTAL_SHADER_SRC) // TODO: uncomment to see 2nd shader
-
-    val COLOR_SHADER_SRC =
-        """half4 main(float2 fragCoord) {
-      return half4(1,0,0,1);
-   }""".trimIndent()
-    val fixedColorShader = RuntimeShader(COLOR_SHADER_SRC)
-
-
-    Box(
-        modifier =
-        Modifier
-            .size(500.dp)
-    ) {
-        BlurContainer(){
-            Image(
-                painter = painterResource(id = R.drawable.butterfly),
-                modifier = Modifier
-                    .onSizeChanged { size ->
-                        shader.setFloatUniform(
-                            "size",
-                            size.width.toFloat(),
-                            size.height.toFloat()
-                        )
-                    }
-//                .graphicsLayer {
-//                    clip = true
-//                    //shader.setFloatUniform("time",timeMs.value)
-//                    renderEffect =
-//                        RenderEffect
-//                            .createRuntimeShaderEffect(shader, "composable")
-//                            .asComposeRenderEffect()
-//                },
-                ,
-                contentScale = ContentScale.Crop,
-                contentDescription = null)
-        }
-
-
-    }
-}
-
-

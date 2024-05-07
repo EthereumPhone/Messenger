@@ -13,9 +13,10 @@ import javax.inject.Inject
 
 class MarkSeenReceiver @Inject constructor(
     private val messageRepository: MessageRepository,
-) : BroadcastReceiver() {
+) : HiltBroadcastReceiver() {
 
-    override fun onReceive(context: Context?, intent: Intent) {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
         val pendingResult = goAsync()
 
         CoroutineScope(Dispatchers.IO).launch {

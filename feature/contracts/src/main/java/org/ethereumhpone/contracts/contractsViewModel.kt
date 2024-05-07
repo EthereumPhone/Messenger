@@ -41,7 +41,6 @@ class ContactViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
-    //val contacts: Flow<List<Contact>> = contactRepository.getContacts()
     val contacts: Flow<List<Contact>> = contactRepository.getContacts()
 
 

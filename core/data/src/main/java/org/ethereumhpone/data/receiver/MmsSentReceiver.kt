@@ -23,10 +23,11 @@ import javax.inject.Inject
 class MmsSentReceiver @Inject constructor(
     private val syncRepository: SyncRepository,
     private val conversationRepository: ConversationRepository
-    ): BroadcastReceiver() {
+    ): HiltBroadcastReceiver() {
 
 
     override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
 
         val uri = Uri.parse(intent.getStringExtra(Transaction.EXTRA_CONTENT_URI))
 

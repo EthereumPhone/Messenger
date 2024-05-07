@@ -2,6 +2,7 @@ package org.ethereumhpone.contracts
 
 import android.Manifest
 import android.content.Context
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -65,7 +66,7 @@ import org.ethereumhpone.database.model.Message
 @Composable
 fun ContactRoute(
     modifier: Modifier = Modifier,
-    navigateToChat: (String) -> Unit,
+    navigateToChat: (String, Contact?) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
 ){
     val context = LocalContext.current
@@ -79,7 +80,6 @@ fun ContactRoute(
         contacts = contacts,
         conversationState = conversationState,
         navigateToChat = navigateToChat,
-//        getContacts = viewModel::getContacts,
     )
 }
 
@@ -88,8 +88,7 @@ fun ContactRoute(
 fun ContactScreen(
     contacts: List<Contact>,
     conversationState: ConversationUIState,
-    navigateToChat: (String) -> Unit,
-//    getContacts: (Context) -> Unit,
+    navigateToChat: (String, Contact?) -> Unit,
     modifier: Modifier = Modifier
 ){
 
@@ -185,18 +184,21 @@ fun ContactScreen(
                    if(conversationState.conversations.isNotEmpty()){
                        Box(modifier = Modifier.weight(1f)) {
                            LazyColumn(
-                               reverseLayout = true,
                                modifier = Modifier.padding(horizontal = 12.dp)
                            ){
-                               conversationState.conversations.forEach { conversation ->
+                               conversationState.conversations.sortedBy { it.date }.reversed().forEach { conversation ->
                                    item {
-                                       ChatListItem(
-                                           header = conversation.recipients.get(0).contact?.name ?: "",
+                                       ChatListInfo(
+                                           header = conversation.recipients.get(0).getDisplayName(),
                                            subheader = conversation.lastMessage?.getText() ?: "",
                                            ens = "",
                                            time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                            unreadConversation = conversation.unread,
-                                           onClick = { navigateToChat(conversation.id.toString()) }
+                                           onClick = {
+                                           },
+                                           modifier = modifier.clickable {
+                                               navigateToChat(conversation.id.toString(), null)
+                                           }
                                        )
                                    }
 
@@ -255,7 +257,12 @@ fun ContactScreen(
 //                }
                 val allowedContacts = contacts//.filter { it.name.isNotEmpty() }
 
-                ContactSheet(allowedContacts)
+                ContactSheet(allowedContacts) {
+                    showContactSheet = false
+                    println("Contact clicked ${it.name}")
+                    navigateToChat("0", it)
+
+                }
             }
 
 
@@ -298,6 +305,6 @@ fun PreviewContactScreen(){
                 )
             )
         ),
-        {}
+        { _, _ -> }
     )
 }

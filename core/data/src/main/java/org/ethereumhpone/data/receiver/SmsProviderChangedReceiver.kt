@@ -11,8 +11,9 @@ import javax.inject.Inject
 
 class SmsProviderChangedReceiver @Inject constructor(
     private val syncMessage: SyncMessage
-) : BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent) {
+) : HiltBroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
         val uri = intent.data ?: return
 
         val pendingResult = goAsync()
