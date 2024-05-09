@@ -20,6 +20,7 @@ import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Transaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.send_message.SmsManagerFactory
@@ -205,8 +206,12 @@ class MessageRepositoryImpl @Inject constructor(
             val parts = smsManager.divideMessage(strippedBody).orEmpty()
             val forceMms = prefs.longAsMms && parts.size > 1
             if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // S
-                val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
-                sendSms(message)
+                try {
+                    val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
+                    sendSms(message)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             } else { // MMS
                 val parts = arrayListOf<MMSPart>()
                 val maxWidth = smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_IMAGE_WIDTH)
@@ -385,11 +390,16 @@ class MessageRepositoryImpl @Inject constructor(
             Telephony.Sms.THREAD_ID to threadId
         )
 
-        messengerPreferences.prefs.collect{ prefs ->
-            if (prefs.canUseSubId) {
+        println("Before prefs")
+
+        val prefs = messengerPreferences.prefs.firstOrNull()  // This will suspend until the first value is emitted and then return
+        prefs?.let {
+            if (it.canUseSubId) {
                 values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
             }
         }
+
+
 
         val uri = context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values)
         uri?.lastPathSegment?.toLong()?.let { id ->
@@ -430,8 +440,9 @@ class MessageRepositoryImpl @Inject constructor(
             Telephony.Sms.DATE_SENT to sentTime
         )
 
-        messengerPreferences.prefs.collect{ prefs ->
-            if (prefs.canUseSubId) {
+        val prefs = messengerPreferences.prefs.firstOrNull()  // This will suspend until the first value is emitted and then return
+        prefs?.let {
+            if (it.canUseSubId) {
                 values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
             }
         }
