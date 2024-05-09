@@ -53,9 +53,9 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.getTopConversations()
 
     override suspend fun setConversationName(id: Long, name: String) {
-        conversationDao.getConversation(id).collect { conversation ->
+        conversationDao.getConversation(id).firstOrNull().let { conversation ->
             conversation?.copy(title = name)?.let {
-                    conversationDao.updateConversation(it)
+                conversationDao.updateConversation(it)
             }
         }
     }
@@ -70,14 +70,36 @@ class ConversationRepositoryImpl @Inject constructor(
                         .asSequence()
                         .groupBy { message -> message.threadId }
                         .filter { (threadId, _) -> conversations.firstOrNull { it.id == threadId } != null }
-                        .map { (threadId, messages) -> Pair(conversations.first { it.id == threadId }, messages.size) }
-                        .map { (conversation, messages) -> SearchResult(normalizedQuery, conversation, messages) }
+                        .map { (threadId, messages) ->
+                            Pair(
+                                conversations.first { it.id == threadId },
+                                messages.size
+                            )
+                        }
+                        .map { (conversation, messages) ->
+                            SearchResult(
+                                normalizedQuery,
+                                conversation,
+                                messages
+                            )
+                        }
                         .sortedByDescending { result -> result.messages }
                         .toList()
 
                     conversations
-                        .filter { conversation -> conversationFilter.filter(conversation, normalizedQuery) }
-                        .map { conversation -> SearchResult(normalizedQuery, conversation, 0) } + messagesByConversation
+                        .filter { conversation ->
+                            conversationFilter.filter(
+                                conversation,
+                                normalizedQuery
+                            )
+                        }
+                        .map { conversation ->
+                            SearchResult(
+                                normalizedQuery,
+                                conversation,
+                                0
+                            )
+                        } + messagesByConversation
                 }
         }
 
@@ -130,7 +152,7 @@ class ConversationRepositoryImpl @Inject constructor(
     // I want to throw up
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getOrCreateConversation(addresses: List<String>): Flow<Conversation?> {
-        if(addresses.isEmpty()) {
+        if (addresses.isEmpty()) {
             return flowOf(null)
         }
 
@@ -150,27 +172,26 @@ class ConversationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveDraft(threadId: Long, draft: String) {
-        conversationDao.getConversation(threadId).collect { conversation ->
+        conversationDao.getConversation(threadId).firstOrNull().let { conversation ->
             conversation?.let {
                 conversationDao.updateConversation(it.copy(draft = draft))
             }
         }
     }
 
-    override suspend fun updateConversations(vararg threadIds: Long) =
-        conversationDao.getConversations(threadIds.toList()).collect { conversations ->
-            conversations.forEach { conversation ->
-                messageDao.getLastConversationMessage(conversation.id).collect{ message ->
-                    message?.let {
-                        conversationDao.updateConversation(
-                            conversation.copy(
-                                lastMessage = it
-                            )
+    override suspend fun updateConversations(vararg threadIds: Long) {
+        conversationDao.getConversations(threadIds.toList()).firstOrNull()?.forEach {conversation ->
+            messageDao.getLastConversationMessage(conversation.id).firstOrNull().let { message ->
+                message?.let {
+                    conversationDao.updateConversation(
+                        conversation.copy(
+                            lastMessage = it
                         )
-                    }
+                    )
                 }
             }
         }
+    }
 
     override suspend fun markArchived(vararg threadIds: Long) {
         conversationDao.getConversations(threadIds.toList()).collect { conversations ->
@@ -239,16 +260,15 @@ class ConversationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun markUnblocked(vararg threadIds: Long) {
-        conversationDao.getConversations(threadIds.toList()).collect { conversations ->
-            conversations.forEach { conversation ->
-                conversationDao.updateConversation(
-                    conversation.copy(
-                        blocked = false,
-                        blockingClient = null,
-                        blockReason = null
-                    )
+        val conversations = conversationDao.getConversations(threadIds.toList()).firstOrNull()
+        conversations?.forEach { conversation ->
+            conversationDao.updateConversation(
+                conversation.copy(
+                    blocked = false,
+                    blockingClient = null,
+                    blockReason = null
                 )
-            }
+            )
         }
     }
 
