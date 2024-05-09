@@ -3,6 +3,7 @@ package org.ethereumhpone.domain.usecase
 import android.telephony.SmsMessage
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.ethereumhpone.domain.blocking.BlockingClient
 import org.ethereumhpone.domain.repository.ConversationRepository
@@ -42,13 +43,15 @@ class ReceiveSms @Inject constructor(
         }
 
         conversationRepository.updateConversations(message.threadId)
-        conversationRepository.getOrCreateConversation(message.threadId)
-            .filterNotNull()
-            .filter { !it.blocked }
-            .map {
-                if (it.archived) conversationRepository.markUnarchived(it.id)
+
+        val conversation = conversationRepository.getOrCreateConversation(message.threadId).first()
+        conversation?.let {
+            if(!it.blocked) {
+                if(it.archived) conversationRepository.markUnarchived(it.id)
                 notificationManager.update(it.id)
             }
+        }
+
 
     }
 }
