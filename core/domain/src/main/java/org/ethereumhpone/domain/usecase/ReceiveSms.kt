@@ -18,7 +18,7 @@ class ReceiveSms @Inject constructor(
 ) {
 
     suspend operator fun invoke(subId: Int, messages: Array<SmsMessage>) {
-        if(messages.isNotEmpty()) return
+        if(messages.isEmpty()) return
 
         val address = messages[0].displayOriginatingAddress
         val action = blockingClient.shouldBlock(address)
@@ -38,7 +38,7 @@ class ReceiveSms @Inject constructor(
                 conversationRepository.markBlocked(listOf(message.threadId), 0, action.reason)
             }
             is BlockingClient.Action.Unblock -> conversationRepository.markUnblocked(message.threadId)
-            else -> Unit
+            else -> {}
         }
 
         conversationRepository.updateConversations(message.threadId)
