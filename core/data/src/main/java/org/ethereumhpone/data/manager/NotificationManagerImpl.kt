@@ -142,7 +142,10 @@ class NotificationManagerImpl @Inject constructor(
     }
 
     override fun buildNotificationChannelId(threadId: Long): String {
-        TODO("Not yet implemented")
+        return when (threadId) {
+            0L -> DEFAULT_CHANNEL_ID
+            else -> "notifications_$threadId"
+        }
     }
 
     override fun getNotificationForBackup(): NotificationCompat.Builder {
