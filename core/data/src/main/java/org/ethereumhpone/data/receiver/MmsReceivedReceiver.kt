@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.NotificationManagerImpl
@@ -57,13 +58,15 @@ class MmsReceivedReceiver @Inject constructor(
                 }
 
                 conversationRepository.updateConversations(message.threadId)
-                conversationRepository.getOrCreateConversation(message.threadId)
-                    .filterNotNull()
-                    .filter { !it.blocked }
-                    .map {
-                        if (it.archived) conversationRepository.markUnarchived(it.id)
+
+                val conversation = conversationRepository.getOrCreateConversation(message.threadId).first()
+                conversation?.let {
+                    if(!it.blocked) {
+                        if(it.archived) conversationRepository.markUnarchived(it.id)
                         notificationManager.update(it.id)
                     }
+                }
+
                 pendingResult.finish()
             }
         }
