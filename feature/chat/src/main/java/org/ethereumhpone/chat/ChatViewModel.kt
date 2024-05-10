@@ -1,20 +1,32 @@
 package org.ethereumhpone.chat
 
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
+import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.database.util.Converters
@@ -33,24 +45,44 @@ class ChatViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val messageRepository: MessageRepository,
     private val conversationRepository: ConversationRepository,
-    private val sendMessage: SendMessage,
+    private val contactRepository: ContactRepository,
+    private val sendMessageUseCase: SendMessage,
     private val permissionManager: PermissionManager
 ): ViewModel() {
 
-    private val threadIdArgs: ThreadIdArgs = ThreadIdArgs(savedStateHandle)
+    private val threadId = ThreadIdArgs(savedStateHandle).threadId.toLong()
+    private val addresses = AddressesArgs(savedStateHandle).addresses
 
-    val contact = if (savedStateHandle.get<String>("contact") != null) Converters().fromContact(URLDecoder.decode(savedStateHandle.get<String>("contact"), Charsets.UTF_8.name())) else null
-
-    val chatState: StateFlow<ChatUIState> = messageRepository.getMessages(threadId = threadIdArgs.threadId.toLong(),"").flowOn(Dispatchers.IO).map {
-        ChatUIState.Success(it)
-    }.stateIn(
+    val conversationState = merge(
+        conversationRepository.getConversation(threadId), // initial Conversation
+        selectedConversationState(addresses, conversationRepository)
+    ).stateIn(
         scope = viewModelScope,
-        initialValue = ChatUIState.Loading,
+        initialValue = null,
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
-    val conversation = conversationRepository.getConversation(threadIdArgs.threadId.toLong())
-        .stateIn(
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val messagesState = conversationState
+        .filterNotNull()
+        .flatMapLatest {
+            messageRepository.getMessages(it.id).map(MessagesUiState::Success)
+    }.stateIn(
+        scope = viewModelScope,
+        initialValue = MessagesUiState.Loading,
+        started = SharingStarted.WhileSubscribed(5_000)
+    )
+
+    val recipientState = conversationState
+        .filterNotNull()
+        .map {
+            if (it.recipients.isNotEmpty()) {
+                it.recipients[0]
+            } else {
+
+                Recipient(address = addresses[0])
+            }
+    }.stateIn(
             scope = viewModelScope,
             initialValue = null,
             started = SharingStarted.WhileSubscribed(5_000)
@@ -58,36 +90,25 @@ class ChatViewModel @Inject constructor(
 
 
 
-    val recipient: StateFlow<Recipient?> = conversation.map {
-        it?.recipients?.get(0) ?: contact?.let { realContact ->
-            Recipient(
-                id = 0L,
-                contact = realContact,
-                lastUpdate = realContact.lastUpdate,
-                address = realContact.numbers[0].address
-            )
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        initialValue = null,
-        started = SharingStarted.WhileSubscribed(5_000)
-    )
 
     fun sendMessage(messageBody: String, attachments: List<Attachment>) {
         //if(!permissionManager.isDefaultSms()) return
-        if(!permissionManager.hasSendSms()) return
+        if(!permissionManager.hasSendSms()) {
+            //TODO: add request permission
+            return
+        }
 
         val subId = -1 //TODO: Add sunscroptionId logic
 
 
         // this sends a message for an existing conversation
-        conversation.value?.let {
+        conversationState.value?.let { convo ->
             // send message to convo with only one recipient
-            if(it.recipients.size == 1) {
-                val address = it.recipients.map { it.address }
+            if(convo.recipients.size == 1) {
+                val address = convo.recipients.map { it.address }
 
                 viewModelScope.launch {
-                    sendMessage(subId, it.id, address, messageBody, attachments)
+                    sendMessageUseCase(subId, convo.id, address, messageBody, attachments)
                 }
             }
         }
@@ -96,11 +117,37 @@ class ChatViewModel @Inject constructor(
 
 
     }
-
-
 }
 
-sealed interface ChatUIState {
-    object Loading : ChatUIState
-    data class Success(val messages: List<Message>): ChatUIState
+/**
+ *
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+private fun selectedConversationState(
+    addresses: List<String>,
+    conversationRepository: ConversationRepository
+): Flow<Conversation?> =
+    conversationRepository.getOrCreateConversation(addresses).flatMapLatest { convo ->
+        val threadId = convo?.id ?: 0
+
+        if (threadId > 0) {
+            // If the threadID exists in roomDB or ContentProvider
+            conversationRepository.getConversation(threadId)
+        } else {
+            // Otherwise, monitor conversations until one is created
+            conversationRepository.getConversations().map {
+                val actualThreadId =
+                    conversationRepository.getOrCreateConversation(addresses).first()?.id ?: 0
+
+                when (actualThreadId) {
+                    0L -> Conversation()
+                    else -> conversationRepository.getConversation(actualThreadId).first()
+                }
+            }
+        }
+}
+
+sealed interface MessagesUiState {
+    object Loading : MessagesUiState
+    data class Success(val messages: List<Message>): MessagesUiState
 }

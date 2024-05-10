@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.ethereumhpone.chat.ChatUIState
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message

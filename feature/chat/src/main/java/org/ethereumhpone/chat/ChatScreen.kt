@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -99,14 +100,17 @@ import org.ethereumhpone.domain.model.Attachment
 fun ChatRoute(
     modifier: Modifier = Modifier,
     navigateBackToConversations: () -> Unit,
-    threadId: String?,
     viewModel: ChatViewModel = hiltViewModel()
 ){
-    val chatUIState by viewModel.chatState.collectAsStateWithLifecycle()
-    val recipient by viewModel.recipient.collectAsStateWithLifecycle()
+    val messagesUiState by viewModel.messagesState.collectAsStateWithLifecycle()
+    val recipient by viewModel.recipientState.collectAsStateWithLifecycle()
+    val test by viewModel.conversationState.collectAsStateWithLifecycle()
+    val recipientAddress = test?.recipients?.firstOrNull()?.address ?: "swag"
+    Log.d("asd", recipientAddress)
+
 
     ChatScreen(
-        chatUIState = chatUIState,
+        messagesUiState = messagesUiState,
         recipient = recipient,
         navigateBackToConversations = navigateBackToConversations,
         onSendMessageClicked = viewModel::sendMessage
@@ -117,7 +121,7 @@ fun ChatRoute(
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
-    chatUIState: ChatUIState,
+    messagesUiState: MessagesUiState,
     recipient: Recipient?,
     navigateBackToConversations: () -> Unit,
     onSendMessageClicked: (String, List<Attachment>) -> Unit
@@ -202,9 +206,9 @@ fun ChatScreen(
                                     .fillMaxSize()
                                     .padding(paddingValues)
                             ){
-                                when(chatUIState) {
+                                when(messagesUiState) {
 
-                                    is ChatUIState.Loading -> {
+                                    is MessagesUiState.Loading -> {
 
                                         Box(
 
@@ -239,7 +243,7 @@ fun ChatScreen(
 
                                     }
 
-                                    is ChatUIState.Success -> {
+                                    is MessagesUiState.Success -> {
 
 
                                         LazyColumn(
@@ -256,13 +260,13 @@ fun ChatScreen(
 
                                         ) {
 
-                                            chatUIState.messages.sortedBy { it.date }.reversed().forEachIndexed { index, message ->
+                                            messagesUiState.messages.sortedBy { it.date }.reversed().forEachIndexed { index, message ->
 
-                                                val prevAuthor = chatUIState.messages.getOrNull(index - 1)?.address
+                                                val prevAuthor = messagesUiState.messages.getOrNull(index - 1)?.address
 
-                                                val nextAuthor = chatUIState.messages.getOrNull(index + 1)?.address
+                                                val nextAuthor = messagesUiState.messages.getOrNull(index + 1)?.address
 
-                                                val content = chatUIState.messages[index]
+                                                val content = messagesUiState.messages[index]
 
                                                 val isFirstMessageByAuthor = prevAuthor != content.address
 

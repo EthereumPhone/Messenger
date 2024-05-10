@@ -66,7 +66,7 @@ import org.ethereumhpone.database.model.Message
 @Composable
 fun ContactRoute(
     modifier: Modifier = Modifier,
-    navigateToChat: (String, Contact?) -> Unit,
+    navigateToChat: (String, List<String>) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
 ){
     val context = LocalContext.current
@@ -79,7 +79,12 @@ fun ContactRoute(
     ContactScreen(
         contacts = contacts,
         conversationState = conversationState,
-        navigateToChat = navigateToChat,
+        contactClicked = {
+            navigateToChat("0", listOf(it))
+                         },
+        conversationClicked = {
+            navigateToChat(it, emptyList())
+        }
     )
 }
 
@@ -88,7 +93,8 @@ fun ContactRoute(
 fun ContactScreen(
     contacts: List<Contact>,
     conversationState: ConversationUIState,
-    navigateToChat: (String, Contact?) -> Unit,
+    contactClicked: (String) -> Unit,
+    conversationClicked: (String) -> Unit,
     modifier: Modifier = Modifier
 ){
 
@@ -110,7 +116,8 @@ fun ContactScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val contactsPermissionsToRequest = listOf(
-        Manifest.permission.READ_CONTACTS
+        Manifest.permission.READ_CONTACTS,
+        Manifest.permission.READ_SMS
     )
 
     val contactsPermissionState = rememberMultiplePermissionsState(permissions = contactsPermissionsToRequest)
@@ -196,9 +203,7 @@ fun ContactScreen(
                                            unreadConversation = conversation.unread,
                                            onClick = {
                                            },
-                                           modifier = modifier.clickable {
-                                               navigateToChat(conversation.id.toString(), null)
-                                           }
+                                           modifier = modifier.clickable { conversationClicked(conversation.id.toString()) }
                                        )
                                    }
 
@@ -260,12 +265,10 @@ fun ContactScreen(
                 ContactSheet(allowedContacts) {
                     showContactSheet = false
                     println("Contact clicked ${it.name}")
-                    navigateToChat("0", it)
 
+                    contactClicked(it.numbers[0].address)
                 }
             }
-
-
         }
     }
 }
@@ -305,6 +308,6 @@ fun PreviewContactScreen(){
                 )
             )
         ),
-        { _, _ -> }
+        {},{}
     )
 }

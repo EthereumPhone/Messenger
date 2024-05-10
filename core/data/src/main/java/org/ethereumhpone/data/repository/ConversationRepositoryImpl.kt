@@ -1,7 +1,9 @@
 package org.ethereumhpone.data.repository
 
 import android.content.Context
+import android.util.Log
 import com.moez.QKSMS.filter.ConversationFilter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.common.extensions.removeAccents
@@ -125,7 +128,7 @@ class ConversationRepositoryImpl @Inject constructor(
     override fun getThreadId(recipient: String): Flow<Long?> = getThreadId(listOf(recipient))
 
     override fun getThreadId(recipients: Collection<String>): Flow<Long?> =
-        conversationDao.getConversations(null).map { conversations ->
+        conversationDao.getConversations().map { conversations ->
             conversations.asSequence()
                 .filter { conversation -> conversation.recipients.size == recipients.size }
                 .find { conversation ->
@@ -152,12 +155,17 @@ class ConversationRepositoryImpl @Inject constructor(
     // I want to throw up
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getOrCreateConversation(addresses: List<String>): Flow<Conversation?> {
+
+        Log.d("addresses 2", addresses[0])
         if (addresses.isEmpty()) {
             return flowOf(null)
         }
 
         return getThreadId(addresses).flatMapLatest { id ->
-            (id ?: tryOrNull { TelephonyCompat.getOrCreateThreadId(context, addresses) })
+            //Log.d("holA HOLa", TelephonyCompat.getOrCreateThreadId(context, addresses).toString())
+
+
+            (id ?: tryOrNull { TelephonyCompat.getOrCreateThreadId(context, addresses.toSet()) })
                 ?.takeIf { threadId -> threadId != 0L }
                 ?.let { threadId ->
                     getConversation(threadId).flatMapLatest { conversation ->
@@ -313,13 +321,14 @@ class ConversationRepositoryImpl @Inject constructor(
                             }.firstOrNull()
                         )
                     }
-
-                conversationDao.upsertConversation(
-                    conversation.copy(
-                        recipients = recipients,
-                        lastMessage = lastMessage.first()
+                withContext(Dispatchers.IO) {
+                    conversationDao.upsertConversation(
+                        conversation.copy(
+                            recipients = recipients,
+                            lastMessage = lastMessage.first()
+                        )
                     )
-                )
+                }
                 flowOf(conversation)
             } ?: flowOf(null)
     }
