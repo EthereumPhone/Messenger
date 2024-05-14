@@ -1,7 +1,10 @@
 package org.ethereumhpone.domain.usecase
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.ConversationRepository
@@ -35,9 +38,13 @@ class SendMessage @Inject constructor(
             else -> threadId
         }
 
-        conversationId?.let {
-            conversationRepository.updateConversations(it)
-            conversationRepository.markUnarchived(it)
+        CoroutineScope(Dispatchers.IO).launch {
+            conversationId?.let {
+                conversationRepository.updateConversations(it)
+                conversationRepository.markUnarchived(it)
+            }
         }
+
+
     }
 }
