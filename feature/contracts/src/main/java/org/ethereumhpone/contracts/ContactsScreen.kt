@@ -61,6 +61,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.Recipient
 
 
 @Composable
@@ -82,8 +83,8 @@ fun ContactRoute(
         contactClicked = {
             navigateToChat("0", listOf(it))
                          },
-        conversationClicked = {
-            navigateToChat(it, emptyList())
+        conversationClicked = { id, recipients ->
+            navigateToChat(id, recipients.map { it.address })
         }
     )
 }
@@ -94,7 +95,7 @@ fun ContactScreen(
     contacts: List<Contact>,
     conversationState: ConversationUIState,
     contactClicked: (String) -> Unit,
-    conversationClicked: (String) -> Unit,
+    conversationClicked: (String, List<Recipient>) -> Unit,
     modifier: Modifier = Modifier
 ){
 
@@ -203,7 +204,7 @@ fun ContactScreen(
                                            unreadConversation = conversation.unread,
                                            onClick = {
                                            },
-                                           modifier = modifier.clickable { conversationClicked(conversation.id.toString()) }
+                                           modifier = modifier.clickable { conversationClicked(conversation.id.toString(), conversation.recipients) }
                                        )
                                    }
 
@@ -308,6 +309,6 @@ fun PreviewContactScreen(){
                 )
             )
         ),
-        {},{}
+        {},{_, _ ->}
     )
 }

@@ -156,10 +156,11 @@ class ConversationRepositoryImpl @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getOrCreateConversation(addresses: List<String>): Flow<Conversation?> {
 
-        Log.d("addresses 2", addresses[0])
         if (addresses.isEmpty()) {
             return flowOf(null)
         }
+
+        Log.d("addresses 2", addresses[0])
 
         return getThreadId(addresses).flatMapLatest { id ->
             //Log.d("holA HOLa", TelephonyCompat.getOrCreateThreadId(context, addresses).toString())
