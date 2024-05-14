@@ -187,7 +187,7 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         attachments: List<Attachment>
     ) {
-        messengerPreferences.prefs.collect { prefs ->
+        messengerPreferences.prefs.firstOrNull()?.let { prefs ->
             val signedBody = when {
                 prefs.signature.isEmpty() -> body
                 body.isNotBlank() -> body + '\n' + prefs.signature
@@ -309,7 +309,7 @@ class MessageRepositoryImpl @Inject constructor(
             ?.let { SmsManagerFactory.createSmsManager(context, message.subId) }
             ?: SmsManager.getDefault()
 
-        messengerPreferences.prefs.collect{ prefs ->
+        messengerPreferences.prefs.firstOrNull()?.let{ prefs ->
             val parts = smsManager
                 .divideMessage(if (prefs.unicode) StripAccents.stripAccents(message.body) else message.body)
                 ?: arrayListOf()
@@ -368,6 +368,7 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         date: Long
     ): Message {
+        println("ETHOSDEBUG: insertSentSms $body")
         val message = Message(
             threadId = threadId,
             address = address,
@@ -379,7 +380,6 @@ class MessageRepositoryImpl @Inject constructor(
             seen = true
         )
 
-        messageDao.upsertMessage(message)
         val values = contentValuesOf(
             Telephony.Sms.ADDRESS to address,
             Telephony.Sms.BODY to body,
@@ -433,7 +433,6 @@ class MessageRepositoryImpl @Inject constructor(
             seen = true
         )
 
-        messageDao.upsertMessage(message)
         val values = contentValuesOf(
             Telephony.Sms.ADDRESS to address,
             Telephony.Sms.BODY to body,
