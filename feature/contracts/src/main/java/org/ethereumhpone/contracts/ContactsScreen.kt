@@ -84,6 +84,7 @@ fun ContactRoute(
             navigateToChat("0", listOf(it))
                          },
         conversationClicked = { id, recipients ->
+            viewModel.setConversationAsRead(id.toLong())
             navigateToChat(id, recipients.map { it.address })
         }
     )
@@ -204,7 +205,9 @@ fun ContactScreen(
                                            unreadConversation = conversation.unread,
                                            onClick = {
                                            },
-                                           modifier = modifier.clickable { conversationClicked(conversation.id.toString(), conversation.recipients) }
+                                           modifier = modifier.clickable {
+                                               conversationClicked(conversation.id.toString(), conversation.recipients)
+                                           }
                                        )
                                    }
 

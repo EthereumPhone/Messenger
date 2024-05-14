@@ -7,6 +7,8 @@ import android.provider.ContactsContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -62,6 +64,12 @@ class ContactViewModel @Inject constructor(
         }
 
         return phoneNumber
+    }
+
+    fun setConversationAsRead(conversationId: Long) {
+        CoroutineScope(Dispatchers.IO).launch {
+            conversationRepository.markRead(conversationId)
+        }
     }
 
     @SuppressLint("Range")
