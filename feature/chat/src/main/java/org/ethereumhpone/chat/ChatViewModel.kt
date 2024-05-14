@@ -126,8 +126,10 @@ class ChatViewModel @Inject constructor(
 private fun selectedConversationState(
     addresses: List<String>,
     conversationRepository: ConversationRepository
-): Flow<Conversation?> =
-    conversationRepository.getOrCreateConversation(addresses).flatMapLatest { convo ->
+): Flow<Conversation?> {
+    if (addresses.isEmpty()) return flowOf(null)
+
+    return conversationRepository.getOrCreateConversation(addresses).flatMapLatest { convo ->
         val threadId = convo?.id ?: 0
 
         if (threadId > 0) {
@@ -145,7 +147,9 @@ private fun selectedConversationState(
                 }
             }
         }
+    }
 }
+
 
 sealed interface MessagesUiState {
     object Loading : MessagesUiState
