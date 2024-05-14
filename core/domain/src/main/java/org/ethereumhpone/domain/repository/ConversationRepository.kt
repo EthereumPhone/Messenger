@@ -29,6 +29,7 @@ interface ConversationRepository {
     suspend fun saveDraft(threadId: Long, draft: String)
     suspend fun updateConversations(vararg threadIds: Long)
     suspend fun markArchived(vararg threadIds: Long)
+    suspend fun markRead(threadId: Long)
     suspend fun markUnarchived(vararg threadIds: Long)
     suspend fun markPinned(vararg threadIds: Long)
     suspend fun markUnpinned(vararg threadIds: Long)

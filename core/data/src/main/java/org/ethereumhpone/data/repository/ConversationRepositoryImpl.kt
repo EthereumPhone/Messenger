@@ -214,6 +214,18 @@ class ConversationRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun markRead(threadId: Long) {
+        conversationDao.getConversations(listOf(threadId)).firstOrNull()?.let { conversations ->
+            conversations.forEach { conversation ->
+                conversationDao.updateConversation(
+                    conversation.copy(
+                        lastMessage = conversation.lastMessage?.copy(read = true)
+                    )
+                )
+            }
+        }
+    }
+
     override suspend fun markUnarchived(vararg threadIds: Long) {
         conversationDao.getConversations(threadIds.toList()).collect { conversations ->
             conversations.forEach { conversation ->
