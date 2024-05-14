@@ -52,9 +52,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import org.ethereumhpone.chat.ComposablePosition
-import org.ethereumhpone.chat.MessageActionList
-import org.ethereumhpone.chat.MessageReactions
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.Message
 import org.ethosmobile.components.library.theme.Colors
@@ -75,15 +72,13 @@ fun FocusMessage(
 
 ) {
 
-    //animate
+    //animation
 
     val configuration = LocalConfiguration.current
     val screenMidddleHeight = configuration.screenHeightDp/2//mitte des screens
 
     val pxYToMove = with(LocalDensity.current) {
         val move = (screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt()) - (composablePositionState.value.height/2).dp.toPx().roundToInt()
-
-        println("move focus: ${move} ")
         move.roundToInt()
     }
 
@@ -91,7 +86,7 @@ fun FocusMessage(
 
 
     LaunchedEffect(animatedProgress) {
-       animatedProgress.animateTo(composablePositionState.value.offset.y + pxYToMove.toFloat(),
+        animatedProgress.animateTo(composablePositionState.value.offset.y + pxYToMove.toFloat(),
             animationSpec = tween(
                 durationMillis = 300,
                 delayMillis = 240
@@ -111,10 +106,7 @@ fun FocusMessage(
                     delayMillis = 0
                 )
             )
-
-
         }
-
     }
 
     //aligns messsge and positions it
@@ -145,8 +137,6 @@ fun FocusMessage(
         }else{
             ChatBubbleShape
         }
-        //LastChatBubbleShape
-
     }
 
     val gradient = Brush.verticalGradient(
@@ -185,66 +175,63 @@ fun FocusMessage(
 
 
 
+    Column(
+        modifier = alignmessage,
+        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        //TODO: Add Reaction
+        //MessageReactions()
+
+        FocusChatItemBubble(
+            message = msg,
+            isUserMe = isUserMe,
+            isFirstMessageByAuthor = isFirstMessageByAuthor,
+            bubbleshape = Bubbleshape,
+            messageBrush = messageBrush,
+            onLongClick = onLongClick
+        )
         Column(
-            modifier = alignmessage,
-            horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
-            //TODO: Add Reaction
-            //MessageReactions()
+            Surface(
+                modifier = Modifier
+                    .clip(Bubbleshape)
+                    .background(
+                        brush = messageBrush
+                    )
+                ,
+                color = Color.Transparent,//backgroundBubbleColor,
+                shape = Bubbleshape
 
-            FocusChatItemBubble(
-                message = msg,
-                isUserMe = isUserMe,
-                isFirstMessageByAuthor = isFirstMessageByAuthor,
-                bubbleshape = Bubbleshape,
-                messageBrush = messageBrush,
-                onLongClick = onLongClick
-            )
-            Column(
-                horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
             ) {
-                Surface(
-                    modifier = Modifier
-                        .clip(Bubbleshape)
-                        .background(
-                            brush = messageBrush
-                        )
-                    ,
-                    color = Color.Transparent,//backgroundBubbleColor,
-                    shape = Bubbleshape
-
-                ) {
-                    Column {
-                        ClickableMessage(
-                            message = msg,
-                            isUserMe = isUserMe,
-                            onLongClick = {
-                                onLongClick()
-                            }
-
-                        )
-                    }
-                }
-
-
-
-
-                if (isFirstMessageByAuthor) {
-                    FocusAuthorNameTimestamp(msg)
-                }
-                if (isFirstMessageByAuthor) {
-                    // Last bubble before next author
-                    Spacer(modifier = Modifier.height(8.dp))
-                } else {
-                    // Between bubbles
-                    Spacer(modifier = Modifier.height(4.dp))
+                Column {
+                    ClickableMessage(
+                        message = msg,
+                        isUserMe = isUserMe,
+                        onLongClick = {
+                            onLongClick()
+                        }
+                    )
                 }
             }
 
-            MessageActionList()
 
+            if (isFirstMessageByAuthor) {
+                FocusAuthorNameTimestamp(msg)
+            }
+            if (isFirstMessageByAuthor) {
+                // Last bubble before next author
+                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                // Between bubbles
+                Spacer(modifier = Modifier.height(4.dp))
+            }
         }
+
+        MessageActionList(message = msg)
+
+    }
 
 }
 

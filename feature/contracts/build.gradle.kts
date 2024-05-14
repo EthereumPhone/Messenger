@@ -104,7 +104,7 @@ dependencies {
 
     implementation(libs.hilt.navigation)
 
-    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
 
 
