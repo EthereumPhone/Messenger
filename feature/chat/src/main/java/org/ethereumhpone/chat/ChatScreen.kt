@@ -451,6 +451,7 @@ fun ChatScreen(
                                                 }
                                             },
                                             onHideKeyboard = { controller?.hide() },
+                                            recipient = recipient
                                         )
                                     }
 
@@ -652,6 +653,7 @@ fun MessageActionList() {
 fun SelectorExpanded(
     onSelectorChange: (InputSelector) -> Unit,
     onShowSelectionbar: () -> Unit,
+    recipient: Recipient?,
     onHideKeyboard: () -> Unit,
 ){
     Row (
@@ -683,31 +685,33 @@ fun SelectorExpanded(
             }
 
         }
-        Spacer(modifier = Modifier.width(12.dp))
-        IconButton(
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .clip(CircleShape)
-                .size(42.dp)
-            ,
-            enabled = true,
-            onClick = {
-                onSelectorChange(InputSelector.WALLET)
-                onHideKeyboard()
-                onShowSelectionbar()
-            },
-        ) {
-            Box(
-                contentAlignment = Alignment.Center
-            ){
-                Icon(
-                    imageVector = ImageVector.vectorResource(R.drawable.wallet),
-                    modifier= Modifier.size(32.dp),
-                    contentDescription = "Send",
-                    tint = Color.White
-                )
-            }
+        recipient?.contact?.ethAddress?.let {
+            Spacer(modifier = Modifier.width(12.dp))
+            IconButton(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .clip(CircleShape)
+                    .size(42.dp)
+                ,
+                enabled = true,
+                onClick = {
+                    onSelectorChange(InputSelector.WALLET)
+                    onHideKeyboard()
+                    onShowSelectionbar()
+                },
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ){
+                    Icon(
+                        imageVector = ImageVector.vectorResource(R.drawable.wallet),
+                        modifier= Modifier.size(32.dp),
+                        contentDescription = "Send",
+                        tint = Color.White
+                    )
+                }
 
+            }
         }
         Spacer(modifier = Modifier.width(12.dp))
         IconButton(
