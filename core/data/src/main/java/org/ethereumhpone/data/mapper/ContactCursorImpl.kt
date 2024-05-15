@@ -1,5 +1,7 @@
 package org.ethereumhpone.data.mapper
 
+import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
 import android.provider.ContactsContract
@@ -27,7 +29,8 @@ class ContactCursorImpl @Inject constructor(
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
             ContactsContract.CommonDataKinds.Phone.PHOTO_URI,
             ContactsContract.CommonDataKinds.Phone.STARRED,
-            ContactsContract.CommonDataKinds.Phone.CONTACT_LAST_UPDATED_TIMESTAMP
+            ContactsContract.CommonDataKinds.Phone.CONTACT_LAST_UPDATED_TIMESTAMP,
+            ContactsContract.Data.DATA15
         )
 
         const val COLUMN_ID = 0
@@ -40,6 +43,23 @@ class ContactCursorImpl @Inject constructor(
         const val COLUMN_PHOTO_URI = 7
         const val COLUMN_STARRED = 8
         const val CONTACT_LAST_UPDATED = 9
+        const val COLUMN_ETH_ADDRESS = 10
+    }
+
+    @SuppressLint("Range")
+    fun getData15ForContact(contactId: String): String? {
+        val contentResolver: ContentResolver = context.contentResolver
+        val uri = ContactsContract.Data.CONTENT_URI
+        val projection = arrayOf(ContactsContract.Data.DATA15)
+        val selection = "${ContactsContract.Data.LOOKUP_KEY} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
+        val selectionArgs = arrayOf(contactId, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+
+        contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DATA15))
+            }
+        }
+        return null
     }
     override fun getContactsCursor(): Cursor? {
         return when (permissionManager.hasContacts()) {
@@ -47,8 +67,9 @@ class ContactCursorImpl @Inject constructor(
             false -> null
         }    }
 
-    override fun map(from: Cursor): Contact =
-        Contact(
+    @SuppressLint("Range")
+    override fun map(from: Cursor): Contact {
+        return Contact(
             lookupKey = from.getString(COLUMN_LOOKUP_KEY),
             name = from.getString(COLUMN_DISPLAY_NAME) ?: "",
             photoUri = from.getString(COLUMN_PHOTO_URI),
@@ -60,6 +81,9 @@ class ContactCursorImpl @Inject constructor(
                     from.getString(COLUMN_LABEL)).toString()
             )),
             favourite = from.getInt(COLUMN_STARRED) != 0,
-            lastUpdate = from.getLong(CONTACT_LAST_UPDATED)
+            lastUpdate = from.getLong(CONTACT_LAST_UPDATED),
+            ethAddress = getData15ForContact(from.getString(COLUMN_LOOKUP_KEY))
         )
+    }
+
 }
