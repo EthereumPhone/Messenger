@@ -92,8 +92,15 @@ import org.ethereumhpone.chat.components.ModalSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+import org.ethereumhpone.chat.components.TxClickableMessage
+import org.ethereumhpone.chat.components.TxMessage
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
+import kotlin.reflect.KSuspendFunction1
 
 
 @Composable
@@ -105,6 +112,9 @@ fun ChatRoute(
     val messagesUiState by viewModel.messagesState.collectAsStateWithLifecycle()
     val recipient by viewModel.recipientState.collectAsStateWithLifecycle()
     val test by viewModel.conversationState.collectAsStateWithLifecycle()
+    val tokenBalance by viewModel.ethBalance.collectAsStateWithLifecycle()
+    val chainName by viewModel.chainName.collectAsStateWithLifecycle()
+    val currentChainId by viewModel.currentChainId.collectAsStateWithLifecycle()
     val recipientAddress = test?.recipients?.firstOrNull()?.address ?: "swag"
     Log.d("asd", recipientAddress)
 
@@ -113,6 +123,9 @@ fun ChatRoute(
         messagesUiState = messagesUiState,
         recipient = recipient,
         navigateBackToConversations = navigateBackToConversations,
+        tokenBalance = tokenBalance,
+        chainName = chainName,
+        onSendEthClicked = viewModel::sendEth,
         onSendMessageClicked = viewModel::sendMessage
     )
 }
@@ -124,6 +137,9 @@ fun ChatScreen(
     messagesUiState: MessagesUiState,
     recipient: Recipient?,
     navigateBackToConversations: () -> Unit,
+    onSendEthClicked: (amount: Double) -> Unit,
+    tokenBalance: Double,
+    chainName: String,
     onSendMessageClicked: (String, List<Attachment>) -> Unit
 ){
     val topBarState = rememberTopAppBarState()
@@ -275,21 +291,35 @@ fun ChatScreen(
 
 
                                                 item {
-
-                                                    Message(
-
-                                                        onAuthorClick = { },
-
-                                                        msg = message,
-
-                                                        isUserMe = message.isMe(),
-
-                                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-
-                                                        isLastMessageByAuthor = isLastMessageByAuthor
-
-                                                    )
-
+                                                    if (isValidTransactionMessage(message.body)) {
+                                                        val transactionDetails = extractTransactionDetails(message.body)
+                                                        transactionDetails?.let {
+                                                            TxMessage(
+                                                                amount = it.amount.toDouble(),
+                                                                txUrl = it.url,
+                                                                isUserMe = message.isMe(),
+                                                                isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                                isLastMessageByAuthor = isLastMessageByAuthor,
+                                                                networkName = chainIdToReadableName(it.chainId),
+                                                                onAuthorClick = {}
+                                                            )
+                                                        } ?:
+                                                        Message(
+                                                            onAuthorClick = { },
+                                                            msg = message,
+                                                            isUserMe = message.isMe(),
+                                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                            isLastMessageByAuthor = isLastMessageByAuthor
+                                                        )
+                                                    } else {
+                                                        Message(
+                                                            onAuthorClick = { },
+                                                            msg = message,
+                                                            isUserMe = message.isMe(),
+                                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                            isLastMessageByAuthor = isLastMessageByAuthor
+                                                        )
+                                                    }
                                                 }
 
                                             }
@@ -464,7 +494,22 @@ fun ChatScreen(
                                             ) {
                                                 when (currentInputSelector) {
                                                     InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
-                                                    InputSelector.WALLET -> WalletSelector(focusRequester = FocusRequester(), onOpenAssetPicker = { })//FunctionalityNotAvailablePanel("Wallet")
+                                                    InputSelector.WALLET -> WalletSelector(
+                                                        focusRequester = FocusRequester(),
+                                                        onSendEth = {
+                                                            onSendEthClicked(it)
+                                                            dismissKeyboard()
+                                                            controller?.hide() // Keyboard
+
+                                                            showActionbar = !showActionbar
+
+                                                            if(showSelectionbar){
+                                                                showSelectionbar = false
+                                                            }
+                                                        },
+                                                        tokenBalance = tokenBalance,
+                                                        chainName = chainName
+                                                    )
                                                     InputSelector.PICTURE -> FunctionalityNotAvailablePanel("Picture") // TODO: link to Camera
                                                     else -> {
                                                         throw NotImplementedError()
@@ -520,6 +565,47 @@ fun ChatScreen(
         }
 
 }
+
+fun chainIdToReadableName(chainId: Int): String = when(chainId) {
+    1 -> "Ethereum Mainnet"
+    11155111 -> "Ethereum Sepolia"
+    10 -> "Optimism Mainnet"
+    42161 -> "Arbitrum Mainnet"
+    137 -> "Polygon Mainnet"
+    8453 -> "Base Mainnet"
+    5 -> "Ethereum Goerli"
+    else -> ""
+}
+
+fun isValidTransactionMessage(message: String): Boolean {
+    val regex = """^Sent \d+(\.\d+)? ETH: https://[a-zA-Z0-9.-]+/tx/0x[a-fA-F0-9]{64}$""".toRegex()
+    return regex.matches(message)
+}
+
+data class TransactionDetails(val amount: String, val url: String, val chainId: Int)
+
+fun extractTransactionDetails(message: String): TransactionDetails? {
+    val regex = """^Sent (\d+(\.\d+)?) ETH: (https://[a-zA-Z0-9.-]+/tx/0x[a-fA-F0-9]{64})$""".toRegex()
+    val matchResult = regex.find(message) ?: return null
+
+    val (amount, _, url) = matchResult.destructured
+
+    val chainId = when (url.split("/")[2]) {
+        "etherscan.io" -> 1
+        "sepolia.etherscan.io" -> 11155111
+        "optimistic.etherscan.io" -> 10
+        "arbiscan.io" -> 42161
+        "polygonscan.com" -> 137
+        "basescan.org" -> 8453
+        "goerli.etherscan.io" -> 5
+        else -> -1 // Or any other appropriate value for unknown chain IDs
+    }
+
+    return if (chainId != -1) TransactionDetails(amount, url, chainId) else null
+}
+
+
+
 
 @Composable
 @Preview
@@ -686,6 +772,7 @@ fun SelectorExpanded(
 
         }
         recipient?.contact?.ethAddress?.let {
+            if (it == "") return@let
             Spacer(modifier = Modifier.width(12.dp))
             IconButton(
                 modifier = Modifier

@@ -63,14 +63,18 @@ import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
-
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 
 
 @Composable
 fun TxMessage(
-    msg: Message,
+    amount: Double,
+    txUrl: String,
     onAuthorClick: (String) -> Unit,
     isUserMe: Boolean,
+    networkName: String,
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
     modifier: Modifier = Modifier
@@ -80,7 +84,6 @@ fun TxMessage(
         .fillMaxWidth() else Modifier
     val alignmessage = if(isUserMe) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp)
 
-    val txmessage = msg.body.split(",")
 
     Row(
         modifier = spaceBetweenAuthors,
@@ -92,17 +95,14 @@ fun TxMessage(
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
             TxChatItemBubble(
-                network=txmessage.get(1),
-                amount= txmessage.get(2).toDouble(),
-                symbol= txmessage.get(3),
+                amount = amount,
+                txUrl = txUrl,
                 isUserMe = isUserMe,
                 authorClicked = onAuthorClick,
+                networkName = networkName,
                 isLastMessageByAuthor=isLastMessageByAuthor,
                 isFirstMessageByAuthor=isFirstMessageByAuthor
             )
-            if (isFirstMessageByAuthor) {
-                AuthorNameTimestamp(msg)
-            }
             if (isFirstMessageByAuthor) {
                 // Last bubble before next author
                 Spacer(modifier = Modifier.height(8.dp))
@@ -216,8 +216,9 @@ private val TxChatBubbleShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 20.dp)
 
 @Composable
 fun TxChatItemBubble(
-    network: String,
-    symbol: String,
+    symbol: String = "ETH",
+    txUrl: String,
+    networkName: String,
     amount: Double,
     isUserMe: Boolean,
     authorClicked: (String) -> Unit,
@@ -225,7 +226,7 @@ fun TxChatItemBubble(
     isFirstMessageByAuthor: Boolean
 ) {
 
-
+    val uriHandler = LocalUriHandler.current
 
     val gradient = Modifier
         .clip(TxChatBubbleShape)
@@ -252,7 +253,9 @@ fun TxChatItemBubble(
 
     Column(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable {
+            uriHandler.openUri(txUrl)
+        }
     ) {
         Surface(
             modifier = if(isUserMe) usercolor else reciepientcolor,
@@ -266,24 +269,6 @@ fun TxChatItemBubble(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(16.dp)
             ) {
-////                    Text
-//                    message.mmsStatus?.let {
-//                        Box(
-//                            contentAlignment = Alignment.Center,
-//                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
-//                        ){
-//                            Image(
-//                                painter = painterResource(it),
-//                                contentScale = ContentScale.Fit,
-//                                modifier = Modifier
-//                                    .sizeIn(maxWidth = 240.dp)
-//                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
-//                                contentDescription = "Attached Image"
-//                            )
-//                        }
-//
-//
-//                    }
 
                 Text(
                     text = "Sent",
@@ -294,18 +279,12 @@ fun TxChatItemBubble(
                         fontFamily = Fonts.INTER
                     )
                 )
-
-//                TxClickableMessage(
-//                    network = network,
-//                    symbol = symbol,
-//                    amount = amount,
-//                    isUserMe = isUserMe,
-//                    authorClicked = authorClicked
-//                )
-
+                val decimalFormat = DecimalFormat("#.#######", DecimalFormatSymbols(Locale.US).apply {
+                    decimalSeparator = '.'
+                })
 
                 Text(
-                    text = "$amount ${symbol.uppercase()}",
+                    text = "${decimalFormat.format(amount)} ${symbol.uppercase()}",
                     style = TextStyle(
                         fontSize = 32.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -315,7 +294,6 @@ fun TxChatItemBubble(
                 )
 
                 Row (
-//                    modifier = Modifier.weight()
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
 
@@ -325,7 +303,7 @@ fun TxChatItemBubble(
                         .clip(CircleShape)
                         .background(if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
                     Text(
-                        text = "Mainnet",
+                        text = networkName,
                         style = TextStyle(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal,
@@ -491,7 +469,6 @@ fun ClickableMessage(
 ) {
     val uriHandler = LocalUriHandler.current
 
-    val context =  LocalContext.current
 
     val styledMessage = messageFormatter(
         text = message.body,// timestamp
@@ -508,8 +485,6 @@ fun ClickableMessage(
         ),
         modifier = Modifier.padding(16.dp),
         onClick = {
-            Toast.makeText(context, "This is a Sample Toast", Toast.LENGTH_SHORT).show()
-
 
             styledMessage
                 .getStringAnnotations(start = it, end = it)
@@ -525,22 +500,38 @@ fun ClickableMessage(
     )
 }
 
+@Preview
+@Composable
+fun previewTxClickableMessage() {
+    TxClickableMessage(
+        txUrl = "eth-mainnet",
+        amount = 0.0008,
+        isUserMe = true,
+        authorClicked = { }
+    )
+
+}
+
 @Composable
 fun TxClickableMessage(
-    network: String,
-    symbol: String,
+    txUrl: String,
+    symbol: String = "ETH",
     amount: Double,
     isUserMe: Boolean,
     authorClicked: (String) -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
 
-    val context =  LocalContext.current
+    val decimalFormat = DecimalFormat("#.#######", DecimalFormatSymbols(Locale.US).apply {
+        decimalSeparator = '.'
+    })
+
 
     val styledMessage = messageFormatter(
-        text = "Sent $amount ${symbol.uppercase()}",
+        text = "Sent ${decimalFormat.format(amount)} ${symbol.uppercase()}",
         primary = isUserMe
     )
+
 
 
     ClickableText(
@@ -553,20 +544,10 @@ fun TxClickableMessage(
         ),
         modifier = Modifier.padding(horizontal = 16.dp),
         onClick = {
-            Toast.makeText(context, "This is a Sample Toast", Toast.LENGTH_SHORT).show()
-
-
-            styledMessage
-                .getStringAnnotations(start = it, end = it)
-                .firstOrNull()
-                ?.let { annotation ->
-                    when (annotation.tag) {
-                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-                        else -> Unit
-                    }
-                }
+            // Open txUrl in browser
+            uriHandler.openUri(txUrl)
         }
+
     )
 }
 
