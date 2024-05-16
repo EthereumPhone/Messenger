@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -16,6 +18,16 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        val properties =  Properties()
+        properties.load(project.rootProject.file("local.properties").inputStream())
+
+        buildConfigField("String", "ETHEREUM_API", "\"${properties.getProperty("ETHEREUM_API")}\"")
+        buildConfigField("String", "SEPOLIA_API", "\"${properties.getProperty("SEPOLIA_API")}\"")
+        buildConfigField("String", "ARBITRUM_API", "\"${properties.getProperty("ARBITRUM_API")}\"")
+        buildConfigField("String", "OPTIMISM_API", "\"${properties.getProperty("OPTIMISM_API")}\"")
+        buildConfigField("String", "POLYGON_API", "\"${properties.getProperty("POLYGON_API")}\"")
+        buildConfigField("String", "BASE_API", "\"${properties.getProperty("BASE_API")}\"")
     }
 
     buildTypes {
@@ -37,6 +49,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -85,10 +98,12 @@ dependencies {
 
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 
+    implementation(libs.rpc)
+    implementation(libs.model)
 
-
-
-
+    // Web3j needed for the WalletSDK
+    implementation(libs.core)
+    implementation(libs.walletsdk)
 
 }
 
