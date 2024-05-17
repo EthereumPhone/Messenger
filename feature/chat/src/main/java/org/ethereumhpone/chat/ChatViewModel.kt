@@ -141,10 +141,17 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     suspend fun getBalance(chainId: Int): Double {
         return withContext(Dispatchers.IO) {
-            val rpcUrl = chainIdToRPC(chainId)
-            val ethereumRPC: EthereumRPC = HttpEthereumRPC(rpcUrl)
-            val weiBalance = ethereumRPC.getBalance(Address(walletSDK.getAddress()))
-            weiBalance?.toBigDecimal()?.divide(BigDecimal.TEN.pow(18))?.toDouble() ?: 0.0
+            while(walletSDK.getAddress() == "") {
+                delay(20)
+            }
+            if (walletSDK.getAddress() != "") {
+                val rpcUrl = chainIdToRPC(chainId)
+                val ethereumRPC: EthereumRPC = HttpEthereumRPC(rpcUrl)
+                val weiBalance = ethereumRPC.getBalance(Address(walletSDK.getAddress()))
+                weiBalance?.toBigDecimal()?.divide(BigDecimal.TEN.pow(18))?.toDouble() ?: 0.0
+            } else {
+                0.0
+            }
         }
     }
 
