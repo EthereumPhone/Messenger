@@ -2,6 +2,7 @@ package org.ethereumhpone.contracts
 
 import android.Manifest
 import android.content.Context
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -52,6 +54,7 @@ import org.ethosmobile.components.library.core.ethOSHeader
 import org.ethosmobile.components.library.theme.Colors
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
 import org.ethosmobile.components.library.theme.Fonts
@@ -78,6 +81,7 @@ fun ContactRoute(
 
 
     ContactScreen(
+        modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
         contactClicked = {
@@ -198,6 +202,25 @@ fun ContactScreen(
                                conversationState.conversations.sortedBy { it.date }.reversed().forEach { conversation ->
                                    item {
                                        ChatListInfo(
+                                           image = {
+                                               if (conversation.recipients.get(0).contact?.photoUri != null) {
+                                                   Image(
+                                                       painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                       contentDescription = "Contact Image",
+                                                       modifier = Modifier
+                                                           .size(48.dp) // Set the size of the image
+                                                           .clip(CircleShape) // Apply a circular shape
+                                                   )
+                                               } else {
+                                                   Image(
+                                                       painter = painterResource(id = R.drawable.nouns),
+                                                       contentDescription = "Contact Image",
+                                                       modifier = Modifier
+                                                           .size(48.dp) // Set the size of the image
+                                                           .clip(CircleShape) // Apply a circular shape
+                                                   )
+                                               }
+                                           },
                                            header = conversation.recipients.get(0).getDisplayName(),
                                            subheader = conversation.lastMessage?.getText() ?: "",
                                            ens = "",
