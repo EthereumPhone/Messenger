@@ -191,45 +191,8 @@ fun FocusMessage(
             messageBrush = messageBrush,
             onLongClick = onLongClick
         )
-        Column(
-            horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
-        ) {
-            Surface(
-                modifier = Modifier
-                    .clip(Bubbleshape)
-                    .background(
-                        brush = messageBrush
-                    )
-                ,
-                color = Color.Transparent,//backgroundBubbleColor,
-                shape = Bubbleshape
 
-            ) {
-                Column {
-                    ClickableMessage(
-                        message = msg,
-                        isUserMe = isUserMe,
-                        onLongClick = {
-                            onLongClick()
-                        }
-                    )
-                }
-            }
-
-
-            if (isFirstMessageByAuthor) {
-                FocusAuthorNameTimestamp(msg)
-            }
-            if (isFirstMessageByAuthor) {
-                // Last bubble before next author
-                Spacer(modifier = Modifier.height(8.dp))
-            } else {
-                // Between bubbles
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-        }
-
-        MessageActionList(message = msg)
+        MessageActionList(message = msg, focusMode = focusMode)
 
     }
 

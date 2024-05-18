@@ -1,5 +1,7 @@
 package org.ethereumhpone.chat
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +13,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.ethereumhpone.chat.components.ComposablePosition
 import org.ethereumhpone.chat.components.FocusMessage
@@ -30,6 +33,7 @@ fun MessageOptionsScreen(
             }
         ,
     ) {
+       Log.d("DEBUG", message.address)
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment =  if (message.address != "me") Alignment.Start else Alignment.End ,
@@ -37,7 +41,7 @@ fun MessageOptionsScreen(
         ) {
             FocusMessage(
                 msg = message,
-                isUserMe = message.address == "me",
+                isUserMe = message.isMe(),
                 isFirstMessageByAuthor = true,
                 isLastMessageByAuthor = false,
                 onLongClick = {

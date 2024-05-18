@@ -140,6 +140,8 @@ fun Message(
     onLongClick: () -> Unit = {}
 ) {
 
+    val c = LocalContext.current
+
     var positionComp by remember { mutableStateOf(Offset.Zero) }
 
     var compSize by remember { mutableIntStateOf(0) }
@@ -446,6 +448,7 @@ fun ChatItemBubble(
                 text = message.body,// timestamp
                 primary = isUserMe
             )
+            val c = LocalContext.current
 
             BasicText(
                 text = styledMessage,
@@ -459,7 +462,11 @@ fun ChatItemBubble(
                     .padding(16.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
+                            onTap = {
+                                Toast.makeText(c,"long press",Toast.LENGTH_SHORT)
+                            },
                             onLongPress = {
+                                Toast.makeText(c,"long press",Toast.LENGTH_SHORT)
                                 onLongClick()
                             }
                         )

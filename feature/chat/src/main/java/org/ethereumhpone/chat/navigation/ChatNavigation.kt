@@ -1,14 +1,13 @@
 package org.ethereumhpone.chat.navigation
 
 import androidx.annotation.VisibleForTesting
+import androidx.compose.animation.SharedTransitionScope
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavOptions
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.navigation.navigation
 import org.ethereumhpone.chat.ChatRoute
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.util.Converters
@@ -66,7 +65,7 @@ fun NavGraphBuilder.chatScreen(
 
         ChatRoute(
             navigateBackToConversations = onBackClick,
-            threadId = threadId
+            threadId = threadId,
         )
     }
 

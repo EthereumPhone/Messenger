@@ -13,7 +13,7 @@ hilt = "2.50"
 material = "1.11.0"
 material3 = "1.1.2"
 compose = "1.5.4"
-navigation = "2.7.6"
+navigation = "2.7.7"
 lifecycle = "2.6.2"
 protobufGradlePlugin = "3.14.0"
 roomdb = "2.6.1"
@@ -28,6 +28,8 @@ navigationCommonKtx = "2.7.6"
 navigationRuntimeKtx = "2.7.6"
 firebaseCrashlyticsBuildtools = "2.9.9"
 datastoreCore = "1.0.0"
+composeAnimation = "1.7.0-alpha07"
+
 
 
 [libraries]
@@ -81,6 +83,9 @@ androidx-navigation-common-ktx = { group = "androidx.navigation", name = "naviga
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 androidx-datastore-core = { group = "androidx.datastore", name = "datastore-core", version.ref = "datastoreCore" }
+
+#Animation
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "composeAnimation" }
 
 
 [plugins]

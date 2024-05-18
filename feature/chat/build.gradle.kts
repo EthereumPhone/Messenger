@@ -77,13 +77,15 @@ dependencies {
     implementation(libs.androidx.navigation.common.ktx)
     implementation(libs.androidx.navigation.runtime.ktx)
 
-    implementation("androidx.navigation:navigation-compose:2.7.6")
+    implementation(libs.compose.navigation)//"androidx.navigation:navigation-compose:2.7.6")
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.hilt.navigation)
 
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
+
+    implementation(libs.androidx.compose.animation)
 
 
 

@@ -1,5 +1,8 @@
 package org.ethereumhpone.chat
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,21 +53,27 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.PhoneNumber
+import org.ethereumhpone.database.model.Recipient
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ProfileDetailScreen(
     isGroup: Boolean = false,
     modifier: Modifier = Modifier,
-    contacts: List<Contact> = emptyList(),
+    //contacts: List<Contact> = emptyList(),
+    recipient: Recipient?,
+
+//    sharedTransitionScope: SharedTransitionScope,
+//    animatedVisibilityScope: AnimatedVisibilityScope
     //group: List<Contact> = emptyList()
 ){
     //ChatScreen(navigateBackToConversations={},chatUIState=ChatUIState.Success(listOf()))
 
 
-    val contact = contacts[0]
+    val contact = recipient?.contact
 
     var showDialog by remember {
         mutableStateOf(false)
@@ -108,26 +117,30 @@ fun ProfileDetailScreen(
                     when(isGroup){
                         false -> {
 
-                            if (contact.photoUri != ""){
-                                Image(
-                                    painter = rememberAsyncImagePainter(contact.photoUri),
-                                    contentDescription = "Contact Profile Pic",
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else{
-                                Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                            if (contact != null) {
+                                if (contact.photoUri != ""){
+                                    Image(
+                                        painter = rememberAsyncImagePainter(contact.photoUri),
+                                        contentDescription = "Contact Profile Pic",
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else{
+                                    Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                                }
                             }
                         }
 
                         true -> {
-                            if (contact.photoUri != ""){
-                                Image(
-                                    painter = rememberAsyncImagePainter(contact.photoUri),
-                                    contentDescription = "Contact Profile Pic",
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else{
-                                Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                            if (contact != null) {
+                                if (contact.photoUri != ""){
+                                    Image(
+                                        painter = rememberAsyncImagePainter(contact.photoUri),
+                                        contentDescription = "Contact Profile Pic",
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else{
+                                    Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                                }
                             }
                         }
                     }
@@ -136,15 +149,17 @@ fun ProfileDetailScreen(
                 when(isGroup){
                     false -> {
 
-                        Text(
-                            text = contact.name,
-                            style = TextStyle(
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Colors.WHITE,
-                                fontFamily = Fonts.INTER
+                        if (contact != null) {
+                            Text(
+                                text = contact.name,
+                                style = TextStyle(
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Colors.WHITE,
+                                    fontFamily = Fonts.INTER
+                                )
                             )
-                        )
+                        }
                     }
 
                     true -> {
@@ -162,7 +177,7 @@ fun ProfileDetailScreen(
                                 )
                             )
                             Text(
-                                text = "${contacts.size} Members", // TODO: Implement Group Fucntionality
+                                text = "N/A Members", // TODO: Implement Group Fucntionality
                                 style = TextStyle(
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Normal,
@@ -181,7 +196,7 @@ fun ProfileDetailScreen(
 
 
             //Action calls (call,text,contact)
-            if(isGroup) {
+            if(!isGroup) {
                 Column (
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ){
@@ -198,7 +213,9 @@ fun ProfileDetailScreen(
             //phone number/s
 
             if (!isGroup){
-                ContactDetail(title = "Phone Number", detail = contact.numbers[0].address)
+                if (contact != null) {
+                    ContactDetail(title = "Phone Number", detail = contact.numbers[0].address)
+                }
             }
 
 
@@ -221,7 +238,7 @@ fun ProfileDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "${contacts.size} Members",
+                        text = "N/A Members",
                         style = TextStyle(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
@@ -233,43 +250,43 @@ fun ProfileDetailScreen(
                         horizontalAlignment = Alignment.Start,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        contacts.forEach {
-                            item {
-                                Row (
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ){
-                                    Box(
-                                        modifier = Modifier
-                                            .size(52.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF262626))
-                                    ){
-
-                                    }
-                                    Column (
-                                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                                        modifier= modifier.fillMaxWidth()
-                                    ){
-                                        Text(
-                                            text = it.name,
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color.White
-                                        )
-
-                                        Text(
-                                            text = it.numbers[0].address,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Normal,
-                                            color = Color.Gray
-                                        )
-
-
-                                    }
-                                }
-                            }
-                        }
+//                        contacts.forEach {
+//                            item {
+//                                Row (
+//                                    verticalAlignment = Alignment.CenterVertically,
+//                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+//                                ){
+//                                    Box(
+//                                        modifier = Modifier
+//                                            .size(52.dp)
+//                                            .clip(CircleShape)
+//                                            .background(Color(0xFF262626))
+//                                    ){
+//
+//                                    }
+//                                    Column (
+//                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+//                                        modifier= modifier.fillMaxWidth()
+//                                    ){
+//                                        Text(
+//                                            text = it.name,
+//                                            fontSize = 18.sp,
+//                                            fontWeight = FontWeight.SemiBold,
+//                                            color = Color.White
+//                                        )
+//
+//                                        Text(
+//                                            text = it.numbers[0].address,
+//                                            fontSize = 16.sp,
+//                                            fontWeight = FontWeight.Normal,
+//                                            color = Color.Gray
+//                                        )
+//
+//
+//                                    }
+//                                }
+//                            }
+//                        }
 
                     }
 
@@ -494,27 +511,27 @@ fun ExtraDataItem(
 @Composable
 @Preview(showBackground = true,device = "id:pixel_7a",)
 fun PreviewProfileDetailScreen(){
-    ProfileDetailScreen(
-        isGroup = true,
-        contacts = listOf(
-            Contact(
-                name = "Elie",
-                numbers = listOf(
-                    PhoneNumber(
-                        address = "+43123456789"
-                    )
-                )
-            )
-            ,
-            Contact(
-                name = "Elie",
-                numbers = listOf(
-                    PhoneNumber(
-                        address = "+43123456789"
-                    )
-                )
-            )
-
-        ),
-    )
+//    ProfileDetailScreen(
+//        isGroup = false,
+//        contacts = listOf(
+//            Contact(
+//                name = "Elie",
+//                numbers = listOf(
+//                    PhoneNumber(
+//                        address = "+43123456789"
+//                    )
+//                )
+//            )
+//            ,
+//            Contact(
+//                name = "Elie",
+//                numbers = listOf(
+//                    PhoneNumber(
+//                        address = "+43123456789"
+//                    )
+//                )
+//            )
+//
+//        ),
+//    )
 }

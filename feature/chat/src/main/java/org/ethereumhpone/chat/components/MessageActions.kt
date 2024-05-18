@@ -22,6 +22,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,6 +40,7 @@ import org.ethosmobile.components.library.theme.Fonts
 @Composable
 fun MessageActionList(
     message: Message,
+    focusMode: MutableState<Boolean>,
 ) {
     val context = LocalContext.current
 
@@ -57,6 +59,7 @@ fun MessageActionList(
                 imageVector = Icons.Outlined.ContentCopy,
                 onClick = {
                     copyTextToClipboard(context,message.body)
+                    focusMode.value = false
                 }
             )
             Divider(color= Colors.GRAY)
@@ -98,7 +101,7 @@ fun MessageAction(
                 onClick()
             }
     ) {
-        Text(text = text, fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color= Colors.WHITE)
+        Text(text = text, fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color= tint)
         Icon(tint = tint, modifier = Modifier.size(20.dp), imageVector = imageVector, contentDescription = text)
     }
 }
