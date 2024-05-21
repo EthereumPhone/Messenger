@@ -51,7 +51,5 @@ class ReceiveSms @Inject constructor(
                 notificationManager.update(it.id)
             }
         }
-
-
     }
 }

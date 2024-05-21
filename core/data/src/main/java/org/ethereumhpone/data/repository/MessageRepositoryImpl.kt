@@ -10,6 +10,7 @@ import android.media.MediaScannerConnection
 import android.os.Environment
 import android.provider.Telephony
 import android.telephony.SmsManager
+import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.content.contentValuesOf
 import com.google.android.mms.ContentType
@@ -421,6 +422,8 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         sentTime: Long
     ): Message {
+
+        Log.d("MEssage received", "hello hello")
         val threadId = TelephonyCompat.getOrCreateThreadId(context, address)
         val message = Message(
             threadId = threadId,
@@ -430,7 +433,6 @@ class MessageRepositoryImpl @Inject constructor(
             boxId = Telephony.Sms.MESSAGE_TYPE_INBOX,
             type = "sms",
             read = activeConversationManager.getActiveConversation() == threadId,
-            seen = true
         )
 
         val values = contentValuesOf(

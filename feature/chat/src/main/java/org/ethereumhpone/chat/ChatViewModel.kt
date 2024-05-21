@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -42,6 +43,7 @@ import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
+import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.usecase.SendMessage
 import org.ethereumphone.walletsdk.WalletSDK
@@ -69,7 +71,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val contactRepository: ContactRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
+    private val mediaRepository: MediaRepository,
     private val permissionManager: PermissionManager,
+
     private val context: Context
 ): ViewModel() {
 
@@ -95,6 +99,13 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         initialValue = MessagesUiState.Loading,
         started = SharingStarted.WhileSubscribed(5_000)
     )
+
+    val media: StateFlow<List<Attachment>> = attachmentState(mediaRepository)
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = emptyList(),
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
 
     // Write a piece of code that gets the eth balance of address "0x0" and saves it to a state variable
     val currentChainId: StateFlow<Int> = flow {
@@ -324,6 +335,12 @@ private fun selectedConversationState(
     }
 }
 
+
+private fun attachmentState(
+    mediaRepository: MediaRepository,
+): Flow<List<Attachment>> {
+    return mediaRepository.getImages()
+}
 
 sealed interface MessagesUiState {
     object Loading : MessagesUiState
