@@ -123,6 +123,7 @@ class ConversationCursorImpl @Inject constructor(
         } ?: return null
 
         // Use the phone number to look up the contact's details in the Contacts content provider
+        if (phoneNumber.isEmpty()) return null
         val uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber))
         ctx.contentResolver.query(
             uri,
