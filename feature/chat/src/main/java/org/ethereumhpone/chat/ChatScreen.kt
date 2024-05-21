@@ -92,15 +92,11 @@ import org.ethereumhpone.chat.components.ModalSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
-import org.ethereumhpone.chat.components.TxClickableMessage
+import org.ethereumhpone.chat.components.GallerySheet
 import org.ethereumhpone.chat.components.TxMessage
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
-import kotlin.reflect.KSuspendFunction1
+
 
 
 @Composable
@@ -111,22 +107,20 @@ fun ChatRoute(
 ){
     val messagesUiState by viewModel.messagesState.collectAsStateWithLifecycle()
     val recipient by viewModel.recipientState.collectAsStateWithLifecycle()
-    val test by viewModel.conversationState.collectAsStateWithLifecycle()
     val tokenBalance by viewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by viewModel.chainName.collectAsStateWithLifecycle()
     val currentChainId by viewModel.currentChainId.collectAsStateWithLifecycle()
-    val recipientAddress = test?.recipients?.firstOrNull()?.address ?: "swag"
-    Log.d("asd", recipientAddress)
-
+    val attachments by viewModel.media.collectAsStateWithLifecycle()
 
     ChatScreen(
         messagesUiState = messagesUiState,
         recipient = recipient,
+        attachments = attachments,
         navigateBackToConversations = navigateBackToConversations,
         tokenBalance = tokenBalance,
         chainName = chainName,
         onSendEthClicked = viewModel::sendEth,
-        onSendMessageClicked = viewModel::sendMessage
+        onSendMessageClicked = viewModel::sendMessage,
     )
 }
 
@@ -136,11 +130,13 @@ fun ChatScreen(
     modifier: Modifier = Modifier,
     messagesUiState: MessagesUiState,
     recipient: Recipient?,
+    attachments: List<Attachment> = emptyList(),
     navigateBackToConversations: () -> Unit,
     onSendEthClicked: (amount: Double) -> Unit,
     tokenBalance: Double,
     chainName: String,
-    onSendMessageClicked: (String, List<Attachment>) -> Unit
+    onSendMessageClicked: (String, List<Attachment>) -> Unit,
+
 ){
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
@@ -150,7 +146,6 @@ fun ChatScreen(
     //ModalSheets
     var showAssetSheet by remember { mutableStateOf(false) }
     val modalAssetSheetState = rememberModalBottomSheetState(true)
-
 
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
@@ -510,7 +505,12 @@ fun ChatScreen(
                                                         tokenBalance = tokenBalance,
                                                         chainName = chainName
                                                     )
-                                                    InputSelector.PICTURE -> FunctionalityNotAvailablePanel("Picture") // TODO: link to Camera
+                                                    InputSelector.PICTURE -> {
+                                                        GallerySheet(media = attachments) {
+
+                                                        }
+                                                    }
+
                                                     else -> {
                                                         throw NotImplementedError()
                                                     }

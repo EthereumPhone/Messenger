@@ -11,6 +11,7 @@ import org.ethereumhpone.data.mapper.ContactCursorImpl
 import org.ethereumhpone.data.mapper.ContactGroupCursorImpl
 import org.ethereumhpone.data.mapper.ContactGroupMemberCursorImpl
 import org.ethereumhpone.data.mapper.ConversationCursorImpl
+import org.ethereumhpone.data.mapper.ImageCursorImpl
 import org.ethereumhpone.data.mapper.MessageCursorImpl
 import org.ethereumhpone.data.mapper.PartCursorImpl
 import org.ethereumhpone.data.mapper.RecipientCursorImpl
@@ -20,6 +21,7 @@ import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
 import org.ethereumhpone.domain.mapper.ContactGroupMemberCursor
 import org.ethereumhpone.domain.mapper.ConversationCursor
+import org.ethereumhpone.domain.mapper.ImageCursor
 import org.ethereumhpone.domain.mapper.MessageCursor
 import org.ethereumhpone.domain.mapper.PartCursor
 import org.ethereumhpone.domain.mapper.RecipientCursor
@@ -42,6 +44,8 @@ object DataModule {
     fun provideMessageCursor(mapper: MessageCursorImpl): MessageCursor = mapper
     @Provides
     fun providePartCursor(mapper: PartCursorImpl): PartCursor = mapper
+    @Provides
+    fun provideImageCursor(mapper: ImageCursorImpl): ImageCursor = mapper
     @Provides
     fun providePhoneNumberUtils(@ApplicationContext appContext: Context): PhoneNumberUtils = PhoneNumberUtils(appContext) // Assuming a default constructor is available
     @Provides
