@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -59,7 +60,13 @@ fun MediaItem(
             )
         }
         is Attachment.Image -> {
-            AsyncImage(model = attachment.getUri(), contentDescription = "") }
+            SubcomposeAsyncImage(
+                model = attachment.getUri(),
+                loading = {
+
+                },
+                contentDescription = "")
+        }
         else -> {}
     }
 }

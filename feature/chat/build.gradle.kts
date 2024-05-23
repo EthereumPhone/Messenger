@@ -106,6 +106,11 @@ dependencies {
     implementation(libs.core)
     implementation(libs.walletsdk)
 
+
+    // cameraX
+    implementation("com.google.guava:guava:31.0.1-android")
+    implementation(libs.bundles.camerax)
+
 }
 
 // Allow references to generated code
