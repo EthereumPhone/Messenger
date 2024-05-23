@@ -552,10 +552,14 @@ fun ChatScreen(
                     sheetState = modalAssetSheetState
                 ) {
                     when(currentModalSelector){
-                        ModalSelector.CONTACT -> ContactSheet(
-                            name = "Mark Katakowski",
-                            image = "",
-                            ens = listOf("emunsi.eth"),)
+                        ModalSelector.CONTACT -> {
+                            recipient?.contact?.let {
+                                ContactSheet(
+                                    contact = it,
+                                    ens = listOf("")
+                                )
+                            }
+                        }
                         ModalSelector.ASSETS -> AssetPickerSheet()
                     }
                 }
