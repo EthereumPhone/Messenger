@@ -1,8 +1,10 @@
 package org.ethereumhpone.chat.components
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -21,38 +23,51 @@ import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumhpone.domain.model.Attachments
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GallerySheet(
-    media: List<Attachment>,
-    onDismissRequest: () -> Unit
+    attachments: List<Attachment>,
+    selectedAttachments: Set<Attachment>,
+    onItemClicked: (Attachment) -> Unit,
 ) {
+
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 128.dp)
     ) {
         // first camera item
         item {
-            CameraPreview(onPhotoCaptured = {})
-
+            CameraPreview(
+                onPhotoCaptured = {
+                    onItemClicked(Attachment.Image(it))
+                }
+            )
         }
         // show image & thumbnail
-        items(media) {
-            MediaItem(it)
+        items(attachments) {
+            MediaItem(
+                attachment = it,
+                isSelected = selectedAttachments.contains(it),
+                itemClicked = onItemClicked
+            )
         }
     }
 }
 @Composable
 fun MediaItem(
     attachment: Attachment,
-    selected: Boolean = false,
-    inSelectionMode: Boolean = false
+    isSelected: Boolean = false,
+    itemClicked: (Attachment) -> Unit
 ) {
     when(attachment) {
         is Attachment.Video -> {
             Image(
                 painter = rememberAsyncImagePainter(model = attachment.getThumbnail(LocalContext.current)),
-                contentDescription = ""
+                contentDescription = "",
+                modifier = Modifier.clickable {
+                    itemClicked(attachment)
+                }
             )
         }
         is Attachment.Image -> {
@@ -61,8 +76,13 @@ fun MediaItem(
                 loading = {
 
                 },
-                contentDescription = "")
+                contentDescription = "",
+                modifier = Modifier.clickable {
+                    itemClicked(attachment)
+                }
+            )
         }
         else -> {}
     }
 }
+

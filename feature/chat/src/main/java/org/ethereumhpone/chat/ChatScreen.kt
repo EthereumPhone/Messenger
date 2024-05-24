@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
@@ -110,7 +111,8 @@ fun ChatRoute(
     val tokenBalance by viewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by viewModel.chainName.collectAsStateWithLifecycle()
     val currentChainId by viewModel.currentChainId.collectAsStateWithLifecycle()
-    val attachments by viewModel.media.collectAsStateWithLifecycle()
+    val attachments by viewModel.attachments.collectAsStateWithLifecycle()
+    val selectedAttachments by viewModel.attachments.collectAsStateWithLifecycle()
 
     ChatScreen(
         messagesUiState = messagesUiState,
@@ -120,6 +122,7 @@ fun ChatRoute(
         tokenBalance = tokenBalance,
         chainName = chainName,
         onSendEthClicked = viewModel::sendEth,
+        onAttachmentClicked = viewModel::toggleSelection,
         onSendMessageClicked = viewModel::sendMessage,
     )
 }
@@ -131,13 +134,15 @@ fun ChatScreen(
     messagesUiState: MessagesUiState,
     recipient: Recipient?,
     attachments: List<Attachment> = emptyList(),
+    selectedAttachments: Set<Attachment> = emptySet(),
     navigateBackToConversations: () -> Unit,
     onSendEthClicked: (amount: Double) -> Unit,
     tokenBalance: Double,
     chainName: String,
+    onAttachmentClicked: (Attachment) -> Unit,
     onSendMessageClicked: (String, List<Attachment>) -> Unit,
 
-){
+    ){
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -173,8 +178,6 @@ fun ChatScreen(
     var textFieldFocusState by remember { mutableStateOf(false) }
 
     val controller = LocalSoftwareKeyboardController.current
-
-
 
 
     Scaffold (
@@ -506,8 +509,11 @@ fun ChatScreen(
                                                         chainName = chainName
                                                     )
                                                     InputSelector.PICTURE -> {
-                                                        GallerySheet(media = attachments) {
-
+                                                        GallerySheet(
+                                                            attachments = attachments,
+                                                            selectedAttachments = selectedAttachments
+                                                        ) {
+                                                            onAttachmentClicked(it)
                                                         }
                                                     }
 
@@ -517,18 +523,9 @@ fun ChatScreen(
                                                 }
                                             }
                                         }
-
                                     }
-
-
-
-
                                 }
-
                             }
-
-
-
                         }
                     }
                 }
@@ -564,10 +561,7 @@ fun ChatScreen(
                     }
                 }
             }
-
-
         }
-
 }
 
 fun chainIdToReadableName(chainId: Int): String = when(chainId) {

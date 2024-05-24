@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.ethereumhpone.chat.navigation.AddressesArgs
@@ -100,12 +101,15 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
-    val media: StateFlow<List<Attachment>> = attachmentState(mediaRepository)
+    val attachments: StateFlow<List<Attachment>> = attachmentState(mediaRepository)
         .stateIn(
             scope = viewModelScope,
             initialValue = emptyList(),
             started = SharingStarted.WhileSubscribed(5_000)
         )
+
+    private val _selectedAttachments = MutableStateFlow<Set<Attachment>>(emptySet())
+    private val selectedAttachments: StateFlow<Set<Attachment>> = _selectedAttachments
 
     // Write a piece of code that gets the eth balance of address "0x0" and saves it to a state variable
     val currentChainId: StateFlow<Int> = flow {
@@ -301,6 +305,16 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         //TODO: Create a new conversation with one address
 
 
+    }
+
+    fun toggleSelection(attachment: Attachment) {
+        _selectedAttachments.update { curr ->
+            if (curr.contains(attachment)) {
+                curr - attachment
+            } else {
+                curr + attachment
+            }
+        }
     }
 }
 

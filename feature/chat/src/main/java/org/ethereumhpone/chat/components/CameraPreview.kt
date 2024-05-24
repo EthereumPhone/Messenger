@@ -120,7 +120,7 @@ fun CameraPreview(
     }
 }
 
-@OptIn(ExperimentalZeroShutterLag::class) private fun takePicture(
+private fun takePicture(
     context: Context,
     imageCapture: ImageCapture,
     onPhotoCaptured: (Uri) -> Unit,
@@ -152,7 +152,6 @@ fun CameraPreview(
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                 val savedUri = outputFileResults.savedUri
 
-                Log.d("MYTEST", savedUri?.path.toString())
                 savedUri?.let {
                     onPhotoCaptured(it)
                 }
