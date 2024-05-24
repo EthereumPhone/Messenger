@@ -33,11 +33,7 @@ fun GallerySheet(
     ) {
         // first camera item
         item {
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .background(Color.Red)
-            )
+            CameraPreview(onPhotoCaptured = {})
 
         }
         // show image & thumbnail
