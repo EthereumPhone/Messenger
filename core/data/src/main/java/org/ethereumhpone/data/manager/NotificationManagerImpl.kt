@@ -201,14 +201,29 @@ private fun Context.ensureNotificationChannelExists() {
 }
 
 
-private fun contentPendingIntent(context: Context, threadId: Int): PendingIntent? =  PendingIntent.getActivity(
-    context,
-    NOTIFICATION_REQUEST_CODE,
-    Intent().apply {
-        action = Intent.ACTION_VIEW
-        putExtra("threadId", threadId)
-    },
-    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-)
+private fun contentPendingIntent(context: Context, threadId: Int): PendingIntent? {
+    // Resolve the main launcher activity
+    val packageManager = context.packageManager
+    val intent = Intent(Intent.ACTION_MAIN).apply {
+        addCategory(Intent.CATEGORY_LAUNCHER)
+        setPackage(context.packageName)
+    }
+    val resolveInfoList = packageManager.queryIntentActivities(intent, 0)
+    val resolveInfo = resolveInfoList.firstOrNull()
 
+    // Ensure we found the launcher activity
+    val launcherActivityClassName = resolveInfo?.activityInfo?.name ?: return null
 
+    // Create the PendingIntent with the resolved launcher activity
+    return PendingIntent.getActivity(
+        context,
+        NOTIFICATION_REQUEST_CODE,
+        Intent().apply {
+            action = Intent.ACTION_VIEW
+            setClassName(context.packageName, launcherActivityClassName)
+            putExtra("threadId", threadId)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        },
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+}

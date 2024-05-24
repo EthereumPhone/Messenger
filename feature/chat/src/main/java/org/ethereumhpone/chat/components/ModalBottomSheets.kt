@@ -1,7 +1,10 @@
 package org.ethereumhpone.chat.components
 
+import android.content.Context
 import android.content.Intent
+import android.database.Cursor
 import android.net.Uri
+import android.provider.ContactsContract
 import android.view.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -44,8 +47,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat.startActivity
 import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.database.model.Contact
 import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.haptics.EthOSHaptics
 import org.ethosmobile.components.library.theme.Colors
@@ -54,8 +59,7 @@ import org.ethosmobile.components.library.theme.Fonts
 
 @Composable
 fun ContactSheet(
-    name: String = "Max Mustermann",
-    image: String = "",
+    contact: Contact,
     ens: List<String> = emptyList()
 ){
     Column(
@@ -81,9 +85,9 @@ fun ContactSheet(
                     .clip(CircleShape)
                     .background(Colors.DARK_GRAY)
             ){
-                if (image != ""){
+                if (contact.photoUri != null && contact.photoUri != "") {
                     Image(
-                        painter = rememberAsyncImagePainter(image),
+                        painter = rememberAsyncImagePainter(contact.photoUri),
                         contentDescription = "Contact Profile Pic",
                         contentScale = ContentScale.Crop
                     )
@@ -97,7 +101,7 @@ fun ContactSheet(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = name,
+                    text = contact.name,
                     fontSize = 24.sp,
                     color = Colors.WHITE,
                     fontWeight = FontWeight.SemiBold
@@ -122,9 +126,32 @@ fun ContactSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                val currentContext = LocalContext.current
 
-                ethOSIconButton(onClick = { /*TODO*/ }, icon = Icons.Outlined.Call, contentDescription="Call")
-                ethOSIconButton(onClick = { /*TODO*/ }, icon = Icons.Outlined.Contacts, contentDescription="Contact")
+                ethOSIconButton(
+                    onClick = {
+                        // Call contact
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:${contact.getDefaultNumber()?.address}")
+                        }
+                        currentContext.startActivity(intent)
+                              },
+                    icon = Icons.Outlined.Call,
+                    contentDescription="Call"
+                )
+                ethOSIconButton(
+                    onClick = {
+                        getContactIdFromPhoneNumber(currentContext, contact.getDefaultNumber()?.address ?: "")?.let {
+                            val uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, it)
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                data = uri
+                            }
+                            currentContext.startActivity(intent)
+                        }
+                    },
+                    icon = Icons.Outlined.Contacts,
+                    contentDescription="Contact"
+                )
 
             }
             Divider(
@@ -142,12 +169,12 @@ fun ContactSheet(
 
                 ContactItem(
                     title= "Phone Number",
-                    detail= "+430123456789"
+                    detail= contact.getDefaultNumber()?.address ?: "No Phone Number"
                 )
 
                 ContactItem(
-                        title= "ENS",
-                detail= getEnsAddresses(ens)
+                    title= "ENS",
+                    detail= getEnsAddresses(ens)
                 )
 
             }
@@ -157,10 +184,36 @@ fun ContactSheet(
     }
 }
 
+fun getContactIdFromPhoneNumber(context: Context, phoneNumber: String): String? {
+    val uri: Uri = Uri.withAppendedPath(
+        ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+        Uri.encode(phoneNumber)
+    )
+
+    val projection = arrayOf(ContactsContract.PhoneLookup._ID)
+    var contactId: String? = null
+
+    val cursor: Cursor? = context.contentResolver.query(
+        uri,
+        projection,
+        null,
+        null,
+        null
+    )
+
+    cursor?.use {
+        if (it.moveToFirst()) {
+            contactId = it.getString(it.getColumnIndexOrThrow(ContactsContract.PhoneLookup._ID))
+        }
+    }
+
+    return contactId
+}
+
 @Composable
 @Preview
 fun ContactSheetPreview(){
-    ContactSheet(name = "Mark Katakowski", ens = listOf("mk.eth"))
+    //ContactSheet(name = "Mark Katakowski", ens = listOf("mk.eth"))
 }
 
 @Composable
