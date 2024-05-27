@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -109,7 +110,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         )
 
     private val _selectedAttachments = MutableStateFlow<Set<Attachment>>(emptySet())
-    private val selectedAttachments: StateFlow<Set<Attachment>> = _selectedAttachments
+    val selectedAttachments: StateFlow<Set<Attachment>> = _selectedAttachments
 
     // Write a piece of code that gets the eth balance of address "0x0" and saves it to a state variable
     val currentChainId: StateFlow<Int> = flow {
@@ -206,7 +207,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
                 Log.d("ChatViewModel", "Transaction Hash: $hash")
                 if (hash.startsWith("0x")) {
-                    sendMessage("Sent ${decimalFormat.format(amount)} ETH: ${chainIdToEtherscan(chainIdLocked)}/tx/$hash", emptyList())
+                    sendMessage("Sent ${decimalFormat.format(amount)} ETH: ${chainIdToEtherscan(chainIdLocked)}/tx/$hash")
                 }
             }
         }
@@ -280,7 +281,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
 
 
-    fun sendMessage(messageBody: String, attachments: List<Attachment>) {
+    fun sendMessage(messageBody: String) {
         //if(!permissionManager.isDefaultSms()) return
         if(!permissionManager.hasSendSms()) {
             //TODO: add request permission
@@ -297,7 +298,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 val address = convo.recipients.map { it.address }
 
                 viewModelScope.launch {
-                    sendMessageUseCase(subId, convo.id, address, messageBody, attachments)
+                    sendMessageUseCase(subId, convo.id, address, messageBody, _selectedAttachments.value.toList())
                 }
             }
         }

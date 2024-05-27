@@ -112,12 +112,13 @@ fun ChatRoute(
     val chainName by viewModel.chainName.collectAsStateWithLifecycle()
     val currentChainId by viewModel.currentChainId.collectAsStateWithLifecycle()
     val attachments by viewModel.attachments.collectAsStateWithLifecycle()
-    val selectedAttachments by viewModel.attachments.collectAsStateWithLifecycle()
+    val selectedAttachments by viewModel.selectedAttachments.collectAsStateWithLifecycle()
 
     ChatScreen(
         messagesUiState = messagesUiState,
         recipient = recipient,
         attachments = attachments,
+        selectedAttachments = selectedAttachments,
         navigateBackToConversations = navigateBackToConversations,
         tokenBalance = tokenBalance,
         chainName = chainName,
@@ -140,7 +141,7 @@ fun ChatScreen(
     tokenBalance: Double,
     chainName: String,
     onAttachmentClicked: (Attachment) -> Unit,
-    onSendMessageClicked: (String, List<Attachment>) -> Unit,
+    onSendMessageClicked: (String) -> Unit,
 
     ){
     val topBarState = rememberTopAppBarState()
@@ -455,7 +456,7 @@ fun ChatScreen(
 
                                                     lastFocusState = false
                                                     textFieldFocusState = false
-                                                    onSendMessageClicked(textState.text, listOf())
+                                                    onSendMessageClicked(textState.text)
                                                     textState = TextFieldValue()
                                                 },
                                             ) {
