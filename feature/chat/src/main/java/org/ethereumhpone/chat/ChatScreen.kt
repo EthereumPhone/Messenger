@@ -11,6 +11,7 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.TextField
@@ -95,6 +99,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.ethereumhpone.chat.components.GallerySheet
 import org.ethereumhpone.chat.components.TxMessage
+import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
 
@@ -155,7 +160,6 @@ fun ChatScreen(
 
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
-
     var currentModalSelector by rememberSaveable { mutableStateOf(ModalSelector.CONTACT) }
 
 
@@ -203,11 +207,8 @@ fun ChatScreen(
                                 isTrailContent = false,
                                 trailContent= {},
                                 onContactClick = {
-
                                     currentModalSelector = ModalSelector.CONTACT
-
                                     showAssetSheet = true
-
                                 }
                             )
                         }
@@ -224,70 +225,40 @@ fun ChatScreen(
                                 when(messagesUiState) {
 
                                     is MessagesUiState.Loading -> {
-
                                         Box(
-
-
                                             modifier = Modifier
-
                                                 .weight(1f)
-
                                                 .fillMaxSize()
-
                                                 .padding(horizontal = 24.dp),
-
                                             contentAlignment = Alignment.Center
 
                                         ) {
 
                                             Text(
-
                                                 text = "Loading...",
-
                                                 fontSize = 12.sp,
-
                                                 fontFamily = Fonts.INTER,
-
-
                                                 color = Colors.WHITE,
-
-
                                                 )
-
                                         }
-
                                     }
 
                                     is MessagesUiState.Success -> {
-
-
                                         LazyColumn(
-
                                             reverseLayout = true,
-
                                             modifier = Modifier
-
                                                 .weight(1f)
-
                                                 .fillMaxWidth()
-
                                                 .padding(horizontal = 24.dp)
-
                                         ) {
 
                                             messagesUiState.messages.sortedBy { it.date }.reversed().forEachIndexed { index, message ->
 
                                                 val prevAuthor = messagesUiState.messages.getOrNull(index - 1)?.address
-
                                                 val nextAuthor = messagesUiState.messages.getOrNull(index + 1)?.address
-
                                                 val content = messagesUiState.messages[index]
-
                                                 val isFirstMessageByAuthor = prevAuthor != content.address
-
                                                 val isLastMessageByAuthor = nextAuthor != content.address
-
-
 
                                                 item {
                                                     if (isValidTransactionMessage(message.body)) {
@@ -320,7 +291,6 @@ fun ChatScreen(
                                                         )
                                                     }
                                                 }
-
                                             }
                                         }
                                     }
@@ -328,6 +298,11 @@ fun ChatScreen(
                                 Column(
                                     modifier = modifier.padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
                                 ) {
+
+                                    AttachmentRow(
+                                        selectedAttachments = selectedAttachments.toList(),
+                                        attachmentRemoved = { onAttachmentClicked(it) }
+                                    )
 
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -341,8 +316,8 @@ fun ChatScreen(
                                         val rotationAngle by animateFloatAsState(
                                             targetValue = if (startAnimation) 45f else 0f,
                                             animationSpec = animationSpec,
-
-                                            )
+                                            label = ""
+                                        )
                                         IconButton(
                                             modifier = Modifier
                                                 .padding(top = 8.dp)
