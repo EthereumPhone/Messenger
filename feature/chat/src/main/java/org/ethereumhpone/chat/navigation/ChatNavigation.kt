@@ -65,8 +65,6 @@ fun NavGraphBuilder.chatScreen(
             navArgument("addresses") { type = NavType.StringType },
         ),
     ) {
-        val threadId = it.arguments?.getString("threadId")
-
         ChatRoute(
             navigateBackToConversations = onBackClick,
         )

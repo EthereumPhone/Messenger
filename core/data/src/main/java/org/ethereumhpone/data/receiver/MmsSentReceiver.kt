@@ -62,12 +62,14 @@ class MmsSentReceiver @Inject constructor(
         }
         val filePath = intent.getStringExtra(Transaction.EXTRA_FILE_PATH)
         Timber.v(filePath)
-        File(filePath).delete()
+        if (filePath != null) {
+            File(filePath).delete()
+        }
 
-        Uri.parse(intent.getStringExtra("content_uri"))?.let { uri ->
-            val pendingResult = goAsync()
+        Uri.parse(intent.getStringExtra("content_uri"))?.let { contentUri ->
+            goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                val message = syncRepository.syncMessage(uri)
+                val message = syncRepository.syncMessage(contentUri)
                 message?.let {
                     conversationRepository.updateConversations(message.threadId)
                 }

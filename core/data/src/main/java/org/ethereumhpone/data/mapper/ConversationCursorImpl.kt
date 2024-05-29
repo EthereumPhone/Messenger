@@ -150,7 +150,7 @@ class ConversationCursorImpl @Inject constructor(
                 phonesCursor?.use {
                     var isDefaultSet = false
                     while (it.moveToNext()) {
-                        val id = it.getLong(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone._ID)) ?: UUID.randomUUID().mostSignificantBits
+                        val id = it.getLong(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone._ID))
                         val address = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)) ?: ""
                         val type = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.TYPE)) ?: ""
                         val accountType = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.ACCOUNT_TYPE_AND_DATA_SET)) ?: ""

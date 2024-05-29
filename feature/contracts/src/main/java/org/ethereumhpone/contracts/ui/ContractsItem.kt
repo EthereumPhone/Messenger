@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeMute
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.VolumeMute
@@ -63,13 +64,6 @@ enum class ChatListItemState{
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatListItem(
-    image: @Composable () -> Unit = {},
-    header: String = "Header",
-    subheader: String = "Subheader",
-    ens: String = "",
-    time: String = "0:00AM",
-    unreadConversation: Boolean = true,
-    onClick: () -> Unit = {}
 ){
     Box{
 
@@ -112,12 +106,6 @@ fun ChatListItem(
             ChatListInfo(
                 header = "Mark Katakowskihashvili",
                 subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
-                ens = "emunsi.eth",
-//                modifier = Modifier
-//                    .graphicsLayer {
-//                        this.translationX = state.
-//                    }
-//                    .anchoredDraggable(state, Orientation.Horizontal)
             )
         }
 
@@ -139,7 +127,7 @@ fun ChatListUnreadSection(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
-            .clickable { onClick }
+            .clickable { onClick() }
             .fillMaxWidth()
             .height(86.dp)
             .background(Colors.LIGHT_BLUE)
@@ -149,7 +137,7 @@ fun ChatListUnreadSection(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clickable { onClick }
+                .clickable { onClick() }
                 .fillMaxHeight()
                 .width(72.dp)
                 .background(Colors.LIGHT_BLUE)
@@ -190,13 +178,13 @@ fun ChatListOptions(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clickable { onClick }
+                .clickable { onClick() }
                 .fillMaxHeight()
                 .width(72.dp)
                 .background(Colors.LIGHT_BLUE)
         ){
             Icon(
-                imageVector = Icons.Filled.VolumeMute,
+                imageVector = Icons.AutoMirrored.Filled.VolumeMute,
                 contentDescription = "VolumeMute",
                 tint = Colors.WHITE,
             )
@@ -206,7 +194,7 @@ fun ChatListOptions(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clickable { onClick }
+                .clickable { onClick() }
                 .fillMaxHeight()
                 .width(72.dp)
                 .background(Colors.ERROR)
@@ -228,7 +216,6 @@ fun ChatListInfo(
     image: @Composable () -> Unit = {},
     header: String = "Header",
     subheader: String = "Subheader",
-    ens: String = "",
     time: String = "0:00AM",
     unreadConversation: Boolean = true,
     onClick: () -> Unit = {}, //threadId long -> String
@@ -239,7 +226,7 @@ fun ChatListInfo(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
-            .clickable { onClick }
+            .clickable { onClick() }
             .fillMaxWidth()
             .padding(vertical = 12.dp)
         ,
@@ -277,16 +264,6 @@ fun ChatListInfo(
                         modifier = modifier.widthIn(min = 80.dp, max = 180.dp)
 
                     )
-//                    Text(
-//                        text = ens,
-//                        fontSize = 14.sp,
-//                        fontWeight = FontWeight.Normal,
-//                        color = Colors.GRAY,
-//                        overflow = TextOverflow.Ellipsis,
-//                        maxLines = 1,
-//                        modifier = Modifier.widthIn(min = 80.dp, max = 180.dp)
-//
-//                    )
                 }
 
                 Text(
@@ -350,6 +327,5 @@ fun PreviewContactItem(){
     ChatListInfo(
         header = "Mark Katakowskihashvili",
         subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
-        ens = "emunsi.eth",
     )
 }

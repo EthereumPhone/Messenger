@@ -44,8 +44,6 @@ fun Header(
     name: String,
     image: String,
     onBackClick: () -> Unit = {},
-    isTrailContent: Boolean = false,
-    trailContent: @Composable () -> Unit = {},
 ){
     val iconsize = 24.dp
     Column(
@@ -149,8 +147,6 @@ fun ChatHeader(
     image: String,
     onBackClick: () -> Unit = {},
     onContactClick: () -> Unit = {},
-    isTrailContent: Boolean = false,
-    trailContent: @Composable () -> Unit = {},
 ){
     val iconsize = 24.dp
     Column(
@@ -284,7 +280,5 @@ fun PreviewHeader() {
         name = "Mark Katakowski",
         image = "",
         onBackClick = {},
-        isTrailContent = false,
-        trailContent = {},
     )
 }

@@ -72,7 +72,6 @@ import java.util.Locale
 fun TxMessage(
     amount: Double,
     txUrl: String,
-    onAuthorClick: (String) -> Unit,
     isUserMe: Boolean,
     networkName: String,
     isFirstMessageByAuthor: Boolean,
@@ -82,7 +81,6 @@ fun TxMessage(
     val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
         .padding(top = 8.dp)
         .fillMaxWidth() else Modifier
-    val alignmessage = if(isUserMe) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp)
 
 
     Row(
@@ -98,10 +96,8 @@ fun TxMessage(
                 amount = amount,
                 txUrl = txUrl,
                 isUserMe = isUserMe,
-                authorClicked = onAuthorClick,
                 networkName = networkName,
                 isLastMessageByAuthor=isLastMessageByAuthor,
-                isFirstMessageByAuthor=isFirstMessageByAuthor
             )
             if (isFirstMessageByAuthor) {
                 // Last bubble before next author
@@ -221,9 +217,7 @@ fun TxChatItemBubble(
     networkName: String,
     amount: Double,
     isUserMe: Boolean,
-    authorClicked: (String) -> Unit,
     isLastMessageByAuthor: Boolean,
-    isFirstMessageByAuthor: Boolean
 ) {
 
     val uriHandler = LocalUriHandler.current
@@ -507,7 +501,6 @@ fun previewTxClickableMessage() {
         txUrl = "eth-mainnet",
         amount = 0.0008,
         isUserMe = true,
-        authorClicked = { }
     )
 
 }
@@ -518,7 +511,6 @@ fun TxClickableMessage(
     symbol: String = "ETH",
     amount: Double,
     isUserMe: Boolean,
-    authorClicked: (String) -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
 

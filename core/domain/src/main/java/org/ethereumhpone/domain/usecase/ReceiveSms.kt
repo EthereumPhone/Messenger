@@ -28,16 +28,16 @@ class ReceiveSms @Inject constructor(
 
         val time = messages[0].timestampMillis
         val body = messages
-            .mapNotNull { messages -> messages.displayMessageBody }
+            .mapNotNull { notNullMessages -> notNullMessages.displayMessageBody }
             .reduce { body, new -> body + new  }
 
         val message = messageRepository.insertReceivedSms(subId, address, body, time)
 
         when (action) {
-            is BlockingClient.Action.Block -> {
-                messageRepository.markRead(message.threadId)
-                conversationRepository.markBlocked(listOf(message.threadId), 0, action.reason)
-            }
+            //is BlockingClient.Action.Block -> {
+           //     messageRepository.markRead(message.threadId)
+            //    conversationRepository.markBlocked(listOf(message.threadId), 0, action.reason)
+            //}
             is BlockingClient.Action.Unblock -> conversationRepository.markUnblocked(message.threadId)
             else -> {}
         }
