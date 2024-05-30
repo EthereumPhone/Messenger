@@ -82,10 +82,6 @@ fun SelectorComponent(
 }
 
 
-enum class ActionState {
-    Active,
-    Unactive
-}
 @Composable
 fun ActionButton(
     onSelectorChange: () -> Unit,
@@ -112,7 +108,7 @@ fun ActionButton(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         IconButton(
             modifier = Modifier
@@ -145,7 +141,7 @@ fun ActionButton(
                 text = title,
                 style = TextStyle(
                     fontSize = 14.sp,
-                    fontWeight =  FontWeight.Normal,
+                    fontWeight =  FontWeight.Medium,
                     color = Colors.WHITE,
                     fontFamily = Fonts.INTER
                 )

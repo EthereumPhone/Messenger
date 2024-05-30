@@ -7,6 +7,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -108,6 +109,7 @@ import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
 
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ChatRoute(
     modifier: Modifier = Modifier,
@@ -209,18 +211,18 @@ fun ChatScreen(
             .exclude(WindowInsets.ime),
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ){
+//            SharedTransitionLayout {
+//                AnimatedContent(
+//                    profileview,
+//                    label = "profile_view"
+//                ) { targetState ->
+//                    if (!targetState.value) {
 
-        SharedTransitionLayout {
-            AnimatedContent(
-                profileview,
-                label = "profile_view"
-            ) { targetState ->
-                if (!targetState.value) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    ){
 
                         ConversationChat(
                             chatUIState = chatUIState,
@@ -239,8 +241,9 @@ fun ChatScreen(
                             focusMode = focusMode,
                             focusedmessage = focusedmessage,
                             textFieldFocusState = textFieldFocusState,
-                            animatedVisibilityScope = this@AnimatedContent,
-                            sharedTransitionScope = this@SharedTransitionLayout
+                            profileview = profileview,
+//                            animatedVisibilityScope = this@AnimatedContent,
+//                            sharedTransitionScope = this@SharedTransitionLayout
                         )
 
                         AnimatedVisibility(
@@ -256,29 +259,25 @@ fun ChatScreen(
                                 focusedmessage.value,composablePositionState, focusMode
                             )
                         }
-                    }
-                } else {
-                    AnimatedVisibility(
-                        profileview.value,
-                        enter = fadeIn(
-                            animationSpec = tween(300),
-                        ),
-                        exit = fadeOut(
-                            animationSpec = tween(300,),
-                        )
-                    ){
-                        ProfileDetailScreen(
-                            recipient = recipient
-                        )
-                    }
 
-                }
-
-            }
-
-
-
+//                    } else {
+//                        ProfileDetailScreen(
+//                            onBack = {
+//                                profileview.value = false
+//                            },
+//                            recipient = recipient,
+//                            animatedVisibilityScope = this@AnimatedContent,
+//                            sharedTransitionScope = this@SharedTransitionLayout
+//                        )
+//                    }
+//
+//                }
+//
+//
+//
+//            }
         }
+
 
 
             //Asset ModalSheet

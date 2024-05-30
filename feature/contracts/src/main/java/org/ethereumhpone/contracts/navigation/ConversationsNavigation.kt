@@ -1,5 +1,6 @@
 package org.ethereumhpone.contracts.navigation
 
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -29,7 +30,9 @@ fun NavGraphBuilder.conversationsGraph(
             route = conversationsRoute
         ) {
             ContactRoute(
-                navigateToChat = navigateToChat
+                navigateToChat = navigateToChat,
+
+
             )
         }
         nestedGraphs()

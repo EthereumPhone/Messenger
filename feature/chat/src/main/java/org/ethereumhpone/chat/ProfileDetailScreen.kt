@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
@@ -65,9 +66,9 @@ fun ProfileDetailScreen(
     modifier: Modifier = Modifier,
     //contacts: List<Contact> = emptyList(),
     recipient: Recipient?,
-
-//    sharedTransitionScope: SharedTransitionScope,
-//    animatedVisibilityScope: AnimatedVisibilityScope
+    onBack: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
     //group: List<Contact> = emptyList()
 ){
     //ChatScreen(navigateBackToConversations={},chatUIState=ChatUIState.Success(listOf()))
@@ -89,7 +90,9 @@ fun ProfileDetailScreen(
     ){
 
         //back button(
-        ProfileDetailHeader()
+        ProfileDetailHeader(
+            onBackClick = onBack
+        )
 
         Column(
             verticalArrangement = Arrangement.spacedBy(32.dp),
@@ -111,54 +114,78 @@ fun ProfileDetailScreen(
                 Box(
                     modifier = Modifier
                         .size(150.dp)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(CircleShape)
                         .background(Color(0xFF262626))
                 ){
-                    when(isGroup){
-                        false -> {
+                    with(sharedTransitionScope) {
+                        when(isGroup){
+                            false -> {
 
-                            if (contact != null) {
-                                if (contact.photoUri != ""){
-                                    Image(
-                                        painter = rememberAsyncImagePainter(contact.photoUri),
-                                        contentDescription = "Contact Profile Pic",
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else{
-                                    Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                                if (contact != null) {
+                                    if (contact.photoUri != ""){
+                                        Image(
+                                            painter = rememberAsyncImagePainter(contact.photoUri),
+                                            contentDescription = "Contact Profile Pic",
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else{
+                                        Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                                    }
                                 }
                             }
-                        }
 
-                        true -> {
-                            if (contact != null) {
-                                if (contact.photoUri != ""){
-                                    Image(
-                                        painter = rememberAsyncImagePainter(contact.photoUri),
-                                        contentDescription = "Contact Profile Pic",
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else{
-                                    Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                            true -> {
+                                if (contact != null) {
+                                    if (contact.photoUri != ""){
+                                        Image(
+                                            painter = rememberAsyncImagePainter(contact.photoUri),
+                                            contentDescription = "profile_image",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .sharedElement(
+                                                    rememberSharedContentState(key = "profile_image"),
+                                                    animatedVisibilityScope = animatedVisibilityScope
+                                                )
+                                        )
+                                    } else{
+                                        Image(
+                                            painter = painterResource(id = R.drawable.nouns_placeholder),
+                                            contentDescription = "contact Profile Pic",
+                                            modifier = Modifier
+                                                .sharedElement(
+                                                    rememberSharedContentState(key = "placeholder_profile_image"),
+                                                    animatedVisibilityScope = animatedVisibilityScope
+                                                )
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+
                 }
 
                 when(isGroup){
                     false -> {
 
                         if (contact != null) {
-                            Text(
-                                text = contact.name,
-                                style = TextStyle(
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Colors.WHITE,
-                                    fontFamily = Fonts.INTER
+                            with(sharedTransitionScope) {
+                                Text(
+                                    modifier = Modifier
+                                        .sharedElement(
+                                            rememberSharedContentState(key = "contact_name"),
+                                            animatedVisibilityScope = animatedVisibilityScope
+                                        ),
+                                    text = contact.name,
+                                    style = TextStyle(
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Colors.WHITE,
+                                        fontFamily = Fonts.INTER
+                                    )
                                 )
-                            )
+                            }
+
                         }
                     }
 
@@ -167,15 +194,22 @@ fun ProfileDetailScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = "Group Name", // TODO: Implement Group Fucntionality
-                                style = TextStyle(
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Colors.WHITE,
-                                    fontFamily = Fonts.INTER
+                            with(sharedTransitionScope) {
+                                Text(
+                                    modifier = Modifier
+                                        .sharedElement(
+                                            rememberSharedContentState(key = "contact_name"),
+                                            animatedVisibilityScope = animatedVisibilityScope
+                                        ),
+                                    text = "Group Name", // TODO: Implement Group Fucntionality
+                                    style = TextStyle(
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Colors.WHITE,
+                                        fontFamily = Fonts.INTER
+                                    )
                                 )
-                            )
+                            }
                             Text(
                                 text = "N/A Members", // TODO: Implement Group Fucntionality
                                 style = TextStyle(
@@ -185,6 +219,7 @@ fun ProfileDetailScreen(
                                     fontFamily = Fonts.INTER
                                 )
                             )
+
                         }
 
 
@@ -202,6 +237,7 @@ fun ProfileDetailScreen(
                 ){
                     Row {
                         ContactActionButton(Icons.Outlined.Phone,"Call",{})
+                        ContactActionButton(Icons.Outlined.Contacts,"Contact",{})
                     }
                     Divider(
                         modifier = Modifier.fillMaxWidth(),

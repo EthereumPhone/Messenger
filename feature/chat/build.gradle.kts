@@ -88,9 +88,7 @@ dependencies {
     implementation(libs.androidx.compose.animation)
 
 
-
-
-
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.0-rc01")
 
 }
 
