@@ -3,6 +3,7 @@ package org.ethereumhpone.domain.usecase
 import android.telephony.SmsMessage
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.ethereumhpone.domain.blocking.BlockingClient
 import org.ethereumhpone.domain.repository.ConversationRepository
@@ -18,7 +19,7 @@ class ReceiveSms @Inject constructor(
 ) {
 
     suspend operator fun invoke(subId: Int, messages: Array<SmsMessage>) {
-        if(messages.isNotEmpty()) return
+        if(messages.isEmpty()) return
 
         val address = messages[0].displayOriginatingAddress
         val action = blockingClient.shouldBlock(address)
@@ -27,28 +28,28 @@ class ReceiveSms @Inject constructor(
 
         val time = messages[0].timestampMillis
         val body = messages
-            .mapNotNull { messages -> messages.displayMessageBody }
+            .mapNotNull { notNullMessages -> notNullMessages.displayMessageBody }
             .reduce { body, new -> body + new  }
 
         val message = messageRepository.insertReceivedSms(subId, address, body, time)
 
         when (action) {
-            is BlockingClient.Action.Block -> {
-                messageRepository.markRead(message.threadId)
-                conversationRepository.markBlocked(listOf(message.threadId), 0, action.reason)
-            }
+            //is BlockingClient.Action.Block -> {
+           //     messageRepository.markRead(message.threadId)
+            //    conversationRepository.markBlocked(listOf(message.threadId), 0, action.reason)
+            //}
             is BlockingClient.Action.Unblock -> conversationRepository.markUnblocked(message.threadId)
-            else -> Unit
+            else -> {}
         }
 
         conversationRepository.updateConversations(message.threadId)
-        conversationRepository.getOrCreateConversation(message.threadId)
-            .filterNotNull()
-            .filter { !it.blocked }
-            .map {
-                if (it.archived) conversationRepository.markUnarchived(it.id)
+
+        val conversation = conversationRepository.getOrCreateConversation(message.threadId).first()
+        conversation?.let {
+            if(!it.blocked) {
+                if(it.archived) conversationRepository.markUnarchived(it.id)
                 notificationManager.update(it.id)
             }
-
+        }
     }
 }

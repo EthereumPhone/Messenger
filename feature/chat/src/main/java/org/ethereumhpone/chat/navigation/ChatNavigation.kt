@@ -1,13 +1,15 @@
 package org.ethereumhpone.chat.navigation
 
+import android.net.Uri
 import androidx.annotation.VisibleForTesting
-import androidx.compose.animation.SharedTransitionScope
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavOptions
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navigation
 import org.ethereumhpone.chat.ChatRoute
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.util.Converters
@@ -19,6 +21,9 @@ private val URL_CHARACTER_ENCODING = Charsets.UTF_8.name()
 
 @VisibleForTesting
 internal const val threadIdArg = "threadId"
+
+@VisibleForTesting
+internal const val addressesArg = "addresses"
 
 @VisibleForTesting
 internal const val contactArg = "contact"
@@ -33,21 +38,20 @@ internal class ThreadIdArgs(val threadId: String) {
             this(URLDecoder.decode(checkNotNull(savedStateHandle[threadIdArg]), URL_CHARACTER_ENCODING))
 }
 
-fun NavController.navigateToChat(threadId: String, contact: Contact?) {
+internal class AddressesArgs(val addresses: List<String>) {
+    constructor(savedStateHandle: SavedStateHandle) :
+            this(Converters().toStringList(Uri.decode(checkNotNull(savedStateHandle[addressesArg]))))}
 
+fun NavController.navigateToChat(
+    threadId: String = "0L",
+    addresses: List<String> = emptyList()
+) {
     val encodedThreadId = URLEncoder.encode(threadId, URL_CHARACTER_ENCODING)
+    //val encodedAddresses = URLEncoder.encode(Converters().fromStringList(addresses), URL_CHARACTER_ENCODING)
+    val encodedAddresses = Uri.encode(Converters().fromStringList(addresses))
 
-
-    if (contact != null) {
-        val encodedContact =  URLEncoder.encode(Converters().toContact(contact), URL_CHARACTER_ENCODING)
-
-        this.navigate("$chatRoute/$encodedThreadId/$encodedContact") {
-            launchSingleTop = true
-        }
-    } else {
-        this.navigate("$chatRoute/$encodedThreadId") {
-            launchSingleTop = true
-        }
+    this.navigate("$chatRoute/$encodedThreadId/$encodedAddresses") {
+        launchSingleTop = true
     }
 }
 
@@ -55,31 +59,14 @@ fun NavGraphBuilder.chatScreen(
     onBackClick: () -> Unit,
 ) {
     composable(
-        route = "$chatRoute/{$threadIdArg}/{$contactArg}",
+        route = "$chatRoute/{$threadIdArg}/{$addressesArg}",
         arguments = listOf(
             navArgument("threadId") { type = NavType.StringType },
-            navArgument("contact") { type = NavType.StringType },
+            navArgument("addresses") { type = NavType.StringType },
         ),
     ) {
-        val threadId = it.arguments?.getString("threadId")
-
         ChatRoute(
             navigateBackToConversations = onBackClick,
-            threadId = threadId,
-        )
-    }
-
-    composable(
-        route = "$chatRoute/{$threadIdArg}",
-        arguments = listOf(
-            navArgument("threadId") { type = NavType.StringType },
-        ),
-    ) {
-        val threadId = it.arguments?.getString("threadId")
-
-        ChatRoute(
-            navigateBackToConversations = onBackClick,
-            threadId = threadId
         )
     }
 }

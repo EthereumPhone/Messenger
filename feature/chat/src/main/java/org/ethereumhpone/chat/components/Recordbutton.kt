@@ -143,7 +143,7 @@ private fun Modifier.voiceRecordingGesture(
                 }
                 dragging = false
             },
-            onDrag = { change, dragAmount ->
+            onDrag = { _, dragAmount ->
                 if (dragging) {
                     onSwipeProgressChanged(horizontalSwipeProgress() + dragAmount.x)
                     offsetY += dragAmount.y

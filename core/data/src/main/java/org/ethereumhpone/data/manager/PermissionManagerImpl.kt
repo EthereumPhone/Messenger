@@ -42,7 +42,9 @@ class PermissionManagerImpl @Inject constructor(
 
     override fun hasCalling(): Boolean = hasPermission(Manifest.permission.CALL_PHONE)
 
-    override fun hasStorage(): Boolean = hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    override fun hasWriteStorage(): Boolean = hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+    override fun hasReadStorage(): Boolean = hasPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
 
     private fun hasPermission(permission: String): Boolean {
         return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED

@@ -2,6 +2,7 @@ package org.ethereumhpone.contracts
 
 import android.Manifest
 import android.content.Context
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -52,6 +54,7 @@ import org.ethosmobile.components.library.core.ethOSHeader
 import org.ethosmobile.components.library.theme.Colors
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
 import org.ethosmobile.components.library.theme.Fonts
@@ -61,25 +64,31 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.Recipient
 
 
 @Composable
 fun ContactRoute(
     modifier: Modifier = Modifier,
-    navigateToChat: (String, Contact?) -> Unit,
+    navigateToChat: (String, List<String>) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
 ){
-    val context = LocalContext.current
-
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
 
 
 
     ContactScreen(
+        modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
-        navigateToChat = navigateToChat,
+        contactClicked = {
+            navigateToChat("0", listOf(it))
+                         },
+        conversationClicked = { id, recipients ->
+            viewModel.setConversationAsRead(id.toLong())
+            navigateToChat(id, recipients.map { it.address })
+        }
     )
 }
 
@@ -88,11 +97,11 @@ fun ContactRoute(
 fun ContactScreen(
     contacts: List<Contact>,
     conversationState: ConversationUIState,
-    navigateToChat: (String, Contact?) -> Unit,
+    contactClicked: (String) -> Unit,
+    conversationClicked: (String, List<Recipient>) -> Unit,
     modifier: Modifier = Modifier
 ){
 
-    val scrollState = rememberLazyListState()
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -102,15 +111,9 @@ fun ContactScreen(
     var showContactSheet by remember { mutableStateOf(false) }
     val modalContactSheetState = rememberModalBottomSheetState(true)
 
-    var showCameraWithPerm by remember {
-        mutableStateOf(false)
-    }
-
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
     val contactsPermissionsToRequest = listOf(
-        Manifest.permission.READ_CONTACTS
+        Manifest.permission.READ_CONTACTS,
+        Manifest.permission.READ_SMS
     )
 
     val contactsPermissionState = rememberMultiplePermissionsState(permissions = contactsPermissionsToRequest)
@@ -189,15 +192,33 @@ fun ContactScreen(
                                conversationState.conversations.sortedBy { it.date }.reversed().forEach { conversation ->
                                    item {
                                        ChatListInfo(
+                                           image = {
+                                               if (conversation.recipients.get(0).contact?.photoUri != null) {
+                                                   Image(
+                                                       painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                       contentDescription = "Contact Image",
+                                                       modifier = Modifier
+                                                           .size(48.dp) // Set the size of the image
+                                                           .clip(CircleShape) // Apply a circular shape
+                                                   )
+                                               } else {
+                                                   Image(
+                                                       painter = painterResource(id = R.drawable.nouns),
+                                                       contentDescription = "Contact Image",
+                                                       modifier = Modifier
+                                                           .size(48.dp) // Set the size of the image
+                                                           .clip(CircleShape) // Apply a circular shape
+                                                   )
+                                               }
+                                           },
                                            header = conversation.recipients.get(0).getDisplayName(),
                                            subheader = conversation.lastMessage?.getText() ?: "",
-                                           ens = "",
                                            time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                            unreadConversation = conversation.unread,
                                            onClick = {
                                            },
                                            modifier = modifier.clickable {
-                                               navigateToChat(conversation.id.toString(), null)
+                                               conversationClicked(conversation.id.toString(), conversation.recipients)
                                            }
                                        )
                                    }
@@ -222,8 +243,6 @@ fun ContactScreen(
                    }
 
                 }
-
-                else -> {}
             }
 
         }
@@ -260,12 +279,10 @@ fun ContactScreen(
                 ContactSheet(allowedContacts) {
                     showContactSheet = false
                     println("Contact clicked ${it.name}")
-                    navigateToChat("0", it)
 
+                    contactClicked(it.numbers[0].address)
                 }
             }
-
-
         }
     }
 }
@@ -276,19 +293,8 @@ fun convertLongToTime(time: Long): String {
     return format.format(date)
 }
 
-fun currentTimeToLong(): Long {
-    return System.currentTimeMillis()
-}
 
-fun convertDateToLong(date: String): Long {
-    val df = SimpleDateFormat("yyyy.MM.dd HH:mm")
-    return df.parse(date).time
-}
-
-
-
-
-    @Composable
+@Composable
 @Preview
 fun PreviewContactScreen(){
     ContactScreen(
@@ -305,6 +311,6 @@ fun PreviewContactScreen(){
                 )
             )
         ),
-        { _, _ -> }
+        {},{_, _ ->}
     )
 }

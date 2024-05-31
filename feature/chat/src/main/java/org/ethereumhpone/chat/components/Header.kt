@@ -76,6 +76,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.platform.LocalContext
 
 
+
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ChatHeader(
@@ -355,6 +356,7 @@ fun getEnsAddresses(ens: List<String>): String{
     return res
 }
 
+
 fun makePhoneCall(context: Context, phoneNumber: String) {
     val intent = Intent(Intent.ACTION_CALL)
     intent.data = Uri.parse("tel:$phoneNumber")
@@ -377,5 +379,12 @@ fun launchApp(context: Context, packageName: String) {
     } catch (e: Exception) {
         Toast.makeText(context, "Error launching app", Toast.LENGTH_SHORT).show()
     }
+}
+
+
+@Composable
+@Preview
+fun PreviewHeader() {
+
 }
 

@@ -1,6 +1,7 @@
 package org.ethereumhpone.data.mapper
 
 import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
@@ -122,6 +123,7 @@ class ConversationCursorImpl @Inject constructor(
         } ?: return null
 
         // Use the phone number to look up the contact's details in the Contacts content provider
+        if (phoneNumber.isEmpty()) return null
         val uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber))
         ctx.contentResolver.query(
             uri,
@@ -148,7 +150,7 @@ class ConversationCursorImpl @Inject constructor(
                 phonesCursor?.use {
                     var isDefaultSet = false
                     while (it.moveToNext()) {
-                        val id = it.getLong(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone._ID)) ?: UUID.randomUUID().mostSignificantBits
+                        val id = it.getLong(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone._ID))
                         val address = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)) ?: ""
                         val type = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.TYPE)) ?: ""
                         val accountType = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.ACCOUNT_TYPE_AND_DATA_SET)) ?: ""
@@ -157,7 +159,23 @@ class ConversationCursorImpl @Inject constructor(
                     }
                 }
 
-                return Contact(lookupKey, numbers, name, photoUri, isFavorite, System.currentTimeMillis())
+                return Contact(lookupKey, numbers, name, photoUri, isFavorite, System.currentTimeMillis(), getData15ForContact(lookupKey))
+            }
+        }
+        return null
+    }
+
+    @SuppressLint("Range")
+    fun getData15ForContact(contactId: String): String? {
+        val contentResolver: ContentResolver = context.contentResolver
+        val uri = ContactsContract.Data.CONTENT_URI
+        val projection = arrayOf(ContactsContract.Data.DATA15)
+        val selection = "${ContactsContract.Data.LOOKUP_KEY} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
+        val selectionArgs = arrayOf(contactId, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+
+        contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DATA15))
             }
         }
         return null

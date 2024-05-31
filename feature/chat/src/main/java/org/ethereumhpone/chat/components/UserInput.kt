@@ -111,6 +111,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.ethereumhpone.chat.R
 import org.ethosmobile.components.library.core.calculateFontSize
+import org.ethosmobile.components.library.core.ethOSButton
 import org.ethosmobile.components.library.core.ethOSTagButton
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -143,7 +144,7 @@ enum class ModalSelector {
 @Preview
 @Composable
 fun UserInputPreview() {
-    UserInput(onMessageSent = {},onOpenAssetPicker = {})
+    UserInput(onMessageSent = {},onOpenAssetPicker = {}, tokenBalance = 0.0, chainName = "Mainnet")
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -152,7 +153,9 @@ fun UserInput(
     onMessageSent: (String) -> Unit,
     modifier: Modifier = Modifier,
     resetScroll: () -> Unit = {},
-    onOpenAssetPicker: () -> Unit
+    tokenBalance: Double,
+    chainName: String,
+    onOpenAssetPicker: (amount: Double) -> Unit
 ) {
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
     val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
@@ -196,7 +199,6 @@ fun UserInput(
                     dismissKeyboard()
                 } ,
                 sendMessageEnabled = textState.text.isNotBlank(),
-                showActionbar = showActionbar,
                 onChangeShowActionBar = {
                     showActionbar = !showActionbar
                 }
@@ -208,10 +210,11 @@ fun UserInput(
                     currentInputSelector = currentInputSelector
                 )
                 SelectorExpanded(
-                    onCloseRequested = dismissKeyboard,
                     onTextAdded = { textState = textState.addText(it) },
                     currentSelector = currentInputSelector,
-                    onOpenAssetPicker = onOpenAssetPicker
+                    tokenBalance = tokenBalance,
+                    onOpenAssetPicker = onOpenAssetPicker,
+                    chainName = chainName
                 )
             }
 
@@ -236,9 +239,10 @@ fun TextFieldValue.addText(newString: String): TextFieldValue {
 @Composable
 fun SelectorExpanded(
     currentSelector: InputSelector,
-    onCloseRequested: () -> Unit,
+    tokenBalance: Double,
+    chainName: String,
     onTextAdded: (String) -> Unit,
-    onOpenAssetPicker: () -> Unit
+    onOpenAssetPicker: (amount: Double) -> Unit
 ) {
     if (currentSelector == InputSelector.NONE) return
 
@@ -254,7 +258,7 @@ fun SelectorExpanded(
     Surface(tonalElevation = 8.dp) {
         when (currentSelector) {
             InputSelector.EMOJI -> EmojiSelector(onTextAdded, focusRequester)
-            InputSelector.WALLET -> WalletSelector(focusRequester = focusRequester, onOpenAssetPicker =  onOpenAssetPicker)
+            InputSelector.WALLET -> WalletSelector(focusRequester = focusRequester, tokenBalance = tokenBalance, onSendEth =  onOpenAssetPicker, chainName = chainName)
             InputSelector.PICTURE -> FunctionalityNotAvailablePanel("Picture") // TODO: link to Camera
             else -> {
                 throw NotImplementedError()
@@ -400,7 +404,6 @@ fun UserInputText(
     focusState: Boolean,
     onMessageSent: () -> Unit,
     sendMessageEnabled: Boolean,
-    showActionbar: Boolean,
     onChangeShowActionBar:  () -> Unit
 ) {
     val swipeOffset = remember { mutableStateOf(0f) }
@@ -471,9 +474,7 @@ fun UserInputText(
                         Modifier.semantics {
                             contentDescription = a11ylabel
                             keyboardShownProperty = keyboardShown
-                        },
-                        onMessageSent,
-                        sendMessageEnabled
+                        }
                     )
                 }
             }
@@ -506,8 +507,6 @@ private fun BoxScope.UserInputTextField(
     keyboardType: KeyboardType,
     focusState: Boolean,
     modifier: Modifier = Modifier,
-    onMessageSent: () -> Unit,
-    sendMessageEnabled: Boolean,
 ) {
     var lastFocusState by remember { mutableStateOf(false) }
     BasicTextField(
@@ -552,8 +551,7 @@ private fun BoxScope.UserInputTextField(
         }
     }
 
-    val disableContentColor =
-        MaterialTheme.colorScheme.onSurfaceVariant
+
     if (textFieldValue.text.isEmpty() && !focusState) {
         Text(
             modifier = Modifier
@@ -661,7 +659,9 @@ fun EmojiSelector(
 @Composable
 fun WalletSelector(
     focusRequester: FocusRequester,
-    onOpenAssetPicker: () -> Unit
+    tokenBalance: Double,
+    chainName: String,
+    onSendEth: (amount: Double) -> Unit,
 ) {
     AnimatedVisibility(
         visibleState = remember { MutableTransitionState(false).apply { targetState = true } },
@@ -680,9 +680,10 @@ fun WalletSelector(
         ) {
             Row(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 WalletTable(
-                    tokenBalance = 0.0,
+                    tokenBalance = tokenBalance,
                     modifier = Modifier.padding(8.dp),
-                    onOpenAssetPicker = onOpenAssetPicker
+                    onSendEth = onSendEth,
+                    chainName = chainName
                 )
             }
         }
@@ -750,10 +751,17 @@ fun EmojiTable(
     }
 }
 
+@Preview
+@Composable
+fun WalletTablePreview() {
+    WalletTable(tokenBalance = 0.0, onSendEth = {}, chainName = "ETH")
+}
+
 @Composable
 fun WalletTable(
     tokenBalance: Double,
-    onOpenAssetPicker: () -> Unit,
+    chainName: String,
+    onSendEth: (amount: Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var amount by remember { mutableStateOf("") }
@@ -773,7 +781,7 @@ fun WalletTable(
                     .clip(CircleShape)
                     .background(Colors.GRAY)){}
                 Text(
-                    text = "Mainnet",
+                    text = chainName,
                     fontSize = 12.sp,
                     color = Colors.GRAY,
                     fontWeight = FontWeight.Normal
@@ -787,9 +795,6 @@ fun WalletTable(
 
             ){
                 ethOSTextField(
-                    modifier = Modifier
-                        .background(Color.Red)
-                        .weight(1f),
                     text = amount,
                     label = "0",
                     singleLine = true,
@@ -821,7 +826,9 @@ fun WalletTable(
                         .size(56.dp)
                         ,
                     enabled = true,
-                    onClick = {}, //sent ETH
+                    onClick = {
+                        amount.toDoubleOrNull()?.let { onSendEth(it) }
+                    },
                 ) {
                     Icon(imageVector = Icons.Rounded.ArrowUpward, modifier = Modifier.size(36.dp), contentDescription = "Send",tint = Colors.WHITE)
                 }
@@ -834,9 +841,12 @@ fun WalletTable(
                 fontWeight = FontWeight.Normal
             )
 
-            ethOSTagButton(text = token) {
-                onOpenAssetPicker() //Open Asset Modal Sheet
-            }
+            Text(
+                text = token,
+                fontSize = 20.sp,
+                color = Colors.GRAY,
+                fontWeight = FontWeight.Normal
+            )
         }
 
 
@@ -853,7 +863,6 @@ fun WalletTable(
 fun ethOSTextField(
     text: String,
     size: Int,
-    modifier: Modifier = Modifier,
     label: String = "",
     singleLine: Boolean = false,//true,
     maxChar: Int = 42,

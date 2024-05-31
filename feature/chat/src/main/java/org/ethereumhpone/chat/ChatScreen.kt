@@ -1,23 +1,17 @@
 package org.ethereumhpone.chat
 
-import android.widget.Toast
+import android.net.Uri
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +28,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.TextField
@@ -82,19 +79,17 @@ import androidx.compose.material.icons.outlined.InsertPhoto
 import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import org.ethereumhpone.chat.components.ChatHeader
 import org.ethereumhpone.chat.components.ContactSheet
@@ -103,102 +98,90 @@ import org.ethereumhpone.chat.components.ModalSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.ethereumhpone.chat.components.ComposablePosition
-import org.ethereumhpone.chat.components.ConversationChat
+import org.ethereumhpone.chat.components.GallerySheet
+import org.ethereumhpone.chat.components.TxMessage
+import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
 
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+
 @Composable
 fun ChatRoute(
-    modifier: Modifier = Modifier,
     navigateBackToConversations: () -> Unit,
-    threadId: String?,
-    viewModel: ChatViewModel = hiltViewModel(),
+    viewModel: ChatViewModel = hiltViewModel()
 ){
-    val chatUIState by viewModel.chatState.collectAsStateWithLifecycle()
-    val recipient by viewModel.recipient.collectAsStateWithLifecycle()
+    val messagesUiState by viewModel.messagesState.collectAsStateWithLifecycle()
+    val recipient by viewModel.recipientState.collectAsStateWithLifecycle()
+    val tokenBalance by viewModel.ethBalance.collectAsStateWithLifecycle()
+    val chainName by viewModel.chainName.collectAsStateWithLifecycle()
+    val attachments by viewModel.attachments.collectAsStateWithLifecycle()
+    val selectedAttachments by viewModel.selectedAttachments.collectAsStateWithLifecycle()
 
     ChatScreen(
-        chatUIState = chatUIState,
+        messagesUiState = messagesUiState,
         recipient = recipient,
+        attachments = attachments,
+        selectedAttachments = selectedAttachments,
         navigateBackToConversations = navigateBackToConversations,
+        tokenBalance = tokenBalance,
+        chainName = chainName,
+        onSendEthClicked = viewModel::sendEth,
+        onAttachmentClicked = viewModel::toggleSelection,
         onSendMessageClicked = viewModel::sendMessage,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
-    chatUIState: ChatUIState,
+    messagesUiState: MessagesUiState,
     recipient: Recipient?,
+    attachments: List<Attachment> = emptyList(),
+    selectedAttachments: Set<Attachment> = emptySet(),
     navigateBackToConversations: () -> Unit,
-    onSendMessageClicked: (String, List<Attachment>) -> Unit,
-){
+    onSendEthClicked: (amount: Double) -> Unit,
+    tokenBalance: Double,
+    chainName: String,
+    onAttachmentClicked: (Attachment) -> Unit,
+    onSendMessageClicked: (String) -> Unit,
+
+    ){
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
 
 
     //ModalSheets
-    var showAssetSheet = remember { mutableStateOf(false) }
+    var showAssetSheet by remember { mutableStateOf(false) }
     val modalAssetSheetState = rememberModalBottomSheetState(true)
 
-    var currentInputSelector = rememberSaveable { mutableStateOf(InputSelector.NONE) }
 
-    var currentModalSelector = rememberSaveable { mutableStateOf(ModalSelector.CONTACT) }
+    var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
+    var currentModalSelector by rememberSaveable { mutableStateOf(ModalSelector.CONTACT) }
 
-    val dismissKeyboard = { currentInputSelector.value = InputSelector.NONE }
+
+    val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
 
     // Intercept back navigation if there's a InputSelector visible
-    if (currentInputSelector.value != InputSelector.NONE) {
+    if (currentInputSelector != InputSelector.NONE) {
         BackHandler(onBack = dismissKeyboard)
     }
 
-    var textState = rememberSaveable(stateSaver = TextFieldValue.Saver) {
+    var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
     }
 
-    var showActionbar = remember { mutableStateOf(false) }
-    var showSelectionbar = remember { mutableStateOf(false) }
+    var showActionbar by remember { mutableStateOf(false) }
+    var showSelectionbar by remember { mutableStateOf(false) }
 
 
 
     // Used to decide if the keyboard should be shown
-    var textFieldFocusState = remember { mutableStateOf(false) }
+    var textFieldFocusState by remember { mutableStateOf(false) }
 
     val controller = LocalSoftwareKeyboardController.current
-
-
-
-
-    //Message
-    val focusMode = remember {
-        mutableStateOf(false)
-    }
-
-    val composablePositionState = remember { mutableStateOf(ComposablePosition()) }//gets offset of message composable
-
-    var focusedmessage = remember { mutableStateOf(
-        org.ethereumhpone.database.model.Message(
-            address = "me",
-            body = "",
-            subject = ""
-        )
-    ) }
-
-    val profileview = remember {
-        mutableStateOf(false)
-    }
-
-
-    val context = LocalContext.current
-
-
-
-
 
 
     Scaffold (
@@ -211,78 +194,321 @@ fun ChatScreen(
             .exclude(WindowInsets.ime),
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ){
-//            SharedTransitionLayout {
-//                AnimatedContent(
-//                    profileview,
-//                    label = "profile_view"
-//                ) { targetState ->
-//                    if (!targetState.value) {
-
-
-                        ConversationChat(
-                            chatUIState = chatUIState,
-                            recipient = recipient,
-                            navigateBackToConversations = navigateBackToConversations,
-                            onSendMessageClicked = onSendMessageClicked,
-                            currentModalSelector = currentModalSelector,
-                            composablePositionState = composablePositionState,
-                            showActionbar = showActionbar,
-                            showAssetSheet = showAssetSheet,
-                            controller = controller,
-                            dismissKeyboard = dismissKeyboard,
-                            showSelectionbar = showSelectionbar,
-                            textState = textState,
-                            currentInputSelector = currentInputSelector,
-                            focusMode = focusMode,
-                            focusedmessage = focusedmessage,
-                            textFieldFocusState = textFieldFocusState,
-                            profileview = profileview,
-//                            animatedVisibilityScope = this@AnimatedContent,
-//                            sharedTransitionScope = this@SharedTransitionLayout
-                        )
-
-                        AnimatedVisibility(
-                            focusMode.value,
-                            enter = fadeIn(
-                                animationSpec = tween(300),
-                            ),
-                            exit = fadeOut(
-                                animationSpec = tween(300,),
-                            )
-                        ){
-                            MessageOptionsScreen(
-                                focusedmessage.value,composablePositionState, focusMode
+            Box(modifier = modifier.fillMaxSize()) {
+                Box(modifier = modifier.fillMaxSize()){
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        recipient?.let {
+                            ChatHeader(
+                                name = it.getDisplayName(),
+                                image = "",
+                                ens = listOf(""),
+                                onBackClick = navigateBackToConversations,
+                                onContactClick = {
+                                    currentModalSelector = ModalSelector.CONTACT
+                                    showAssetSheet = true
+                                }
                             )
                         }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                        ){
+                            Column(
+                                verticalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(paddingValues)
+                            ){
+                                when(messagesUiState) {
 
-//                    } else {
-//                        ProfileDetailScreen(
-//                            onBack = {
-//                                profileview.value = false
-//                            },
-//                            recipient = recipient,
-//                            animatedVisibilityScope = this@AnimatedContent,
-//                            sharedTransitionScope = this@SharedTransitionLayout
-//                        )
-//                    }
-//
-//                }
-//
-//
-//
-//            }
-        }
+                                    is MessagesUiState.Loading -> {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxSize()
+                                                .padding(horizontal = 24.dp),
+                                            contentAlignment = Alignment.Center
+
+                                        ) {
+
+                                            Text(
+                                                text = "Loading...",
+                                                fontSize = 12.sp,
+                                                fontFamily = Fonts.INTER,
+                                                color = Colors.WHITE,
+                                                )
+                                        }
+                                    }
+
+                                    is MessagesUiState.Success -> {
+                                        LazyColumn(
+                                            reverseLayout = true,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 24.dp)
+                                        ) {
+
+                                            messagesUiState.messages.sortedBy { it.date }.reversed().forEachIndexed { index, message ->
+
+                                                val prevAuthor = messagesUiState.messages.getOrNull(index - 1)?.address
+                                                val nextAuthor = messagesUiState.messages.getOrNull(index + 1)?.address
+                                                val content = messagesUiState.messages[index]
+                                                val isFirstMessageByAuthor = prevAuthor != content.address
+                                                val isLastMessageByAuthor = nextAuthor != content.address
+
+                                                item {
+                                                    if (isValidTransactionMessage(message.body)) {
+                                                        val transactionDetails = extractTransactionDetails(message.body)
+                                                        transactionDetails?.let {
+                                                            TxMessage(
+                                                                amount = it.amount.toDouble(),
+                                                                txUrl = it.url,
+                                                                isUserMe = message.isMe(),
+                                                                isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                                isLastMessageByAuthor = isLastMessageByAuthor,
+                                                                networkName = chainIdToReadableName(it.chainId),
+                                                            )
+                                                        } ?:
+                                                        Message(
+                                                            onAuthorClick = { },
+                                                            msg = message,
+                                                            isUserMe = message.isMe(),
+                                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                            isLastMessageByAuthor = isLastMessageByAuthor
+                                                        )
+                                                    } else {
+                                                        Message(
+                                                            onAuthorClick = { },
+                                                            msg = message,
+                                                            isUserMe = message.isMe(),
+                                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                            isLastMessageByAuthor = isLastMessageByAuthor
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                               }
+                                Column(
+                                    modifier = modifier.padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
+                                ) {
+
+                                    AttachmentRow(
+                                        selectedAttachments = selectedAttachments.toList(),
+                                        attachmentRemoved = { onAttachmentClicked(it) }
+                                    )
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.Top,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 8.dp)
+                                    ) {
+                                        var startAnimation by remember { mutableStateOf(false) }
+                                        val animationSpec = tween<Float>(durationMillis = 400, easing = LinearOutSlowInEasing)
+                                        val rotationAngle by animateFloatAsState(
+                                            targetValue = if (startAnimation) 45f else 0f,
+                                            animationSpec = animationSpec,
+                                            label = ""
+                                        )
+                                        IconButton(
+                                            modifier = Modifier
+                                                .padding(top = 8.dp)
+                                                .clip(CircleShape)
+                                                .size(42.dp)
+                                            ,
+                                            enabled = true,
+                                            onClick = {
+                                                //onChangeShowActionBar()
+                                                dismissKeyboard()
+                                                controller?.hide() // Keyboard
+
+                                                showActionbar = !showActionbar
+
+                                                if(showSelectionbar){
+                                                    showSelectionbar = false
+                                                }
+                                                startAnimation = !startAnimation
+                                            },
+                                        ) {
+                                            Box(
+                                                contentAlignment = Alignment.Center
+                                            ){
+                                                Icon(imageVector = Icons.Filled.Add, modifier= Modifier
+                                                    .size(32.dp)
+                                                    .graphicsLayer(rotationZ = rotationAngle),contentDescription = "Send",tint = Color.White)
+                                            }
+
+                                        }
+
+                                        var lastFocusState by remember { mutableStateOf(false) }
+                                        TextField(
+                                            shape = RoundedCornerShape(35.dp),
+                                            value = textState,
+                                            onValueChange = { textState = it },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(35.dp))
+                                                .border(
+                                                    2.dp,
+                                                    Colors.DARK_GRAY,
+                                                    RoundedCornerShape(35.dp)
+                                                )
+                                                .heightIn(min = 56.dp, max = 100.dp)
+                                                .onFocusChanged { state ->
+                                                    if (lastFocusState != state.isFocused) {
+
+                                                        if (state.isFocused) {
+                                                            currentInputSelector =
+                                                                InputSelector.NONE
+                                                            //resetScroll()
+                                                        }
+                                                        textFieldFocusState = state.isFocused
+
+                                                    }
+                                                    lastFocusState = state.isFocused
+                                                },
+
+                                            placeholder = {
+                                                Text("Type a message")
+                                            },
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedTextColor = Colors.WHITE,
+                                                unfocusedTextColor = Colors.WHITE,
+                                                focusedContainerColor = Colors.TRANSPARENT,
+                                                unfocusedContainerColor = Colors.TRANSPARENT,
+                                                disabledContainerColor = Colors.TRANSPARENT,
+                                                cursorColor = Colors.WHITE,
+                                                errorCursorColor = Colors.WHITE,
+                                                focusedBorderColor = Colors.TRANSPARENT,
+                                                unfocusedBorderColor = Colors.TRANSPARENT,
+                                                focusedPlaceholderColor = Colors.GRAY,
+                                                unfocusedPlaceholderColor = Colors.GRAY,
+                                            ),
+                                            textStyle =  TextStyle(
+                                                fontWeight = FontWeight.Medium,
+                                                fontFamily = Fonts.INTER,
+                                                fontSize = 18.sp,
+                                                color = Colors.WHITE,
+                                            )
+
+                                        )
+
+                                        AnimatedVisibility(
+                                            textState.text.isNotBlank(),
+                                            enter = expandHorizontally(),
+                                            exit = shrinkHorizontally(),
+                                        ) {
+                                            IconButton(
+                                                modifier = Modifier
+                                                    .padding(top = 8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFF8C7DF7))
+                                                    .size(42.dp),
+                                                enabled = true,
+                                                onClick = {
+                                                    // Move scroll to bottom
+                                                    //resetScroll()
+                                                    dismissKeyboard()
+
+                                                    if(showSelectionbar){
+                                                        showSelectionbar = false
+                                                    }
+
+                                                    if(showActionbar){
+                                                        showActionbar = false
+                                                        startAnimation = !startAnimation
+                                                    }
 
 
+
+                                                    controller?.hide() // Keyboard
+
+                                                    lastFocusState = false
+                                                    textFieldFocusState = false
+                                                    onSendMessageClicked(textState.text)
+                                                    textState = TextFieldValue()
+                                                },
+                                            ) {
+                                                Icon(imageVector = Icons.Rounded.ArrowUpward,modifier= Modifier
+                                                    .size(32.dp), contentDescription = "Send",tint = Color.White)
+                                            }
+                                        }
+
+                                    }
+
+                                    // Animated visibility will eventually remove the item from the composition once the animation has finished.
+                                    AnimatedVisibility(showActionbar) {
+
+                                        SelectorExpanded(
+                                            onSelectorChange = {
+                                                currentInputSelector = it
+                                            },
+                                            onShowSelectionbar = {
+                                                if (!showSelectionbar) {
+                                                    showSelectionbar = true
+                                                }
+                                            },
+                                            onHideKeyboard = { controller?.hide() },
+                                            recipient = recipient
+                                        )
+                                    }
+
+
+                                    AnimatedVisibility(showSelectionbar) {
+                                        if(showActionbar){
+                                            Surface(
+                                                color = Colors.TRANSPARENT,
+                                                tonalElevation = 8.dp
+                                            ) {
+                                                when (currentInputSelector) {
+                                                    InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
+                                                    InputSelector.WALLET -> WalletSelector(
+                                                        focusRequester = FocusRequester(),
+                                                        onSendEth = {
+                                                            onSendEthClicked(it)
+                                                            dismissKeyboard()
+                                                            controller?.hide() // Keyboard
+
+                                                            showActionbar = !showActionbar
+
+                                                            if(showSelectionbar){
+                                                                showSelectionbar = false
+                                                            }
+                                                        },
+                                                        tokenBalance = tokenBalance,
+                                                        chainName = chainName
+                                                    )
+                                                    InputSelector.PICTURE -> {
+                                                        GallerySheet(
+                                                            attachments = attachments,
+                                                            selectedAttachments = selectedAttachments
+                                                        ) {
+                                                            onAttachmentClicked(it)
+                                                        }
+                                                    }
+
+                                                    else -> {
+                                                        throw NotImplementedError()
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                //MessageOptionsScreen()
+            }
 
             //Asset ModalSheet
 
-            if(showAssetSheet.value){
+            if(showAssetSheet){
                 ModalBottomSheet(
                     containerColor= Colors.BLACK,
                     contentColor= Colors.WHITE,
@@ -291,28 +517,286 @@ fun ChatScreen(
                         scope.launch {
                             modalAssetSheetState.hide()
                         }.invokeOnCompletion {
-                            if(!modalAssetSheetState.isVisible) showAssetSheet.value = false
+                            if(!modalAssetSheetState.isVisible) showAssetSheet = false
                         }
                     },
                     sheetState = modalAssetSheetState
                 ) {
-                    when(currentModalSelector.value){
-                        ModalSelector.CONTACT -> ContactSheet(
-                            name = "Mark Katakowski",
-                            image = "",
-                            ens = listOf("emunsi.eth"),)
+                    when(currentModalSelector){
+                        ModalSelector.CONTACT -> {
+                            recipient?.contact?.let {
+                                ContactSheet(
+                                    contact = it,
+                                    ens = listOf("")
+                                )
+                            }
+                        }
                         ModalSelector.ASSETS -> AssetPickerSheet()
                     }
                 }
             }
+        }
+}
 
+fun chainIdToReadableName(chainId: Int): String = when(chainId) {
+    1 -> "Ethereum Mainnet"
+    11155111 -> "Ethereum Sepolia"
+    10 -> "Optimism Mainnet"
+    42161 -> "Arbitrum Mainnet"
+    137 -> "Polygon Mainnet"
+    8453 -> "Base Mainnet"
+    5 -> "Ethereum Goerli"
+    else -> ""
+}
 
+fun isValidTransactionMessage(message: String): Boolean {
+    val regex = """^Sent \d+(\.\d+)? ETH: https://[a-zA-Z0-9.-]+/tx/0x[a-fA-F0-9]{64}$""".toRegex()
+    return regex.matches(message)
+}
+
+data class TransactionDetails(val amount: String, val url: String, val chainId: Int)
+
+fun extractTransactionDetails(message: String): TransactionDetails? {
+    val regex = """^Sent (\d+(\.\d+)?) ETH: (https://[a-zA-Z0-9.-]+/tx/0x[a-fA-F0-9]{64})$""".toRegex()
+    val matchResult = regex.find(message) ?: return null
+
+    val (amount, _, url) = matchResult.destructured
+
+    val chainId = when (url.split("/")[2]) {
+        "etherscan.io" -> 1
+        "sepolia.etherscan.io" -> 11155111
+        "optimistic.etherscan.io" -> 10
+        "arbiscan.io" -> 42161
+        "polygonscan.com" -> 137
+        "basescan.org" -> 8453
+        "goerli.etherscan.io" -> 5
+        else -> -1 // Or any other appropriate value for unknown chain IDs
     }
 
+    return if (chainId != -1) TransactionDetails(amount, url, chainId) else null
 }
 
 
 
+
+@Composable
+@Preview
+fun MessageOptionsScreen(){
+    Box(modifier = Modifier
+        .fillMaxSize()
+        //.background(Brush.horizontalGradient(colorStops = colorStops), alpha = 0.5f)
+        .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ){
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MessageReactions()
+            Message(
+                onAuthorClick = {  },
+                msg = org.ethereumhpone.database.model.Message(
+                    address = "me",
+                    body = "Check it out!",
+                    subject = "8:07 PM"
+                ),
+                isUserMe = true,
+                isFirstMessageByAuthor = true,
+                isLastMessageByAuthor = true
+            )
+            MessageActionList()
+        }
+
+    }
+}
+
+
+@Composable
+@Preview
+fun MessageReactions() {
+    Box(modifier = Modifier
+
+
+    ) {
+        Row {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+
+                    .clip(CircleShape)
+                    .background(Colors.DARK_GRAY)
+                    .padding(horizontal = 4.dp, vertical = 4.dp)
+            ) {
+                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
+                    Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.Favorite, contentDescription = "")
+                }
+                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
+                    Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.ThumbUp, contentDescription = "")
+                }
+                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
+                    Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.ThumbDown, contentDescription = "")
+                }
+                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
+                    Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.AddComment, contentDescription = "")
+                }
+                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
+                    Icon(modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Colors.GRAY),tint=Colors.WHITE, imageVector = Icons.Rounded.Add, contentDescription = "")
+                }
+
+            }
+
+        }
+    }
+}
+
+
+@Composable
+@Preview
+fun MessageActionList() {
+    Box(modifier = Modifier
+        .graphicsLayer {
+            shape = RoundedCornerShape(12.dp)
+            clip = true
+        }
+        .background(Colors.DARK_GRAY)
+        .width(200.dp)
+
+    ) {
+        Column {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Text(text = "Copy", fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color=Colors.WHITE)
+                Icon(tint= Colors.WHITE, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.ContentCopy, contentDescription = "")
+            }
+            Divider(color=Colors.GRAY)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Text(text = "Info", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.WHITE)
+                Icon(tint= Colors.WHITE, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Info, contentDescription = "")
+            }
+            Divider(color=Colors.GRAY)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Text(text = "Delete", fontFamily = Fonts.INTER,
+                    fontWeight = FontWeight.Medium, color=Colors.ERROR)
+                Icon(tint= Colors.ERROR, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Delete, contentDescription = "")
+            }
+
+        }
+    }
+}
+
+
+
+@Composable
+fun SelectorExpanded(
+    onSelectorChange: (InputSelector) -> Unit,
+    onShowSelectionbar: () -> Unit,
+    recipient: Recipient?,
+    onHideKeyboard: () -> Unit,
+){
+    Row (
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+
+    ){
+        IconButton(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .clip(CircleShape)
+                .size(42.dp)
+            ,
+            enabled = true,
+            onClick = {
+                onSelectorChange(InputSelector.EMOJI)
+                onHideKeyboard()
+                onShowSelectionbar()
+            },
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ){
+                Icon(imageVector = Icons.Outlined.Mood, modifier= Modifier
+                    .size(32.dp)
+                    ,contentDescription = "Send",tint = Color.White)
+            }
+
+        }
+        recipient?.contact?.ethAddress?.let {
+            if (it == "") return@let
+            Spacer(modifier = Modifier.width(12.dp))
+            IconButton(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .clip(CircleShape)
+                    .size(42.dp)
+                ,
+                enabled = true,
+                onClick = {
+                    onSelectorChange(InputSelector.WALLET)
+                    onHideKeyboard()
+                    onShowSelectionbar()
+                },
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ){
+                    Icon(
+                        imageVector = ImageVector.vectorResource(R.drawable.wallet),
+                        modifier= Modifier.size(32.dp),
+                        contentDescription = "Send",
+                        tint = Color.White
+                    )
+                }
+
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        IconButton(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .clip(CircleShape)
+                .size(42.dp)
+            ,
+            enabled = true,
+            onClick = {
+                onSelectorChange(InputSelector.PICTURE)
+                onHideKeyboard()
+                onShowSelectionbar()
+            },
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ){
+                Icon(imageVector = Icons.Outlined.InsertPhoto, modifier= Modifier
+                    .size(32.dp)
+                    ,contentDescription = "Send",tint = Color.White)
+            }
+
+        }
+    }
+}
 
 @Composable
 @Preview

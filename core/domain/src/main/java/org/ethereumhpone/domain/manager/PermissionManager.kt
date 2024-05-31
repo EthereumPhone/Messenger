@@ -8,5 +8,7 @@ interface PermissionManager {
     fun hasNotifications(): Boolean
     fun hasPhone(): Boolean
     fun hasCalling(): Boolean
-    fun hasStorage(): Boolean
+    fun hasWriteStorage(): Boolean
+
+    fun hasReadStorage(): Boolean
 }

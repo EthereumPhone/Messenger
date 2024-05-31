@@ -4,14 +4,12 @@ import timber.log.Timber
 import java.text.Normalizer
 import java.util.regex.Pattern
 
-fun <T> tryOrNull(logOnError: Boolean = true, body: () -> T?): T? {
+fun <T> tryOrNull(body: () -> T?): T? {
     return try {
         body()
     } catch (e: Exception) {
-        if (logOnError) {
-            Timber.w(e)
-        }
 
+        e.printStackTrace()
         null
     }
 }

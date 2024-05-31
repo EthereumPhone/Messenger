@@ -87,4 +87,17 @@ class Converters {
     fun toContact(message: Contact?): String? {
         return message?.let { Json.encodeToString(it) }
     }
+
+    @TypeConverter
+    fun toStringList(json: String?): List<String> {
+        if(json == null) {
+            return emptyList()
+        }
+        return Json.decodeFromString(json)
+    }
+
+    @TypeConverter
+    fun fromStringList(stringList: List<String>): String {
+        return Json.encodeToString(stringList)
+    }
 }

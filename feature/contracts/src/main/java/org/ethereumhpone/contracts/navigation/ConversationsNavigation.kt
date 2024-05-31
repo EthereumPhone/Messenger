@@ -19,7 +19,7 @@ fun NavController.navigateToConversations(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.conversationsGraph(
-    navigateToChat: (String, Contact?) -> Unit, //threadId Long -> String
+    navigateToChat: (String, List<String>) -> Unit, //threadId Long -> String
     nestedGraphs: NavGraphBuilder.() -> Unit,
 ) {
     navigation(

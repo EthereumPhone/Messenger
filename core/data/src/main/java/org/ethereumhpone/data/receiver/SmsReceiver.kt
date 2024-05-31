@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Message
 import android.provider.Telephony
 import android.provider.Telephony.Sms
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,9 +17,10 @@ import javax.inject.Inject
 
 
 private const val TAG = "SmsReceiver"
-class SmsReceiver @Inject constructor(
-    private val recieveMessage: ReceiveSms
-) : HiltBroadcastReceiver() {
+@AndroidEntryPoint
+class SmsReceiver : HiltBroadcastReceiver() {
+
+    @Inject lateinit var receiveMessage: ReceiveSms
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
@@ -28,7 +30,7 @@ class SmsReceiver @Inject constructor(
                val pendingResult = goAsync()
 
                CoroutineScope(Dispatchers.IO).launch {
-                   recieveMessage(subId, messages)
+                   receiveMessage(subId, messages)
                    pendingResult.finish()
                }
            }

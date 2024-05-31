@@ -10,6 +10,7 @@ import android.media.MediaScannerConnection
 import android.os.Environment
 import android.provider.Telephony
 import android.telephony.SmsManager
+import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.content.contentValuesOf
 import com.google.android.mms.ContentType
@@ -20,6 +21,7 @@ import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Transaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.send_message.SmsManagerFactory
@@ -186,27 +188,29 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         attachments: List<Attachment>
     ) {
-        messengerPreferences.prefs.collect { prefs ->
+        messengerPreferences.prefs.firstOrNull()?.let { prefs ->
             val signedBody = when {
                 prefs.signature.isEmpty() -> body
                 body.isNotBlank() -> body + '\n' + prefs.signature
                 else -> prefs.signature
             }
 
-            val smsManager = subId.takeIf { it != -1 }
-                ?.let { SmsManagerFactory.createSmsManager(context, subId) }
-                ?: SmsManager.getDefault()
+            val smsManager = SmsManagerFactory.createSmsManager(context, subId)
 
             val strippedBody = when(prefs.unicode) {
                     true -> removeAccents(signedBody)
                     false -> signedBody
             }
 
-            val parts = smsManager.divideMessage(strippedBody).orEmpty()
-            val forceMms = prefs.longAsMms && parts.size > 1
+            val messageParts = smsManager.divideMessage(strippedBody).orEmpty()
+            val forceMms = prefs.longAsMms && messageParts.size > 1
             if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // S
-                val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
-                sendSms(message)
+                try {
+                    val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
+                    sendSms(message)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             } else { // MMS
                 val parts = arrayListOf<MMSPart>()
                 val maxWidth = smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_IMAGE_WIDTH)
@@ -300,11 +304,9 @@ class MessageRepositoryImpl @Inject constructor(
 
 
     override suspend fun sendSms(message: Message) {
-        val smsManager = message.subId.takeIf { it != -1 }
-            ?.let { SmsManagerFactory.createSmsManager(context, message.subId) }
-            ?: SmsManager.getDefault()
+        val smsManager = SmsManagerFactory.createSmsManager(context, message.subId)
 
-        messengerPreferences.prefs.collect{ prefs ->
+        messengerPreferences.prefs.firstOrNull()?.let{ prefs ->
             val parts = smsManager
                 .divideMessage(if (prefs.unicode) StripAccents.stripAccents(message.body) else message.body)
                 ?: arrayListOf()
@@ -346,7 +348,7 @@ class MessageRepositoryImpl @Inject constructor(
 
         val addresses = pdu.to.map { it.string }.filter { it.isNotBlank() }
         val parts = message.parts.mapNotNull { part ->
-            val bytes = tryOrNull(false) {
+            val bytes = tryOrNull {
                 context.contentResolver.openInputStream(part.getUri())?.use { inputStream -> inputStream.readBytes() }
             } ?: return@mapNotNull null
 
@@ -363,6 +365,7 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         date: Long
     ): Message {
+        println("ETHOSDEBUG: insertSentSms $body")
         val message = Message(
             threadId = threadId,
             address = address,
@@ -374,7 +377,6 @@ class MessageRepositoryImpl @Inject constructor(
             seen = true
         )
 
-        messageDao.upsertMessage(message)
         val values = contentValuesOf(
             Telephony.Sms.ADDRESS to address,
             Telephony.Sms.BODY to body,
@@ -385,11 +387,16 @@ class MessageRepositoryImpl @Inject constructor(
             Telephony.Sms.THREAD_ID to threadId
         )
 
-        messengerPreferences.prefs.collect{ prefs ->
-            if (prefs.canUseSubId) {
+        println("Before prefs")
+
+        val prefs = messengerPreferences.prefs.firstOrNull()  // This will suspend until the first value is emitted and then return
+        prefs?.let {
+            if (it.canUseSubId) {
                 values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
             }
         }
+
+
 
         val uri = context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values)
         uri?.lastPathSegment?.toLong()?.let { id ->
@@ -411,6 +418,8 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         sentTime: Long
     ): Message {
+
+        Log.d("MEssage received", "hello hello")
         val threadId = TelephonyCompat.getOrCreateThreadId(context, address)
         val message = Message(
             threadId = threadId,
@@ -420,18 +429,17 @@ class MessageRepositoryImpl @Inject constructor(
             boxId = Telephony.Sms.MESSAGE_TYPE_INBOX,
             type = "sms",
             read = activeConversationManager.getActiveConversation() == threadId,
-            seen = true
         )
 
-        messageDao.upsertMessage(message)
         val values = contentValuesOf(
             Telephony.Sms.ADDRESS to address,
             Telephony.Sms.BODY to body,
             Telephony.Sms.DATE_SENT to sentTime
         )
 
-        messengerPreferences.prefs.collect{ prefs ->
-            if (prefs.canUseSubId) {
+        val prefs = messengerPreferences.prefs.firstOrNull()  // This will suspend until the first value is emitted and then return
+        prefs?.let {
+            if (it.canUseSubId) {
                 values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
             }
         }

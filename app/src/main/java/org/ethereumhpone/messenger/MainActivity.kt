@@ -73,16 +73,10 @@ class MainActivity : ComponentActivity() {
 
 
 
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-
-
-
 
             setContent {
                 MessengerTheme {
-//                    ContactPermissionExample {
-                        MessagingApp()
-//                    }
+                    MessagingApp()
                 }
             }
 

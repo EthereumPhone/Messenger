@@ -7,6 +7,8 @@ import android.provider.ContactsContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -14,7 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.ethereumhpone.chat.ChatUIState
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
@@ -63,6 +64,12 @@ class ContactViewModel @Inject constructor(
         }
 
         return phoneNumber
+    }
+
+    fun setConversationAsRead(conversationId: Long) {
+        CoroutineScope(Dispatchers.IO).launch {
+            conversationRepository.markRead(conversationId)
+        }
     }
 
     @SuppressLint("Range")

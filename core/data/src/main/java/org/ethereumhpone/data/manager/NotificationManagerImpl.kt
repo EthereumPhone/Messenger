@@ -9,10 +9,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.Color
+import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.single
+import org.ethereumhpone.data.R
 import org.ethereumhpone.data.receiver.MarkSeenReceiver
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.PermissionManager
@@ -72,6 +74,8 @@ class NotificationManagerImpl @Inject constructor(
         }
 
         val conversation = conversationRepository.getConversation(threadId).first() ?: return
+
+
         val lastRecipient = conversation.lastMessage?.let { lastMessage ->
             conversation.recipients.find { recipient ->
                 phoneNumberUtils.compare(recipient.address, lastMessage.address)
@@ -89,21 +93,21 @@ class NotificationManagerImpl @Inject constructor(
 
         val notification = NotificationCompat.Builder(context, getChannelIdForNotification(threadId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            //.setColor(colors.theme(lastRecipient).theme)
+            //.setColor(colors.theme(lastRecipient).theme)  // Uncomment and adjust if you have theming
             .setPriority(NotificationCompat.PRIORITY_MAX)
-            //.setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_sms_light)
             .setNumber(messages.size)
             .setAutoCancel(true)
             .setContentIntent(contentPI)
             .setDeleteIntent(seenPI)
             .setWhen(conversation.lastMessage?.date ?: System.currentTimeMillis())
             .setVibrate(VIBRATE_PATTERN)
-
+            .setContentTitle(lastRecipient?.getDisplayName() ?: lastRecipient?.address)  // Use recipient's name, fallback to a default string
+            .setContentText(conversation.lastMessage?.body ?: "")  // Show the message content
 
 
         notificationManager.notify(threadId.toInt(), notification.build())
 
-        //TODO: add wake up screen
     }
 
     override fun notifyFailed(threadId: Long) {
@@ -142,7 +146,10 @@ class NotificationManagerImpl @Inject constructor(
     }
 
     override fun buildNotificationChannelId(threadId: Long): String {
-        TODO("Not yet implemented")
+        return when (threadId) {
+            0L -> DEFAULT_CHANNEL_ID
+            else -> "notifications_$threadId"
+        }
     }
 
     override fun getNotificationForBackup(): NotificationCompat.Builder {
@@ -194,14 +201,29 @@ private fun Context.ensureNotificationChannelExists() {
 }
 
 
-private fun contentPendingIntent(context: Context, threadId: Int): PendingIntent? =  PendingIntent.getActivity(
-    context,
-    NOTIFICATION_REQUEST_CODE,
-    Intent().apply {
-        action = Intent.ACTION_VIEW
-        putExtra("threadId", threadId)
-    },
-    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-)
+private fun contentPendingIntent(context: Context, threadId: Int): PendingIntent? {
+    // Resolve the main launcher activity
+    val packageManager = context.packageManager
+    val intent = Intent(Intent.ACTION_MAIN).apply {
+        addCategory(Intent.CATEGORY_LAUNCHER)
+        setPackage(context.packageName)
+    }
+    val resolveInfoList = packageManager.queryIntentActivities(intent, 0)
+    val resolveInfo = resolveInfoList.firstOrNull()
 
+    // Ensure we found the launcher activity
+    val launcherActivityClassName = resolveInfo?.activityInfo?.name ?: return null
 
+    // Create the PendingIntent with the resolved launcher activity
+    return PendingIntent.getActivity(
+        context,
+        NOTIFICATION_REQUEST_CODE,
+        Intent().apply {
+            action = Intent.ACTION_VIEW
+            setClassName(context.packageName, launcherActivityClassName)
+            putExtra("threadId", threadId)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        },
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+}

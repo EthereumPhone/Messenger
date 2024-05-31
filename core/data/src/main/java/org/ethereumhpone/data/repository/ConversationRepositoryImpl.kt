@@ -1,7 +1,9 @@
 package org.ethereumhpone.data.repository
 
 import android.content.Context
+import android.util.Log
 import com.moez.QKSMS.filter.ConversationFilter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.common.extensions.removeAccents
@@ -53,9 +56,9 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.getTopConversations()
 
     override suspend fun setConversationName(id: Long, name: String) {
-        conversationDao.getConversation(id).collect { conversation ->
+        conversationDao.getConversation(id).firstOrNull().let { conversation ->
             conversation?.copy(title = name)?.let {
-                    conversationDao.updateConversation(it)
+                conversationDao.updateConversation(it)
             }
         }
     }
@@ -70,14 +73,36 @@ class ConversationRepositoryImpl @Inject constructor(
                         .asSequence()
                         .groupBy { message -> message.threadId }
                         .filter { (threadId, _) -> conversations.firstOrNull { it.id == threadId } != null }
-                        .map { (threadId, messages) -> Pair(conversations.first { it.id == threadId }, messages.size) }
-                        .map { (conversation, messages) -> SearchResult(normalizedQuery, conversation, messages) }
+                        .map { (threadId, messages) ->
+                            Pair(
+                                conversations.first { it.id == threadId },
+                                messages.size
+                            )
+                        }
+                        .map { (conversation, messages) ->
+                            SearchResult(
+                                normalizedQuery,
+                                conversation,
+                                messages
+                            )
+                        }
                         .sortedByDescending { result -> result.messages }
                         .toList()
 
                     conversations
-                        .filter { conversation -> conversationFilter.filter(conversation, normalizedQuery) }
-                        .map { conversation -> SearchResult(normalizedQuery, conversation, 0) } + messagesByConversation
+                        .filter { conversation ->
+                            conversationFilter.filter(
+                                conversation,
+                                normalizedQuery
+                            )
+                        }
+                        .map { conversation ->
+                            SearchResult(
+                                normalizedQuery,
+                                conversation,
+                                0
+                            )
+                        } + messagesByConversation
                 }
         }
 
@@ -103,7 +128,7 @@ class ConversationRepositoryImpl @Inject constructor(
     override fun getThreadId(recipient: String): Flow<Long?> = getThreadId(listOf(recipient))
 
     override fun getThreadId(recipients: Collection<String>): Flow<Long?> =
-        conversationDao.getConversations(null).map { conversations ->
+        conversationDao.getConversations().map { conversations ->
             conversations.asSequence()
                 .filter { conversation -> conversation.recipients.size == recipients.size }
                 .find { conversation ->
@@ -130,12 +155,18 @@ class ConversationRepositoryImpl @Inject constructor(
     // I want to throw up
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getOrCreateConversation(addresses: List<String>): Flow<Conversation?> {
-        if(addresses.isEmpty()) {
+
+        if (addresses.isEmpty()) {
             return flowOf(null)
         }
 
+        Log.d("addresses 2", addresses[0])
+
         return getThreadId(addresses).flatMapLatest { id ->
-            (id ?: tryOrNull { TelephonyCompat.getOrCreateThreadId(context, addresses) })
+            //Log.d("holA HOLa", TelephonyCompat.getOrCreateThreadId(context, addresses).toString())
+
+
+            (id ?: tryOrNull { TelephonyCompat.getOrCreateThreadId(context, addresses.toSet()) })
                 ?.takeIf { threadId -> threadId != 0L }
                 ?.let { threadId ->
                     getConversation(threadId).flatMapLatest { conversation ->
@@ -150,27 +181,26 @@ class ConversationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveDraft(threadId: Long, draft: String) {
-        conversationDao.getConversation(threadId).collect { conversation ->
+        conversationDao.getConversation(threadId).firstOrNull().let { conversation ->
             conversation?.let {
                 conversationDao.updateConversation(it.copy(draft = draft))
             }
         }
     }
 
-    override suspend fun updateConversations(vararg threadIds: Long) =
-        conversationDao.getConversations(threadIds.toList()).collect { conversations ->
-            conversations.forEach { conversation ->
-                messageDao.getLastConversationMessage(conversation.id).collect{ message ->
-                    message?.let {
-                        conversationDao.updateConversation(
-                            conversation.copy(
-                                lastMessage = it
-                            )
+    override suspend fun updateConversations(vararg threadIds: Long) {
+        conversationDao.getConversations(threadIds.toList()).firstOrNull()?.forEach {conversation ->
+            messageDao.getLastConversationMessage(conversation.id).firstOrNull().let { message ->
+                message?.let {
+                    conversationDao.updateConversation(
+                        conversation.copy(
+                            lastMessage = it
                         )
-                    }
+                    )
                 }
             }
         }
+    }
 
     override suspend fun markArchived(vararg threadIds: Long) {
         conversationDao.getConversations(threadIds.toList()).collect { conversations ->
@@ -178,6 +208,18 @@ class ConversationRepositoryImpl @Inject constructor(
                 conversationDao.updateConversation(
                     conversation.copy(
                         archived = true
+                    )
+                )
+            }
+        }
+    }
+
+    override suspend fun markRead(threadId: Long) {
+        conversationDao.getConversations(listOf(threadId)).firstOrNull()?.let { conversations ->
+            conversations.forEach { conversation ->
+                conversationDao.updateConversation(
+                    conversation.copy(
+                        lastMessage = conversation.lastMessage?.copy(read = true)
                     )
                 )
             }
@@ -239,16 +281,15 @@ class ConversationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun markUnblocked(vararg threadIds: Long) {
-        conversationDao.getConversations(threadIds.toList()).collect { conversations ->
-            conversations.forEach { conversation ->
-                conversationDao.updateConversation(
-                    conversation.copy(
-                        blocked = false,
-                        blockingClient = null,
-                        blockReason = null
-                    )
+        val conversations = conversationDao.getConversations(threadIds.toList()).firstOrNull()
+        conversations?.forEach { conversation ->
+            conversationDao.updateConversation(
+                conversation.copy(
+                    blocked = false,
+                    blockingClient = null,
+                    blockReason = null
                 )
-            }
+            )
         }
     }
 
@@ -293,13 +334,14 @@ class ConversationRepositoryImpl @Inject constructor(
                             }.firstOrNull()
                         )
                     }
-
-                conversationDao.upsertConversation(
-                    conversation.copy(
-                        recipients = recipients,
-                        lastMessage = lastMessage.first()
+                withContext(Dispatchers.IO) {
+                    conversationDao.upsertConversation(
+                        conversation.copy(
+                            recipients = recipients,
+                            lastMessage = lastMessage.first()
+                        )
                     )
-                )
+                }
                 flowOf(conversation)
             } ?: flowOf(null)
     }

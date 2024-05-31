@@ -21,7 +21,7 @@ class SmsDeliveredReceiver @Inject constructor(
         val pendingResult = goAsync()
 
         CoroutineScope(Dispatchers.IO).launch {
-            id?.let {
+            id.let {
                 when(resultCode) {
                     // TODO notify about delivery
                     Activity.RESULT_OK -> {

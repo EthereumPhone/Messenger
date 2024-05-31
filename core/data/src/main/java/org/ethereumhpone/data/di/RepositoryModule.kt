@@ -12,6 +12,7 @@ import org.ethereumhpone.data.manager.NotificationManagerImpl
 import org.ethereumhpone.data.repository.BlockingRepositoryImpl
 import org.ethereumhpone.data.repository.ContactRepositoryImpl
 import org.ethereumhpone.data.repository.ConversationRepositoryImpl
+import org.ethereumhpone.data.repository.MediaRepositoryImpl
 import org.ethereumhpone.data.repository.MessageRepositoryImpl
 import org.ethereumhpone.data.repository.SyncRepositoryImpl
 import org.ethereumhpone.domain.blocking.BlockingClient
@@ -21,6 +22,7 @@ import org.ethereumhpone.domain.manager.NotificationManager
 import org.ethereumhpone.domain.repository.BlockingRepository
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
+import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import javax.inject.Singleton
@@ -39,6 +41,9 @@ abstract class RepositoryModule{
     @Binds
     @Singleton
     abstract fun bindMessageRepository(impl: MessageRepositoryImpl): MessageRepository
+
+    @Binds
+    abstract fun bindMediaRepository(impl: MediaRepositoryImpl): MediaRepository
 
     @Binds
     @Singleton
