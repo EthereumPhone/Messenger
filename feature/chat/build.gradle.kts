@@ -100,7 +100,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 
 
-    implementation(libs.androidx.compose.animation)
+    //animation
+    implementation("androidx.compose.animation:animation:1.6.7")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.0.0-rc01")
 
     

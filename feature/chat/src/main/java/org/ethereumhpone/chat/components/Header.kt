@@ -7,8 +7,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -77,12 +76,13 @@ import androidx.compose.ui.platform.LocalContext
 
 
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+
 @Composable
 fun ChatHeader(
     modifier: Modifier = Modifier,
     name: String,
     image: String?,
+    ens: List<String>,
     phoneNumber: List<PhoneNumber>?,
     onBackClick: () -> Unit = {},
     onContactClick: () -> Unit = {},

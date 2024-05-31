@@ -6,7 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -38,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -46,6 +50,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -204,41 +210,52 @@ private val UserChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
 private val LastChatBubbleShape = RoundedCornerShape(20.dp, 32.dp, 32.dp, 4.dp)
 private val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.dp)
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ClickableMessage(
-    message:Message,
-    isUserMe: Boolean,
-    onLongClick: () -> Unit = {}
+fun FocusedClickableMessage(
+    styledMessage: AnnotatedString,
+    style: TextStyle,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
+    onClick: (Int) -> Unit = {},
+    onLongClick: () -> Unit = {},
+    onDoubleClick: () -> Unit = {},
 ) {
 
-    val styledMessage = messageFormatter(
-        text = message.body,// timestamp
-        primary = isUserMe
-    )
+    val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
-    ClickableText(
+
+    BasicText(
         text = styledMessage,
-        style = TextStyle(
-            fontSize = 16.sp,
-            fontWeight =  FontWeight.Normal,
-            color = Colors.WHITE,
-            fontFamily = Fonts.INTER
-        ),
+        style = style,
         modifier = Modifier
             .padding(16.dp)
-            .combinedClickable(
-                onClick = {
-                    onLongClick()
-                },
-                onLongClick = {
-
-                },
-            )
-        ,
-        onClick = {
-            onLongClick()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        //Toast.makeText(context,"double press",Toast.LENGTH_SHORT)
+                        onDoubleClick()
+                    },
+                    onTap = {
+                        //Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
+                    },
+                    onLongPress = {
+                        //Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
+                        onLongClick()
+                    }
+                )
+            }
+            .pointerInput(onClick) {
+                detectTapGestures { pos ->
+                    layoutResult.value?.let { layoutResult ->
+                        onClick(layoutResult.getOffsetForPosition(pos))
+                    }
+                }
+            },
+        onTextLayout = {
+            layoutResult.value = it
+            onTextLayout(it)
         }
+
+
     )
 }
 
@@ -253,29 +270,39 @@ fun FocusChatItemBubble(
     onLongClick: () -> Unit = {}
 ) {
     Column(
-        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
+        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .clip(bubbleshape)
                 .background(
                     brush = messageBrush
                 )
-            ,
-            color = Color.Transparent,//backgroundBubbleColor,
-            shape = bubbleshape
-
         ) {
+
+        }
+    }
             Column {
-                ClickableMessage(
-                    message = message,
-                    isUserMe = isUserMe,
+
+                val styledMessage = messageFormatter(
+                    text = message.body,// timestamp
+                    primary = isUserMe
+                )
+
+                FocusedClickableMessage(
+                    styledMessage = styledMessage,
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontWeight =  FontWeight.Normal,
+                        color = Colors.WHITE,
+                        fontFamily = Fonts.INTER
+                    ),
                     onLongClick = {
                         onLongClick()
                     }
                 )
-            }
-        }
+
 
 
 

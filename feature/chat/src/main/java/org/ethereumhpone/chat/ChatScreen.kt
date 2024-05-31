@@ -8,6 +8,8 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -86,6 +88,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
@@ -98,9 +101,11 @@ import org.ethereumhpone.chat.components.ModalSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.ethereumhpone.chat.components.ComposablePosition
 import org.ethereumhpone.chat.components.GallerySheet
 import org.ethereumhpone.chat.components.TxMessage
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
+import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
 
@@ -181,6 +186,25 @@ fun ChatScreen(
     // Used to decide if the keyboard should be shown
     var textFieldFocusState by remember { mutableStateOf(false) }
 
+
+    //Focused Message
+    val focusMode = remember {
+        mutableStateOf(false)
+    }
+    val composablePositionState = remember { mutableStateOf(ComposablePosition()) }//gets offset of message composable
+
+    var focusedmessage = remember { mutableStateOf(
+        org.ethereumhpone.database.model.Message(
+            address = "me",
+            body = "",
+            subject = ""
+        )
+    ) }
+
+    val profileview = remember {
+        mutableStateOf(false)
+    }
+
     val controller = LocalSoftwareKeyboardController.current
 
 
@@ -195,18 +219,23 @@ fun ChatScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
             Box(modifier = modifier.fillMaxSize()) {
-                Box(modifier = modifier.fillMaxSize()){
+                Box(modifier = modifier
+                    .fillMaxSize()
+                    .customBlur(if (focusMode.value) 100f else 0f)){
                     Column(modifier = Modifier.fillMaxSize()) {
                         recipient?.let {
                             ChatHeader(
                                 name = it.getDisplayName(),
                                 image = "",
-                                ens = listOf(""),
+                                ens = emptyList(),
+                                phoneNumber = it.contact?.numbers,
                                 onBackClick = navigateBackToConversations,
                                 onContactClick = {
                                     currentModalSelector = ModalSelector.CONTACT
-                                    showAssetSheet = true
-                                }
+                                    profileview.value = !profileview.value
+                                    //showAssetSheet.value = true
+                                },
+                                profileview = profileview
                             )
                         }
                         Box(
@@ -275,16 +304,28 @@ fun ChatScreen(
                                                             msg = message,
                                                             isUserMe = message.isMe(),
                                                             isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                            isLastMessageByAuthor = isLastMessageByAuthor
-                                                        )
+                                                            isLastMessageByAuthor = isLastMessageByAuthor,
+                                                            composablePositionState = composablePositionState,
+                                                            onLongClick = {
+                                                                focusedmessage.value = message
+                                                                focusMode.value = true
+                                                            },
+
+                                                            )
                                                     } else {
                                                         Message(
                                                             onAuthorClick = { },
                                                             msg = message,
                                                             isUserMe = message.isMe(),
                                                             isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                            isLastMessageByAuthor = isLastMessageByAuthor
-                                                        )
+                                                            isLastMessageByAuthor = isLastMessageByAuthor,
+                                                            composablePositionState = composablePositionState,
+                                                            onLongClick = {
+                                                                focusedmessage.value = message
+                                                                focusMode.value = true
+                                                            },
+
+                                                            )
                                                     }
                                                 }
                                             }
@@ -466,22 +507,23 @@ fun ChatScreen(
                                             ) {
                                                 when (currentInputSelector) {
                                                     InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
-                                                    InputSelector.WALLET -> WalletSelector(
-                                                        focusRequester = FocusRequester(),
-                                                        onSendEth = {
-                                                            onSendEthClicked(it)
-                                                            dismissKeyboard()
-                                                            controller?.hide() // Keyboard
-
-                                                            showActionbar = !showActionbar
-
-                                                            if(showSelectionbar){
-                                                                showSelectionbar = false
-                                                            }
-                                                        },
-                                                        tokenBalance = tokenBalance,
-                                                        chainName = chainName
-                                                    )
+                                                    InputSelector.WALLET -> FunctionalityNotAvailablePanel("Wallet")
+//                                                        WalletSelector(
+//                                                        focusRequester = FocusRequester(),
+//                                                        onSendEth = {
+//                                                            onSendEthClicked(it)
+//                                                            dismissKeyboard()
+//                                                            controller?.hide() // Keyboard
+//
+//                                                            showActionbar = !showActionbar
+//
+//                                                            if(showSelectionbar){
+//                                                                showSelectionbar = false
+//                                                            }
+//                                                        },
+//                                                        tokenBalance = tokenBalance,
+//                                                        chainName = chainName
+//                                                    )
                                                     InputSelector.PICTURE -> {
                                                         GallerySheet(
                                                             attachments = attachments,
@@ -504,6 +546,19 @@ fun ChatScreen(
                     }
                 }
                 //MessageOptionsScreen()
+                AnimatedVisibility(
+                    focusMode.value,
+                    enter = fadeIn(
+                        animationSpec = tween(300),
+                    ),
+                    exit = fadeOut(
+                        animationSpec = tween(300,),
+                    )
+                ){
+                    MessageOptionsScreen(
+                        focusedmessage.value,composablePositionState, focusMode
+                    )
+                }
             }
 
             //Asset ModalSheet
@@ -579,131 +634,7 @@ fun extractTransactionDetails(message: String): TransactionDetails? {
 
 
 
-@Composable
-@Preview
-fun MessageOptionsScreen(){
-    Box(modifier = Modifier
-        .fillMaxSize()
-        //.background(Brush.horizontalGradient(colorStops = colorStops), alpha = 0.5f)
-        .padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
-    ){
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            MessageReactions()
-            Message(
-                onAuthorClick = {  },
-                msg = org.ethereumhpone.database.model.Message(
-                    address = "me",
-                    body = "Check it out!",
-                    subject = "8:07 PM"
-                ),
-                isUserMe = true,
-                isFirstMessageByAuthor = true,
-                isLastMessageByAuthor = true
-            )
-            MessageActionList()
-        }
 
-    }
-}
-
-
-@Composable
-@Preview
-fun MessageReactions() {
-    Box(modifier = Modifier
-
-
-    ) {
-        Row {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-
-                    .clip(CircleShape)
-                    .background(Colors.DARK_GRAY)
-                    .padding(horizontal = 4.dp, vertical = 4.dp)
-            ) {
-                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
-                    Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.Favorite, contentDescription = "")
-                }
-                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
-                    Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.ThumbUp, contentDescription = "")
-                }
-                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
-                    Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.ThumbDown, contentDescription = "")
-                }
-                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
-                    Icon(modifier = Modifier.size(28.dp),tint=Colors.GRAY, imageVector = Icons.Filled.AddComment, contentDescription = "")
-                }
-                IconButton(modifier = Modifier.clip(CircleShape), onClick = { /*TODO*/ }) {
-                    Icon(modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Colors.GRAY),tint=Colors.WHITE, imageVector = Icons.Rounded.Add, contentDescription = "")
-                }
-
-            }
-
-        }
-    }
-}
-
-
-@Composable
-@Preview
-fun MessageActionList() {
-    Box(modifier = Modifier
-        .graphicsLayer {
-            shape = RoundedCornerShape(12.dp)
-            clip = true
-        }
-        .background(Colors.DARK_GRAY)
-        .width(200.dp)
-
-    ) {
-        Column {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Text(text = "Copy", fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color=Colors.WHITE)
-                Icon(tint= Colors.WHITE, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.ContentCopy, contentDescription = "")
-            }
-            Divider(color=Colors.GRAY)
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Text(text = "Info", fontFamily = Fonts.INTER,fontWeight = FontWeight.Medium, color=Colors.WHITE)
-                Icon(tint= Colors.WHITE, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Info, contentDescription = "")
-            }
-            Divider(color=Colors.GRAY)
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Text(text = "Delete", fontFamily = Fonts.INTER,
-                    fontWeight = FontWeight.Medium, color=Colors.ERROR)
-                Icon(tint= Colors.ERROR, modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Delete, contentDescription = "")
-            }
-
-        }
-    }
-}
 
 
 
