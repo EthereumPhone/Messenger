@@ -9,12 +9,10 @@ import org.ethereumhpone.domain.model.Attachment
 
 @Composable
 fun ContactItem(
+    modifier: Modifier = Modifier,
     contact: Attachment.Contact,
-    onClicked: (Attachment) -> Unit
 ) {
-    Row(modifier = Modifier
-        .clickable { onClicked(contact) }
-    ) {
+    Row(modifier = modifier) {
         // Icon
 
         Column {

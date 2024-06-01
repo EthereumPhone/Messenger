@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.LinearLayout
 import androidx.annotation.OptIn
 import androidx.camera.camera2.internal.compat.workaround.TargetAspectRatio.RATIO_16_9
@@ -24,6 +25,11 @@ import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
@@ -35,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -47,8 +54,8 @@ import java.util.Locale
 
 @OptIn(ExperimentalZeroShutterLag::class) @Composable
 fun CameraPreview(
+    modifier: Modifier,
     onPhotoCaptured: (Uri) -> Unit,
-    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -85,15 +92,17 @@ fun CameraPreview(
         }
     }
 
-    Box(modifier = modifier.size(250.dp)) {
+    Box(modifier = modifier.clipToBounds()) {
         AndroidView(
-            modifier = Modifier,
+            modifier = Modifier
+                .matchParentSize()
+                .align(Alignment.Center),
             factory = {
                 previewView
                     .apply {
                         layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                         setBackgroundColor(Color.BLACK) // while loading
-                        scaleType = PreviewView.ScaleType.FIT_START
+                        scaleType = PreviewView.ScaleType.FILL_CENTER
                         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                     }
             }
@@ -119,6 +128,9 @@ fun CameraPreview(
         }
     }
 }
+
+//layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, ).apply { weight = 1f }
+
 
 private fun takePicture(
     context: Context,
