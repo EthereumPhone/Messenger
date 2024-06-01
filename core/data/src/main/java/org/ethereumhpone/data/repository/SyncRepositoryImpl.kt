@@ -91,8 +91,6 @@ class SyncRepositoryImpl @Inject constructor(
             }
         }
 
-        var debugAmount = 0
-
         messagesCursor?.use {
             val messageColumns = MessageCursor.MessageColumns(it)
             val messages = mutableListOf<Message>()
@@ -164,7 +162,7 @@ class SyncRepositoryImpl @Inject constructor(
             else -> return null
         }
 
-        val id = tryOrNull(false) { ContentUris.parseId(uri) } ?: return null
+        val id = tryOrNull { ContentUris.parseId(uri) } ?: return null
 
         val existingId = messageDao.getMessageId(id, type)
 
@@ -228,7 +226,7 @@ class SyncRepositoryImpl @Inject constructor(
         return contactCursor.getContactsCursor()?.use { cursor ->
             cursor.map { contactCursor.map(it) }
                 .groupBy { contact -> contact.lookupKey }
-                .map { (key, contacts) ->
+                .map { (_, contacts) ->
                     // Sometimes, contacts providers on the phone will create duplicate phone number entries. This
                     // commonly happens with Whatsapp. Let's try to detect these duplicate entries and filter them out
                     val uniqueNumbers = mutableListOf<PhoneNumber>()

@@ -141,7 +141,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val chainName: StateFlow<String> = currentChainId
-        .flatMapLatest { chainId ->
+        .flatMapLatest {
             flow {
                 emit(chainIdToReadableName(currentChainId.value))
             }
@@ -230,7 +230,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         10 -> "https://optimistic.etherscan.io"
         42161 -> "https://arbiscan.io"
         137 -> "https://polygonscan.com"
-        8453 -> "https://basescan.org"
         8453 -> "https://basescan.org"
         5 -> "https://goerli.etherscan.io"
         else -> ""

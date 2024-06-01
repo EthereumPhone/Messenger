@@ -73,8 +73,6 @@ fun ContactRoute(
     navigateToChat: (String, List<String>) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
 ){
-    val context = LocalContext.current
-
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
 
@@ -104,7 +102,6 @@ fun ContactScreen(
     modifier: Modifier = Modifier
 ){
 
-    val scrollState = rememberLazyListState()
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -113,13 +110,6 @@ fun ContactScreen(
     //ModalSheets
     var showContactSheet by remember { mutableStateOf(false) }
     val modalContactSheetState = rememberModalBottomSheetState(true)
-
-    var showCameraWithPerm by remember {
-        mutableStateOf(false)
-    }
-
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     val contactsPermissionsToRequest = listOf(
         Manifest.permission.READ_CONTACTS,
@@ -223,7 +213,6 @@ fun ContactScreen(
                                            },
                                            header = conversation.recipients.get(0).getDisplayName(),
                                            subheader = conversation.lastMessage?.getText() ?: "",
-                                           ens = "",
                                            time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                            unreadConversation = conversation.unread,
                                            onClick = {
@@ -254,8 +243,6 @@ fun ContactScreen(
                    }
 
                 }
-
-                else -> {}
             }
 
         }
@@ -306,19 +293,8 @@ fun convertLongToTime(time: Long): String {
     return format.format(date)
 }
 
-fun currentTimeToLong(): Long {
-    return System.currentTimeMillis()
-}
 
-fun convertDateToLong(date: String): Long {
-    val df = SimpleDateFormat("yyyy.MM.dd HH:mm")
-    return df.parse(date).time
-}
-
-
-
-
-    @Composable
+@Composable
 @Preview
 fun PreviewContactScreen(){
     ContactScreen(

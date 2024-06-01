@@ -82,6 +82,7 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -107,7 +108,6 @@ import org.ethereumhpone.domain.model.Attachment
 
 @Composable
 fun ChatRoute(
-    modifier: Modifier = Modifier,
     navigateBackToConversations: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ){
@@ -115,7 +115,6 @@ fun ChatRoute(
     val recipient by viewModel.recipientState.collectAsStateWithLifecycle()
     val tokenBalance by viewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by viewModel.chainName.collectAsStateWithLifecycle()
-    val currentChainId by viewModel.currentChainId.collectAsStateWithLifecycle()
     val attachments by viewModel.attachments.collectAsStateWithLifecycle()
     val selectedAttachments by viewModel.selectedAttachments.collectAsStateWithLifecycle()
 
@@ -204,8 +203,6 @@ fun ChatScreen(
                                 image = "",
                                 ens = listOf(""),
                                 onBackClick = navigateBackToConversations,
-                                isTrailContent = false,
-                                trailContent= {},
                                 onContactClick = {
                                     currentModalSelector = ModalSelector.CONTACT
                                     showAssetSheet = true
@@ -271,7 +268,6 @@ fun ChatScreen(
                                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                                 networkName = chainIdToReadableName(it.chainId),
-                                                                onAuthorClick = {}
                                                             )
                                                         } ?:
                                                         Message(
@@ -379,14 +375,16 @@ fun ChatScreen(
                                             placeholder = {
                                                 Text("Type a message")
                                             },
-                                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                            colors = OutlinedTextFieldDefaults.colors(
                                                 focusedTextColor = Colors.WHITE,
                                                 unfocusedTextColor = Colors.WHITE,
-                                                containerColor= Colors.TRANSPARENT,
-                                                focusedBorderColor =  Colors.TRANSPARENT,
-                                                unfocusedBorderColor = Colors.TRANSPARENT,
+                                                focusedContainerColor = Colors.TRANSPARENT,
+                                                unfocusedContainerColor = Colors.TRANSPARENT,
+                                                disabledContainerColor = Colors.TRANSPARENT,
                                                 cursorColor = Colors.WHITE,
                                                 errorCursorColor = Colors.WHITE,
+                                                focusedBorderColor = Colors.TRANSPARENT,
+                                                unfocusedBorderColor = Colors.TRANSPARENT,
                                                 focusedPlaceholderColor = Colors.GRAY,
                                                 unfocusedPlaceholderColor = Colors.GRAY,
                                             ),

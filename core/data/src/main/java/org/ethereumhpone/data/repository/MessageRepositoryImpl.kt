@@ -195,17 +195,15 @@ class MessageRepositoryImpl @Inject constructor(
                 else -> prefs.signature
             }
 
-            val smsManager = subId.takeIf { it != -1 }
-                ?.let { SmsManagerFactory.createSmsManager(context, subId) }
-                ?: SmsManager.getDefault()
+            val smsManager = SmsManagerFactory.createSmsManager(context, subId)
 
             val strippedBody = when(prefs.unicode) {
                     true -> removeAccents(signedBody)
                     false -> signedBody
             }
 
-            val parts = smsManager.divideMessage(strippedBody).orEmpty()
-            val forceMms = prefs.longAsMms && parts.size > 1
+            val messageParts = smsManager.divideMessage(strippedBody).orEmpty()
+            val forceMms = prefs.longAsMms && messageParts.size > 1
             if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // S
                 try {
                     val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
@@ -306,9 +304,7 @@ class MessageRepositoryImpl @Inject constructor(
 
 
     override suspend fun sendSms(message: Message) {
-        val smsManager = message.subId.takeIf { it != -1 }
-            ?.let { SmsManagerFactory.createSmsManager(context, message.subId) }
-            ?: SmsManager.getDefault()
+        val smsManager = SmsManagerFactory.createSmsManager(context, message.subId)
 
         messengerPreferences.prefs.firstOrNull()?.let{ prefs ->
             val parts = smsManager
@@ -352,7 +348,7 @@ class MessageRepositoryImpl @Inject constructor(
 
         val addresses = pdu.to.map { it.string }.filter { it.isNotBlank() }
         val parts = message.parts.mapNotNull { part ->
-            val bytes = tryOrNull(false) {
+            val bytes = tryOrNull {
                 context.contentResolver.openInputStream(part.getUri())?.use { inputStream -> inputStream.readBytes() }
             } ?: return@mapNotNull null
 

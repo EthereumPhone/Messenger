@@ -15,7 +15,7 @@ class MarkReadReceiver @Inject constructor(
 ): HiltBroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        val pendingResult = goAsync()
+        goAsync()
         val threadId = intent.getLongExtra("threadId", 0)
 
         CoroutineScope(Dispatchers.IO).launch {

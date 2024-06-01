@@ -11,23 +11,16 @@ object SmsManagerFactory {
     fun createSmsManager(context: Context, subscriptionId: Int): SmsManager {
         return try {
             if (subscriptionId == -1) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    context.getSystemService(SmsManager::class.java)
-                } else {
-                    SmsManager.getDefault()
-                }
+                context.getSystemService(SmsManager::class.java)
             } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    context.getSystemService(SmsManager::class.java).createForSubscriptionId(subscriptionId)
-                } else {
-                    SmsManager.getSmsManagerForSubscriptionId(subscriptionId)
-                }
+                context.getSystemService(SmsManager::class.java).createForSubscriptionId(subscriptionId)
             }
         } catch (e: Exception) {
             // Handle exception appropriately
             // For example, log the error and return a default SmsManager instance
             Log.e("SmsManagerFactory", "Error creating SmsManager", e)
-            SmsManager.getDefault()
+            e.printStackTrace()
+            context.getSystemService(SmsManager::class.java)
         }
     }
 }

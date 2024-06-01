@@ -199,7 +199,6 @@ fun UserInput(
                     dismissKeyboard()
                 } ,
                 sendMessageEnabled = textState.text.isNotBlank(),
-                showActionbar = showActionbar,
                 onChangeShowActionBar = {
                     showActionbar = !showActionbar
                 }
@@ -211,7 +210,6 @@ fun UserInput(
                     currentInputSelector = currentInputSelector
                 )
                 SelectorExpanded(
-                    onCloseRequested = dismissKeyboard,
                     onTextAdded = { textState = textState.addText(it) },
                     currentSelector = currentInputSelector,
                     tokenBalance = tokenBalance,
@@ -241,7 +239,6 @@ fun TextFieldValue.addText(newString: String): TextFieldValue {
 @Composable
 fun SelectorExpanded(
     currentSelector: InputSelector,
-    onCloseRequested: () -> Unit,
     tokenBalance: Double,
     chainName: String,
     onTextAdded: (String) -> Unit,
@@ -407,7 +404,6 @@ fun UserInputText(
     focusState: Boolean,
     onMessageSent: () -> Unit,
     sendMessageEnabled: Boolean,
-    showActionbar: Boolean,
     onChangeShowActionBar:  () -> Unit
 ) {
     val swipeOffset = remember { mutableStateOf(0f) }
@@ -478,9 +474,7 @@ fun UserInputText(
                         Modifier.semantics {
                             contentDescription = a11ylabel
                             keyboardShownProperty = keyboardShown
-                        },
-                        onMessageSent,
-                        sendMessageEnabled
+                        }
                     )
                 }
             }
@@ -513,8 +507,6 @@ private fun BoxScope.UserInputTextField(
     keyboardType: KeyboardType,
     focusState: Boolean,
     modifier: Modifier = Modifier,
-    onMessageSent: () -> Unit,
-    sendMessageEnabled: Boolean,
 ) {
     var lastFocusState by remember { mutableStateOf(false) }
     BasicTextField(
@@ -559,8 +551,7 @@ private fun BoxScope.UserInputTextField(
         }
     }
 
-    val disableContentColor =
-        MaterialTheme.colorScheme.onSurfaceVariant
+
     if (textFieldValue.text.isEmpty() && !focusState) {
         Text(
             modifier = Modifier
@@ -804,9 +795,6 @@ fun WalletTable(
 
             ){
                 ethOSTextField(
-                    modifier = Modifier
-                        .background(Color.Red)
-                        .weight(1f),
                     text = amount,
                     label = "0",
                     singleLine = true,
@@ -875,7 +863,6 @@ fun WalletTable(
 fun ethOSTextField(
     text: String,
     size: Int,
-    modifier: Modifier = Modifier,
     label: String = "",
     singleLine: Boolean = false,//true,
     maxChar: Int = 42,
