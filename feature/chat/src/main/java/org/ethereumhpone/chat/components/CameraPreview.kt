@@ -63,9 +63,12 @@ fun CameraPreview(
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val previewView = remember { PreviewView(context) }
 
-    val imageCapture = ImageCapture.Builder()
-        .setCaptureMode(ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG)
-        .build()
+    val imageCapture = remember {
+        ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG)
+            .build()
+    }
+
 
     DisposableEffect(key1 = cameraSelector) {
         cameraProviderFuture.addListener({
@@ -76,6 +79,8 @@ fun CameraPreview(
             }
 
             try {
+                cameraProvider.unbindAll()
+
                 cameraProvider.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
