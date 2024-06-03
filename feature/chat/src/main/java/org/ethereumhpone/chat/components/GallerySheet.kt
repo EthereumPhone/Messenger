@@ -3,8 +3,10 @@ package org.ethereumhpone.chat.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -36,12 +38,14 @@ fun GallerySheet(
 ) {
 
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3)
+        columns = GridCells.Fixed(3),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
         // Camera item, folder button and first image
         item(span = { GridItemSpan(3) }) {
-            Row() {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 CameraPreview(
                     Modifier
                         .clip(RoundedCornerShape(20.dp))
@@ -61,7 +65,7 @@ fun GallerySheet(
                     attachments.firstOrNull()?.let {
                         GallerySheetItem(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
+                                .clip(RoundedCornerShape(15.dp))
                                 .fillMaxWidth(),
                             attachment = it,
                             isSelected = selectedAttachments.contains(it),
@@ -76,7 +80,7 @@ fun GallerySheet(
         attachments.drop(1).forEach { attachment ->
             item {
                 GallerySheetItem(
-                    modifier = Modifier.clip(RoundedCornerShape(20.dp)),
+                    modifier = Modifier.clip(RoundedCornerShape(15.dp)),
                     attachment = attachment,
                     isSelected = selectedAttachments.contains(attachment),
                     itemClicked = { onItemClicked(attachment) }
