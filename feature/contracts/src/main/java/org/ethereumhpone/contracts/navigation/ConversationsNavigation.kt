@@ -31,8 +31,6 @@ fun NavGraphBuilder.conversationsGraph(
         ) {
             ContactRoute(
                 navigateToChat = navigateToChat,
-
-
             )
         }
         nestedGraphs()

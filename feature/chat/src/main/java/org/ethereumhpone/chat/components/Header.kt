@@ -70,8 +70,6 @@ import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import android.net.Uri
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.platform.LocalContext
 
 
@@ -137,14 +135,262 @@ fun ChatHeader(
                     }
                       
                 },
-                box: {
-                  width: "spread",
-                  height: "spread",
-                  start: ['parent', 'start'],
-                  end: ['parent', 'end'],
-                  top: ['parent', 'top'],
-                  bottom: ['parent', 'bottom',-16],
+//                box: {
+//                  width: "spread",
+//                  height: 72,
+//                  start: ['parent', 'start'],
+//                  end: ['parent', 'end'],
+//                  top: ['parent', 'top'],
+//                  bottom: ['parent', 'bottom',-16],
+//                }
+            } """
+        ),
+
+        ConstraintSet(
+            """ {
+                back_btn: {
+                  width: 48,
+                  height: 48,
+                  start: ['parent', 'start', 16],
+                  top: ['parent', 'top', 16]
+                },
+                profile_pic: {
+                  width: 48,
+                  height: 48,
+                  start: ['back_btn', 'end', 16],
+                  top: ['parent', 'top', 16]
+                },
+                  name: {
+                    top: ['profile_pic', 'top'],
+                    bottom: ['profile_pic', 'bottom'],
+                    start: ['profile_pic', 'end', 16],
+                    custom: {
+                      size: 18
+                    }
+                      
+                },
+//                box: {
+//                  width: "spread",
+//                  height: "spread",
+//                  start: ['parent', 'start'],
+//                  end: ['parent', 'end'],
+//                  top: ['parent', 'top'],
+//                  bottom: ['parent', 'bottom'],
+//                },
+                
+              
+            } """
+        ),
+
+
+        progress = profileAnimationProgress,
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+
+    ){
+
+
+        IconButton(
+            onClick = {
+                if (profileview.value){
+                    profileview.value = !profileview.value
+                }else{
+                    onBackClick()
                 }
+
+            },
+            modifier = Modifier
+                .size(48.dp)
+                .layoutId("back_btn")
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.ArrowBackIosNew,
+                contentDescription = "Go back",
+                tint =  Colors.WHITE,
+                modifier = modifier.size(iconsize)
+            )
+        }
+
+
+        if (image != "" && !(image.isNullOrEmpty())){
+            Image(
+                painter = rememberAsyncImagePainter(image),
+                contentDescription = "profile_image",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFF262626))
+                    .clickable {
+                        onContactClick()
+                    }
+                    .layoutId("profile_pic")
+            )
+        } else{
+            Image(
+                painter = painterResource(id = R.drawable.nouns_placeholder),
+                contentDescription = "placeholder_profile_image",
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF262626))
+                    .clickable {
+                        onContactClick()
+                    }
+                    .layoutId("profile_pic")
+            )
+        }
+
+
+
+
+        val name_properties = motionProperties(id = "name")
+        //with(sharedTransitionScope) {
+        Text(
+
+            textAlign = TextAlign.Center,
+            text = name,
+            fontSize = name_properties.value.fontSize("size"),
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = Fonts.INTER,
+            modifier = Modifier
+                .clickable {
+                    onContactClick()
+                }
+                .layoutId("name")
+        )
+        // }
+
+
+
+    }
+    AnimatedVisibility(
+        profileview.value,
+        enter = fadeIn(
+            animationSpec = tween(300,300),
+        ),
+        exit = fadeOut(
+            animationSpec = tween(300,),
+        )
+    ){
+        Column (
+            modifier = modifier.background(Color.Red).fillMaxHeight().padding(start = 24.dp,end = 24.dp,top=48.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ){
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+
+                ethOSIconButton(
+                    onClick = {
+                        if (phoneNumber != null) {
+                            makePhoneCall(context, phoneNumber[0].address)
+                        }
+                    },
+                    icon = Icons.Outlined.Call,
+                    contentDescription="Call"
+                )
+                ethOSIconButton(
+                    onClick = { /*TODO*/ },
+                    icon = Icons.Outlined.Contacts,
+                    contentDescription="Contact"
+                )
+
+            }
+            Divider(
+                modifier = Modifier.fillMaxWidth(),
+                color = Colors.DARK_GRAY
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Column(
+            ) {
+
+                phoneNumber?.get(0)?.let {
+                    ContactItem(
+                        title= "Phone Number",
+                        detail= it.address
+                    )
+                }
+
+                //TODO: ENS
+//                                        ContactItem(
+//                                            title= "ENS",
+//                                            detail= getEnsAddresses(ens)
+//                                        )
+
+            }
+        }
+
+    }
+
+
+
+}
+
+@Composable
+fun ProfileChatHeader(
+    modifier: Modifier = Modifier,
+    name: String,
+    image: String?,
+    ens: List<String>,
+    phoneNumber: List<PhoneNumber>?,
+    onBackClick: () -> Unit = {},
+    onContactClick: () -> Unit = {},
+    profileview: MutableState<Boolean>,
+    isTrailContent: Boolean = false,
+    trailContent: @Composable () -> Unit = {},
+){
+
+    if (image != null) {
+        Log.d("DEBUG",image)
+    }else {
+        Log.d("DEBUG","image not working")
+    }
+
+    val iconsize = 24.dp
+
+    val context = LocalContext.current
+
+
+    val profileAnimationProgress by animateFloatAsState(
+
+        // specifying target value on below line.
+        targetValue = if (profileview.value) 1f else 0f,
+
+        // on below line we are specifying
+        // animation specific duration's 1 sec
+        animationSpec = tween(3000,3000)
+    )
+
+    MotionLayout(
+        ConstraintSet(
+            """ {
+                
+                back_btn: {
+                  width: 48,
+                  height: 48,
+                  start: ['parent', 'start', 16],
+                  top: ['parent', 'top', 16]
+                },
+                profile_pic: {
+                  width: 48,
+                  height: 48,
+                  start: ['back_btn', 'end', 16],
+                  top: ['parent', 'top', 16]
+                },
+                  name: {
+                    top: ['profile_pic', 'top'],
+                    bottom: ['profile_pic', 'bottom'],
+                    start: ['profile_pic', 'end', 16],
+                    custom: {
+                      size: 18
+                    }
+                      
+                },
+
             } """
         ),
 
@@ -176,14 +422,14 @@ fun ChatHeader(
                     }
                       
                 },
-                box: {
-                  width: "spread",
-                  height: "spread",
-                  start: ['parent', 'start'],
-                  end: ['parent', 'end'],
-                  top: ['parent', 'top'],
-                  bottom: ['parent', 'bottom'],
-                },
+//                box: {
+//                  width: "spread",
+//                  height: "spread",
+//                  start: ['parent', 'start'],
+//                  end: ['parent', 'end'],
+//                  top: ['parent', 'top'],
+//                  bottom: ['parent', 'bottom'],
+//                },
                 
               
             } """
@@ -200,145 +446,146 @@ fun ChatHeader(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Colors.BLACK)
-                .layoutId("box")
+                .animateContentSize()
+                .background(Colors.ERROR)
+            //.layoutId("box")
         )
 
 
         IconButton(
-                    onClick = {
-                        if (profileview.value){
-                            profileview.value = !profileview.value
-                        }else{
-                            onBackClick()
-                        }
-
-                    },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .layoutId("back_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ArrowBackIosNew,
-                        contentDescription = "Go back",
-                        tint =  Colors.WHITE,
-                        modifier = modifier.size(iconsize)
-                    )
+            onClick = {
+                if (profileview.value){
+                    profileview.value = !profileview.value
+                }else{
+                    onBackClick()
                 }
 
+            },
+            modifier = Modifier
+                .size(48.dp)
+                .layoutId("back_btn")
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.ArrowBackIosNew,
+                contentDescription = "Go back",
+                tint =  Colors.WHITE,
+                modifier = modifier.size(iconsize)
+            )
+        }
 
-                    if (image != "" && !(image.isNullOrEmpty())){
-                        Image(
-                            painter = rememberAsyncImagePainter(image),
-                            contentDescription = "profile_image",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(Color(0xFF262626))
-                                .clickable {
-                                    onContactClick()
-                                }
-                                .layoutId("profile_pic")
-                        )
-                    } else{
-                        Image(
-                            painter = painterResource(id = R.drawable.nouns_placeholder),
-                            contentDescription = "placeholder_profile_image",
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF262626))
-                                .clickable {
-                                    onContactClick()
-                                }
-                                .layoutId("profile_pic")
-                        )
+
+        if (image != "" && !(image.isNullOrEmpty())){
+            Image(
+                painter = rememberAsyncImagePainter(image),
+                contentDescription = "profile_image",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFF262626))
+                    .clickable {
+                        onContactClick()
                     }
+                    .layoutId("profile_pic")
+            )
+        } else{
+            Image(
+                painter = painterResource(id = R.drawable.nouns_placeholder),
+                contentDescription = "placeholder_profile_image",
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF262626))
+                    .clickable {
+                        onContactClick()
+                    }
+                    .layoutId("profile_pic")
+            )
+        }
 
 
 
 
-                    val name_properties = motionProperties(id = "name")
-                    //with(sharedTransitionScope) {
-                    Text(
+        val name_properties = motionProperties(id = "name")
+        //with(sharedTransitionScope) {
+        Text(
 
-                        textAlign = TextAlign.Center,
-                        text = name,
-                        fontSize = name_properties.value.fontSize("size"),
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Fonts.INTER,
-                        modifier = Modifier
-                            .clickable {
-                                onContactClick()
-                            }
-                            .layoutId("name")
-                    )
-                    // }
+            textAlign = TextAlign.Center,
+            text = name,
+            fontSize = name_properties.value.fontSize("size"),
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = Fonts.INTER,
+            modifier = Modifier
+                .clickable {
+                    onContactClick()
+                }
+                .layoutId("name")
+        )
+        // }
 
 
 
     }
-                            AnimatedVisibility(
-                                profileview.value,
-                            enter = fadeIn(
-                                animationSpec = tween(300,300),
-                            ),
-                            exit = fadeOut(
-                                animationSpec = tween(300,),
-                            )
-                        ){
-                                Column (
-                                    modifier = modifier.padding(start = 24.dp,end = 24.dp,top=48.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                ){
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
+    AnimatedVisibility(
+        profileview.value,
+        enter = fadeIn(
+            animationSpec = tween(300,300),
+        ),
+        exit = fadeOut(
+            animationSpec = tween(300,),
+        )
+    ){
+        Column (
+            modifier = modifier.background(Color.Red).fillMaxHeight().padding(start = 24.dp,end = 24.dp,top=48.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ){
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
 
-                                        ethOSIconButton(
-                                            onClick = {
-                                                if (phoneNumber != null) {
-                                                    makePhoneCall(context, phoneNumber[0].address)
-                                                }
-                                            },
-                                            icon = Icons.Outlined.Call,
-                                            contentDescription="Call"
-                                        )
-                                        ethOSIconButton(
-                                            onClick = { /*TODO*/ },
-                                            icon = Icons.Outlined.Contacts,
-                                            contentDescription="Contact"
-                                        )
+                ethOSIconButton(
+                    onClick = {
+                        if (phoneNumber != null) {
+                            makePhoneCall(context, phoneNumber[0].address)
+                        }
+                    },
+                    icon = Icons.Outlined.Call,
+                    contentDescription="Call"
+                )
+                ethOSIconButton(
+                    onClick = { /*TODO*/ },
+                    icon = Icons.Outlined.Contacts,
+                    contentDescription="Contact"
+                )
 
-                                    }
-                                    Divider(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        color = Colors.DARK_GRAY
-                                    )
+            }
+            Divider(
+                modifier = Modifier.fillMaxWidth(),
+                color = Colors.DARK_GRAY
+            )
 
-                                    Spacer(modifier = Modifier.height(24.dp))
-                                    Column(
-                                    ) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Column(
+            ) {
 
-                                        phoneNumber?.get(0)?.let {
-                                            ContactItem(
-                                                title= "Phone Number",
-                                                detail= it.address
-                                            )
-                                        }
+                phoneNumber?.get(0)?.let {
+                    ContactItem(
+                        title= "Phone Number",
+                        detail= it.address
+                    )
+                }
 
-                                        //TODO: ENS
+                //TODO: ENS
 //                                        ContactItem(
 //                                            title= "ENS",
 //                                            detail= getEnsAddresses(ens)
 //                                        )
 
-                                    }
-                                }
+            }
+        }
 
-                        }
+    }
 
 
 
