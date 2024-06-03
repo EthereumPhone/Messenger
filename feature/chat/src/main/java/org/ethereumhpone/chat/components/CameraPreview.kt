@@ -2,46 +2,34 @@ package org.ethereumhpone.chat.components
 
 import android.content.ContentValues
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
-import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.LinearLayout
 import androidx.annotation.OptIn
-import androidx.camera.camera2.internal.compat.workaround.TargetAspectRatio.RATIO_16_9
-import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalZeroShutterLag
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FlipCameraAndroid
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,8 +43,6 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -135,25 +121,28 @@ fun CameraPreview(
             Icon(
                 imageVector = Icons.Outlined.FlipCameraAndroid,
                 contentDescription = "",
-                modifier = Modifier.clip(CircleShape)
-                .background(androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.5f))
-                .padding(5.dp)
-                .fillMaxSize(),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.5f))
+                    .padding(5.dp)
+                    .fillMaxSize(),
                 tint = androidx.compose.ui.graphics.Color.White
             )
         }
 
         // Take picture
-        Button(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            onClick = { takePicture(context, imageCapture, onPhotoCaptured) }) {
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .offset(0.dp, (-10).dp)
+                .clip(CircleShape)
+                .size(52.dp)
+                .background(androidx.compose.ui.graphics.Color.White)
+                .clickable { takePicture(context, imageCapture, onPhotoCaptured) }
+        )
 
-        }
     }
 }
-
-//layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, ).apply { weight = 1f }
-
 
 private fun takePicture(
     context: Context,
@@ -197,7 +186,7 @@ private fun takePicture(
 @androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun previewButton() {
-    Box(Modifier.size(200.dp)) {
+    Box(Modifier.size(400.dp)) {
         IconButton(
             modifier = Modifier
                 .offset(15.dp, 15.dp)
@@ -216,7 +205,17 @@ fun previewButton() {
                 tint = androidx.compose.ui.graphics.Color.White
             )
         }
-    }
 
+        // Take picture
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .offset(0.dp, -10.dp)
+                .clip(CircleShape)
+                .size(80.dp)
+                .background(androidx.compose.ui.graphics.Color.White)
+                .clickable {  }
+        )
+    }
 }
 
