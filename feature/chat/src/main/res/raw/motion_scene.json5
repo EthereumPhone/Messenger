@@ -1,0 +1,142 @@
+{
+  ConstraintSets: {
+    start: {
+      box: {
+        width: 'parent',
+        height: 80,
+        start: ['parent', 'start'],
+        end: ['parent', 'end'],
+        //top: ['parent', 'top'],
+
+
+        //translationZ: -10,
+        //alpha: 0
+      },
+
+      conversations: {
+        width: 'parent',
+        height: 'spread',
+        start: ['parent', 'start'],
+        end: ['parent', 'end'],
+        top: ['box', 'bottom'],
+        bottom: ['parent', 'bottom'],
+        //translationZ: -10
+      },
+
+      back_btn: {
+        width: 48,
+        height: 48,
+        start: ['parent', 'start', 16],
+        top: ['parent', 'top', 16]
+      },
+
+      profile_pic: {
+        width: 48,
+        height: 48,
+        start: ['back_btn', 'end', 16],
+        top: ['parent', 'top', 16]
+      },
+
+      name: {
+        width: 'spread',
+        top: ['parent', 'top'],
+        bottom: ['conversations', 'top'],
+        start: ['profile_pic', 'end', 16],
+        custom: {
+          name_fontSize: 18,
+          ens_fontSize: 14,
+
+        }
+      },
+
+      messageoptions: {
+        translationZ: 10
+      },
+
+      profileactions: {
+        top: ['name', 'bottom', 0],
+        start: ['parent', 'start'],
+        end: ['parent', 'end'],
+        height: 0,
+        alpha: 0
+      }
+    },
+    end: {
+
+      profileactions: {
+        top: ['name', 'bottom', 0],
+        start: ['parent', 'start'],
+        end: ['parent', 'end'],
+        height: 'spread',
+        alpha: 1
+      },
+
+
+
+      conversations: {
+        width: 'parent',
+        height: 0,
+        start: ['parent', 'start'],
+        end: ['parent', 'end'],
+        bottom: ['parent', 'bottom'],
+        //translationZ: -10
+      },
+
+      back_btn: {
+        width: 48,
+        height: 48,
+        start: ['parent', 'start', 16],
+        top: ['parent', 'top', 16]
+      },
+
+      profile_pic: {
+        width: 128,
+        height: 128,
+        start: ['parent', 'start'],
+        end: ['parent', 'end'],
+        top: ['parent', 'top', 96]
+      },
+      name: {
+        width: 'spread',
+        height: 80,
+        top: ['profile_pic', 'bottom',12],
+        start: ['parent', 'start', 16],
+        end: ['parent', 'end', 16],
+        custom: {
+          name_fontSize: 28,
+          ens_fontSize: 22,
+
+        }
+      },
+
+
+      messageoptions: {
+        translationZ: 10
+      },
+
+
+    }
+  },
+  Transitions: {  //to set transition properties between Start and End point.
+    default: {
+      from: 'start',
+      to: 'end',
+      pathMotionArc: 'startVertical', // Text will move down with slight circular arc
+      KeyFrames: {
+        KeyAttributes: [  //We define different Attr and how we want this to Animate, during transition for a specific composable
+          {
+            target: ['name'],
+            //[collapsed -> expanded]
+            frames: [0, 50, 100], //For frames we pass a List containing number between 0 - 100
+            alpha: [0, 0, 1],
+          },
+          {
+            target: ['data_content'],
+            frames: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100],  //For frames we pass a List containing number between 0 - 100
+            translationY: [110, 98, 92, 87, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 2]
+          }
+        ]
+      }
+    }
+  }
+}

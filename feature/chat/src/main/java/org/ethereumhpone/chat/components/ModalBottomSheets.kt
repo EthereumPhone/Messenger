@@ -396,7 +396,7 @@ fun ethOSListItem(
 
 
 @Composable
-fun ContactItem(title: String, detail: String){//, view: View){
+fun ContactItem(modifier: Modifier=Modifier,title: String, detail: String){//, view: View){
     val interactionSource = remember { MutableInteractionSource() }
     //when user hovers over ContactListItem
     val isHover by interactionSource.collectIsHoveredAsState()

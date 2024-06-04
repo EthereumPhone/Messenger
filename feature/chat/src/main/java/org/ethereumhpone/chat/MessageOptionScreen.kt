@@ -21,6 +21,7 @@ import org.ethereumhpone.chat.components.Message
 
 @Composable
 fun MessageOptionsScreen(
+    modifier: Modifier = Modifier,
     message: org.ethereumhpone.database.model.Message,
     composablePositionState: MutableState<ComposablePosition>,
     focusMode: MutableState<Boolean>,
