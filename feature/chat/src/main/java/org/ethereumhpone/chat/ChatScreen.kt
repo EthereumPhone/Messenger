@@ -200,7 +200,7 @@ fun ChatScreen(
                         recipient?.let {
                             ChatHeader(
                                 name = it.getDisplayName(),
-                                image = "",
+                                image = it.contact?.photoUri ?: "",
                                 ens = listOf(""),
                                 onBackClick = navigateBackToConversations,
                                 onContactClick = {

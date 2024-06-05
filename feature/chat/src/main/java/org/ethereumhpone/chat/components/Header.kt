@@ -192,7 +192,8 @@ fun ChatHeader(
                             Image(
                                 painter = rememberAsyncImagePainter(image),
                                 contentDescription = "Contact Profile Pic",
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
                             )
                         } else{
                             Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
