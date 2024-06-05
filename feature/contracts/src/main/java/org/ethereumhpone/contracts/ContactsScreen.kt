@@ -82,9 +82,7 @@ fun ContactRoute(
         modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
-        contactClicked = {
-            navigateToChat("0", listOf(it))
-                         },
+        contactClicked = { navigateToChat("0", listOf(it)) },
         conversationClicked = { id, recipients ->
             viewModel.setConversationAsRead(id.toLong())
             navigateToChat(id, recipients.map { it.address })

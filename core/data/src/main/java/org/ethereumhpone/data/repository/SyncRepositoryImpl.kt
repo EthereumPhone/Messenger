@@ -196,24 +196,48 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncContacts() {
+        val recipientsCursor = recipientCursor.getRecipientCursor()
         val contacts = getContacts()
 
         contactDao.deleteAllContacts()
         contactDao.deleteAllContactGroups()
         val recipients = recipientDao.getRecipients()
+        val conversations = conversationDao.getConversations()
+
 
         recipients.collect { recipientList ->
             contactDao.upsertContactGroup(getContactGroups(contacts))
             contactDao.upsertContact(contacts)
 
-            recipientList.forEach { recipient ->
-                recipientDao.upsertRecipient(
-                    recipient.copy(
-                        contact = contacts.find { contact ->
-                            contact.numbers.any { phoneNumberUtils.compare(recipient.address, it.address) }
+            val updatedRecipients = recipientList.map { recipient ->
+                recipient.copy(
+                    contact = contacts.find { contact ->
+                        contact.numbers.any { phoneNumberUtils.compare(recipient.address, it.address) }
+                    }
+                )
+            }
+
+            updatedRecipients.forEach { recipient ->
+                recipientDao.upsertRecipient(recipient)
+            }
+
+
+            /*
+             * recipients need to be updated in the respective convo,
+             *
+             */
+
+            conversations.collect { conversationList ->
+                conversationList.forEach { conversation ->
+                    val updatedConversation = conversation.copy(
+                        recipients = conversation.recipients.map { recipient ->
+                            updatedRecipients.find { updatedRecipient ->
+                                updatedRecipient.id == recipient.id
+                            } ?: recipient
                         }
                     )
-                )
+                    conversationDao.updateConversation(updatedConversation)
+                }
             }
         }
     }
