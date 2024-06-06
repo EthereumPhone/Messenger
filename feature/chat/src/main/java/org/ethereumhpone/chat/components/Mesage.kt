@@ -152,9 +152,6 @@ fun Message(
     val alignmessage =
         if(isUserMe) {
             Modifier
-//                .clickable {
-//                    Toast.makeText(context, "TEST - ${msg.body}",Toast.LENGTH_SHORT).show()
-//                }
                 .padding(start = 16.dp)
                 .onGloballyPositioned { coordinates ->
                     compSize = coordinates.size.height
@@ -162,9 +159,6 @@ fun Message(
                 }
         } else {
             Modifier
-//                .clickable {
-//                    Toast.makeText(context, "TEST - - ${msg.body}",Toast.LENGTH_SHORT).show()
-//                }
                 .padding(end = 16.dp)
                 .onGloballyPositioned { coordinates ->
                     compSize = coordinates.size.height
@@ -205,32 +199,6 @@ fun Message(
     }
 }
 
-@Composable
-fun AuthorAndTextMessage(
-    msg: Message,
-    isUserMe: Boolean,
-    isFirstMessageByAuthor: Boolean,
-    isLastMessageByAuthor: Boolean,
-    authorClicked: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
-    ) {
-//        ChatItemBubble(msg, isUserMe, authorClicked = authorClicked, isLastMessageByAuthor=isLastMessageByAuthor, isFirstMessageByAuthor=isFirstMessageByAuthor)
-        if (isFirstMessageByAuthor) {
-            AuthorNameTimestamp(msg)
-        }
-        if (isFirstMessageByAuthor) {
-            // Last bubble before next author
-            Spacer(modifier = Modifier.height(8.dp))
-        } else {
-            // Between bubbles
-            Spacer(modifier = Modifier.height(4.dp))
-        }
-    }
-}
 
 
 //TIMESTAMP
@@ -472,22 +440,6 @@ fun ChatItemBubble(
                 .background(
                     brush = messageBrush
                 )
-                //
-//                .pointerInput(Unit) {
-//                    detectTapGestures(
-//                        onDoubleTap = {
-//                            //Toast.makeText(context,"double press",Toast.LENGTH_SHORT)
-//                            //onDoubleClick()
-//                        },
-//                        onTap = {
-//                            //Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
-//                        },
-//                        onLongPress = {
-//                            Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
-//                            //onLongClick()
-//                        }
-//                    )
-//                }
         ){
 
             val uriHandler = LocalUriHandler.current
@@ -545,13 +497,12 @@ fun ClickableMessage(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = {
-                        //Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
-                        Toast.makeText(context,"long press -kkkk",Toast.LENGTH_SHORT).show()
+                        //Toast.makeText(context,"long press",Toast.LENGTH_SHORT).show()
                         onLongClick()
                     },
                     onTap = { pos ->
                         layoutResult.value?.let { layoutResult ->
-                            Toast.makeText(context,"onclick press -kkkk",Toast.LENGTH_SHORT).show()
+                            //Toast.makeText(context,"tap",Toast.LENGTH_SHORT).show()
                             onClick(layoutResult.getOffsetForPosition(pos))
                         }
                     }

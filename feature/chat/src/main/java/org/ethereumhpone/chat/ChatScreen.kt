@@ -115,7 +115,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.constraintlayout.compose.MotionLayout
 import androidx.constraintlayout.compose.MotionScene
-import org.ethereumhpone.chat.components.ChatHeader
 import org.ethereumhpone.chat.components.ContactSheet
 import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
 import org.ethereumhpone.chat.components.ModalSelector
@@ -126,7 +125,6 @@ import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.components.ComposablePosition
 import org.ethereumhpone.chat.components.ContactItem
 import org.ethereumhpone.chat.components.GallerySheet
-import org.ethereumhpone.chat.components.ProfileChatHeader
 import org.ethereumhpone.chat.components.TxMessage
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.chat.components.customBlur
@@ -154,8 +152,8 @@ fun ChatRoute(
         attachments = attachments,
         selectedAttachments = selectedAttachments,
         navigateBackToConversations = navigateBackToConversations,
-        tokenBalance = 0.123,//tokenBalance,
-        chainName = "Mainnet",//chainName,
+        tokenBalance = tokenBalance,
+        chainName = chainName,
         onSendEthClicked = viewModel::sendEth,
         onAttachmentClicked = viewModel::toggleSelection,
         onSendMessageClicked = viewModel::sendMessage,
@@ -263,11 +261,8 @@ fun ChatScreen(
             .exclude(WindowInsets.ime),
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
-            Box(modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)) {
-                Box(modifier = modifier
-                    .fillMaxSize()
+            Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
+                Box(modifier = modifier.fillMaxSize()
                     .customBlur(if (focusMode.value) 100f else 0f)
                     .pointerInput(Unit) {
                         detectTapGestures(
@@ -703,23 +698,22 @@ fun ChatScreen(
                                             ) {
                                                 when (currentInputSelector) {
                                                     InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
-                                                    InputSelector.WALLET -> FunctionalityNotAvailablePanel("Wallet")
-//                                                        WalletSelector(
-//                                                        focusRequester = FocusRequester(),
-//                                                        onSendEth = {
-//                                                            onSendEthClicked(it)
-//                                                            dismissKeyboard()
-//                                                            controller?.hide() // Keyboard
-//
-//                                                            showActionbar = !showActionbar
-//
-//                                                            if(showSelectionbar){
-//                                                                showSelectionbar = false
-//                                                            }
-//                                                        },
-//                                                        tokenBalance = tokenBalance,
-//                                                        chainName = chainName
-//                                                    )
+                                                    InputSelector.WALLET -> WalletSelector(
+                                                        focusRequester = FocusRequester(),
+                                                        onSendEth = {
+                                                            onSendEthClicked(it)
+                                                            dismissKeyboard()
+                                                            controller?.hide() // Keyboard
+
+                                                            showActionbar = !showActionbar
+
+                                                            if(showSelectionbar){
+                                                                showSelectionbar = false
+                                                            }
+                                                        },
+                                                        tokenBalance = tokenBalance,
+                                                        chainName = chainName
+                                                    )
                                                     InputSelector.PICTURE -> {
                                                         GallerySheet(
                                                             attachments = attachments,
@@ -745,7 +739,6 @@ fun ChatScreen(
                             val alpha1: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,500))
                             val alpha2: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1000))
                             val alpha3: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1500))
-                            val alpha4: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,2000))
 
 
                             Column (
@@ -837,7 +830,6 @@ fun ChatScreen(
                 ModalBottomSheet(
                     containerColor= Colors.BLACK,
                     contentColor= Colors.WHITE,
-
                     onDismissRequest = {
                         scope.launch {
                             modalAssetSheetState.hide()
@@ -847,17 +839,7 @@ fun ChatScreen(
                     },
                     sheetState = modalAssetSheetState
                 ) {
-                    when(currentModalSelector){
-                        ModalSelector.CONTACT -> {
-                            recipient?.contact?.let {
-                                ContactSheet(
-                                    contact = it,
-                                    ens = listOf("")
-                                )
-                            }
-                        }
-                        ModalSelector.ASSETS -> AssetPickerSheet()
-                    }
+                    AssetPickerSheet()
                 }
             }
         }

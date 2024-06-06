@@ -16,23 +16,6 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import org.ethosmobile.components.library.theme.Colors
 
-@Composable
-fun BlurContainer(
-    modifier: Modifier = Modifier,
-    blur: Float = 60f,
-
-    content: @Composable BoxScope.() -> Unit = {},
-) {
-    Box(
-            contentAlignment = Alignment.Center,
-            modifier = modifier
-                .customBlur(blur),
-        ) {
-            content()
-        }
-
-}
-
 fun Modifier.customBlur(blur: Float) = this.then(
     graphicsLayer {
         if (blur > 0f)
