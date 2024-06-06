@@ -33,6 +33,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.ethereumhpone.database.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -96,12 +97,12 @@ fun MessageAction(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp)
+            .padding(vertical = 12.dp, horizontal = 16.dp)
             .clickable{
                 onClick()
             }
     ) {
-        Text(text = text, fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color= tint)
+        Text(text = text, fontSize = 14.sp,fontFamily = Fonts.INTER, fontWeight = FontWeight.Medium, color= tint)
         Icon(tint = tint, modifier = Modifier.size(20.dp), imageVector = imageVector, contentDescription = text)
     }
 }

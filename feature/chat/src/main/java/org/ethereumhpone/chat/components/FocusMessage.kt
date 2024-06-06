@@ -198,7 +198,7 @@ fun FocusMessage(
             onLongClick = onLongClick
         )
 
-        MessageActionList(message = msg, focusMode = focusMode)
+       MessageActionList(message = msg, focusMode = focusMode)
 
     }
 
@@ -280,32 +280,26 @@ fun FocusChatItemBubble(
                     brush = messageBrush
                 )
         ) {
+            val styledMessage = messageFormatter(
+                text = message.body,// timestamp
+                primary = isUserMe
+            )
 
+            FocusedClickableMessage(
+                styledMessage = styledMessage,
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    fontWeight =  FontWeight.Normal,
+                    color = Colors.WHITE,
+                    fontFamily = Fonts.INTER
+                ),
+                onLongClick = {
+                    onLongClick()
+                }
+            )
         }
     }
-            Column {
-
-                val styledMessage = messageFormatter(
-                    text = message.body,// timestamp
-                    primary = isUserMe
-                )
-
-                FocusedClickableMessage(
-                    styledMessage = styledMessage,
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        fontWeight =  FontWeight.Normal,
-                        color = Colors.WHITE,
-                        fontFamily = Fonts.INTER
-                    ),
-                    onLongClick = {
-                        onLongClick()
-                    }
-                )
-
-
-
-
+    Column {
 
         if (isFirstMessageByAuthor) {
             FocusAuthorNameTimestamp(message)

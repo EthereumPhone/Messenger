@@ -2,6 +2,7 @@ package org.ethereumhpone.chat
 
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
@@ -16,6 +17,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -90,6 +92,7 @@ import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -102,6 +105,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.layoutId
@@ -246,7 +250,7 @@ fun ChatScreen(
         animationSpec = tween(1000,)
     )
 
-    val alpha: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,500))
+    val alpha: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(500,500))
 
 
     Scaffold (
@@ -264,7 +268,24 @@ fun ChatScreen(
                 .padding(paddingValues)) {
                 Box(modifier = modifier
                     .fillMaxSize()
-                    .customBlur(if (focusMode.value) 100f else 0f)){
+                    .customBlur(if (focusMode.value) 100f else 0f)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = {
+                                if(focusMode.value){
+                                    //Toast.makeText(context,"focus tap press -kkkk",Toast.LENGTH_SHORT).show()
+                                    focusMode.value = false
+                                }
+                            },
+                            onLongPress = {
+                                if(focusMode.value){
+                                    //Toast.makeText(context,"focus tap press -kkkk",Toast.LENGTH_SHORT).show()
+                                    focusMode.value = false
+                                }
+                            }
+                        )
+                    },
+                ){
                     recipient?.let {
                         MotionLayout(
                             motionScene = MotionScene(content = motionScene),
@@ -349,6 +370,24 @@ fun ChatScreen(
                                         }
                                         .layoutId("name")
                                 }
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    if (it.contact?.numbers?.get(0)  != null) {
+                                        makePhoneCall(context, it.contact?.numbers?.get(0)!!.address)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .layoutId("call_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Call,
+                                    contentDescription = "Call contact",
+                                    tint = Colors.WHITE,
+                                    modifier = modifier.size(24.dp)
+                                )
                             }
 
                             Column(
@@ -773,30 +812,22 @@ fun ChatScreen(
                                 }
                             }
                             //------------PROFILE VIEW END------------
-
-                            //MessageOptionsScreen()
-                            AnimatedVisibility(
-                                focusMode.value,
-                                enter = fadeIn(
-                                    animationSpec = tween(300),
-                                ),
-                                exit = fadeOut(
-                                    animationSpec = tween(300,),
-                                ),
-                            ){
-                                MessageOptionsScreen(
-                                    Modifier.layoutId("messageoptions"),focusedmessage.value,composablePositionState, focusMode
-                                )
-                            }
-
-                            //------------PROFILE VIEW START------------
-                            //------------PROFILE VIEW END------------
-
-
-
-
                         }
                     }
+                }
+
+                AnimatedVisibility(
+                    focusMode.value,
+                    enter = fadeIn(
+                        animationSpec = tween(300),
+                    ),
+                    exit = fadeOut(
+                        animationSpec = tween(300,),
+                    ),
+                ){
+                    MessageOptionsScreen(
+                        Modifier.layoutId("messageoptions"),focusedmessage.value,composablePositionState, focusMode
+                    )
                 }
             }
 

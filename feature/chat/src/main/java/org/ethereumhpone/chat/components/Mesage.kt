@@ -152,6 +152,9 @@ fun Message(
     val alignmessage =
         if(isUserMe) {
             Modifier
+//                .clickable {
+//                    Toast.makeText(context, "TEST - ${msg.body}",Toast.LENGTH_SHORT).show()
+//                }
                 .padding(start = 16.dp)
                 .onGloballyPositioned { coordinates ->
                     compSize = coordinates.size.height
@@ -159,6 +162,9 @@ fun Message(
                 }
         } else {
             Modifier
+//                .clickable {
+//                    Toast.makeText(context, "TEST - - ${msg.body}",Toast.LENGTH_SHORT).show()
+//                }
                 .padding(end = 16.dp)
                 .onGloballyPositioned { coordinates ->
                     compSize = coordinates.size.height
@@ -451,6 +457,8 @@ fun ChatItemBubble(
         }
     }
 
+    val context = LocalContext.current
+
 
 
 
@@ -464,6 +472,22 @@ fun ChatItemBubble(
                 .background(
                     brush = messageBrush
                 )
+                //
+//                .pointerInput(Unit) {
+//                    detectTapGestures(
+//                        onDoubleTap = {
+//                            //Toast.makeText(context,"double press",Toast.LENGTH_SHORT)
+//                            //onDoubleClick()
+//                        },
+//                        onTap = {
+//                            //Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
+//                        },
+//                        onLongPress = {
+//                            Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
+//                            //onLongClick()
+//                        }
+//                    )
+//                }
         ){
 
             val uriHandler = LocalUriHandler.current
@@ -511,6 +535,7 @@ fun ClickableMessage(
 
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
+    val context = LocalContext.current
 
     BasicText(
         text = styledMessage,
@@ -519,25 +544,19 @@ fun ClickableMessage(
             .padding(16.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onDoubleTap = {
-                        //Toast.makeText(context,"double press",Toast.LENGTH_SHORT)
-                        onDoubleClick()
-                    },
-                    onTap = {
-                        //Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
-                    },
                     onLongPress = {
                         //Toast.makeText(context,"long press",Toast.LENGTH_SHORT)
+                        Toast.makeText(context,"long press -kkkk",Toast.LENGTH_SHORT).show()
                         onLongClick()
+                    },
+                    onTap = { pos ->
+                        layoutResult.value?.let { layoutResult ->
+                            Toast.makeText(context,"onclick press -kkkk",Toast.LENGTH_SHORT).show()
+                            onClick(layoutResult.getOffsetForPosition(pos))
+                        }
                     }
+
                 )
-            }
-            .pointerInput(onClick) {
-                detectTapGestures { pos ->
-                    layoutResult.value?.let { layoutResult ->
-                        onClick(layoutResult.getOffsetForPosition(pos))
-                    }
-                }
             },
         onTextLayout = {
             layoutResult.value = it

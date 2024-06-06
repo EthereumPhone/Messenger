@@ -30,6 +30,14 @@
         top: ['parent', 'top', 16]
       },
 
+      call_btn: {
+        width: 48,
+        height: 48,
+        end: ['parent', 'end', 16],
+        top: ['parent', 'top', 16],
+        alpha: 1
+      },
+
       profile_pic: {
         width: 48,
         height: 48,
@@ -89,6 +97,14 @@
         top: ['parent', 'top', 16]
       },
 
+      call_btn: {
+        width: 48,
+        height: 48,
+        start: ['parent', 'end', 16],
+        top: ['parent', 'top', 16],
+        alpha: 0
+      },
+
       profile_pic: {
         width: 128,
         height: 128,
@@ -117,26 +133,26 @@
 
     }
   },
-  Transitions: {  //to set transition properties between Start and End point.
-    default: {
-      from: 'start',
-      to: 'end',
-      pathMotionArc: 'startVertical', // Text will move down with slight circular arc
-      KeyFrames: {
-        KeyAttributes: [  //We define different Attr and how we want this to Animate, during transition for a specific composable
-          {
-            target: ['name'],
-            //[collapsed -> expanded]
-            frames: [0, 50, 100], //For frames we pass a List containing number between 0 - 100
-            alpha: [0, 0, 1],
-          },
-          {
-            target: ['data_content'],
-            frames: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100],  //For frames we pass a List containing number between 0 - 100
-            translationY: [110, 98, 92, 87, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 2]
-          }
-        ]
-      }
-    }
-  }
+//  Transitions: {  //to set transition properties between Start and End point.
+//    default: {
+//      from: 'start',
+//      to: 'end',
+//      pathMotionArc: 'startVertical', // Text will move down with slight circular arc
+//      KeyFrames: {
+//        KeyAttributes: [  //We define different Attr and how we want this to Animate, during transition for a specific composable
+//          {
+//            target: ['name'],
+//            //[collapsed -> expanded]
+//            frames: [0, 50, 100], //For frames we pass a List containing number between 0 - 100
+//            alpha: [0, 0, 1],
+//          },
+//          {
+//            target: ['data_content'],
+//            frames: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100],  //For frames we pass a List containing number between 0 - 100
+//            translationY: [110, 98, 92, 87, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 2]
+//          }
+//        ]
+//      }
+//    }
+//  }
 }
