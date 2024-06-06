@@ -4,9 +4,6 @@ package org.ethereumhpone.chat
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,19 +16,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,10 +32,8 @@ import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
-import org.ethereumhpone.database.util.Converters
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.model.Attachment
-import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
@@ -54,10 +44,8 @@ import org.kethereum.rpc.EthereumRPC
 import org.kethereum.rpc.HttpEthereumRPC
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
-import java.lang.Thread.State
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.net.URLDecoder
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -67,15 +55,13 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatViewModel @SuppressLint("StaticFieldLeak")
 @Inject constructor(
-    private val savedStateHandle: SavedStateHandle,
+    savedStateHandle: SavedStateHandle,
     private val messageRepository: MessageRepository,
-    private val conversationRepository: ConversationRepository,
-    private val contactRepository: ContactRepository,
+    conversationRepository: ConversationRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
-    private val mediaRepository: MediaRepository,
+    mediaRepository: MediaRepository,
     private val permissionManager: PermissionManager,
-
     private val context: Context
 ): ViewModel() {
 

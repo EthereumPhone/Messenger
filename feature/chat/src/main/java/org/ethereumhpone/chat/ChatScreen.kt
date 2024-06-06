@@ -261,6 +261,7 @@ fun ChatScreen(
             .exclude(WindowInsets.ime),
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
+
             Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
                 Box(modifier = modifier.fillMaxSize()
                     .customBlur(if (focusMode.value) 100f else 0f)

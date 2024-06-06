@@ -46,22 +46,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
 
-
         // checks if android db contacts have been changed and adds them to the database
         CoroutineScope(Dispatchers.Main).launch {
             contentResolver.observe(contactsURI).collect {
-                Log.d("Resolver", it.toString())
                 withContext(Dispatchers.IO) { syncRepository.syncContacts() }
             }
         }
 
 
-
-        if (permissionManager.hasContacts()) {
-            CoroutineScope(Dispatchers.IO).launch {
-                syncRepository.syncContacts()
-            }
-        }
 
         // check if it has permissions and never never ran a message sync
         CoroutineScope(Dispatchers.IO).launch {

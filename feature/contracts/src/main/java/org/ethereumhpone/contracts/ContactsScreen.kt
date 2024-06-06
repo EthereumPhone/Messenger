@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -82,9 +83,7 @@ fun ContactRoute(
         modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
-        contactClicked = {
-            navigateToChat("0", listOf(it))
-                         },
+        contactClicked = { navigateToChat("0", listOf(it)) },
         conversationClicked = { id, recipients ->
             viewModel.setConversationAsRead(id.toLong())
             navigateToChat(id, recipients.map { it.address })
@@ -197,6 +196,7 @@ fun ContactScreen(
                                                    Image(
                                                        painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
                                                        contentDescription = "Contact Image",
+                                                       contentScale = ContentScale.Crop,
                                                        modifier = Modifier
                                                            .size(48.dp) // Set the size of the image
                                                            .clip(CircleShape) // Apply a circular shape
