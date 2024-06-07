@@ -262,19 +262,22 @@ fun ChatScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
 
-            Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
-                Box(modifier = modifier.fillMaxSize()
+            Box(modifier = modifier
+                .fillMaxSize()
+                .padding(paddingValues)) {
+                Box(modifier = modifier
+                    .fillMaxSize()
                     .customBlur(if (focusMode.value) 100f else 0f)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = {
-                                if(focusMode.value){
+                                if (focusMode.value) {
                                     //Toast.makeText(context,"focus tap press -kkkk",Toast.LENGTH_SHORT).show()
                                     focusMode.value = false
                                 }
                             },
                             onLongPress = {
-                                if(focusMode.value){
+                                if (focusMode.value) {
                                     //Toast.makeText(context,"focus tap press -kkkk",Toast.LENGTH_SHORT).show()
                                     focusMode.value = false
                                 }
@@ -354,7 +357,10 @@ fun ChatScreen(
 
                             val name_modifier = when(profileview.value){
                                 true -> {
-                                    Modifier.animateContentSize().fillMaxWidth().layoutId("name")
+                                    Modifier
+                                        .animateContentSize()
+                                        .fillMaxWidth()
+                                        .layoutId("name")
                                 }
                                 false -> {
                                     Modifier
@@ -416,9 +422,11 @@ fun ChatScreen(
                                         color = Colors.GRAY,
                                         fontWeight = FontWeight.Medium,
                                         fontFamily = Fonts.INTER,
-                                        modifier = if(profileview.value) Modifier.graphicsLayer(alpha = alpha).clickable {
-                                            //TODO: implement funcitonality
-                                        } else {
+                                        modifier = if(profileview.value) Modifier
+                                            .graphicsLayer(alpha = alpha)
+                                            .clickable {
+                                                //TODO: implement funcitonality
+                                            } else {
                                             Modifier.graphicsLayer(alpha = alpha)
                                         }
 
@@ -739,11 +747,16 @@ fun ChatScreen(
 
                             val alpha1: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,500))
                             val alpha2: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1000))
-                            val alpha3: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1500))
+                            val alpha3: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1250))
+                            val alpha4: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1750))
+                            val alpha5: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1750))
 
 
                             Column (
-                                modifier = modifier.layoutId("profileactions").fillMaxHeight().padding(start = 24.dp,end = 24.dp,top=48.dp),
+                                modifier = modifier
+                                    .layoutId("profileactions")
+                                    .fillMaxHeight()
+                                    .padding(start = 24.dp, end = 24.dp, top = 48.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ){
                                 Row(
@@ -752,24 +765,30 @@ fun ChatScreen(
                                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
 
-                                    ethOSIconButton(
-                                        onClick = {
-                                            if (it.contact?.numbers?.get(0)  != null) {
-                                                makePhoneCall(context, it.contact?.numbers?.get(0)!!.address)
-                                            }
-                                        },
-                                        icon = Icons.Outlined.Call,
-                                        contentDescription="Call"
-                                    )
-                                    ethOSIconButton(
-                                        onClick = { /*TODO*/ },
-                                        icon = Icons.Outlined.Contacts,
-                                        contentDescription="Contact"
-                                    )
+                                    Box(modifier = Modifier.graphicsLayer(alpha = alpha1)) {
+                                        ethOSIconButton(
+                                            onClick = {
+                                                if (it.contact?.numbers?.get(0)  != null) {
+                                                    makePhoneCall(context, it.contact?.numbers?.get(0)!!.address)
+                                                }
+                                            },
+                                            icon = Icons.Outlined.Call,
+                                            contentDescription="Call"
+                                        )
+                                    }
+                                    Box(modifier = Modifier.graphicsLayer(alpha = alpha2)) {
+                                        ethOSIconButton(
+                                            onClick = { /*TODO*/ },
+                                            icon = Icons.Outlined.Contacts,
+                                            contentDescription="Contact"
+                                        )
+                                    }
+
+
 
                                 }
                                 Divider(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().graphicsLayer(alpha = alpha3),
                                     color = Colors.DARK_GRAY
                                 )
 
@@ -780,7 +799,7 @@ fun ChatScreen(
                                     it.contact?.numbers?.get(0).let {
                                         if (it != null) {
                                             ContactItem(
-                                                modifier = Modifier.graphicsLayer(alpha = alpha2),
+                                                modifier = Modifier.graphicsLayer(alpha = alpha4),
                                                 title= "Phone Number",
                                                 detail= it.address
                                             )
@@ -790,7 +809,7 @@ fun ChatScreen(
                                     it.contact?.ethAddress.let {
                                         if (it != null && it.isNotBlank()) {
                                             ContactItem(
-                                                modifier = Modifier.graphicsLayer(alpha = alpha3),
+                                                modifier = Modifier.graphicsLayer(alpha = alpha5),
                                                 title= "Ethereum Address",
                                                 detail= it
                                             )
