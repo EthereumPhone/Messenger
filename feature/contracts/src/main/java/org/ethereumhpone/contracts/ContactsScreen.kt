@@ -188,7 +188,7 @@ fun ContactScreen(
                            LazyColumn(
                                modifier = Modifier.padding(horizontal = 12.dp)
                            ){
-                               conversationState.conversations.sortedBy { it.date }.reversed().forEach { conversation ->
+                               conversationState.conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
                                    item {
                                        ChatListInfo(
                                            image = {
@@ -271,12 +271,13 @@ fun ContactScreen(
             }
 
             if (contactsPermissionState.allPermissionsGranted) {
-//                coroutineScope.launch {
-//                    getContacts(context)
-//                }
-                val allowedContacts = contacts//.filter { it.name.isNotEmpty() }
-
-                ContactSheet(allowedContacts) {
+                ContactSheet(
+                    contacts = contacts,
+                    onPhoneNumberSelected = {
+                        showContactSheet = false
+                        contactClicked(it)
+                    }
+                ) {
                     showContactSheet = false
                     println("Contact clicked ${it.name}")
 
