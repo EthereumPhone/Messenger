@@ -1,12 +1,16 @@
 package org.ethereumhpone.chat.components
 
 import android.app.Notification
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.view.textclassifier.ConversationActions
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +29,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CheckCircleOutline
@@ -37,21 +44,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -128,7 +146,6 @@ fun Message(
         modifier = spaceBetweenAuthors,
         horizontalArrangement = Arrangement.End
     ) {
-//        Text(text = ""+ isFirstMessageByAuthor)
         AuthorAndTextMessage(
             msg = msg,
             isUserMe = isUserMe,
@@ -393,7 +410,6 @@ fun ChatItemBubble(
             )
         )
 
-
     Column(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         modifier = Modifier.fillMaxWidth()
@@ -404,96 +420,47 @@ fun ChatItemBubble(
             shape = Bubbleshape
 
         ) {
-
                 Column {
-////                    Text
-//                    message.mmsStatus?.let {
-//                        Box(
-//                            contentAlignment = Alignment.Center,
-//                            modifier = Modifier.padding(end = 4.dp,start = 4.dp, top=4.dp)
-//                        ){
-//                            Image(
-//                                painter = painterResource(it),
-//                                contentScale = ContentScale.Fit,
-//                                modifier = Modifier
-//                                    .sizeIn(maxWidth = 240.dp)
-//                                    .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)),
-//                                contentDescription = "Attached Image"
-//                            )
-//                        }
-//
-//
-//                    }
-
-
                     ClickableMessage(
                         message = message,
                         isUserMe = isUserMe,
                         authorClicked = authorClicked
                     )
                 }
-
-
-
         }
-
-//        message.image?.let {
-//            Spacer(modifier = Modifier.height(4.dp))
-//            Surface(
-//                modifier = if(isUserMe) usercolor else reciepientcolor,
-//                color = Color.Transparent,
-//                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
-//            ) {
-//                Image(
-//                    painter = painterResource(it),
-//                    contentScale = ContentScale.Fit,
-//                    modifier = Modifier.size(160.dp),
-//                    contentDescription = "Attached Image"
-//                )
-//            }
-//        }
     }
 }
 
+
 @Composable
 fun ClickableMessage(
-    message:Message,
+    message: Message,
     isUserMe: Boolean,
     authorClicked: (String) -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
-
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
 
     val styledMessage = messageFormatter(
-        text = message.body,// timestamp
+        text = message.body, // timestamp
         primary = isUserMe
     )
 
-    ClickableText(
-        text = styledMessage,
-        style = TextStyle(
-            fontSize = 16.sp,
-            fontWeight =  FontWeight.Normal,
-            color = Colors.WHITE,
-            fontFamily = Fonts.INTER
-        ),
-        modifier = Modifier.padding(16.dp),
-        onClick = {
-
-            styledMessage
-                .getStringAnnotations(start = it, end = it)
-                .firstOrNull()
-                ?.let { annotation ->
-                    when (annotation.tag) {
-                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-                        else -> Unit
-                    }
-                }
-        }
-    )
+    SelectionContainer {
+        BasicText(
+            text = styledMessage,
+            style = TextStyle(
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color.White,
+                fontFamily = FontFamily.Default
+            ),
+            modifier = Modifier
+                .padding(16.dp)
+        )
+    }
 }
-
 @Preview
 @Composable
 fun previewTxClickableMessage() {
