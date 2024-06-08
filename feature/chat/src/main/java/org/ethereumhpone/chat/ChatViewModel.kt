@@ -4,6 +4,7 @@ package org.ethereumhpone.chat
 import android.annotation.SuppressLint
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.provider.ContactsContract
@@ -165,6 +166,15 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             } else {
                 0.0
             }
+        }
+    }
+
+    fun callPhone() {
+        recipientState.value?.contact?.numbers?.firstOrNull()?.let {
+            val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${it.address}")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
         }
     }
 

@@ -129,6 +129,7 @@ fun ChatRoute(
         onSendEthClicked = viewModel::sendEth,
         onAttachmentClicked = viewModel::toggleSelection,
         onSendMessageClicked = viewModel::sendMessage,
+        onPhoneClicked = viewModel::callPhone
     )
 }
 
@@ -146,8 +147,8 @@ fun ChatScreen(
     chainName: String,
     onAttachmentClicked: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
-
-    ){
+    onPhoneClicked: () -> Unit
+){
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -203,6 +204,7 @@ fun ChatScreen(
                                 image = it.contact?.photoUri ?: "",
                                 ens = listOf(""),
                                 onBackClick = navigateBackToConversations,
+                                onPhoneClick = onPhoneClicked,
                                 onContactClick = {
                                     currentModalSelector = ModalSelector.CONTACT
                                     showAssetSheet = true

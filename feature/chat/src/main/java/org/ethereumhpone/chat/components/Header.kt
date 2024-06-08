@@ -43,6 +43,7 @@ fun Header(
     modifier: Modifier = Modifier,
     name: String,
     image: String,
+    onPhoneClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
 ){
     val iconsize = 24.dp
@@ -121,7 +122,7 @@ fun Header(
                     horizontalArrangement = Arrangement.Start,
                 ) {
                     IconButton(
-                        onClick = onBackClick,
+                        onClick = onPhoneClick,
                         modifier = modifier.size(iconsize)
                     ) {
                         Icon(
@@ -146,6 +147,7 @@ fun ChatHeader(
     ens: List<String>,
     image: String,
     onBackClick: () -> Unit = {},
+    onPhoneClick: () -> Unit = {},
     onContactClick: () -> Unit = {},
 ){
     val iconsize = 24.dp
@@ -244,7 +246,7 @@ fun ChatHeader(
                     horizontalArrangement = Arrangement.Start,
                 ) {
                     IconButton(
-                        onClick = onBackClick,
+                        onClick = onPhoneClick,
                         modifier = modifier.size(iconsize)
                     ) {
                         Icon(
