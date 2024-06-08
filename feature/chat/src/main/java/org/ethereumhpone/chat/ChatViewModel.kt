@@ -2,12 +2,17 @@ package org.ethereumhpone.chat
 
 
 import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.content.Context
+import android.database.Cursor
+import android.net.Uri
+import android.provider.ContactsContract
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ezvcard.Ezvcard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,11 +34,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
+import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.manager.PermissionManager
+import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
@@ -56,11 +64,12 @@ import javax.inject.Inject
 class ChatViewModel @SuppressLint("StaticFieldLeak")
 @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val messageRepository: MessageRepository,
     conversationRepository: ConversationRepository,
+    mediaRepository: MediaRepository,
+    private val contactRepository: ContactRepository,
+    private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
-    mediaRepository: MediaRepository,
     private val permissionManager: PermissionManager,
     private val context: Context
 ): ViewModel() {
@@ -68,7 +77,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val threadId = ThreadIdArgs(savedStateHandle).threadId.toLong()
     private val addresses = AddressesArgs(savedStateHandle).addresses
 
-    val conversationState = merge(
+    private val contacts = contactRepository.getContacts()
+
+    private val conversationState = merge(
         conversationRepository.getConversation(threadId), // initial Conversation
         selectedConversationState(addresses, conversationRepository)
     ).stateIn(
@@ -301,6 +312,32 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 curr + attachment
             }
         }
+    }
+
+    @SuppressLint("Range")
+    private fun getVCard(lookupKey: String): String? {
+        val contentResolver: ContentResolver = context.contentResolver
+        val uri = ContactsContract.Data.CONTENT_URI
+        val projection = arrayOf(ContactsContract.Data.DATA15)
+        val selection = "${ContactsContract.Data.LOOKUP_KEY} = ? AND ${ContactsContract.Data.MIMETYPE} = ?"
+        val selectionArgs = arrayOf(lookupKey, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+
+        val data = contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DATA15))
+            } else {
+                null
+            }
+        }
+
+        val vCardUri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_VCARD_URI, lookupKey)
+        val inputStream = context.contentResolver.openAssetFileDescriptor(vCardUri, "r")?.createInputStream()
+        inputStream?.use { stream ->
+            val vcard = Ezvcard.parse(stream).first() // Parse vCard
+            vcard.addExtendedProperty("ens", data!!) // Add data15 property
+            return Ezvcard.write(vcard).go() // Convert vCard to string
+        }
+        return null
     }
 }
 
