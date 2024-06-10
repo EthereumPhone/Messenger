@@ -45,6 +45,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // initial contacts fetching
+        if (permissionManager.hasContacts()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                syncRepository.syncContacts()
+            }
+        }
+
 
         // checks if android db contacts have been changed and adds them to the database
         CoroutineScope(Dispatchers.Main).launch {
