@@ -1,5 +1,6 @@
 package org.ethereumhpone.contracts.ui
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -167,10 +168,11 @@ fun ContactSheet(
                             )
                         }
                     }
-                    // TODO: add contains number
-                    contacts.filter { contact -> contact.name.contains(textState.text) ||
-                                contact.numbers.any { it.address.contains(textState.text) }
+
+                    contacts.filter { contact -> contact.name.contains(textState.text, true) ||
+                                contact.numbers.any { it.address.contains(textState.text, true) }
                     }.forEach {
+
                         item {
                             ethOSContactListItem(
                                 withImage = it.photoUri != null,
