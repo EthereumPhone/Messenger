@@ -273,10 +273,6 @@ fun ContactScreen(
             if (contactsPermissionState.allPermissionsGranted) {
                 ContactSheet(
                     contacts = contacts,
-                    onPhoneNumberSelected = {
-                        showContactSheet = false
-                        contactClicked(it)
-                    }
                 ) {
                     showContactSheet = false
                     println("Contact clicked ${it.name}")

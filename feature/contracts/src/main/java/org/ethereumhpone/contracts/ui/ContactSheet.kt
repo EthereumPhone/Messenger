@@ -75,8 +75,7 @@ import org.ethosmobile.components.library.theme.Fonts
 @Composable
 fun ContactSheet(
     contacts: List<Contact> = emptyList(),
-    onPhoneNumberSelected: (String) -> Unit = {},
-    onSelectContact: (Contact) -> Unit = {},
+    onSelectContact: (Contact) -> Unit = {}
 ) {
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
@@ -92,9 +91,6 @@ fun ContactSheet(
         mutableStateOf(TextFieldValue())
     }
 
-    var phoneNumber by remember { mutableStateOf(TextFieldValue()) }
-    var showPhoneNumberDialog by remember { mutableStateOf(false) }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -106,122 +102,18 @@ fun ContactSheet(
             )
             .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
             Text(
                 text = "Contacts",
                 fontSize = 24.sp,
                 color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.align(Alignment.Center)
+                fontWeight = FontWeight.SemiBold
             )
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Colors.BLACK)
-            ) {
-                IconButton(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .size(42.dp)
-                    ,
-                    enabled = true,
-                    onClick = {
-                        showPhoneNumberDialog = true
-                    },
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ){
-                        Icon(imageVector = Icons.Rounded.Add, contentDescription = "Add contact", tint = Colors.WHITE, modifier = Modifier.size(32.dp))
-                    }
-
-                }
-            }
-
-            if (showPhoneNumberDialog) {
-                Dialog(
-                    onDismissRequest = { showPhoneNumberDialog = false },
-                    properties = DialogProperties(dismissOnClickOutside = false)
-                ) {
-                    Surface(
-                        shape = MaterialTheme.shapes.medium,
-                        color = Color.Black,  // Set dialog background to black
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                "Enter Phone Number",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White  // Change text color to white
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            TextField(
-                                value = phoneNumber,
-                                onValueChange = {
-                                    phoneNumber = it
-                                },
-                                label = { Text("Phone Number", color = Color.White) },  // Change label text color to white
-                                modifier = Modifier.fillMaxWidth(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                colors = TextFieldDefaults.colors(
-                                    focusedTextColor = Color.White,  // Set text color to white when focused
-                                    unfocusedTextColor = Color.White,  // Set text color to white when unfocused
-                                    disabledTextColor = Color.Gray,  // Set text color to gray when disabled
-                                    errorTextColor = Color.Red,  // Set text color to red when there's an error
-                                    focusedContainerColor = Color.DarkGray,  // Set background color to dark gray when focused
-                                    unfocusedContainerColor = Color.DarkGray,  // Set background color to dark gray when unfocused
-                                    disabledContainerColor = Color.LightGray,  // Set background color to light gray when disabled
-                                    errorContainerColor = Color.Red,  // Set background color to red when there's an error
-                                    cursorColor = Color.White,  // Set cursor color to white
-                                    errorCursorColor = Color.Red,  // Set cursor color to red when there's an error
-                                    focusedIndicatorColor = Color.White,  // Set focused indicator color to white
-                                    unfocusedIndicatorColor = Color.White  // Set unfocused indicator color to white
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.End,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                TextButton(onClick = { showPhoneNumberDialog = false }) {
-                                    Text("Cancel", color = Color.White)  // Change button text color to white
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Button(
-                                    onClick = {
-                                        // Handle phone number input
-                                        showPhoneNumberDialog = false
-                                        onPhoneNumberSelected(phoneNumber.text)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.DarkGray,  // Change button background color
-                                        contentColor = Color.White  // Change button content color to white
-                                    )
-                                ) {
-                                    Text("Add")
-                                }
-                            }
-                        }
-                    }
-                }
-
-            }
         }
-
 
         if (contacts.isEmpty()){
             Box(
@@ -262,7 +154,23 @@ fun ContactSheet(
                 contentAlignment = Alignment.TopCenter
             ) {
                 LazyColumn{
-                    contacts.filter { it.name.contains(textState.text) }.forEach {
+
+                    if(textState.text.isNotEmpty() && !textState.text.contains("[a-zA-Z]")) {
+                        item {
+                            ethOSContactListItem(
+                                header = "write to ${textState.text}",
+                                onClick = {
+                                    onSelectContact(
+                                        Contact()
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    // TODO: add contains number
+                    contacts.filter { contact -> contact.name.contains(textState.text) ||
+                                contact.numbers.any { it.address.contains(textState.text) }
+                    }.forEach {
                         item {
                             ethOSContactListItem(
                                 withImage = it.photoUri != null,
@@ -292,6 +200,7 @@ fun ContactSheet(
 
 
 }
+
 
 @Composable
 private fun SearchTextField(
