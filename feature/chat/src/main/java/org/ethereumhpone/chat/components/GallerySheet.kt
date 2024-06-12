@@ -1,6 +1,10 @@
 package org.ethereumhpone.chat.components
 
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,8 +24,17 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -37,6 +50,14 @@ fun GallerySheet(
     onItemClicked: (Attachment) -> Unit,
 ) {
 
+    val pickMedia = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()) {
+        onItemClicked(Attachment.Image(uri = it!!))
+    }
+
+    LaunchedEffect(Unit) {
+    }
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -45,21 +66,34 @@ fun GallerySheet(
 
         // Camera item, folder button and first image
         item(span = { GridItemSpan(3) }) {
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 CameraPreview(
                     Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .height(240.dp)
-                        .weight(1f)
-                    ,
+                        .weight(1f),
                     onPhotoCaptured = { onItemClicked(Attachment.Image(it)) }
                 )
 
-                Column(Modifier.weight(1f)) {
+                Column(
+                    Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
                     Button(
-                        //modifier = Modifier.fillMaxWidth(),
-                        onClick = { /*TODO*/ }) {
-                        
+                        shape = RoundedCornerShape(25),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(Icons.Outlined.Folder, "")
+                            Text("Folders")
+                        }
                     }
 
                     attachments.firstOrNull()?.let {
@@ -125,8 +159,8 @@ fun PreviewGallerySheet() {
             Attachment.Image(),
             Attachment.Image()
         ),
-        emptySet()
-    ) {
-    }
+        emptySet(),
+        {},
+    )
 }
 
