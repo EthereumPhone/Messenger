@@ -67,7 +67,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     savedStateHandle: SavedStateHandle,
     conversationRepository: ConversationRepository,
     mediaRepository: MediaRepository,
-    private val contactRepository: ContactRepository,
     private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
@@ -75,11 +74,11 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val context: Context
 ): ViewModel() {
 
+    // nav arguments
     private val threadId = ThreadIdArgs(savedStateHandle).threadId.toLong()
     private val addresses = AddressesArgs(savedStateHandle).addresses
 
-    private val contacts = contactRepository.getContacts()
-
+    // conversation state state
     private val conversationState = merge(
         conversationRepository.getConversation(threadId), // initial Conversation
         selectedConversationState(addresses, conversationRepository)
@@ -312,6 +311,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         //TODO: Create a new conversation with one address
 
 
+        // remove attached items
+        _selectedAttachments.value = emptySet()
     }
 
     fun toggleSelection(attachment: Attachment) {
