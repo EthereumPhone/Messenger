@@ -129,6 +129,7 @@ import org.ethereumhpone.chat.components.TxMessage
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.components.makePhoneCall
+import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
 import org.ethosmobile.components.library.core.ethOSIconButton
@@ -146,6 +147,8 @@ fun ChatRoute(
     val attachments by viewModel.attachments.collectAsStateWithLifecycle()
     val selectedAttachments by viewModel.selectedAttachments.collectAsStateWithLifecycle()
 
+    val focusedMessage by viewModel.focusedMessage.collectAsStateWithLifecycle()
+
     ChatScreen(
         messagesUiState = messagesUiState,
         recipient = recipient,
@@ -157,6 +160,10 @@ fun ChatRoute(
         onSendEthClicked = viewModel::sendEth,
         onAttachmentClicked = viewModel::toggleSelection,
         onSendMessageClicked = viewModel::sendMessage,
+        onDeleteMessage = viewModel::deleteMessage,
+        focusedMessage = focusedMessage,
+        onFocusedMessageUpdate = viewModel::updatefocusedMessage,
+
     )
 }
 
@@ -174,6 +181,9 @@ fun ChatScreen(
     chainName: String,
     onAttachmentClicked: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
+    onDeleteMessage: (Long) -> Unit,
+    focusedMessage: Message?,
+    onFocusedMessageUpdate: (Message) -> Unit,
 
     ){
     val topBarState = rememberTopAppBarState()
@@ -216,15 +226,12 @@ fun ChatScreen(
     }
     val composablePositionState = remember { mutableStateOf(ComposablePosition()) }//gets offset of message composable
 
-    var focusedmessage = remember { mutableStateOf(
-        org.ethereumhpone.database.model.Message(
-            address = "me",
-            body = "",
-            subject = ""
-        )
-    ) }
+
 
     val profileview = remember {
+        mutableStateOf(false)
+    }
+    var detailview by remember {
         mutableStateOf(false)
     }
 
@@ -249,6 +256,7 @@ fun ChatScreen(
     )
 
     val alpha: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(500,500))
+
 
 
     Scaffold (
@@ -477,56 +485,51 @@ fun ChatScreen(
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 24.dp)
                                         ) {
+                                            Log.d("DEBUG", messagesUiState.messages.sortedBy { it.date }.reversed().toString())
+                                            items(items = messagesUiState.messages.sortedBy { it.date }.reversed(), key = { it.id }) { message ->
 
-                                            messagesUiState.messages.sortedBy { it.date }.reversed().forEachIndexed { index, message ->
+                                                val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
+                                                val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
+                                                val isFirstMessageByAuthor = prevAuthor != message.address
+                                                val isLastMessageByAuthor = nextAuthor != message.address
 
-                                                val prevAuthor = messagesUiState.messages.getOrNull(index - 1)?.address
-                                                val nextAuthor = messagesUiState.messages.getOrNull(index + 1)?.address
-                                                val content = messagesUiState.messages[index]
-                                                val isFirstMessageByAuthor = prevAuthor != content.address
-                                                val isLastMessageByAuthor = nextAuthor != content.address
-
-                                                item {
-                                                    if (isValidTransactionMessage(message.body)) {
-                                                        val transactionDetails = extractTransactionDetails(message.body)
-                                                        transactionDetails?.let {
-                                                            TxMessage(
-                                                                amount = it.amount.toDouble(),
-                                                                txUrl = it.url,
-                                                                isUserMe = message.isMe(),
-                                                                isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                                isLastMessageByAuthor = isLastMessageByAuthor,
-                                                                networkName = chainIdToReadableName(it.chainId),
-                                                            )
-                                                        } ?:
-                                                        Message(
-                                                            onAuthorClick = { },
-                                                            msg = message,
+                                                if (isValidTransactionMessage(message.body)) {
+                                                    val transactionDetails = extractTransactionDetails(message.body)
+                                                    transactionDetails?.let {
+                                                        TxMessage(
+                                                            amount = it.amount.toDouble(),
+                                                            txUrl = it.url,
                                                             isUserMe = message.isMe(),
                                                             isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                             isLastMessageByAuthor = isLastMessageByAuthor,
-                                                            composablePositionState = composablePositionState,
-                                                            onLongClick = {
-                                                                focusedmessage.value = message
-                                                                focusMode.value = true
-                                                            },
-
-                                                            )
-                                                    } else {
-                                                        Message(
-                                                            onAuthorClick = { },
-                                                            msg = message,
-                                                            isUserMe = message.isMe(),
-                                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                            isLastMessageByAuthor = isLastMessageByAuthor,
-                                                            composablePositionState = composablePositionState,
-                                                            onLongClick = {
-                                                                focusedmessage.value = message
-                                                                focusMode.value = true
-                                                            },
-
-                                                            )
-                                                    }
+                                                            networkName = chainIdToReadableName(it.chainId),
+                                                        )
+                                                    } ?: Message(
+                                                        onAuthorClick = { },
+                                                        msg = message,
+                                                        isUserMe = message.isMe(),
+                                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                        isLastMessageByAuthor = isLastMessageByAuthor,
+                                                        composablePositionState = composablePositionState,
+                                                        onLongClick = {
+                                                            onFocusedMessageUpdate(message)
+                                                            focusMode.value = true
+                                                        },
+                                                    )
+                                                } else {
+                                                    Message(
+                                                        onAuthorClick = { },
+                                                        msg = message,
+                                                        isUserMe = message.isMe(),
+                                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                        isLastMessageByAuthor = isLastMessageByAuthor,
+                                                        composablePositionState = composablePositionState,
+                                                        onLongClick = {
+                                                            Log.d("DEBUG Before", "${message.id} - ${message.body} - ${message}")
+                                                            onFocusedMessageUpdate(message)
+                                                            focusMode.value = true
+                                                        },
+                                                    )
                                                 }
                                             }
                                         }
@@ -639,7 +642,7 @@ fun ChatScreen(
                                         )
 
                                         AnimatedVisibility(
-                                            textState.text.isNotBlank(),
+                                            (textState.text.isNotBlank() || selectedAttachments.toList().isNotEmpty()),
                                             enter = expandHorizontally(),
                                             exit = shrinkHorizontally(),
                                         ) {
@@ -788,7 +791,9 @@ fun ChatScreen(
 
                                 }
                                 Divider(
-                                    modifier = Modifier.fillMaxWidth().graphicsLayer(alpha = alpha3),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .graphicsLayer(alpha = alpha3),
                                     color = Colors.DARK_GRAY
                                 )
 
@@ -830,7 +835,7 @@ fun ChatScreen(
                 }
 
                 AnimatedVisibility(
-                    focusMode.value,
+                    focusMode.value && focusedMessage != null ,
                     enter = fadeIn(
                         animationSpec = tween(300),
                     ),
@@ -838,9 +843,31 @@ fun ChatScreen(
                         animationSpec = tween(300,),
                     ),
                 ){
-                    MessageOptionsScreen(
-                        Modifier.layoutId("messageoptions"),focusedmessage.value,composablePositionState, focusMode
-                    )
+                    if (focusedMessage != null) {
+                        MessageOptionsScreen(
+                            Modifier.layoutId("messageoptions"),focusedMessage,composablePositionState, focusMode,onDeleteMessage
+                        ) {
+                            detailview = true
+                        }
+                    }
+
+                }
+
+                AnimatedVisibility(
+                    detailview ,
+                    enter = fadeIn(
+                        animationSpec = tween(300),
+                    ),
+                    exit = fadeOut(
+                        animationSpec = tween(300,),
+                    ),
+                ){
+                    if (focusedMessage != null) {
+                        MessageOptionsScreen(
+                            Modifier.layoutId("messageoptions"),focusedMessage,composablePositionState, focusMode, onDeleteMessage
+                        )
+                    }
+
                 }
             }
 

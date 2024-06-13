@@ -602,7 +602,7 @@ private fun RecordingIndicator(swipeOffset: () -> Float) {
                     scaleX = animatedPulse.value; scaleY = animatedPulse.value
                 }
                 .clip(CircleShape)
-                .background(Color.Red)
+                //.background(Color.Red)
         )
         Text(
             duration.toComponents { minutes, seconds, _ ->

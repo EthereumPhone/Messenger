@@ -74,7 +74,9 @@ fun FocusMessage(
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    onDeleteMessage: () -> Unit = {},
+    onDetailMessage: () -> Unit = {}
 
 ) {
 
@@ -198,7 +200,7 @@ fun FocusMessage(
             onLongClick = onLongClick
         )
 
-       MessageActionList(message = msg, focusMode = focusMode)
+       MessageActionList(message = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
 
     }
 

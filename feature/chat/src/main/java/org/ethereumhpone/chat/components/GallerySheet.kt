@@ -1,7 +1,9 @@
 package org.ethereumhpone.chat.components
 
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,17 +21,25 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.ethereumhpone.chat.components.attachments.MediaItem
 import org.ethereumhpone.domain.model.Attachment
+import kotlin.random.Random
 
+@SuppressLint("SuspiciousIndentation")
 @Composable
 fun GallerySheet(
     attachments: List<Attachment>,
@@ -37,59 +47,33 @@ fun GallerySheet(
     onItemClicked: (Attachment) -> Unit,
 ) {
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-
-        // Camera item, folder button and first image
-        item(span = { GridItemSpan(3) }) {
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Fixed(2),
+        verticalItemSpacing = 4.dp,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        content = {
+            item{
                 CameraPreview(
                     Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .height(240.dp)
-                        .weight(1f)
-                    ,
+                  ,
                     onPhotoCaptured = { onItemClicked(Attachment.Image(it)) }
                 )
-
-                Column(Modifier.weight(1f)) {
-                    Button(
-                        //modifier = Modifier.fillMaxWidth(),
-                        onClick = { /*TODO*/ }) {
-                        
-                    }
-
-                    attachments.firstOrNull()?.let {
-                        GallerySheetItem(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(15.dp))
-                                .fillMaxWidth(),
-                            attachment = it,
-                            isSelected = selectedAttachments.contains(it),
-                            itemClicked = { onItemClicked(it) }
-                        )
-                    }
-                }
             }
-        }
 
-        // rest of media
-        attachments.drop(1).forEach { attachment ->
-            item {
+            items(items = attachments){
                 GallerySheetItem(
                     modifier = Modifier.clip(RoundedCornerShape(15.dp)),
-                    attachment = attachment,
-                    isSelected = selectedAttachments.contains(attachment),
-                    itemClicked = { onItemClicked(attachment) }
+                    attachment = it,
+                    isSelected = selectedAttachments.contains(it),
+                    itemClicked = { onItemClicked(it) }
                 )
             }
         }
-    }
-}
+    )
 
+}
 
 @Composable
 private fun GallerySheetItem(
@@ -107,7 +91,16 @@ private fun GallerySheetItem(
         if (isSelected) {
             Box(modifier = Modifier
                 .matchParentSize()
+                .clip(RoundedCornerShape(15.dp))
                 .background(Color.Black.copy(0.5f))
+                .border(
+                    2.dp, Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF8C7DF7),
+                            Color(0xFF6555D8)
+                        )
+                    ), RoundedCornerShape(15.dp)
+                )
             )
         }
     }

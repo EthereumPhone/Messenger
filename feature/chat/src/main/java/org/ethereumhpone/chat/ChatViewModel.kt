@@ -39,9 +39,9 @@ import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.usecase.SendMessage
 import org.ethereumphone.walletsdk.WalletSDK
-import org.kethereum.model.Address
-import org.kethereum.rpc.EthereumRPC
-import org.kethereum.rpc.HttpEthereumRPC
+//import org.kethereum.model.Address
+//import org.kethereum.rpc.EthereumRPC
+//import org.kethereum.rpc.HttpEthereumRPC
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
 import java.math.BigDecimal
@@ -64,6 +64,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val permissionManager: PermissionManager,
     private val context: Context
 ): ViewModel() {
+
 
     private val threadId = ThreadIdArgs(savedStateHandle).threadId.toLong()
     private val addresses = AddressesArgs(savedStateHandle).addresses
@@ -137,9 +138,20 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             initialValue = "",
             started = SharingStarted.WhileSubscribed(5_000)
         )
-    /*
 
-     */
+
+    private val _focusedMessage = MutableStateFlow<Message?>(null)
+    val focusedMessage: StateFlow<Message?> = _focusedMessage
+
+    fun updatefocusedMessage(newMessage: Message) {
+        _focusedMessage.value = newMessage
+    }
+
+    fun deleteMessage(id: Long){
+        viewModelScope.launch {
+            messageRepository.deleteMessage(id)
+        }
+    }
 
     suspend fun getBalance(chainId: Int): Double {
 //        return withContext(Dispatchers.IO) {
@@ -303,6 +315,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             }
         }
     }
+
+
+
 }
 
 /**

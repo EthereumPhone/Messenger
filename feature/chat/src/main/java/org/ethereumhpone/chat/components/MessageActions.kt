@@ -42,6 +42,8 @@ import org.ethosmobile.components.library.theme.Fonts
 fun MessageActionList(
     message: Message,
     focusMode: MutableState<Boolean>,
+    onDeleteMessage: () -> Unit = {},
+    onDetailMessage: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -68,6 +70,7 @@ fun MessageActionList(
                 text = "Info",
                 imageVector = Icons.Outlined.Info,
                 onClick = {
+                    onDetailMessage()
                     Toast.makeText(context,"Info",Toast.LENGTH_SHORT).show()
                 }
             )
@@ -76,9 +79,7 @@ fun MessageActionList(
                 text = "Delete",
                 tint= Colors.ERROR,
                 imageVector = Icons.Outlined.Delete,
-                onClick = {
-                    Toast.makeText(context,"Delete",Toast.LENGTH_SHORT).show()
-                }
+                onClick = onDeleteMessage
             )
         }
     }
@@ -98,7 +99,7 @@ fun MessageAction(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp, horizontal = 16.dp)
-            .clickable{
+            .clickable {
                 onClick()
             }
     ) {
