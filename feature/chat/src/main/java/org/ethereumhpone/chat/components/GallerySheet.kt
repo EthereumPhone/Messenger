@@ -34,6 +34,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,11 +46,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.ethereumhpone.chat.components.attachments.MediaItem
 import org.ethereumhpone.domain.model.Attachment
+import org.ethosmobile.components.library.theme.Colors
+import org.ethosmobile.components.library.theme.Fonts
 import kotlin.random.Random
 
 @SuppressLint("SuspiciousIndentation")
@@ -64,20 +69,6 @@ fun GallerySheet(
         contract = ActivityResultContracts.PickVisualMedia()) {
         onItemClicked(Attachment.Image(uri = it!!))
     }
-    Button(
-        shape = RoundedCornerShape(25),
-        modifier = Modifier.fillMaxWidth(),
-        onClick = {
-            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Icon(Icons.Outlined.Folder, "")
-            Text("Folders")
-        }
-    }
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
         verticalItemSpacing = 4.dp,
@@ -88,9 +79,36 @@ fun GallerySheet(
                     Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .height(240.dp)
-                  ,
+                    ,
                     onPhotoCaptured = { onItemClicked(Attachment.Image(it)) }
                 )
+            }
+
+            item{
+                Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Colors.DARK_GRAY,
+                        contentColor=Colors.WHITE,
+                    ),
+                    shape = RoundedCornerShape(25),
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    onClick = {
+                        pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(Icons.Outlined.Folder, "",tint = Color.White,modifier = Modifier
+                            .size(28.dp))
+                        Text("Folders",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color =  Colors.WHITE,
+                            fontFamily = Fonts.INTER
+                        )
+                    }
+                }
             }
 
             items(items = attachments){

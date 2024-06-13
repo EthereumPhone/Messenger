@@ -501,7 +501,7 @@ fun ClickableMessage(
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
     val context = LocalContext.current
-    SelectionContainer {
+    //SelectionContainer {
         BasicText(
             text = styledMessage,
             style = style,
@@ -529,7 +529,7 @@ fun ClickableMessage(
 
 
         )
-    }
+    //}
 }
 @Preview
 @Composable

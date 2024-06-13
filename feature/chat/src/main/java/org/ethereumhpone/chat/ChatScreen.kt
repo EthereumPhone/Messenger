@@ -43,6 +43,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.TextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -551,7 +552,10 @@ fun ChatScreen(
                                             .padding(bottom = 8.dp)
                                     ) {
                                         var startAnimation by remember { mutableStateOf(false) }
-                                        val animationSpec = tween<Float>(durationMillis = 400, easing = LinearOutSlowInEasing)
+                                        val animationSpec = tween<Float>(
+                                            durationMillis = 400,
+                                            easing = LinearOutSlowInEasing
+                                        )
                                         val rotationAngle by animateFloatAsState(
                                             targetValue = if (startAnimation) 45f else 0f,
                                             animationSpec = animationSpec,
@@ -561,8 +565,7 @@ fun ChatScreen(
                                             modifier = Modifier
                                                 .padding(top = 8.dp)
                                                 .clip(CircleShape)
-                                                .size(42.dp)
-                                            ,
+                                                .size(42.dp),
                                             enabled = true,
                                             onClick = {
                                                 //onChangeShowActionBar()
@@ -571,7 +574,7 @@ fun ChatScreen(
 
                                                 showActionbar = !showActionbar
 
-                                                if(showSelectionbar){
+                                                if (showSelectionbar) {
                                                     showSelectionbar = false
                                                 }
                                                 startAnimation = !startAnimation
@@ -579,66 +582,73 @@ fun ChatScreen(
                                         ) {
                                             Box(
                                                 contentAlignment = Alignment.Center
-                                            ){
-                                                Icon(imageVector = Icons.Filled.Add, modifier= Modifier
-                                                    .size(32.dp)
-                                                    .graphicsLayer(rotationZ = rotationAngle),contentDescription = "Send",tint = Color.White)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Add,
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .graphicsLayer(rotationZ = rotationAngle),
+                                                    contentDescription = "Send",
+                                                    tint = Color.White
+                                                )
                                             }
 
                                         }
 
                                         var lastFocusState by remember { mutableStateOf(false) }
-                                        TextField(
-                                            shape = RoundedCornerShape(35.dp),
-                                            value = textState,
-                                            onValueChange = { textState = it },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clip(RoundedCornerShape(35.dp))
-                                                .border(
-                                                    2.dp,
-                                                    Colors.DARK_GRAY,
-                                                    RoundedCornerShape(35.dp)
-                                                )
-                                                .heightIn(min = 56.dp, max = 100.dp)
-                                                .onFocusChanged { state ->
-                                                    if (lastFocusState != state.isFocused) {
+                                        SelectionContainer {
+                                            TextField(
+                                                shape = RoundedCornerShape(35.dp),
+                                                value = textState,
+                                                onValueChange = { textState = it },
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(35.dp))
+                                                    .border(
+                                                        2.dp,
+                                                        Colors.DARK_GRAY,
+                                                        RoundedCornerShape(35.dp)
+                                                    )
+                                                    .heightIn(min = 56.dp, max = 100.dp)
+                                                    .onFocusChanged { state ->
+                                                        if (lastFocusState != state.isFocused) {
 
-                                                        if (state.isFocused) {
-                                                            currentInputSelector =
-                                                                InputSelector.NONE
-                                                            //resetScroll()
+                                                            if (state.isFocused) {
+                                                                currentInputSelector =
+                                                                    InputSelector.NONE
+                                                                //resetScroll()
+                                                            }
+                                                            textFieldFocusState = state.isFocused
+
                                                         }
-                                                        textFieldFocusState = state.isFocused
+                                                        lastFocusState = state.isFocused
+                                                    },
 
-                                                    }
-                                                    lastFocusState = state.isFocused
+                                                placeholder = {
+                                                    Text("Type a message")
                                                 },
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedTextColor = Colors.WHITE,
+                                                    unfocusedTextColor = Colors.WHITE,
+                                                    focusedContainerColor = Colors.TRANSPARENT,
+                                                    unfocusedContainerColor = Colors.TRANSPARENT,
+                                                    disabledContainerColor = Colors.TRANSPARENT,
+                                                    cursorColor = Colors.WHITE,
+                                                    errorCursorColor = Colors.WHITE,
+                                                    focusedBorderColor = Colors.TRANSPARENT,
+                                                    unfocusedBorderColor = Colors.TRANSPARENT,
+                                                    focusedPlaceholderColor = Colors.GRAY,
+                                                    unfocusedPlaceholderColor = Colors.GRAY,
+                                                ),
+                                                textStyle = TextStyle(
+                                                    fontWeight = FontWeight.Medium,
+                                                    fontFamily = Fonts.INTER,
+                                                    fontSize = 18.sp,
+                                                    color = Colors.WHITE,
+                                                )
 
-                                            placeholder = {
-                                                Text("Type a message")
-                                            },
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedTextColor = Colors.WHITE,
-                                                unfocusedTextColor = Colors.WHITE,
-                                                focusedContainerColor = Colors.TRANSPARENT,
-                                                unfocusedContainerColor = Colors.TRANSPARENT,
-                                                disabledContainerColor = Colors.TRANSPARENT,
-                                                cursorColor = Colors.WHITE,
-                                                errorCursorColor = Colors.WHITE,
-                                                focusedBorderColor = Colors.TRANSPARENT,
-                                                unfocusedBorderColor = Colors.TRANSPARENT,
-                                                focusedPlaceholderColor = Colors.GRAY,
-                                                unfocusedPlaceholderColor = Colors.GRAY,
-                                            ),
-                                            textStyle =  TextStyle(
-                                                fontWeight = FontWeight.Medium,
-                                                fontFamily = Fonts.INTER,
-                                                fontSize = 18.sp,
-                                                color = Colors.WHITE,
                                             )
-
-                                        )
+                                        }
 
                                         AnimatedVisibility(
                                             (textState.text.isNotBlank() || selectedAttachments.toList().isNotEmpty()),
@@ -852,22 +862,23 @@ fun ChatScreen(
 
                 }
 
-                AnimatedVisibility(
-                    detailview ,
-                    enter = fadeIn(
-                        animationSpec = tween(300),
-                    ),
-                    exit = fadeOut(
-                        animationSpec = tween(300,),
-                    ),
-                ){
-                    if (focusedMessage != null) {
-                        MessageOptionsScreen(
-                            Modifier.layoutId("messageoptions"),focusedMessage,composablePositionState, focusMode, onDeleteMessage
-                        )
-                    }
-
-                }
+//                TODO: Implement Infooscreen
+//                AnimatedVisibility(
+//                    detailview ,
+//                    enter = fadeIn(
+//                        animationSpec = tween(300),
+//                    ),
+//                    exit = fadeOut(
+//                        animationSpec = tween(300,),
+//                    ),
+//                ){
+//                    if (focusedMessage != null) {
+//                        MessageDetailsScreen(
+//                            Modifier,focusedMessage,composablePositionState, focusMode, onDeleteMessage
+//                        )
+//                    }
+//
+//                }
             }
 
             //Asset ModalSheet
