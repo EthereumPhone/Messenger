@@ -74,9 +74,6 @@ import androidx.compose.ui.platform.LocalContext
 
 
 
-
-
-
 fun getEnsAddresses(ens: List<String>): String{
     var res = ""
 

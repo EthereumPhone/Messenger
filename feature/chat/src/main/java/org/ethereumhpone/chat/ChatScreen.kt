@@ -163,7 +163,7 @@ fun ChatRoute(
         onDeleteMessage = viewModel::deleteMessage,
         focusedMessage = focusedMessage,
         onFocusedMessageUpdate = viewModel::updatefocusedMessage,
-
+        onPhoneClicked = viewModel::callPhone
     )
 }
 
@@ -184,8 +184,8 @@ fun ChatScreen(
     onDeleteMessage: (Long) -> Unit,
     focusedMessage: Message?,
     onFocusedMessageUpdate: (Message) -> Unit,
-
-    ){
+    onPhoneClicked: () -> Unit
+){
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -269,7 +269,6 @@ fun ChatScreen(
             .exclude(WindowInsets.ime),
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ){ paddingValues ->
-
             Box(modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)) {

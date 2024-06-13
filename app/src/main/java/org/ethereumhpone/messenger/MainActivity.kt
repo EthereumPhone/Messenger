@@ -1,7 +1,13 @@
 package org.ethereumhpone.messenger
 
+import android.app.role.RoleManager
+import android.content.ContentResolver
+import android.content.Intent
+import android.database.ContentObserver
+import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.provider.Telephony
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -42,18 +48,56 @@ class MainActivity : ComponentActivity() {
     lateinit var syncLogDao: SyncLogDao
 
 
+    private val contentObserver = object : ContentObserver(null) {
+        override fun onChange(selfChange: Boolean) {
+            super.onChange(selfChange)
+            Log.d("CHANGED DETECTED", "HELLO")
+            CoroutineScope(Dispatchers.IO).launch {
+                syncRepository.syncContacts()
+            }
+        }
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
 
-        // checks if android db contacts have been changed and adds them to the database
-        CoroutineScope(Dispatchers.Main).launch {
-            contentResolver.observe(contactsURI).collect {
-                withContext(Dispatchers.IO) { syncRepository.syncContacts() }
+        if(!permissionManager.isDefaultSms()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val roleManager = this.getSystemService(RoleManager::class.java) as RoleManager
+                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
+                this.startActivityForResult(intent, 42389)
+            } else {
+                val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+                intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, this.packageName)
+                this.startActivity(intent)
+            }
+        }
+
+        // initial contacts fetching
+        if (permissionManager.hasContacts()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                syncRepository.syncContacts()
             }
         }
 
 
+        // checks if android db contacts have been changed and adds them to the database
+        if (permissionManager.hasContacts()) {
+            contentResolver.registerContentObserver(contactsURI, true, contentObserver)
+        }
+
+
+
+        /*
+        CoroutineScope(Dispatchers.Main).launch {
+            contentResolver.observe(contactsURI).collect {
+                Log.d("CHANGED DETECTED", "HELLO")
+                withContext(Dispatchers.IO) { syncRepository.syncContacts() }
+            }
+        }
+        */
 
         // check if it has permissions and never never ran a message sync
         CoroutineScope(Dispatchers.IO).launch {
@@ -63,16 +107,16 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-
-
-
             setContent {
                 MessengerTheme {
                     MessagingApp()
                 }
             }
+    }
 
-
+    override fun onDestroy() {
+        super.onDestroy()
+        contentResolver.unregisterContentObserver(contentObserver)
     }
 }
 

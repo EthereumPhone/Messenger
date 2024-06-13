@@ -1,6 +1,9 @@
 package org.ethereumhpone.chat.components
 
 import android.app.Notification
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.view.textclassifier.ConversationActions
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -27,7 +30,9 @@ import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CheckCircleOutline
@@ -45,6 +50,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +67,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -65,7 +77,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -429,7 +443,6 @@ fun ChatItemBubble(
 
 
 
-
     Column(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier.fillMaxWidth()
@@ -441,7 +454,6 @@ fun ChatItemBubble(
                     brush = messageBrush
                 )
         ){
-
             val uriHandler = LocalUriHandler.current
             val styledMessage = messageFormatter(
                 text = message.body,// timestamp
@@ -475,6 +487,7 @@ fun ChatItemBubble(
     }
 }
 
+
 @Composable
 fun ClickableMessage(
     styledMessage: AnnotatedString,
@@ -488,36 +501,36 @@ fun ClickableMessage(
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
     val context = LocalContext.current
-
-    BasicText(
-        text = styledMessage,
-        style = style,
-        modifier = Modifier
-            .padding(16.dp)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = {
-                        //Toast.makeText(context,"long press",Toast.LENGTH_SHORT).show()
-                        onLongClick()
-                    },
-                    onTap = { pos ->
-                        layoutResult.value?.let { layoutResult ->
-                            //Toast.makeText(context,"tap",Toast.LENGTH_SHORT).show()
-                            onClick(layoutResult.getOffsetForPosition(pos))
+    SelectionContainer {
+        BasicText(
+            text = styledMessage,
+            style = style,
+            modifier = Modifier
+                .padding(16.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = {
+                            //Toast.makeText(context,"long press",Toast.LENGTH_SHORT).show()
+                            onLongClick()
+                        },
+                        onTap = { pos ->
+                            layoutResult.value?.let { layoutResult ->
+                                //Toast.makeText(context,"tap",Toast.LENGTH_SHORT).show()
+                                onClick(layoutResult.getOffsetForPosition(pos))
+                            }
                         }
-                    }
 
-                )
-            },
-        onTextLayout = {
-            layoutResult.value = it
-            onTextLayout(it)
-        }
+                    )
+                },
+            onTextLayout = {
+                layoutResult.value = it
+                onTextLayout(it)
+            }
 
 
-    )
+        )
+    }
 }
-
 @Preview
 @Composable
 fun previewTxClickableMessage() {

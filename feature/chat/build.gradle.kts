@@ -117,6 +117,8 @@ dependencies {
     implementation("com.google.guava:guava:31.0.1-android")
     implementation(libs.bundles.camerax)
 
+    // vCard
+    implementation("com.googlecode.ez-vcard:ez-vcard:0.10.6")
 
 
 }

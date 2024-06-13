@@ -31,7 +31,6 @@ class ContactViewModel @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val contactRepository: ContactRepository,
     private val syncRepository: SyncRepository
-//    private val contactCursor: ContactCursor
 ): ViewModel() {
 
     val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
