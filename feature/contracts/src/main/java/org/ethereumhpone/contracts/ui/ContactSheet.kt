@@ -61,6 +61,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -155,8 +156,7 @@ fun ContactSheet(
                 contentAlignment = Alignment.TopCenter
             ) {
                 LazyColumn{
-
-                    if(textState.text.isNotEmpty() && !textState.text.contains("[a-zA-Z]")) {
+                    if(textState.text.isNotEmpty() && !textState.text.contains(Regex("[a-zA-Z]"))) {
                         item {
                             ethOSContactListItem(
                                 header = "write to ${textState.text}",
@@ -170,9 +170,8 @@ fun ContactSheet(
                     }
 
                     contacts.filter { contact -> contact.name.contains(textState.text, true) ||
-                                contact.numbers.any { it.address.contains(textState.text, true) }
+                            contact.numbers.any { it.address.normalizedString().contains(textState.text.normalizedString(), true) }
                     }.forEach {
-
                         item {
                             ethOSContactListItem(
                                 withImage = it.photoUri != null,
@@ -185,7 +184,8 @@ fun ContactSheet(
                                     )
                                 },
                                 header = it.name,
-                                withSubheader = false,// ens in future ?
+                                withSubheader = true,// ens in future ?
+                                subheader = it.numbers.firstOrNull()?.address ?: "",
                                 onClick = {
                                     onSelectContact(it)
                                 }
@@ -196,11 +196,10 @@ fun ContactSheet(
             }
         }
     }
+}
 
-
-
-
-
+fun String.normalizedString(): String {
+    return this.replace(" ", "").lowercase()
 }
 
 
@@ -266,9 +265,7 @@ private fun SearchTextField(
                 )
                 if (textFieldValue.text.isEmpty() && !focusState) {
                     Text(
-                        modifier = Modifier
-
-                        ,
+                        modifier = Modifier,
                         text = "Search contact",
                         textAlign = TextAlign.Start,
                         fontWeight = FontWeight.Medium,
