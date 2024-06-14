@@ -143,11 +143,11 @@ fun ChatScreen(
     selectedAttachments: Set<Attachment> = emptySet(),
     navigateBackToConversations: () -> Unit,
     onSendEthClicked: (amount: Double) -> Unit,
-    tokenBalance: Double,
-    chainName: String,
+    tokenBalance: Double = 0.0,
+    chainName: String = "?",
     onAttachmentClicked: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
-    onPhoneClicked: () -> Unit
+    onPhoneClicked: () -> Unit,
 ){
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
@@ -400,7 +400,7 @@ fun ChatScreen(
                                         )
 
                                         AnimatedVisibility(
-                                            textState.text.isNotBlank(),
+                                            textState.text.isNotBlank() || selectedAttachments.isNotEmpty(),
                                             enter = expandHorizontally(),
                                             exit = shrinkHorizontally(),
                                         ) {
@@ -487,14 +487,14 @@ fun ChatScreen(
                                                     InputSelector.PICTURE -> {
                                                         GallerySheet(
                                                             attachments = attachments,
-                                                            selectedAttachments = selectedAttachments
-                                                        ) {
-                                                            onAttachmentClicked(it)
-                                                        }
+                                                            selectedAttachments = selectedAttachments,
+                                                            onItemClicked = { onAttachmentClicked(it) },
+                                                        )
                                                     }
 
                                                     else -> {
-                                                        throw NotImplementedError()
+                                                        //TODO: commented the code because sending message defaults to this route and crashes the app
+                                                        //throw NotImplementedError()
                                                     }
                                                 }
                                             }
