@@ -3,13 +3,15 @@ package org.ethereumhpone.data.util
 import android.content.Context
 import android.telephony.PhoneNumberUtils
 import android.telephony.TelephonyManager
-import androidx.core.content.ContextCompat.getSystemService
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
 import io.michaelrocks.libphonenumber.android.Phonenumber
 import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
 
 
-class PhoneNumberUtils(context: Context) {
+@Singleton
+class PhoneNumberUtils @Inject constructor(context: Context) {
     private val countryCode = Locale.getDefault().country
     private val phoneNumberUtil = PhoneNumberUtil.createInstance(context)
     private val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
@@ -17,7 +19,6 @@ class PhoneNumberUtils(context: Context) {
         if (first.equals(second, true)) {
             return true
         }
-
 
         if (PhoneNumberUtils.areSamePhoneNumber(first, second, telephonyManager.networkCountryIso)) {
             val matchType = phoneNumberUtil.isNumberMatch(first, second)
@@ -46,6 +47,12 @@ class PhoneNumberUtils(context: Context) {
     }
 
     private fun parse(number: CharSequence): Phonenumber.PhoneNumber? {
-        return phoneNumberUtil.parse(number, countryCode)
+        return try {
+            phoneNumberUtil.parse(number, countryCode)
+        } catch (e: Exception) {
+            e.printStackTrace()
+
+            null
+        }
     }
 }

@@ -1,6 +1,5 @@
 package org.ethereumhpone.contracts.ui
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,30 +16,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +40,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -61,24 +48,25 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.components.InputSelector
+import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.PhoneNumber
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactSheet(
     contacts: List<Contact> = emptyList(),
-    onSelectContact: (Contact) -> Unit = {}
+    onContactsSelected: (List<Contact>) -> Unit,
 ) {
+    val multiSelectMode by remember { mutableStateOf(false) }
+    val phoneNumberUtils = PhoneNumberUtils(LocalContext.current)
+
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
     val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
@@ -140,7 +128,6 @@ fun ContactSheet(
                 onTextFieldFocused = { focused ->
                     if (focused) {
                         currentInputSelector = InputSelector.NONE
-//                    resetScroll()
                     }
                     textFieldFocusState = focused
                 },
@@ -155,15 +142,16 @@ fun ContactSheet(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.TopCenter
             ) {
-                LazyColumn{
-                    if(textState.text.isNotEmpty() && !textState.text.contains(Regex("[a-zA-Z]"))) {
+                LazyColumn {
+                    if(textState.text.isNotEmpty() && phoneNumberUtils.isPossibleNumber(textState.text)) {
+                        val newAddress = phoneNumberUtils.formatNumber(textState.text)
+                        val newContact = Contact(numbers = (listOf(PhoneNumber(address = newAddress))))
+
                         item {
                             ethOSContactListItem(
-                                header = "write to ${textState.text}",
+                                header = "write to $newAddress",
                                 onClick = {
-                                    onSelectContact(
-                                        Contact()
-                                    )
+                                    onContactsSelected(listOf(newContact))
                                 }
                             )
                         }
@@ -187,7 +175,7 @@ fun ContactSheet(
                                 withSubheader = true,// ens in future ?
                                 subheader = it.numbers.firstOrNull()?.address ?: "",
                                 onClick = {
-                                    onSelectContact(it)
+                                    onContactsSelected(listOf(it))
                                 }
                             )
                         }
@@ -210,13 +198,8 @@ private fun SearchTextField(
     onTextFieldFocused: (Boolean) -> Unit,
     keyboardType: KeyboardType = KeyboardType.Text,
     focusState: Boolean,
-    modifier: Modifier = Modifier,
-
-    ) {
-
-
-
-
+    modifier: Modifier = Modifier
+) {
     var lastFocusState by remember { mutableStateOf(false) }
     Row (
         modifier = Modifier
@@ -274,13 +257,9 @@ private fun SearchTextField(
                         color = Colors.GRAY,
                     )
                 }else{
-
                     // Send button
                     innerTextField()
                 }
-
-
-
             }
         }
     }
@@ -393,5 +372,5 @@ fun ContactSheetPreview(){
 //        ,
 //        {},
 //        1
-    )
+    ) {}
 }
