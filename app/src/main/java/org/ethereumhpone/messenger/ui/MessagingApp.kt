@@ -7,6 +7,7 @@ import org.ethereumhpone.messenger.navigation.MessagingNavHost
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessagingApp(
+    threadId: Int? = null
 ){
-    MessagingNavHost()
+    MessagingNavHost(threadId = threadId)
 }

@@ -62,6 +62,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val threadId = if (intent.getIntExtra("threadId", -1) != -1) {
+            intent.getIntExtra("threadId", -1)
+        } else {
+            null
+        }
+
+
 
         if(!permissionManager.isDefaultSms()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -107,11 +114,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-            setContent {
-                MessengerTheme {
-                    MessagingApp()
-                }
+        setContent {
+            MessengerTheme {
+                MessagingApp(threadId = threadId)
             }
+        }
     }
 
     override fun onDestroy() {
