@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,11 +15,11 @@ import javax.inject.Inject
 
 private const val URI = "uri"
 
-class MmsUpdatedReceiver @Inject constructor(
-    private val syncRepository: SyncRepository,
-    private val conversationRepository: ConversationRepository,
+@AndroidEntryPoint
+class MmsUpdatedReceiver : HiltBroadcastReceiver() {
 
-    ): HiltBroadcastReceiver() {
+    @Inject lateinit var syncRepository: SyncRepository
+    @Inject lateinit var conversationRepository: ConversationRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
