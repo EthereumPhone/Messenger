@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Telephony
 import com.google.android.mms.pdu_alt.EncodedStringValue
 import com.google.android.mms.pdu_alt.PduHeaders
+import com.google.android.mms.pdu_alt.PduPersister
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -69,7 +70,7 @@ class MessageCursorImpl @Inject constructor(
             val prefs = messengerPreferences.prefs.first()
 
 
-            val projection = when (prefs.canUseSubId) {
+            val projection = when (canUseSubId ?: false) {
                 true -> projection + Telephony.Mms.SUBSCRIPTION_ID
                 false -> projection
             }
@@ -134,10 +135,8 @@ class MessageCursorImpl @Inject constructor(
                 mmsStatus = cursor.getInt(columnsMap.mmsStatus),
                 subject = cursor.getString(columnsMap.mmsSubject)
                     ?.takeIf { it.isNotBlank() }
-                    ?.let { EncodedStringValue(
-                        cursor.getInt(columnsMap.mmsSubjectCharset),
-                        it.toByteArray()
-                    ).string } ?: "",
+                    ?.let(PduPersister::getBytes)
+                    ?.let { EncodedStringValue(cursor.getInt(columnsMap.mmsSubjectCharset), it).string } ?: "",
                 textContentType = "",
                 attachmentType = Message.AttachmentType.NOT_LOADED,
                 attachmentTypeString = Message.AttachmentType.NOT_LOADED.toString()

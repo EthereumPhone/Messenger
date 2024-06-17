@@ -66,7 +66,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun syncMessages() {
 
-        if(isSyncing.first()) return
+        if(_isSyncing.value) return
         _isSyncing.value = true
 
         val persistedData = conversationDao.getPersistedData()
@@ -91,6 +91,7 @@ class SyncRepositoryImpl @Inject constructor(
             }
         }
 
+        // sync messages
         messagesCursor?.use {
             val messageColumns = MessageCursor.MessageColumns(it)
             val messages = mutableListOf<Message>()
@@ -98,7 +99,7 @@ class SyncRepositoryImpl @Inject constructor(
             while (it.moveToNext()) { // Properly iterate through the cursor
                 val message = messageCursor.map(Pair(it, messageColumns))
                 messages.add(message.copy(
-                    parts = if (message.isSms()) {
+                    parts = if (message.isMms()) {
                         messageDao.getPartsForConversation(message.contentId).first()
                     } else {
                         message.parts
@@ -113,7 +114,7 @@ class SyncRepositoryImpl @Inject constructor(
             }
         }
 
-
+        // sync conversations
         conversationsCursor?.use {
             conversationsCursor.forEach { cursor ->
 
@@ -196,7 +197,6 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncContacts() {
-        val recipientsCursor = recipientCursor.getRecipientCursor()
         val contacts = getContacts()
 
         contactDao.deleteAllContacts()
@@ -226,7 +226,6 @@ class SyncRepositoryImpl @Inject constructor(
              * recipients need to be updated in the respective convo,
              *
              */
-
             conversations.collect { conversationList ->
                 conversationList.forEach { conversation ->
                     val updatedConversation = conversation.copy(
