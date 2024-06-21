@@ -159,7 +159,7 @@ fun ContactSheet(
 
                     contacts.filter { contact -> contact.name.contains(textState.text, true) ||
                             contact.numbers.any { it.address.normalizedString().contains(textState.text.normalizedString(), true) }
-                    }.forEach {
+                    }.filter { it.getDefaultNumber() == null && !it.numbers.firstOrNull()?.address.isNullOrEmpty() }.forEach {
                         item {
                             ethOSContactListItem(
                                 withImage = it.photoUri != null,
@@ -249,7 +249,7 @@ private fun SearchTextField(
                 if (textFieldValue.text.isEmpty() && !focusState) {
                     Text(
                         modifier = Modifier,
-                        text = "Search contact",
+                        text = "Enter phone number or contact name",
                         textAlign = TextAlign.Start,
                         fontWeight = FontWeight.Medium,
                         fontFamily = Fonts.INTER,
