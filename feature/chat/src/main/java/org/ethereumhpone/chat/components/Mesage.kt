@@ -73,12 +73,15 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.model.MockMessage
 
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.isSmil
+import org.ethereumhpone.database.model.isText
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.DecimalFormat
@@ -244,13 +247,13 @@ fun TxChatItemBubble(
         .background(
             Colors.WHITE
         )
-        .border(1.dp,Color(0xFF8C7DF7),TxChatBubbleShape)
+        .border(1.dp, Color(0xFF8C7DF7), TxChatBubbleShape)
     val nogradient = Modifier
         .clip(TxChatBubbleShape)
         .background(
             Colors.WHITE
         )
-        .border(1.dp,Color(0xFF8C7DF7),TxChatBubbleShape)
+        .border(1.dp, Color(0xFF8C7DF7), TxChatBubbleShape)
 
     val usercolor = if(isLastMessageByAuthor) nogradient else gradient
 
@@ -259,14 +262,16 @@ fun TxChatItemBubble(
         .background(
             Colors.WHITE
         )
-        .border(1.dp,Colors.DARK_GRAY,TxChatBubbleShape)
+        .border(1.dp, Colors.DARK_GRAY, TxChatBubbleShape)
 
 
     Column(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier.fillMaxWidth().clickable {
-            uriHandler.openUri(txUrl)
-        }
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                uriHandler.openUri(txUrl)
+            }
     ) {
         Surface(
             modifier = if(isUserMe) usercolor else reciepientcolor,
@@ -312,7 +317,7 @@ fun TxChatItemBubble(
                     Box ( modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
+                        .background(if (isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
                     Text(
                         text = networkName,
                         style = TextStyle(
@@ -438,16 +443,37 @@ fun ClickableMessage(
     isUserMe: Boolean,
     authorClicked: (String) -> Unit
 ) {
+
+    val media = message.parts.filter { !it.isText() && !it.isSmil() }
+
+    val messageBody = when (message.isSms()) {
+        true -> message.body
+        false -> {
+            message.parts
+                .filter { part -> part.isText() }
+                .mapNotNull { part -> part.text }
+                .filter { text -> text.isNotBlank() }
+                .joinToString { "\n" }
+        }
+    }
+
+
+
     val uriHandler = LocalUriHandler.current
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 
     val styledMessage = messageFormatter(
-        text = message.body, // timestamp
+        text = messageBody, // timestamp
         primary = isUserMe
     )
 
     SelectionContainer {
+
+        AsyncImage(model = media.firstOrNull()?.getUri(), contentDescription = "")
+
+
+
         BasicText(
             text = styledMessage,
             style = TextStyle(
@@ -517,28 +543,33 @@ fun ConversationPreview() {
         Message(
             address = "me",
             body = "*txsent,1,0.08,ETH",
-            subject = "8:10 PM"
+            subject = "8:10 PM",
+            type = "sms"
         ),
         Message(
             address = "me",
             body = "Check it out!",
-            subject = "8:07 PM"
+            subject = "8:07 PM",
+            type = "sms"
         ),
         Message(
             address = "me",
             body = "Thank you!",
             subject = "8:06 PM",
-            mmsStatus = R.drawable.ethos
+            mmsStatus = R.drawable.ethos,
+            type = "sms"
         ),
         Message(
             address = "Taylor Brooks",
             body = "You can use all the same stuff",
-            subject = "8:05 PM"
+            subject = "8:05 PM",
+            type = "sms"
         ),
         Message(
             address = "Taylor Brooks",
             body = "@aliconors Take a look at the `Flow.collectAsStateWithLifecycle()` APIs",
-            subject = "8:05 PM"
+            subject = "8:05 PM",
+            type = "sms"
         ),
         Message(
             address = "Taylor Brooks",
@@ -546,14 +577,16 @@ fun ConversationPreview() {
                     "Most blog posts end up out of date pretty fast but this sample is always up to " +
                     "date and deals with async data loading (it's faked but the same idea " +
                     "applies)  https://goo.gle/jetnews",
-            subject = "8:04 PM"
+            subject = "8:04 PM",
+            type = "sms"
         ),
         Message(
             address = "me",
             body = "Compose newbie: I’ve scourged the internet for tutorials about async data " +
                     "loading but haven’t found any good ones " +
                     "What’s the recommended way to load async data and emit composable widgets?",
-            subject = "8:03 PM"
+            subject = "8:03 PM",
+            type = "sms"
         )
 
     )
