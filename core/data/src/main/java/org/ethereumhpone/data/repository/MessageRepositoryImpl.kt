@@ -7,7 +7,10 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.MediaScannerConnection
+import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import android.provider.Telephony
 import android.telephony.SmsManager
 import android.util.Log
@@ -35,6 +38,8 @@ import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
+import org.ethereumhpone.database.model.isImage
+import org.ethereumhpone.database.model.isVideo
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.model.Attachment
@@ -81,37 +86,53 @@ class MessageRepositoryImpl @Inject constructor(
     override fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>> =
         messageDao.getPartsForConversation(threadId)
 
-    override suspend fun savePart(id: Long): File? {
+    override suspend fun savePart(id: Long): Uri? {
         val part = getPart(id).first() ?: return null
+
         val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(part.type) ?: return null
         val date = getMessageForPart(id).first()?.date
-        val dir = File(
-            Environment.getExternalStorageDirectory(),
-            "Messaging/Media")
-            .apply { mkdirs() }
         val fileName = part.name?.takeIf { name -> name.endsWith(extension) }
             ?: "${part.type.split("/").last()}_$date.$extension"
-        var file: File
-        var index = 0
-        do {
-            file = File(dir, if (index == 0) fileName else fileName.replace(".$extension", " ($index).$extension"))
-            index++
-        } while (file.exists())
 
-        try {
-            FileOutputStream(file).use { outputStream ->
+        val values = contentValuesOf(
+            MediaStore.MediaColumns.DISPLAY_NAME to fileName,
+            MediaStore.MediaColumns.MIME_TYPE to part.type,
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.put(MediaStore.MediaColumns.IS_PENDING, 1)
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, when {
+                part.isImage() -> "${Environment.DIRECTORY_PICTURES}/ethOSMessenger"
+                part.isVideo() -> "${Environment.DIRECTORY_MOVIES}/ethOSMessenger"
+                else -> "${Environment.DIRECTORY_DOWNLOADS}/ethOSMessenger"
+            })
+        }
+
+        val contentUri = when {
+            part.isImage() -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            part.isVideo() -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            else -> MediaStore.Files.getContentUri("external")
+        }
+
+        val resolver = context.contentResolver
+        val uri = resolver.insert(contentUri, values)
+
+        uri?.let {
+            resolver.openOutputStream(uri)?.use { outputStream ->
                 context.contentResolver.openInputStream(part.getUri())?.use { inputStream ->
                     inputStream.copyTo(outputStream, 1024)
                 }
             }
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-        MediaScannerConnection.scanFile(context, arrayOf(file.path), null, null)
+            Timber.v("Saved $fileName (${part.type}) to $uri")
 
-        return file.takeIf { it.exists() }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                resolver.update(uri, contentValuesOf(MediaStore.MediaColumns.IS_PENDING to 0), null, null)
+                Timber.v("Marked $uri as not pending")
+            }
+        }
+
+        return uri
     }
 
     override suspend fun getUnreadUnseenMessages(threadId: Long): List<Message> =
@@ -419,7 +440,6 @@ class MessageRepositoryImpl @Inject constructor(
         sentTime: Long
     ): Message {
 
-        Log.d("MEssage received", "hello hello")
         val threadId = TelephonyCompat.getOrCreateThreadId(context, address)
         val message = Message(
             threadId = threadId,

@@ -72,7 +72,7 @@ interface MessageDao {
 
 
     @Insert
-    suspend fun insertMessage(message: Message)
+    suspend fun insertMessages(message: List<Message>)
 
     @Update
     suspend fun updateMessages(messages: List<Message>)

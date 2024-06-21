@@ -51,7 +51,6 @@ class MainActivity : ComponentActivity() {
     private val contentObserver = object : ContentObserver(null) {
         override fun onChange(selfChange: Boolean) {
             super.onChange(selfChange)
-            Log.d("CHANGED DETECTED", "HELLO")
             CoroutineScope(Dispatchers.IO).launch {
                 syncRepository.syncContacts()
             }
@@ -83,28 +82,20 @@ class MainActivity : ComponentActivity() {
         }
 
         // initial contacts fetching
+        /*
         if (permissionManager.hasContacts()) {
             CoroutineScope(Dispatchers.IO).launch {
                 syncRepository.syncContacts()
             }
         }
+         */
+
 
 
         // checks if android db contacts have been changed and adds them to the database
         if (permissionManager.hasContacts()) {
             contentResolver.registerContentObserver(contactsURI, true, contentObserver)
         }
-
-
-
-        /*
-        CoroutineScope(Dispatchers.Main).launch {
-            contentResolver.observe(contactsURI).collect {
-                Log.d("CHANGED DETECTED", "HELLO")
-                withContext(Dispatchers.IO) { syncRepository.syncContacts() }
-            }
-        }
-        */
 
         // check if it has permissions and never never ran a message sync
         CoroutineScope(Dispatchers.IO).launch {

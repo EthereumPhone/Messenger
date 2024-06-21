@@ -36,6 +36,4 @@ class RecipientCursorImpl @Inject constructor(
         address = from.getString(COLUMN_ADDRESS),
         lastUpdate = System.currentTimeMillis()
     )
-
-
 }

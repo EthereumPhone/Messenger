@@ -4,6 +4,7 @@ import androidx.core.net.toUri
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.google.android.mms.ContentType
 import kotlinx.serialization.Serializable
 
 @Entity("mms_part")
@@ -26,3 +27,13 @@ data class MmsPart(
         else -> null
     }
 }
+
+fun MmsPart.isSmil() = ContentType.APP_SMIL == type
+
+fun MmsPart.isImage() = ContentType.isImageType(type)
+
+fun MmsPart.isVideo() = ContentType.isVideoType(type)
+
+fun MmsPart.isText() = ContentType.TEXT_PLAIN == type
+
+fun MmsPart.isVCard() = ContentType.TEXT_VCARD == type

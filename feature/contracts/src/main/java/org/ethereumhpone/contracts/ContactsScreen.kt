@@ -205,19 +205,15 @@ fun ContactScreen(
                                                }
                                            },
                                            header = conversation.recipients.get(0).getDisplayName(),
-                                           subheader = conversation.lastMessage?.getText() ?: "",
+                                           subheader = conversation.lastMessage?.getSummary() ?: "",
                                            time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                            unreadConversation = conversation.unread,
                                            onClick = {
-                                           },
-                                           modifier = modifier.clickable {
                                                conversationClicked(conversation.id.toString())
-                                           }
+                                           },
                                        )
                                    }
-
                                }
-
                            }
                        }
                    }else{
