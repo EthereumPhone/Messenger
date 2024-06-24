@@ -83,12 +83,15 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.model.MockMessage
 
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.isSmil
+import org.ethereumhpone.database.model.isText
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.DecimalFormat
@@ -455,10 +458,26 @@ fun ChatItemBubble(
                 )
         ){
             val uriHandler = LocalUriHandler.current
+
+            val messageBody = when (message.isSms()) {
+                true -> message.body
+                false -> {
+                    message.parts
+                        .filter { part -> part.isText() }
+                        .mapNotNull { part -> part.text }
+                        .filter { text -> text.isNotBlank() }
+                        .joinToString { "\n" }
+                }
+            }
+
             val styledMessage = messageFormatter(
-                text = message.body,// timestamp
+                text = messageBody,
                 primary = isUserMe
             )
+
+            val media = message.parts.filter { !it.isText() && !it.isSmil() }
+
+            AsyncImage(model = media.firstOrNull()?.getUri(), contentDescription = "")
 
             ClickableMessage(
                 styledMessage = styledMessage,
@@ -497,6 +516,8 @@ fun ClickableMessage(
     onLongClick: () -> Unit = {},
     onDoubleClick: () -> Unit = {},
 ) {
+
+
 
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 

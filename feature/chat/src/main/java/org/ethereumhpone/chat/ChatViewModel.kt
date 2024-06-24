@@ -114,7 +114,18 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val selectedAttachments: StateFlow<Set<Attachment>> = _selectedAttachments
 
     // Write a piece of code that gets the eth balance of address "0x0" and saves it to a state variable
+    private val _focusedMessage = MutableStateFlow<Message?>(null)
+    val focusedMessage: StateFlow<Message?> = _focusedMessage
 
+    fun updatefocusedMessage(newMessage: Message) {
+        _focusedMessage.value = newMessage
+    }
+
+    fun deleteMessage(id: Long){
+        viewModelScope.launch {
+            messageRepository.deleteMessage(id)
+        }
+    }
 
 
     val currentChainId: StateFlow<Int> = flow {
@@ -156,6 +167,17 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
+    fun callPhone() {
+        recipientState.value?.contact?.numbers?.firstOrNull()?.let {
+            val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${it.address}")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        }
+    }
+
+
+
 
 
 
@@ -175,14 +197,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
-    fun callPhone() {
-        recipientState.value?.contact?.numbers?.firstOrNull()?.let {
-            val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${it.address}")).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            context.startActivity(intent)
-        }
-    }
+
 
     fun increaseByFivePercent(value: BigInteger): BigInteger {
         // Create a BigInteger representation of 105
@@ -276,7 +291,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     fun chainIdToRPC(chainId: Int): String {
         return "https://${chainIdToName(chainId)}.g.alchemy.com/v2/${chainToApiKey(chainIdToName(chainId))}"
     }
-
 
 
     val recipientState = conversationState
