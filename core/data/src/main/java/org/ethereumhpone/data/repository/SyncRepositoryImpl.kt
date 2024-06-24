@@ -4,11 +4,15 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.net.Uri
 import android.provider.Telephony
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -66,7 +70,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun syncMessages() {
 
-        if(isSyncing.first()) return
+        if(_isSyncing.value) return
         _isSyncing.value = true
 
         val persistedData = conversationDao.getPersistedData()
@@ -91,55 +95,11 @@ class SyncRepositoryImpl @Inject constructor(
             }
         }
 
-        messagesCursor?.use {
-            val messageColumns = MessageCursor.MessageColumns(it)
-            val messages = mutableListOf<Message>()
-
-            while (it.moveToNext()) { // Properly iterate through the cursor
-                val message = messageCursor.map(Pair(it, messageColumns))
-                messages.add(message.copy(
-                    parts = if (message.isSms()) {
-                        messageDao.getPartsForConversation(message.contentId).first()
-                    } else {
-                        message.parts
-                    }
-                ))
-            }
-
-            CoroutineScope(Dispatchers.IO).launch { // Use one coroutine to handle all database writes
-                messages.forEach { message ->
-                    messageDao.upsertMessage(message)
-                }
-            }
-        }
-
-
-        conversationsCursor?.use {
-            conversationsCursor.forEach { cursor ->
-
-                val conversation = conversationCursor.map(cursor)
-
-                CoroutineScope(Dispatchers.IO).launch {
-                    val updatedConvo = persistedData[conversation.id]?.let {
-                        conversation.copy(
-                            archived = it.archived,
-                            blocked = it.blocked,
-                            pinned = it.pinned,
-                            title = it.title,
-                            blockingClient = it.blockingClient,
-                            blockReason = it.blockReason,
-                            lastMessage = messageDao.getLastConversationMessage(it.id).first()
-                        )
-                    }
-                    conversationDao.upsertConversation(updatedConvo ?: conversation)
-                }
-            }
-        }
-
 
         // sync recipients
         recipientsCursor?.use {
-            val contacts = contactDao.getContacts().first()
+            val contacts = getContacts()
+            contactDao.upsertContact(contacts)
             recipientsCursor.forEach { cursor ->
                 val recipient = recipientCursor.map(cursor)
                 val updatedRecipient = recipient.copy(
@@ -147,7 +107,47 @@ class SyncRepositoryImpl @Inject constructor(
                         contact.numbers.any { phoneNumberUtils.compare(recipient.address, it.address) }
                     }
                 )
-                recipientDao.upsertRecipient(updatedRecipient)
+                CoroutineScope(Dispatchers.IO).launch {
+                    recipientDao.upsertRecipient(updatedRecipient)
+                }
+            }
+        }
+
+        // sync messages
+        messagesCursor?.use {
+            val messageColumns = MessageCursor.MessageColumns(messagesCursor)
+            messagesCursor.forEach { cursor ->
+                val message = messageCursor.map(Pair(cursor, messageColumns))
+                CoroutineScope(Dispatchers.IO).launch {
+                    if (message.isMms()) {
+                        messageDao.getPartsForConversation(message.contentId).collectLatest { mmsParts ->
+                            val updatedMessage = message.copy(parts = mmsParts) // copy needs to be done here or it will not work correctly
+                            messageDao.upsertMessage(updatedMessage)
+                        }
+                    } else {
+                        messageDao.upsertMessage(message)
+                    }
+                }
+            }
+        }
+
+
+
+        // sync conversations
+        conversationsCursor?.use {
+            conversationsCursor.forEach { cursor ->
+                val conversation = conversationCursor.map(cursor)
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    combine(
+                        messageDao.getLastConversationMessage(conversation.id),
+                        recipientDao.getRecipientsByIds(conversation.recipients.map { it.id })
+                    ) { lastMessage, recipients ->
+                        conversation.copy(lastMessage = lastMessage, recipients = recipients)
+                    }.collectLatest {
+                        conversationDao.upsertConversation(it)
+                    }
+                }
             }
         }
 
@@ -156,6 +156,7 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncMessage(uri: Uri): Message? {
+
         val type = when {
             uri.toString().contains("mms") -> "mms"
             uri.toString().contains("sms") -> "sms"
@@ -196,47 +197,41 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncContacts() {
-        val recipientsCursor = recipientCursor.getRecipientCursor()
         val contacts = getContacts()
 
         contactDao.deleteAllContacts()
         contactDao.deleteAllContactGroups()
-        val recipients = recipientDao.getRecipients()
-        val conversations = conversationDao.getConversations()
 
 
-        recipients.collect { recipientList ->
+        recipientDao.getRecipients().collect { recipientList ->
             contactDao.upsertContactGroup(getContactGroups(contacts))
             contactDao.upsertContact(contacts)
 
             val updatedRecipients = recipientList.map { recipient ->
                 recipient.copy(
                     contact = contacts.find { contact ->
-                        contact.numbers.any { phoneNumberUtils.compare(recipient.address, it.address) }
+                        contact.numbers.any {
+                            phoneNumberUtils.compare(
+                                recipient.address,
+                                it.address
+                            )
+                        }
                     }
                 )
             }
-
             updatedRecipients.forEach { recipient ->
                 recipientDao.upsertRecipient(recipient)
             }
+        }
 
 
-            /*
-             * recipients need to be updated in the respective convo,
-             *
-             */
-
-            conversations.collect { conversationList ->
-                conversationList.forEach { conversation ->
-                    val updatedConversation = conversation.copy(
-                        recipients = conversation.recipients.map { recipient ->
-                            updatedRecipients.find { updatedRecipient ->
-                                updatedRecipient.id == recipient.id
-                            } ?: recipient
-                        }
-                    )
-                    conversationDao.updateConversation(updatedConversation)
+        conversationDao.getConversations().collect { conversations ->
+            conversations.forEach { conversation ->
+                recipientDao.getRecipientsByIds(conversation.recipients.map { it.id })
+                    .collect {
+                        conversationDao.updateConversation(
+                            conversation.copy(recipients = it)
+                        )
                 }
             }
         }

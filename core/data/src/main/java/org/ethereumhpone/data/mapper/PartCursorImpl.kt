@@ -34,7 +34,7 @@ class PartCursorImpl @Inject constructor(
             name = from.getStringOrNull(from.getColumnIndexOrThrow(Telephony.Mms.Part.NAME))
                 ?: from.getStringOrNull(from.getColumnIndexOrThrow(Telephony.Mms.Part.CONTENT_LOCATION))
                     ?.split("/")?.last(),
-
+            text = from.getStringOrNull(from.getColumnIndexOrThrow(Telephony.Mms.Part.TEXT))
         )
     }
 }

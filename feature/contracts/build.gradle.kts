@@ -66,6 +66,7 @@ dependencies {
 
     implementation(project(":core:domain"))
     implementation(project(":core:database"))
+    implementation(project(":core:data"))
 
 
 
@@ -88,7 +89,7 @@ dependencies {
 
 
 
-    implementation("io.coil-kt:coil-compose:2.1.0")
+    implementation(libs.coil.compose.v210)
     implementation("com.github.EthereumPhone:ethOS-Component-Library:1a10060494")
 
     implementation(libs.androidx.navigation.common.ktx)
@@ -105,6 +106,7 @@ dependencies {
     implementation(libs.hilt.navigation)
 
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
 
 
 

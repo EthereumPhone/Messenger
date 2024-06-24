@@ -1,5 +1,6 @@
 package org.ethereumhpone.domain.repository
 
+import android.net.Uri
 import android.provider.Telephony
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.Message
@@ -20,7 +21,7 @@ interface MessageRepository {
     fun getUnreadCount(): Flow<Long>
     fun getPart(id: Long): Flow<MmsPart?>
     fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>>
-    suspend fun savePart(id: Long): File?
+    suspend fun savePart(id: Long): Uri?
     suspend fun getUnreadUnseenMessages(threadId: Long): List<Message>
     suspend fun markAllSeen()
     suspend fun markSeen(threadId: Long)

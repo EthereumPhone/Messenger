@@ -54,8 +54,8 @@ interface MessageDao {
     @Query("SELECT * FROM mms_part WHERE id = :id")
     fun getPart(id: Long): Flow<MmsPart?>
 
-    @Query("SELECT * FROM mms_part WHERE messageId IN (SELECT id FROM Message WHERE threadId = :threadId) AND (type LIKE 'image/%' OR type LIKE 'video/%') ORDER BY id DESC")
-    fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>>
+    @Query("SELECT * FROM mms_part WHERE messageId = :messageId")
+    fun getPartsForConversation(messageId: Long): Flow<List<MmsPart>>
 
     @Query("SELECT * FROM message WHERE id = :id")
     fun getMessagesWithParts(id: Long): Flow<List<MessageWithParts>>
@@ -72,7 +72,7 @@ interface MessageDao {
 
 
     @Insert
-    suspend fun insertMessage(message: Message)
+    suspend fun insertMessages(message: List<Message>)
 
     @Update
     suspend fun updateMessages(messages: List<Message>)

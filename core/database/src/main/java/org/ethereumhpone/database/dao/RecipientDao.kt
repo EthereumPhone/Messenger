@@ -19,7 +19,11 @@ interface RecipientDao {
     @Query("SELECT * FROM recipient WHERE id = :recipientId")
     fun getRecipient(recipientId: Long): Flow<Recipient?>
 
+    @Query("SELECT * FROM recipient WHERE id in (:recipientIds)")
+    fun getRecipientsByIds(recipientIds: List<Long>): Flow<List<Recipient>>
+
     @Upsert
-    fun upsertRecipient(recipient: Recipient)
+    suspend fun upsertRecipient(recipient: Recipient)
+
 
 }

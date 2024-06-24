@@ -11,6 +11,7 @@ import android.provider.Telephony
 import com.google.android.mms.MmsException
 import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.Transaction
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,16 +21,18 @@ import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 
-class MmsSentReceiver @Inject constructor(
-    private val syncRepository: SyncRepository,
-    private val conversationRepository: ConversationRepository
-    ): HiltBroadcastReceiver() {
 
+@AndroidEntryPoint
+class MmsSentReceiver : HiltBroadcastReceiver() {
+
+    @Inject lateinit var syncRepository: SyncRepository
+    @Inject lateinit var conversationRepository: ConversationRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
 
         val uri = Uri.parse(intent.getStringExtra(Transaction.EXTRA_CONTENT_URI))
+        val resultCode = resultCode
 
         when(resultCode) {
             Activity.RESULT_OK -> {
@@ -41,6 +44,7 @@ class MmsSentReceiver @Inject constructor(
                 try {
                     val messageId = ContentUris.parseId(uri)
                     val values = ContentValues(1)
+                    values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_FAILED)
                     SqliteWrapper.update(context, context.contentResolver, Telephony.Mms.CONTENT_URI, values,
                         "${Telephony.Mms._ID} = ?", arrayOf(messageId.toString()))
 

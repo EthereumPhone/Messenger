@@ -2,7 +2,6 @@ package org.ethereumhpone.chat
 
 import android.net.Uri
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
@@ -178,8 +177,8 @@ fun ChatScreen(
     selectedAttachments: Set<Attachment> = emptySet(),
     navigateBackToConversations: () -> Unit,
     onSendEthClicked: (amount: Double) -> Unit,
-    tokenBalance: Double,
-    chainName: String,
+    tokenBalance: Double = 0.0,
+    chainName: String = "?",
     onAttachmentClicked: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
     onDeleteMessage: (Long) -> Unit,
@@ -651,7 +650,7 @@ fun ChatScreen(
                                         }
 
                                         AnimatedVisibility(
-                                            (textState.text.isNotBlank() || selectedAttachments.toList().isNotEmpty()),
+                                            textState.text.isNotBlank() || selectedAttachments.isNotEmpty(),
                                             enter = expandHorizontally(),
                                             exit = shrinkHorizontally(),
                                         ) {
@@ -738,14 +737,14 @@ fun ChatScreen(
                                                     InputSelector.PICTURE -> {
                                                         GallerySheet(
                                                             attachments = attachments,
-                                                            selectedAttachments = selectedAttachments
-                                                        ) {
-                                                            onAttachmentClicked(it)
-                                                        }
+                                                            selectedAttachments = selectedAttachments,
+                                                            onItemClicked = { onAttachmentClicked(it) },
+                                                        )
                                                     }
 
                                                     else -> {
-                                                        throw NotImplementedError()
+                                                        //TODO: commented the code because sending message defaults to this route and crashes the app
+                                                        //throw NotImplementedError()
                                                     }
                                                 }
                                             }
@@ -887,6 +886,7 @@ fun ChatScreen(
                 ModalBottomSheet(
                     containerColor= Colors.BLACK,
                     contentColor= Colors.WHITE,
+
                     onDismissRequest = {
                         scope.launch {
                             modalAssetSheetState.hide()

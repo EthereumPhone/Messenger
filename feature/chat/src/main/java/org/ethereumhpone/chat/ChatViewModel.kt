@@ -9,6 +9,10 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.ContactsContract
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -48,9 +52,9 @@ import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.usecase.SendMessage
 import org.ethereumphone.walletsdk.WalletSDK
-//import org.kethereum.model.Address
-//import org.kethereum.rpc.EthereumRPC
-//import org.kethereum.rpc.HttpEthereumRPC
+import org.kethereum.model.Address
+import org.kethereum.rpc.EthereumRPC
+import org.kethereum.rpc.HttpEthereumRPC
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
 import java.math.BigDecimal
@@ -84,7 +88,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         selectedConversationState(addresses, conversationRepository)
     ).stateIn(
         scope = viewModelScope,
-        initialValue = null,
+        initialValue = Conversation(),
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
@@ -110,6 +114,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val selectedAttachments: StateFlow<Set<Attachment>> = _selectedAttachments
 
     // Write a piece of code that gets the eth balance of address "0x0" and saves it to a state variable
+
+
+
     val currentChainId: StateFlow<Int> = flow {
         while (true) {
             val chainId = walletSDK.getChainId()
@@ -150,34 +157,22 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         )
 
 
-    private val _focusedMessage = MutableStateFlow<Message?>(null)
-    val focusedMessage: StateFlow<Message?> = _focusedMessage
 
-    fun updatefocusedMessage(newMessage: Message) {
-        _focusedMessage.value = newMessage
-    }
-
-    fun deleteMessage(id: Long){
-        viewModelScope.launch {
-            messageRepository.deleteMessage(id)
-        }
-    }
 
     suspend fun getBalance(chainId: Int): Double {
-//        return withContext(Dispatchers.IO) {
-//            while(walletSDK.getAddress() == "") {
-//                delay(20)
-//            }
-//            if (walletSDK.getAddress() != "") {
-//                val rpcUrl = chainIdToRPC(chainId)
-//                val ethereumRPC: EthereumRPC = HttpEthereumRPC(rpcUrl)
-//                val weiBalance = ethereumRPC.getBalance(Address(walletSDK.getAddress()))
-//                weiBalance?.toBigDecimal()?.divide(BigDecimal.TEN.pow(18))?.toDouble() ?: 0.0
-//            } else {
-//                0.0
-//            }
-//        }
-        return 1.123
+        return withContext(Dispatchers.IO) {
+            while(walletSDK.getAddress() == "") {
+                delay(20)
+            }
+            if (walletSDK.getAddress() != "") {
+                val rpcUrl = chainIdToRPC(chainId)
+                val ethereumRPC: EthereumRPC = HttpEthereumRPC(rpcUrl)
+                val weiBalance = ethereumRPC.getBalance(Address(walletSDK.getAddress()))
+                weiBalance?.toBigDecimal()?.divide(BigDecimal.TEN.pow(18))?.toDouble() ?: 0.0
+            } else {
+                0.0
+            }
+        }
     }
 
     fun callPhone() {
@@ -200,6 +195,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         // Equivalent to: value * 105 / 100
         return value.multiply(multiplier).divide(divisor)
     }
+
+
+
 
     fun sendEth(amount: Double) {
         val chainIdLocked = currentChainId.value
@@ -280,6 +278,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
 
+
     val recipientState = conversationState
         .filterNotNull()
         .map {
@@ -337,6 +336,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
+
+
     @SuppressLint("Range")
     private fun getVCard(lookupKey: String): String? {
         val contentResolver: ContentResolver = context.contentResolver
@@ -387,7 +388,7 @@ private fun selectedConversationState(
                     conversationRepository.getOrCreateConversation(addresses).first()?.id ?: 0
 
                 when (actualThreadId) {
-                    0L -> Conversation()
+                    0L -> Conversation(0)
                     else -> conversationRepository.getConversation(actualThreadId).first()
                 }
             }

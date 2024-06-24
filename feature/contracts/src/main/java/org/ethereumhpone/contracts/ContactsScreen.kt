@@ -1,7 +1,6 @@
 package org.ethereumhpone.contracts
 
 import android.Manifest
-import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -41,7 +39,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,11 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
-import org.ethereumhpone.contracts.ui.ChatListItem
 import org.ethereumhpone.contracts.ui.ContactSheet
 import org.ethosmobile.components.library.core.ethOSHeader
 import org.ethosmobile.components.library.theme.Colors
-
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.database.model.Contact
@@ -65,7 +60,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.database.model.Message
-import org.ethereumhpone.database.model.Recipient
 
 
 @Composable
@@ -73,20 +67,19 @@ fun ContactRoute(
     modifier: Modifier = Modifier,
     navigateToChat: (String, List<String>) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
-){
+) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
-
-
 
     ContactScreen(
         modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
-        contactClicked = { navigateToChat("0", listOf(it)) },
-        conversationClicked = { id, recipients ->
+        contactsClicked = { selectedContacts ->
+            navigateToChat("0", selectedContacts.map { it.getDefaultNumber()?.address ?: it.numbers[0].address }) },
+        conversationClicked = { id ->
             viewModel.setConversationAsRead(id.toLong())
-            navigateToChat(id, recipients.map { it.address })
+            navigateToChat(id, emptyList())
         }
     )
 }
@@ -96,8 +89,8 @@ fun ContactRoute(
 fun ContactScreen(
     contacts: List<Contact>,
     conversationState: ConversationUIState,
-    contactClicked: (String) -> Unit,
-    conversationClicked: (String, List<Recipient>) -> Unit,
+    contactsClicked: (List<Contact>) -> Unit,
+    conversationClicked: (String) -> Unit,
     modifier: Modifier = Modifier
 ){
 
@@ -212,19 +205,15 @@ fun ContactScreen(
                                                }
                                            },
                                            header = conversation.recipients.get(0).getDisplayName(),
-                                           subheader = conversation.lastMessage?.getText() ?: "",
+                                           subheader = conversation.lastMessage?.getSummary() ?: "",
                                            time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                            unreadConversation = conversation.unread,
                                            onClick = {
+                                               conversationClicked(conversation.id.toString())
                                            },
-                                           modifier = modifier.clickable {
-                                               conversationClicked(conversation.id.toString(), conversation.recipients)
-                                           }
                                        )
                                    }
-
                                }
-
                            }
                        }
                    }else{
@@ -273,12 +262,11 @@ fun ContactScreen(
             if (contactsPermissionState.allPermissionsGranted) {
                 ContactSheet(
                     contacts = contacts,
-                ) {
-                    showContactSheet = false
-                    println("Contact clicked ${it.name}")
-
-                    contactClicked(it.numbers[0].address)
-                }
+                    onContactsSelected = {
+                        showContactSheet = false
+                        contactsClicked(it)
+                    }
+                )
             }
         }
     }
@@ -308,6 +296,7 @@ fun PreviewContactScreen(){
                 )
             )
         ),
-        {},{_, _ ->}
+        {},
+        {}
     )
 }

@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.NavHost
@@ -28,10 +29,17 @@ import org.ethereumhpone.contracts.navigation.navigateToConversations
 @Composable
 fun MessagingNavHost(
     modifier: Modifier = Modifier,
+    threadId: Int? = null,
     startDestination: String = conversationsGraphRoutePattern
 ){
     val navController = rememberNavController()
 
+    // If threadId is not null, navigate to the chat
+    threadId?.let {
+        LaunchedEffect(it) {
+            navController.navigateToChat(threadId = it.toString())
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -61,11 +69,7 @@ fun MessagingNavHost(
                 animationSpec = tween(300)
             )
         }
-
-    ){
-
-
-
+    ) {
         conversationsGraph (
             navigateToChat = navController::navigateToChat,
             nestedGraphs = {
