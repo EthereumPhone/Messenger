@@ -2,7 +2,6 @@ package org.ethereumhpone.contracts
 
 import android.Manifest
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -183,6 +182,8 @@ fun ContactScreen(
                            ){
                                conversationState.conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
                                    item {
+
+                                       val dates = conversation.lastMessage?.date?.let { Date(it) }
                                        ChatListInfo(
                                            image = {
                                                if (conversation.recipients.get(0).contact?.photoUri != null) {
@@ -191,7 +192,7 @@ fun ContactScreen(
                                                        contentDescription = "Contact Image",
                                                        contentScale = ContentScale.Crop,
                                                        modifier = Modifier
-                                                           .size(48.dp) // Set the size of the image
+                                                           .size(62.dp) // Set the size of the image
                                                            .clip(CircleShape) // Apply a circular shape
                                                    )
                                                } else {
@@ -199,14 +200,14 @@ fun ContactScreen(
                                                        painter = painterResource(id = R.drawable.nouns),
                                                        contentDescription = "Contact Image",
                                                        modifier = Modifier
-                                                           .size(48.dp) // Set the size of the image
+                                                           .size(62.dp) // Set the size of the image
                                                            .clip(CircleShape) // Apply a circular shape
                                                    )
                                                }
                                            },
                                            header = conversation.recipients.get(0).getDisplayName(),
                                            subheader = conversation.lastMessage?.getSummary() ?: "",
-                                           time = convertLongToTime(conversation.lastMessage?.date ?: 0L),
+                                           time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                            unreadConversation = conversation.unread,
                                            onClick = {
                                                conversationClicked(conversation.id.toString())
