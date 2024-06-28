@@ -1,8 +1,9 @@
 package org.ethereumhpone.contracts.ui
 
-import android.util.Log
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
@@ -20,32 +21,38 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeMute
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.MarkChatUnread
+import androidx.compose.material.icons.filled.VolumeMute
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.ethereumhpone.database.model.Conversation
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
 
 
 enum class ChatListItemState{
@@ -54,58 +61,58 @@ enum class ChatListItemState{
     OPENLEFT
 }
 
-//@OptIn(ExperimentalFoundationApi::class)
-//@Composable
-//fun ChatListItem(
-//){
-//    Box{
-//
-//        val unreadWidth = -72.dp
-//        val optionWidth = 128.dp
-//
-//        val anchors = DraggableAnchors {
-//            ChatListItemState.OPENLEFT at unreadWidth.value
-//            ChatListItemState.CLOSED at 0f
-//            ChatListItemState.OPENRIGHT at optionWidth.value
-//
-//        }
-//
-//
-//
-//        val density = LocalDensity.current
-//        val state = remember {
-//            AnchoredDraggableState (
-//                initialValue = ChatListItemState.CLOSED,
-//                anchors = anchors,
-//                positionalThreshold = { distance: Float -> distance * 0.5f },
-//                animationSpec = spring(),
-//                velocityThreshold = { with(density) { 186.dp. toPx() } },
-//            )
-//        }
-//
-//
-//
-//
-//        ChatListUnreadSection({})
-//        ChatListOptions({})
-//        Row (
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .graphicsLayer {
-//                    this.translationX = state.requireOffset()
-//                }
-//                .anchoredDraggable(state, Orientation.Horizontal)
-//        ){
-//            ChatListInfo(
-//                header = "Mark Katakowskihashvili",
-//                subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
-//            )
-//        }
-//
-//
-//    }
-//
-//}
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ChatListItem(
+){
+    Box{
+
+        val unreadWidth = -72.dp
+        val optionWidth = 128.dp
+
+        val anchors = DraggableAnchors {
+            ChatListItemState.OPENLEFT at unreadWidth.value
+            ChatListItemState.CLOSED at 0f
+            ChatListItemState.OPENRIGHT at optionWidth.value
+
+        }
+
+
+
+        val density = LocalDensity.current
+        val state = remember {
+            AnchoredDraggableState (
+                initialValue = ChatListItemState.CLOSED,
+                anchors = anchors,
+                positionalThreshold = { distance: Float -> distance * 0.5f },
+                animationSpec = spring(),
+                velocityThreshold = { with(density) { 186.dp. toPx() } },
+            )
+        }
+
+
+
+
+        ChatListUnreadSection({})
+        ChatListOptions({})
+        Row (
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                this.translationX = state.requireOffset()
+            }
+                .anchoredDraggable(state, Orientation.Horizontal)
+        ){
+            ChatListInfo(
+                header = "Mark Katakowskihashvili",
+                subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
+            )
+        }
+
+
+    }
+
+}
 
 @Preview
 @Composable
@@ -209,7 +216,7 @@ fun ChatListInfo(
     image: @Composable () -> Unit = {},
     header: String = "Header",
     subheader: String = "Subheader",
-    time: Date?,//"0:00AM",
+    time: String = "0:00AM",
     unreadConversation: Boolean = true,
     onClick: () -> Unit = {}, //threadId long -> String
     modifier: Modifier = Modifier
@@ -259,29 +266,17 @@ fun ChatListInfo(
                     )
                 }
 
-                val test = Calendar.getInstance().apply {
-                    set(2024, Calendar.JUNE, 28)
-                }.time
-
-                Column (
-                    horizontalAlignment = Alignment.End,
-                    modifier = modifier
-                        .weight(0.35f)
-                        .background(Color.Red)
-                ){
-                    printFormattedDateInfo(test)?.let {
-                        Text(
-                            text = it,
-                            color = Colors.GRAY,
-                            style = TextStyle(
-                                color = Colors.GRAY,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                fontFamily = Fonts.INTER,
-                            ),
-                        )
-                    }
-                }
+                Text(
+                    text = time,
+                    color = Colors.GRAY,
+                    style = TextStyle(
+                        color = Colors.GRAY,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = Fonts.INTER,
+                    ),
+                    modifier = modifier.weight(0.25f)
+                )
             }
 
             Row (
@@ -300,11 +295,11 @@ fun ChatListInfo(
                     maxLines = 2,
                     modifier = modifier.weight(1f)
                 )
-                if (true){
+                if (unreadConversation){
                     Box (
                         contentAlignment = Alignment.CenterEnd,
                         modifier = modifier
-                            .weight(0.35f)
+                            .weight(0.25f)
                     ){
                         Box (
                             modifier = modifier
@@ -326,103 +321,11 @@ fun ChatListInfo(
 
 }
 
-
-fun printFormattedDateInfo(date: Date?): String? {
-
-
-    val formattedDate = date?.let { formatDate(it) }
-
-    val calendar = Calendar.getInstance()
-    if (date != null) {
-        calendar.time = date
-    }
-
-    val currentCalendar = Calendar.getInstance()
-
-    when {
-        date?.let { isWithinLast7Days(it) } == true -> {
-            val weekday = getWeekday(date)
-            if (isSameDay(calendar, currentCalendar)){
-                return formattedDate
-            }
-
-            return weekday
-        }
-        date?.let { isBeforeLast7Days(it) } == true -> {
-            println("The date $formattedDate is before the last 7 days.")
-            return formattedDate
-        }
-        else -> {
-            println("The date $formattedDate is not within the last 7 days and not before the last 7 days (i.e., it's in the future).")
-            return formattedDate
-        }
-    }
-}
-
-fun formatDate(date: Date): String {
-    val calendar = Calendar.getInstance()
-    calendar.time = date
-
-    val currentCalendar = Calendar.getInstance()
-
-    return when {
-        isSameDay(calendar, currentCalendar) -> {
-            SimpleDateFormat("HH:mm").format(date)
-        }
-        calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) -> {
-            SimpleDateFormat("MM.dd").format(date)
-        }
-        else -> {
-            SimpleDateFormat("yyyy.MM.dd").format(date)
-        }
-    }
-}
-
-fun isSameDay(calendar1: Calendar, calendar2: Calendar): Boolean {
-    return calendar1.get(Calendar.YEAR) == calendar2.get(Calendar.YEAR) &&
-            calendar1.get(Calendar.DAY_OF_YEAR) == calendar2.get(Calendar.DAY_OF_YEAR)
-}
-
-fun isWithinLast7Days(date: Date): Boolean {
-    val currentDate = Date()
-    val sevenDaysAgo = Calendar.getInstance().apply {
-        time = currentDate
-        add(Calendar.DAY_OF_YEAR, -7)
-    }.time
-
-    return !date.before(sevenDaysAgo) && !date.after(currentDate)
-}
-
-fun isBeforeLast7Days(date: Date): Boolean {
-    val sevenDaysAgo = Calendar.getInstance().apply {
-        time = Date()
-        add(Calendar.DAY_OF_YEAR, -7)
-    }.time
-
-    return date.before(sevenDaysAgo)
-}
-
-fun getWeekday(date: Date): String {
-    val calendar = Calendar.getInstance()
-    calendar.time = date
-
-    return when (calendar.get(Calendar.DAY_OF_WEEK)) {
-        Calendar.SUNDAY -> "Sunday"
-        Calendar.MONDAY -> "Monday"
-        Calendar.TUESDAY -> "Tuesday"
-        Calendar.WEDNESDAY -> "Wednesday"
-        Calendar.THURSDAY -> "Thursday"
-        Calendar.FRIDAY -> "Friday"
-        Calendar.SATURDAY -> "Saturday"
-        else -> "Unknown"
-    }
-}
-
 @Preview
 @Composable
 fun PreviewContactItem(){
-//    ChatListInfo(
-//        header = "Mark Katakowskihashvili",
-//        subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
-//    )
+    ChatListInfo(
+        header = "Mark Katakowskihashvili",
+        subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
+    )
 }

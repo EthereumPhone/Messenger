@@ -757,156 +757,72 @@ fun ChatScreen(
                                     .padding(start = 24.dp, end = 24.dp, top = 48.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ){
+                                Row(
+                                    modifier = Modifier.graphicsLayer(alpha = alpha1),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
 
-                                val g = true
-                                when(g){
-                                    true -> {
-                                        Column (
-                                            horizontalAlignment = Alignment.Start
-                                        ){
-                                            Text(text = "12 Members")
-                                            LazyColumn {
-
-                                            }
-
-                                        }
-                                        Row(
-                                            modifier = Modifier.graphicsLayer(alpha = alpha1),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                        ) {
-
-                                            Box(modifier = Modifier.graphicsLayer(alpha = alpha1)) {
-                                                ethOSIconButton(
-                                                    onClick = {
-                                                        if (it.contact?.numbers?.get(0)  != null) {
-                                                            makePhoneCall(context, it.contact?.numbers?.get(0)!!.address)
-                                                        }
-                                                    },
-                                                    icon = Icons.Outlined.Call,
-                                                    contentDescription="Call"
-                                                )
-                                            }
-                                            Box(modifier = Modifier.graphicsLayer(alpha = alpha2)) {
-                                                ethOSIconButton(
-                                                    onClick = { /*TODO*/ },
-                                                    icon = Icons.Outlined.Contacts,
-                                                    contentDescription="Contact"
-                                                )
-                                            }
-
-
-
-                                        }
-                                        Divider(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .graphicsLayer(alpha = alpha3),
-                                            color = Colors.DARK_GRAY
+                                    Box(modifier = Modifier.graphicsLayer(alpha = alpha1)) {
+                                        ethOSIconButton(
+                                            onClick = {
+                                                if (it.contact?.numbers?.get(0)  != null) {
+                                                    makePhoneCall(context, it.contact?.numbers?.get(0)!!.address)
+                                                }
+                                            },
+                                            icon = Icons.Outlined.Call,
+                                            contentDescription="Call"
                                         )
-
-                                        Spacer(modifier = Modifier.height(24.dp))
-                                        Column(
-                                        ) {
-
-                                            it.contact?.numbers?.get(0).let {
-                                                if (it != null) {
-                                                    ContactItem(
-                                                        modifier = Modifier.graphicsLayer(alpha = alpha4),
-                                                        title= "Phone Number",
-                                                        detail= it.address
-                                                    )
-                                                }
-                                            }
-
-                                            it.contact?.ethAddress.let {
-                                                if (it != null && it.isNotBlank()) {
-                                                    ContactItem(
-                                                        modifier = Modifier.graphicsLayer(alpha = alpha5),
-                                                        title= "Ethereum Address",
-                                                        detail= it
-                                                    )
-                                                }
-                                            }
-
-                                            //TODO: ENS
-//                                        ContactItem(
-//                                            title= "ENS",
-//                                            detail= getEnsAddresses(ens)
-//                                        )
-
-                                        }
                                     }
-                                    false -> {
-                                        Row(
-                                            modifier = Modifier.graphicsLayer(alpha = alpha1),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                        ) {
-
-                                            Box(modifier = Modifier.graphicsLayer(alpha = alpha1)) {
-                                                ethOSIconButton(
-                                                    onClick = {
-                                                        if (it.contact?.numbers?.get(0)  != null) {
-                                                            makePhoneCall(context, it.contact?.numbers?.get(0)!!.address)
-                                                        }
-                                                    },
-                                                    icon = Icons.Outlined.Call,
-                                                    contentDescription="Call"
-                                                )
-                                            }
-                                            Box(modifier = Modifier.graphicsLayer(alpha = alpha2)) {
-                                                ethOSIconButton(
-                                                    onClick = { /*TODO*/ },
-                                                    icon = Icons.Outlined.Contacts,
-                                                    contentDescription="Contact"
-                                                )
-                                            }
-
-
-
-                                        }
-                                        Divider(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .graphicsLayer(alpha = alpha3),
-                                            color = Colors.DARK_GRAY
+                                    Box(modifier = Modifier.graphicsLayer(alpha = alpha2)) {
+                                        ethOSIconButton(
+                                            onClick = { /*TODO*/ },
+                                            icon = Icons.Outlined.Contacts,
+                                            contentDescription="Contact"
                                         )
-
-                                        Spacer(modifier = Modifier.height(24.dp))
-                                        Column(
-                                        ) {
-
-                                            it.contact?.numbers?.get(0).let {
-                                                if (it != null) {
-                                                    ContactItem(
-                                                        modifier = Modifier.graphicsLayer(alpha = alpha4),
-                                                        title= "Phone Number",
-                                                        detail= it.address
-                                                    )
-                                                }
-                                            }
-
-                                            it.contact?.ethAddress.let {
-                                                if (it != null && it.isNotBlank()) {
-                                                    ContactItem(
-                                                        modifier = Modifier.graphicsLayer(alpha = alpha5),
-                                                        title= "Ethereum Address",
-                                                        detail= it
-                                                    )
-                                                }
-                                            }
-
-                                            //TODO: ENS
-//                                        ContactItem(
-//                                            title= "ENS",
-//                                            detail= getEnsAddresses(ens)
-//                                        )
-
-                                        }
                                     }
+
+
+
                                 }
+                                Divider(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .graphicsLayer(alpha = alpha3),
+                                    color = Colors.DARK_GRAY
+                                )
 
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Column(
+                                ) {
+
+                                    it.contact?.numbers?.get(0).let {
+                                        if (it != null) {
+                                            ContactItem(
+                                                modifier = Modifier.graphicsLayer(alpha = alpha4),
+                                                title= "Phone Number",
+                                                detail= it.address
+                                            )
+                                        }
+                                    }
+
+                                    it.contact?.ethAddress.let {
+                                        if (it != null && it.isNotBlank()) {
+                                            ContactItem(
+                                                modifier = Modifier.graphicsLayer(alpha = alpha5),
+                                                title= "Ethereum Address",
+                                                detail= it
+                                            )
+                                        }
+                                    }
+
+                                    //TODO: ENS
+//                                        ContactItem(
+//                                            title= "ENS",
+//                                            detail= getEnsAddresses(ens)
+//                                        )
+
+                                }
                             }
                             //------------PROFILE VIEW END------------
                         }
