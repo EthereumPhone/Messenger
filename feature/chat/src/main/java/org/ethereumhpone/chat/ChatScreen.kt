@@ -17,11 +17,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -37,9 +35,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -73,7 +69,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.AssetPickerSheet
 import org.ethereumhpone.chat.components.InputSelector
-import org.ethereumhpone.chat.components.Message
+import org.ethereumhpone.chat.components.Message.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import androidx.compose.material.icons.Icons
@@ -109,11 +105,12 @@ import org.ethereumhpone.chat.components.ModalSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.Player
 import coil.compose.rememberAsyncImagePainter
-import org.ethereumhpone.chat.components.ComposablePosition
+import org.ethereumhpone.chat.components.Message.ComposablePosition
 import org.ethereumhpone.chat.components.ContactItem
 import org.ethereumhpone.chat.components.GallerySheet
-import org.ethereumhpone.chat.components.TxMessage
+import org.ethereumhpone.chat.components.Message.TxMessage
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.components.makePhoneCall
@@ -126,15 +123,17 @@ import org.ethosmobile.components.library.core.ethOSIconButton
 @Composable
 fun ChatRoute(
     navigateBackToConversations: () -> Unit,
-    viewModel: ChatViewModel = hiltViewModel()
+    chatViewModel: ChatViewModel = hiltViewModel(),
+    mediaViewModel: MediaViewModel = hiltViewModel()
 ){
-    val messagesUiState by viewModel.messagesState.collectAsStateWithLifecycle()
-    val recipient by viewModel.recipientState.collectAsStateWithLifecycle()
+    val videoPlayer = mediaViewModel.exoPlayer
+    val messagesUiState by chatViewModel.messagesState.collectAsStateWithLifecycle()
+    val recipient by chatViewModel.recipientState.collectAsStateWithLifecycle()
     val tokenBalance by viewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by viewModel.chainName.collectAsStateWithLifecycle()
-    val attachments by viewModel.attachments.collectAsStateWithLifecycle()
-    val selectedAttachments by viewModel.selectedAttachments.collectAsStateWithLifecycle()
-    val focusedMessage by viewModel.focusedMessage.collectAsStateWithLifecycle()
+    val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
+    val selectedAttachments by chatViewModel.selectedAttachments.collectAsStateWithLifecycle()
+    val focusedMessage by chatViewModel.focusedMessage.collectAsStateWithLifecycle()
 
     ChatScreen(
         messagesUiState = messagesUiState,
@@ -144,13 +143,16 @@ fun ChatRoute(
         navigateBackToConversations = navigateBackToConversations,
         tokenBalance = tokenBalance,
         chainName = chainName,
+        videoPlayer = videoPlayer,
         onSendEthClicked = viewModel::sendEth,
-        onAttachmentClicked = viewModel::toggleSelection,
-        onSendMessageClicked = viewModel::sendMessage,
-        onDeleteMessage = viewModel::deleteMessage,
+        onAttachmentClicked = chatViewModel::toggleSelection,
+        onSendMessageClicked = chatViewModel::sendMessage,
+        onDeleteMessage = chatViewModel::deleteMessage,
         focusedMessage = focusedMessage,
-        onFocusedMessageUpdate = viewModel::updatefocusedMessage,
-        onPhoneClicked = viewModel::callPhone
+        onFocusedMessageUpdate = chatViewModel::updatefocusedMessage,
+        onPhoneClicked = chatViewModel::callPhone,
+        onPlayVideo = mediaViewModel::playVideo
+
     )
 }
 
@@ -166,12 +168,14 @@ fun ChatScreen(
     onSendEthClicked: (amount: Double) -> Unit,
     tokenBalance: Double = 0.0,
     chainName: String = "?",
+    videoPlayer: Player,
     onAttachmentClicked: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
     onDeleteMessage: (Long) -> Unit,
     focusedMessage: Message?,
     onFocusedMessageUpdate: (Message) -> Unit,
-    onPhoneClicked: () -> Unit
+    onPhoneClicked: () -> Unit,
+    onPlayVideo: (Uri) -> Unit
 ){
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)

@@ -38,6 +38,8 @@ android {
                 "proguard-rules.pro"
             )
         }
+
+
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -84,15 +86,15 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("io.coil-kt:coil-video:2.6.0")
 
-
-    implementation(libs.coil.compose)
     implementation("com.github.EthereumPhone:ethOS-Component-Library:1a10060494")
 
     implementation(libs.androidx.navigation.common.ktx)
     implementation(libs.androidx.navigation.runtime.ktx)
 
-    implementation(libs.compose.navigation)//"androidx.navigation:navigation-compose:2.7.6")
+    implementation(libs.compose.navigation)
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
@@ -120,6 +122,10 @@ dependencies {
 
     // vCard
     implementation("com.googlecode.ez-vcard:ez-vcard:0.10.6")
+
+    // mediaplayer
+    implementation(libs.bundles.media3)
+
 
 
 }

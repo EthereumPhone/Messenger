@@ -36,6 +36,7 @@ firebaseCrashlyticsBuildtools = "2.9.9"
 datastoreCore = "1.0.0"
 camerax = "1.3.3"
 constraintlayout = "2.1.4"
+media3 = "1.3.1"
 
 
 [libraries]
@@ -105,6 +106,14 @@ camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "
 camera-exentsion = { group = "androidx.camera", name = "camera-extensions", version.ref = "camerax" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 
+# media3 (video playback)
+media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-exoplayer-dash = { group = "androidx.media3", name = "media3-exoplayer-dash", version.ref = "media3" }
+media3-exoplayer-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
+media3-exoplayer-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
+media3-exoplayer-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
+
+
 
 [plugins]
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
@@ -120,3 +129,4 @@ roomb = ["room-runtime", "room-ktx", "room-compiler", "kotlin-serialization"]
 hilt = ["hilt-android", "hilt-compiler", "hilt-navigation", "androidx-hilt-compiler"]
 datastore = ["androidx-datastore-preferences", "androidx-datastore-proto", "protobuf-kotlin-lite"]
 camerax = ["camera-camera2", "camera-lifecycle", "camera-view", "camera-exentsion"]
+media3 = ["media3-exoplayer", "media3-exoplayer-common", "media3-exoplayer-ui"]
