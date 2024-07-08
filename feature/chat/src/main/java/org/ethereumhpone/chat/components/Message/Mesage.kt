@@ -242,18 +242,15 @@ fun TxChatItemBubble(
 
     val gradient = Modifier
         .clip(TxChatBubbleShape)
-        .background(
-            Colors.WHITE
-        )
-        .border(1.dp,Color(0xFF8C7DF7), TxChatBubbleShape)
-    val nogradient = Modifier
-        .clip(TxChatBubbleShape)
-        .background(
-            Colors.WHITE
-        )
+        .background(Colors.WHITE)
         .border(1.dp,Color(0xFF8C7DF7), TxChatBubbleShape)
 
-    val usercolor = if(isLastMessageByAuthor) nogradient else gradient
+    val nogradient = Modifier
+        .clip(TxChatBubbleShape)
+        .background(Colors.WHITE)
+        .border(1.dp,Color(0xFF8C7DF7), TxChatBubbleShape)
+
+    val usercolor = nogradient
 
     val reciepientcolor = Modifier
         .clip(TxChatBubbleShape)
@@ -399,11 +396,16 @@ fun ChatItemBubble(
 
     val messageBrush = when(isUserMe){
         true -> { //message from user
+            nogradient
+
+            /*
             if(isLastMessageByAuthor){
                 nogradient
             } else {
                 gradient
             }
+             */
+
         }
         false -> { //message not from user
             reciepientcolor
