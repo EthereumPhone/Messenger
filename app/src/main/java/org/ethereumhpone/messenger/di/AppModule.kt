@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.ethereumhpone.messenger.BuildConfig
 import org.ethereumphone.walletsdk.WalletSDK
 import org.web3j.protocol.Web3j
@@ -73,7 +74,9 @@ object AppModule {
         var walletSDK = WalletSDK(context)
 
         runBlocking {
-            val currentChainId = walletSDK.getChainId()
+            val currentChainId = withContext(Dispatchers.IO) {
+                walletSDK.getChainId()
+            }
             walletSDK = WalletSDK(context, Web3j.build(HttpService(chainIdToRPC(currentChainId))))
         }
 

@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
@@ -134,11 +135,12 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             emit(chainId)
             delay(400)
         }
-    }.stateIn(
-        scope = viewModelScope,
-        initialValue = 1,
-        started = SharingStarted.WhileSubscribed(5_000)
-    )
+    }.flowOn(Dispatchers.IO) // Ensures the flow runs on the IO dispatcher
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = 1,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val ethBalance: StateFlow<Double> = currentChainId
