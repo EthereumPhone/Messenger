@@ -144,7 +144,7 @@ fun ChatRoute(
         tokenBalance = tokenBalance,
         chainName = chainName,
         videoPlayer = videoPlayer,
-        onSendEthClicked = viewModel::sendEth,
+        onSendEthClicked = chatViewModel::sendEth,
         onAttachmentClicked = chatViewModel::toggleSelection,
         onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
