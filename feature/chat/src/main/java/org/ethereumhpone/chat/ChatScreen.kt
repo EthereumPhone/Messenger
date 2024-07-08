@@ -129,8 +129,8 @@ fun ChatRoute(
     val videoPlayer = mediaViewModel.exoPlayer
     val messagesUiState by chatViewModel.messagesState.collectAsStateWithLifecycle()
     val recipient by chatViewModel.recipientState.collectAsStateWithLifecycle()
-    val tokenBalance by viewModel.ethBalance.collectAsStateWithLifecycle()
-    val chainName by viewModel.chainName.collectAsStateWithLifecycle()
+    val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
+    val chainName by chatViewModel.chainName.collectAsStateWithLifecycle()
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
     val selectedAttachments by chatViewModel.selectedAttachments.collectAsStateWithLifecycle()
     val focusedMessage by chatViewModel.focusedMessage.collectAsStateWithLifecycle()
