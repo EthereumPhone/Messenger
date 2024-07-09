@@ -74,6 +74,130 @@ import androidx.compose.ui.platform.LocalContext
 
 
 
+@Composable
+fun ChatHeader(
+    modifier: Modifier = Modifier,
+    name: String,
+    ens: List<String>,
+    image: String,
+    onBackClick: () -> Unit = {},
+    onPhoneClick: () -> Unit = {},
+    onContactClick: () -> Unit = {},
+){
+    val iconsize = 24.dp
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.padding(bottom = 8.dp),
+    ) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = modifier.size(iconsize)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowBackIosNew,
+                        contentDescription = "Go back",
+                        tint =  Colors.WHITE,
+                        modifier = modifier.size(iconsize)
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF262626))
+                    ){
+                        if (image != ""){
+                            Image(
+                                painter = rememberAsyncImagePainter(image),
+                                contentDescription = "Contact Profile Pic",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else{
+                            Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                        }
+                    }
+
+                    Column (
+                        modifier = modifier.clickable {
+                            onContactClick()
+                        }
+                    ){
+                        Text(
+                            textAlign = TextAlign.Center,
+                            text = name,
+                            fontSize = 18.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Fonts.INTER,
+                        )
+
+                        if (ens.isNotEmpty()){
+                            val enss = getEnsAddresses(ens)
+                            Text(
+                                textAlign = TextAlign.Center,
+                                text = enss,
+                                fontSize = 14.sp,
+                                color = Colors.GRAY,
+                                fontWeight = FontWeight.Normal,
+                                fontFamily = Fonts.INTER,
+                            )
+                        }
+
+                    }
+
+
+                }
+            }
+
+
+
+//      Warning or info
+            Row(
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+
+                ) {
+                Row(
+                    horizontalArrangement = Arrangement.Start,
+                ) {
+                    IconButton(
+                        onClick = onPhoneClick,
+                        modifier = modifier.size(iconsize)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Phone,
+                            contentDescription = "Go back",
+                            tint =  Colors.WHITE,
+                            modifier = modifier.size(iconsize)
+                        )
+                    }
+                }
+            }
+        }
+
+    }
+
+}
+
 fun getEnsAddresses(ens: List<String>): String{
     var res = ""
 
