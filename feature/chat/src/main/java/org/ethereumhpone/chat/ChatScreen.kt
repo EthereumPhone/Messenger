@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -87,8 +88,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -98,6 +104,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.MotionLayout
 import androidx.constraintlayout.compose.MotionScene
 import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
@@ -246,7 +253,7 @@ fun ChatScreen(
         animationSpec = tween(1000,)
     )
 
-    val alpha: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(500,500))
+    val alpha0: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(500,500))
 
 
 
@@ -421,11 +428,11 @@ fun ChatScreen(
                                         fontWeight = FontWeight.Medium,
                                         fontFamily = Fonts.INTER,
                                         modifier = if(profileview.value) Modifier
-                                            .graphicsLayer(alpha = alpha)
+                                            .graphicsLayer(alpha = alpha0)
                                             .clickable {
                                                 //TODO: implement funcitonality
                                             } else {
-                                            Modifier.graphicsLayer(alpha = alpha)
+                                            Modifier.graphicsLayer(alpha = alpha0)
                                         }
 
                                     )
@@ -468,221 +475,235 @@ fun ChatScreen(
                                     }
 
                                     is MessagesUiState.Success -> {
-                                        LazyColumn(
-                                            reverseLayout = true,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 24.dp)
-                                        ) {
-                                            Log.d("DEBUG", messagesUiState.messages.sortedBy { it.date }.reversed().toString())
-                                            items(items = messagesUiState.messages.sortedBy { it.date }.reversed(), key = { it.id }) { message ->
 
-                                                val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
-                                                val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
-                                                val isFirstMessageByAuthor = prevAuthor != message.address
-                                                val isLastMessageByAuthor = nextAuthor != message.address
+                                            LazyColumn(
+                                                reverseLayout = true,
+                                                modifier = Modifier
+                                                    .fillMaxHeight()
+                                                    .fillMaxWidth()
+                                                    .weight(1f)
+                                                    .zIndex(2f)
+                                                    .padding(horizontal = 24.dp)
+                                            ) {
+                                                Log.d("DEBUG", messagesUiState.messages.sortedBy { it.date }.reversed().toString())
+                                                items(items = messagesUiState.messages.sortedBy { it.date }.reversed(), key = { it.id }) { message ->
 
-                                                if (isValidTransactionMessage(message.body)) {
-                                                    val transactionDetails = extractTransactionDetails(message.body)
-                                                    transactionDetails?.let {
-                                                        TxMessage(
-                                                            amount = it.amount.toDouble(),
-                                                            txUrl = it.url,
+                                                    val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
+                                                    val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
+                                                    val isFirstMessageByAuthor = prevAuthor != message.address
+                                                    val isLastMessageByAuthor = nextAuthor != message.address
+
+                                                    if (isValidTransactionMessage(message.body)) {
+                                                        val transactionDetails = extractTransactionDetails(message.body)
+                                                        transactionDetails?.let {
+                                                            TxMessage(
+                                                                amount = it.amount.toDouble(),
+                                                                txUrl = it.url,
+                                                                isUserMe = message.isMe(),
+                                                                isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                                isLastMessageByAuthor = isLastMessageByAuthor,
+                                                                networkName = chainIdToReadableName(it.chainId),
+                                                            )
+                                                        } ?: Message(
+                                                            onAuthorClick = { },
+                                                            msg = message,
                                                             isUserMe = message.isMe(),
                                                             isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                             isLastMessageByAuthor = isLastMessageByAuthor,
-                                                            networkName = chainIdToReadableName(it.chainId),
+                                                            composablePositionState = composablePositionState,
+                                                            onLongClick = {
+                                                                onFocusedMessageUpdate(message)
+                                                                focusMode.value = true
+                                                            },
                                                         )
-                                                    } ?: Message(
-                                                        onAuthorClick = { },
-                                                        msg = message,
-                                                        isUserMe = message.isMe(),
-                                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                        isLastMessageByAuthor = isLastMessageByAuthor,
-                                                        composablePositionState = composablePositionState,
-                                                        onLongClick = {
-                                                            onFocusedMessageUpdate(message)
-                                                            focusMode.value = true
-                                                        },
-                                                    )
-                                                } else {
-                                                    Message(
-                                                        onAuthorClick = { },
-                                                        msg = message,
-                                                        isUserMe = message.isMe(),
-                                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                        isLastMessageByAuthor = isLastMessageByAuthor,
-                                                        composablePositionState = composablePositionState,
-                                                        onLongClick = {
-                                                            Log.d("DEBUG Before", "${message.id} - ${message.body} - ${message}")
-                                                            onFocusedMessageUpdate(message)
-                                                            focusMode.value = true
-                                                        },
-                                                    )
+                                                    } else {
+                                                        Message(
+                                                            onAuthorClick = { },
+                                                            msg = message,
+                                                            isUserMe = message.isMe(),
+                                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                                            isLastMessageByAuthor = isLastMessageByAuthor,
+                                                            composablePositionState = composablePositionState,
+                                                            onLongClick = {
+                                                                Log.d("DEBUG Before", "${message.id} - ${message.body} - ${message}")
+                                                                onFocusedMessageUpdate(message)
+                                                                focusMode.value = true
+                                                            },
+                                                        )
+                                                    }
                                                 }
                                             }
-                                        }
+
+
                                     }
                                 }
+
                                 Column(
-                                    modifier = modifier.padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
+                                    modifier = modifier
+                                        .padding(
+                                            top = 8.dp,
+                                            bottom = 24.dp,
+                                            end = 12.dp,
+                                            start = 12.dp
+                                        )
                                 ) {
 
                                     AttachmentRow(
                                         selectedAttachments = selectedAttachments.toList(),
                                         attachmentRemoved = { onAttachmentClicked(it) }
                                     )
-
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.Top,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp)
-                                    ) {
-                                        var startAnimation by remember { mutableStateOf(false) }
-                                        val animationSpec = tween<Float>(
-                                            durationMillis = 400,
-                                            easing = LinearOutSlowInEasing
-                                        )
-                                        val rotationAngle by animateFloatAsState(
-                                            targetValue = if (startAnimation) 45f else 0f,
-                                            animationSpec = animationSpec,
-                                            label = ""
-                                        )
-                                        IconButton(
+                                    SelectionContainer {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.Top,
                                             modifier = Modifier
-                                                .padding(top = 8.dp)
-                                                .clip(CircleShape)
-                                                .size(42.dp),
-                                            enabled = true,
-                                            onClick = {
-                                                //onChangeShowActionBar()
-                                                dismissKeyboard()
-                                                controller?.hide() // Keyboard
-
-                                                showActionbar = !showActionbar
-
-                                                if (showSelectionbar) {
-                                                    showSelectionbar = false
-                                                }
-                                                startAnimation = !startAnimation
-                                            },
+                                                .fillMaxWidth()
+                                                .padding(bottom = 8.dp)
                                         ) {
-                                            Box(
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Filled.Add,
-                                                    modifier = Modifier
-                                                        .size(32.dp)
-                                                        .graphicsLayer(rotationZ = rotationAngle),
-                                                    contentDescription = "Send",
-                                                    tint = Color.White
-                                                )
-                                            }
 
-                                        }
-
-                                        var lastFocusState by remember { mutableStateOf(false) }
-                                        SelectionContainer {
-                                            TextField(
-                                                shape = RoundedCornerShape(35.dp),
-                                                value = textState,
-                                                onValueChange = { textState = it },
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .clip(RoundedCornerShape(35.dp))
-                                                    .border(
-                                                        2.dp,
-                                                        Colors.DARK_GRAY,
-                                                        RoundedCornerShape(35.dp)
-                                                    )
-                                                    .heightIn(min = 56.dp, max = 100.dp)
-                                                    .onFocusChanged { state ->
-                                                        if (lastFocusState != state.isFocused) {
-
-                                                            if (state.isFocused) {
-                                                                currentInputSelector =
-                                                                    InputSelector.NONE
-                                                                //resetScroll()
-                                                            }
-                                                            textFieldFocusState = state.isFocused
-
-                                                        }
-                                                        lastFocusState = state.isFocused
-                                                    },
-
-                                                placeholder = {
-                                                    Text("Type a message")
-                                                },
-                                                colors = OutlinedTextFieldDefaults.colors(
-                                                    focusedTextColor = Colors.WHITE,
-                                                    unfocusedTextColor = Colors.WHITE,
-                                                    focusedContainerColor = Colors.TRANSPARENT,
-                                                    unfocusedContainerColor = Colors.TRANSPARENT,
-                                                    disabledContainerColor = Colors.TRANSPARENT,
-                                                    cursorColor = Colors.WHITE,
-                                                    errorCursorColor = Colors.WHITE,
-                                                    focusedBorderColor = Colors.TRANSPARENT,
-                                                    unfocusedBorderColor = Colors.TRANSPARENT,
-                                                    focusedPlaceholderColor = Colors.GRAY,
-                                                    unfocusedPlaceholderColor = Colors.GRAY,
-                                                ),
-                                                textStyle = TextStyle(
-                                                    fontWeight = FontWeight.Medium,
-                                                    fontFamily = Fonts.INTER,
-                                                    fontSize = 18.sp,
-                                                    color = Colors.WHITE,
-                                                )
-
+                                            var startAnimation by remember { mutableStateOf(false) }
+                                            val animationSpec = tween<Float>(
+                                                durationMillis = 400,
+                                                easing = LinearOutSlowInEasing
                                             )
-                                        }
-
-                                        AnimatedVisibility(
-                                            textState.text.isNotBlank() || selectedAttachments.isNotEmpty(),
-                                            enter = expandHorizontally(),
-                                            exit = shrinkHorizontally(),
-                                        ) {
+                                            val rotationAngle by animateFloatAsState(
+                                                targetValue = if (startAnimation) 45f else 0f,
+                                                animationSpec = animationSpec,
+                                                label = ""
+                                            )
                                             IconButton(
                                                 modifier = Modifier
                                                     .padding(top = 8.dp)
                                                     .clip(CircleShape)
-                                                    .background(Color(0xFF8C7DF7))
                                                     .size(42.dp),
                                                 enabled = true,
                                                 onClick = {
-                                                    // Move scroll to bottom
-                                                    //resetScroll()
+                                                    //onChangeShowActionBar()
                                                     dismissKeyboard()
-
-                                                    if(showSelectionbar){
-                                                        showSelectionbar = false
-                                                    }
-
-                                                    if(showActionbar){
-                                                        showActionbar = false
-                                                        startAnimation = !startAnimation
-                                                    }
-
-
-
                                                     controller?.hide() // Keyboard
 
-                                                    lastFocusState = false
-                                                    textFieldFocusState = false
-                                                    onSendMessageClicked(textState.text)
-                                                    textState = TextFieldValue()
+                                                    showActionbar = !showActionbar
+
+                                                    if (showSelectionbar) {
+                                                        showSelectionbar = false
+                                                    }
+                                                    startAnimation = !startAnimation
                                                 },
                                             ) {
-                                                Icon(imageVector = Icons.Rounded.ArrowUpward,modifier= Modifier
-                                                    .size(32.dp), contentDescription = "Send",tint = Color.White)
+                                                Box(
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Add,
+                                                        modifier = Modifier
+                                                            .size(32.dp)
+                                                            .graphicsLayer(rotationZ = rotationAngle),
+                                                        contentDescription = "Send",
+                                                        tint = Color.White
+                                                    )
+                                                }
+
                                             }
+
+                                            var lastFocusState by remember { mutableStateOf(false) }
+
+                                                TextField(
+                                                    shape = RoundedCornerShape(35.dp),
+                                                    value = textState,
+                                                    onValueChange = { textState = it },
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clip(RoundedCornerShape(35.dp))
+                                                        .border(
+                                                            2.dp,
+                                                            Colors.DARK_GRAY,
+                                                            RoundedCornerShape(35.dp)
+                                                        )
+                                                        .heightIn(min = 56.dp, max = 100.dp)
+                                                        .onFocusChanged { state ->
+                                                            if (lastFocusState != state.isFocused) {
+
+                                                                if (state.isFocused) {
+                                                                    currentInputSelector =
+                                                                        InputSelector.NONE
+                                                                    //resetScroll()
+                                                                }
+                                                                textFieldFocusState =
+                                                                    state.isFocused
+
+                                                            }
+                                                            lastFocusState = state.isFocused
+                                                        },
+
+                                                    placeholder = {
+                                                        Text("Type a message")
+                                                    },
+                                                    colors = OutlinedTextFieldDefaults.colors(
+                                                        focusedTextColor = Colors.WHITE,
+                                                        unfocusedTextColor = Colors.WHITE,
+                                                        focusedContainerColor = Colors.TRANSPARENT,
+                                                        unfocusedContainerColor = Colors.TRANSPARENT,
+                                                        disabledContainerColor = Colors.TRANSPARENT,
+                                                        cursorColor = Colors.WHITE,
+                                                        errorCursorColor = Colors.WHITE,
+                                                        focusedBorderColor = Colors.TRANSPARENT,
+                                                        unfocusedBorderColor = Colors.TRANSPARENT,
+                                                        focusedPlaceholderColor = Colors.GRAY,
+                                                        unfocusedPlaceholderColor = Colors.GRAY,
+                                                    ),
+                                                    textStyle = TextStyle(
+                                                        fontWeight = FontWeight.Medium,
+                                                        fontFamily = Fonts.INTER,
+                                                        fontSize = 18.sp,
+                                                        color = Colors.WHITE,
+                                                    )
+
+                                                )
+
+
+                                            AnimatedVisibility(
+                                                textState.text.isNotBlank() || selectedAttachments.isNotEmpty(),
+                                                enter = expandHorizontally(),
+                                                exit = shrinkHorizontally(),
+                                            ) {
+                                                IconButton(
+                                                    modifier = Modifier
+                                                        .padding(top = 8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF8C7DF7))
+                                                        .size(42.dp),
+                                                    enabled = true,
+                                                    onClick = {
+                                                        // Move scroll to bottom
+                                                        //resetScroll()
+                                                        dismissKeyboard()
+
+                                                        if(showSelectionbar){
+                                                            showSelectionbar = false
+                                                        }
+
+                                                        if(showActionbar){
+                                                            showActionbar = false
+                                                            startAnimation = !startAnimation
+                                                        }
+
+
+
+                                                        controller?.hide() // Keyboard
+
+                                                        lastFocusState = false
+                                                        textFieldFocusState = false
+                                                        onSendMessageClicked(textState.text)
+                                                        textState = TextFieldValue()
+                                                    },
+                                                ) {
+                                                    Icon(imageVector = Icons.Rounded.ArrowUpward,modifier= Modifier
+                                                        .size(32.dp), contentDescription = "Send",tint = Color.White)
+                                                }
+                                            }
+
                                         }
-
                                     }
-
                                     // Animated visibility will eventually remove the item from the composition once the animation has finished.
                                     AnimatedVisibility(showActionbar) {
 
