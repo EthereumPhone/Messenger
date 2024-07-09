@@ -166,7 +166,7 @@ fun ChatRoute(
 fun ChatScreen(
     modifier: Modifier = Modifier,
     messagesUiState: MessagesUiState,
-    recipient: Recipient,
+    recipient: Recipient?,
     attachments: List<Attachment> = emptyList(),
     selectedAttachments: Set<Attachment> = emptySet(),
     navigateBackToConversations: () -> Unit,
@@ -182,7 +182,7 @@ fun ChatScreen(
     onPhoneClicked: () -> Unit,
     onPlayVideo: (Uri) -> Unit
 ){
-    Log.d("MY SWAG", recipient.getDisplayName())
+    Log.d("MY SWAG", recipient?.getDisplayName()?:"")
     
 
 
@@ -303,8 +303,8 @@ fun ChatScreen(
                     ) {
 
                         ChatHeader(
-                            name = recipient.getDisplayName(),
-                            image = recipient.contact?.photoUri ?: "",
+                            name = recipient?.getDisplayName() ?: "",
+                            image = recipient?.contact?.photoUri ?: "",
                             ens = listOf(""),
                             onBackClick = navigateBackToConversations,
                             onPhoneClick = onPhoneClicked,
@@ -650,7 +650,7 @@ fun ChatScreen(
                             Box(modifier = Modifier.graphicsLayer(alpha = alpha1)) {
                                 ethOSIconButton(
                                     onClick = {
-                                        if (recipient.contact?.numbers?.get(0)  != null) {
+                                        if (recipient?.contact?.numbers?.get(0)  != null) {
                                             makePhoneCall(context, recipient.contact?.numbers?.get(0)!!.address)
                                         }
                                     },
