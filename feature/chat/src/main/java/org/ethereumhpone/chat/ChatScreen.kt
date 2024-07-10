@@ -88,10 +88,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.alpha
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -101,6 +106,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.MotionLayout
 import androidx.constraintlayout.compose.MotionScene
 import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
@@ -254,7 +260,7 @@ fun ChatScreen(
         animationSpec = tween(1000,)
     )
 
-    val alpha: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(500,500))
+    val alpha0: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(500,500))
 
 
 
@@ -329,7 +335,6 @@ fun ChatScreen(
                                         .fillMaxSize()
                                         .padding(horizontal = 24.dp),
                                     contentAlignment = Alignment.Center
-
                                 ) {
 
                                     Text(
@@ -414,59 +419,59 @@ fun ChatScreen(
                                 attachmentRemoved = { onAttachmentClicked(it) }
                             )
 
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.Top,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                            ) {
-                                var startAnimation by remember { mutableStateOf(false) }
-                                val animationSpec = tween<Float>(
-                                    durationMillis = 400,
-                                    easing = LinearOutSlowInEasing
-                                )
-                                val rotationAngle by animateFloatAsState(
-                                    targetValue = if (startAnimation) 45f else 0f,
-                                    animationSpec = animationSpec,
-                                    label = ""
-                                )
-                                IconButton(
+                            SelectionContainer {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.Top,
                                     modifier = Modifier
-                                        .padding(top = 8.dp)
-                                        .clip(CircleShape)
-                                        .size(42.dp),
-                                    enabled = true,
-                                    onClick = {
-                                        //onChangeShowActionBar()
-                                        dismissKeyboard()
-                                        controller?.hide() // Keyboard
-
-                                        showActionbar = !showActionbar
-
-                                        if (showSelectionbar) {
-                                            showSelectionbar = false
-                                        }
-                                        startAnimation = !startAnimation
-                                    },
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp)
                                 ) {
-                                    Box(
-                                        contentAlignment = Alignment.Center
+                                    var startAnimation by remember { mutableStateOf(false) }
+                                    val animationSpec = tween<Float>(
+                                        durationMillis = 400,
+                                        easing = LinearOutSlowInEasing
+                                    )
+                                    val rotationAngle by animateFloatAsState(
+                                        targetValue = if (startAnimation) 45f else 0f,
+                                        animationSpec = animationSpec,
+                                        label = ""
+                                    )
+                                    IconButton(
+                                        modifier = Modifier
+                                            .padding(top = 8.dp)
+                                            .clip(CircleShape)
+                                            .size(42.dp),
+                                        enabled = true,
+                                        onClick = {
+                                            //onChangeShowActionBar()
+                                            dismissKeyboard()
+                                            controller?.hide() // Keyboard
+
+                                            showActionbar = !showActionbar
+
+                                            if (showSelectionbar) {
+                                                showSelectionbar = false
+                                            }
+                                            startAnimation = !startAnimation
+                                        },
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Add,
-                                            modifier = Modifier
-                                                .size(32.dp)
-                                                .graphicsLayer(rotationZ = rotationAngle),
-                                            contentDescription = "Send",
-                                            tint = Color.White
-                                        )
+                                        Box(
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Add,
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .graphicsLayer(rotationZ = rotationAngle),
+                                                contentDescription = "Send",
+                                                tint = Color.White
+                                            )
+                                        }
+
                                     }
 
-                                }
-
-                                var lastFocusState by remember { mutableStateOf(false) }
-                                SelectionContainer {
+                                    var lastFocusState by remember { mutableStateOf(false) }
                                     TextField(
                                         shape = RoundedCornerShape(35.dp),
                                         value = textState,
@@ -518,49 +523,55 @@ fun ChatScreen(
                                         )
 
                                     )
-                                }
-
-                                AnimatedVisibility(
-                                    textState.text.isNotBlank() || selectedAttachments.isNotEmpty(),
-                                    enter = expandHorizontally(),
-                                    exit = shrinkHorizontally(),
-                                ) {
-                                    IconButton(
-                                        modifier = Modifier
-                                            .padding(top = 8.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF8C7DF7))
-                                            .size(42.dp),
-                                        enabled = true,
-                                        onClick = {
-                                            // Move scroll to bottom
-                                            //resetScroll()
-                                            dismissKeyboard()
-
-                                            if(showSelectionbar){
-                                                showSelectionbar = false
-                                            }
-
-                                            if(showActionbar){
-                                                showActionbar = false
-                                                startAnimation = !startAnimation
-                                            }
 
 
-
-                                            controller?.hide() // Keyboard
-
-                                            lastFocusState = false
-                                            textFieldFocusState = false
-                                            onSendMessageClicked(textState.text)
-                                            textState = TextFieldValue()
-                                        },
+                                    AnimatedVisibility(
+                                        textState.text.isNotBlank() || selectedAttachments.isNotEmpty(),
+                                        enter = expandHorizontally(),
+                                        exit = shrinkHorizontally(),
                                     ) {
-                                        Icon(imageVector = Icons.Rounded.ArrowUpward,modifier= Modifier
-                                            .size(32.dp), contentDescription = "Send",tint = Color.White)
-                                    }
-                                }
+                                        IconButton(
+                                            modifier = Modifier
+                                                .padding(top = 8.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF8C7DF7))
+                                                .size(42.dp),
+                                            enabled = true,
+                                            onClick = {
+                                                // Move scroll to bottom
+                                                //resetScroll()
+                                                dismissKeyboard()
 
+                                                if (showSelectionbar) {
+                                                    showSelectionbar = false
+                                                }
+
+                                                if (showActionbar) {
+                                                    showActionbar = false
+                                                    startAnimation = !startAnimation
+                                                }
+
+
+
+                                                controller?.hide() // Keyboard
+
+                                                lastFocusState = false
+                                                textFieldFocusState = false
+                                                onSendMessageClicked(textState.text)
+                                                textState = TextFieldValue()
+                                            },
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.ArrowUpward,
+                                                modifier = Modifier
+                                                    .size(32.dp),
+                                                contentDescription = "Send",
+                                                tint = Color.White
+                                            )
+                                        }
+                                    }
+
+                                }
                             }
 
                             // Animated visibility will eventually remove the item from the composition once the animation has finished.
@@ -597,7 +608,6 @@ fun ChatScreen(
                                                     controller?.hide() // Keyboard
 
                                                     showActionbar = !showActionbar
-
                                                     if(showSelectionbar){
                                                         showSelectionbar = false
                                                     }
