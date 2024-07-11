@@ -37,7 +37,7 @@ class MediaViewModel @Inject constructor(
     }
 
     fun addVideoUri(uri: Uri) {
-        savedStateHandle[VideoUriArg] =  videoUris.value + uri
+        savedStateHandle[VideoUriArg] =  uri
         exoPlayer.addMediaItem(MediaItem.fromUri(uri))
     }
 
