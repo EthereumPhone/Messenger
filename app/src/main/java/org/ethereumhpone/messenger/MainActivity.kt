@@ -27,6 +27,7 @@ import kotlinx.coroutines.withContext
 import org.ethereumhpone.data.observer.observe
 import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.domain.manager.PermissionManager
+import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.messenger.ui.MessagingApp
 import org.ethereumhpone.messenger.ui.theme.MessengerTheme
@@ -46,6 +47,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var syncLogDao: SyncLogDao
+
+    @Inject
+    lateinit var logTimeHandler: LogTimeHandler
 
 
     private val contentObserver = object : ContentObserver(null) {
@@ -99,7 +103,7 @@ class MainActivity : ComponentActivity() {
 
         // check if it has permissions and never never ran a message sync
         CoroutineScope(Dispatchers.IO).launch {
-            val lastSync = syncLogDao.getLastLogDate() ?: 0
+            val lastSync = logTimeHandler.getLastLog()
             if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
             }

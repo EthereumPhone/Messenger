@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.messenger.BuildConfig
 import org.ethereumphone.walletsdk.WalletSDK
 import org.web3j.protocol.Web3j
@@ -59,6 +60,10 @@ object AppModule {
     fun provideContentResolver(@ApplicationContext context: Context): ContentResolver {
         return context.contentResolver
     }
+
+    @Provides
+    @Singleton
+    fun provideLogTimeHandler(@ApplicationContext context: Context) = LogTimeHandler(context.getSharedPreferences("app", Context.MODE_PRIVATE))
 
     @Provides
     @Singleton

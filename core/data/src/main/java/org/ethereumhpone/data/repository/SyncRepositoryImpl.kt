@@ -39,6 +39,7 @@ import org.ethereumhpone.domain.mapper.ConversationCursor
 import org.ethereumhpone.domain.mapper.MessageCursor
 import org.ethereumhpone.domain.mapper.PartCursor
 import org.ethereumhpone.domain.mapper.RecipientCursor
+import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import javax.inject.Inject
@@ -61,7 +62,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val contactDao: ContactDao,
     private val recipientDao: RecipientDao,
     private val phoneNumberDao: PhoneNumberDao,
-    private val syncLogDao: SyncLogDao
+    private val syncLogDao: SyncLogDao,
+    private val logTimeHandler: LogTimeHandler
 ): SyncRepository {
 
     private val _isSyncing = MutableStateFlow(false)
@@ -150,8 +152,7 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
         }
-
-        syncLogDao.upsertSyncLog(SyncLog())
+        logTimeHandler.setLastLog(SyncLog().date)
         _isSyncing.value = false
     }
 
