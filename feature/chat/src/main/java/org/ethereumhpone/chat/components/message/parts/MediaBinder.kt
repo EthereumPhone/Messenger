@@ -102,10 +102,10 @@ private fun MediaListContainer(
     media: List<MmsPart>,
     imageClickedIndex: (Int) -> Unit // index
 ) {
-    LazyColumn(
+    Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        itemsIndexed(media) { index, item ->
+        media.forEachIndexed { index, item ->
             Box(Modifier.clickable { imageClickedIndex(index) }) {
                 AsyncImage(
                     model = if (item.isVideo()) item.getUri().getVideoThumbnail(LocalContext.current) else item.getUri(),
