@@ -1,4 +1,4 @@
-package org.ethereumhpone.chat.components.Message
+package org.ethereumhpone.chat.components.message
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember

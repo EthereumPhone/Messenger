@@ -1,4 +1,4 @@
-package org.ethereumhpone.chat.components.Message
+package org.ethereumhpone.chat.components.message
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,8 +52,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.chat.components.message.parts.MediaBinder
 
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
@@ -116,13 +118,14 @@ fun TxMessage(
 }
 
 @Composable
-fun Message(
+fun MessageItem(
     onAuthorClick: (String) -> Unit,
-    msg: Message, //Message from core/model
+    msg: Message,
     isUserMe: Boolean,
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
+    player: Player? = null,
     onLongClick: () -> Unit = {}
 ) {
 
@@ -134,21 +137,20 @@ fun Message(
         .padding(top = 8.dp)
         .fillMaxWidth() else Modifier
 
-    val alignmessage =
-        if(isUserMe) {
-            Modifier
-                .padding(start = 16.dp)
-                .onGloballyPositioned { coordinates ->
-                    compSize = coordinates.size.height
-                    positionComp = coordinates.positionInRoot()
-                }
+    val alignmessage = if(isUserMe) {
+        Modifier
+            .padding(start = 16.dp)
+            .onGloballyPositioned { coordinates ->
+                compSize = coordinates.size.height
+                positionComp = coordinates.positionInRoot()
+            }
         } else {
-            Modifier
-                .padding(end = 16.dp)
-                .onGloballyPositioned { coordinates ->
-                    compSize = coordinates.size.height
-                    positionComp = coordinates.positionInRoot()
-                }
+        Modifier
+            .padding(end = 16.dp)
+            .onGloballyPositioned { coordinates ->
+                compSize = coordinates.size.height
+                positionComp = coordinates.positionInRoot()
+            }
         }
 
     Row(
@@ -159,6 +161,17 @@ fun Message(
             modifier = alignmessage,
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
+
+
+            // Handle media parts
+            MediaBinder(videoPlayer = player, message = msg) {
+                
+            }
+
+            //TODO: handle vCard parts
+
+
+
             ChatItemBubble(
                 message = msg,
                 isUserMe = isUserMe,
@@ -243,12 +256,12 @@ fun TxChatItemBubble(
     val gradient = Modifier
         .clip(TxChatBubbleShape)
         .background(Colors.WHITE)
-        .border(1.dp,Color(0xFF8C7DF7), TxChatBubbleShape)
+        .border(1.dp, Color(0xFF8C7DF7), TxChatBubbleShape)
 
     val nogradient = Modifier
         .clip(TxChatBubbleShape)
         .background(Colors.WHITE)
-        .border(1.dp,Color(0xFF8C7DF7), TxChatBubbleShape)
+        .border(1.dp, Color(0xFF8C7DF7), TxChatBubbleShape)
 
     val usercolor = nogradient
 
@@ -257,14 +270,16 @@ fun TxChatItemBubble(
         .background(
             Colors.WHITE
         )
-        .border(1.dp,Colors.DARK_GRAY, TxChatBubbleShape)
+        .border(1.dp, Colors.DARK_GRAY, TxChatBubbleShape)
 
 
     Column(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier.fillMaxWidth().clickable {
-            uriHandler.openUri(txUrl)
-        }
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                uriHandler.openUri(txUrl)
+            }
     ) {
         Surface(
             modifier = if(isUserMe) usercolor else reciepientcolor,
@@ -310,7 +325,7 @@ fun TxChatItemBubble(
                     Box ( modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
+                        .background(if (isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
                     Text(
                         text = networkName,
                         style = TextStyle(
@@ -446,11 +461,6 @@ fun ChatItemBubble(
             )
 
             val media = message.parts.filter { !it.isText() && !it.isSmil() }
-
-
-
-
-
 
 
             AsyncImage(model = media.firstOrNull()?.getUri(), contentDescription = "")

@@ -1,4 +1,4 @@
-package org.ethereumhpone.chat.components.Message.parts
+package org.ethereumhpone.chat.components.message.parts
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -21,9 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -56,31 +56,39 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
-import org.bouncycastle.math.raw.Mod
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
+import org.ethereumhpone.database.model.isSmil
+import org.ethereumhpone.database.model.isText
 import org.ethereumhpone.database.model.isVideo
 
-private data class MmsMediaItem(val uri: Uri, val isVideo: Boolean)
 
 @Composable
 fun MediaBinder(
-    videoPlayer: Player,
-    mmsParts: List<MmsPart>,
+    message: Message,
+    videoPlayer: Player?,
     onPlayVideo: (Uri) -> Unit
 ) {
-    val mmsMediaItems = remember { mmsParts.map { MmsMediaItem(it.getUri(), it.isVideo()) } }
+
+    val media = remember { message.parts.filter { !it.isText() && !it.isSmil() } }
     var showExpandedMedia by remember { mutableStateOf(false) }
 
     var offset by remember { mutableIntStateOf(0) }
 
     // grouping logic
-    ImageGridContainer(mmsMediaItems) { offset = it }
+    if (media.size <= 3) {
+        MediaListContainer(media) { offset = it }
+    } else {
+        MediaGridContainer(media) { offset = it }
+    }
+
+
 
     // image clicked
     if (showExpandedMedia) {
         ExpandedMediaDialog(
-            mmsMediaItems,
+            media,
             videoPlayer,
             offset,
             onPlayVideo = { onPlayVideo(it) },
@@ -89,10 +97,48 @@ fun MediaBinder(
     }
 }
 
+@Composable
+private fun MediaListContainer(
+    media: List<MmsPart>,
+    imageClickedIndex: (Int) -> Unit // index
+) {
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        itemsIndexed(media) { index, item ->
+            Box(Modifier.clickable { imageClickedIndex(index) }) {
+                AsyncImage(
+                    model = if (item.isVideo()) item.getUri().getVideoThumbnail(LocalContext.current) else item.getUri(),
+                    contentDescription = "",
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = R.drawable.ethos_placeholder),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp))
+                )
+
+                if(item.isVideo()) {
+                    Icon(
+                        imageVector = Icons.Rounded.PlayArrow,
+                        contentDescription = "",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .offset(10.dp, (-10).dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.5f))
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
-private fun ImageGridContainer(
-    media: List<MmsMediaItem>,
+private fun MediaGridContainer(
+    media: List<MmsPart>,
     imageClickedIndex: (Int) -> Unit // index
 ) {
 
@@ -110,15 +156,15 @@ private fun ImageGridContainer(
                         .clickable { imageClickedIndex(index) }
                 ) {
                     AsyncImage(
-                        model = if (mediaItem.isVideo) mediaItem.uri.getVideoThumbnail(LocalContext.current) else mediaItem.uri,
+                        model = if (mediaItem.isVideo()) mediaItem.getUri().getVideoThumbnail(LocalContext.current) else mediaItem.getUri(),
                         contentDescription = "",
                         contentScale = ContentScale.Crop,
-                        placeholder = painterResource(id = R.drawable.butterfly), // preview only
+                        placeholder = painterResource(id = R.drawable.ethos_placeholder),
                         modifier = Modifier.fillMaxSize()
                     )
 
                     // video indicator
-                    if(mediaItem.isVideo) {
+                    if(mediaItem.isVideo()) {
                         Icon(
                             imageVector = Icons.Rounded.PlayArrow,
                             contentDescription = "",
@@ -157,8 +203,8 @@ private fun ImageGridContainer(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ExpandedMediaDialog(
-    media: List<MmsMediaItem>,
-    videoPlayer: Player,
+    media: List<MmsPart>,
+    videoPlayer: Player?,
     indexOffset: Int = 0,
     onPlayVideo: (Uri) -> Unit,
     onDismissRequest: () -> Unit
@@ -186,13 +232,13 @@ private fun ExpandedMediaDialog(
                 modifier = Modifier
             ) { page ->
                 //videoPlayer.stop() // stop reproducing video when swiping
-                if (media[page].isVideo) {
-                    VideoPlayer(videoPlayer)
+                if (media[page].isVideo()) {
+                    videoPlayer?.let { VideoPlayer(videoPlayer) }
                 } else {
                     AsyncImage(
-                        model = media[page].uri,
+                        model = media[page].getUri(),
                         contentDescription = "",
-                        placeholder = painterResource(id = R.drawable.butterfly), // preview only
+                        placeholder = painterResource(id = R.drawable.ethos_placeholder), // preview only
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -231,6 +277,8 @@ fun VideoPlayer(
             PlayerView(context).also {
                 it.player = videoPlayer
                 it.controllerShowTimeoutMs = 1500
+                it.setShowNextButton(false)
+                it.setShowPreviousButton(false)
             }
         },
             modifier = Modifier
@@ -243,39 +291,41 @@ fun VideoPlayer(
 
 @Composable
 @Preview
+fun PreviewMediaListContainer() {
+    val mmsPart = MmsPart()
+    val mmsVideoPart = MmsPart(type = "video/")
+
+    val media = listOf(mmsVideoPart, mmsPart, mmsPart, mmsPart, mmsPart)
+    MediaListContainer(media) {}
+}
+
+@Composable
+@Preview
 fun PreviewImageContainerGrid() {
-    // image item
-    val placeHolderUri = "android.resource://${LocalContext.current.packageName}/${R.drawable.butterfly}"
-    val mmsMediaItem = MmsMediaItem(Uri.parse(placeHolderUri), false)
+    val mmsPart = MmsPart()
+    val mmsVideoPart = MmsPart(type = "video/")
 
-    // video item
-    val videoUri = "android.resource://${LocalContext.current.packageName}/${R.raw.sample_video}"
-    val mmsVideoItem = MmsMediaItem(Uri.parse(videoUri), true)
-
-
-    val media = listOf(mmsVideoItem, mmsMediaItem, mmsMediaItem, mmsMediaItem, mmsMediaItem)
-    ImageGridContainer(media) {}
+    val media = listOf(mmsVideoPart, mmsPart, mmsPart, mmsPart, mmsPart)
+    MediaGridContainer(media) {}
 }
 
 @Composable
 @Preview
 fun PreviewExpandedMediaDialog() {
-    val placeHolderUri = "android.resource://${LocalContext.current.packageName}/${R.drawable.butterfly}"
-    val mmsMediaItem = MmsMediaItem(Uri.parse(placeHolderUri), false)
+
 
     // video item
     val videoUri = "android.resource://${LocalContext.current.packageName}/${R.raw.sample_video}"
-    val mmsVideoItem = MmsMediaItem(Uri.parse(videoUri), true)
-
-    // player
     val player = ExoPlayer.Builder(LocalContext.current).build()
     player.addMediaItem(MediaItem.fromUri(videoUri))
     player.prepare()
 
-    val media = listOf(mmsMediaItem, mmsMediaItem, mmsMediaItem, mmsVideoItem)
+
+    val mmsPart = MmsPart()
+    val mmsVideoPart = MmsPart(type = "\"video/\"")
+    val media = listOf(mmsPart, mmsPart, mmsPart, mmsVideoPart)
 
     var showDialog by remember { mutableStateOf(true) }
-
 
     Column {
         if (showDialog) {
@@ -306,6 +356,10 @@ fun PreviewImageThumbnail() {
 
 fun Uri.getVideoThumbnail(context: Context): Bitmap? {
     val metadata = MediaMetadataRetriever()
-    metadata.setDataSource(context, this)
+    try {
+        metadata.setDataSource(context, this)
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
     return metadata.frameAtTime
 }
