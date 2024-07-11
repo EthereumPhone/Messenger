@@ -172,6 +172,7 @@ fun MessageItem(
 
 
 
+
             ChatItemBubble(
                 message = msg,
                 isUserMe = isUserMe,
@@ -455,39 +456,36 @@ fun ChatItemBubble(
                 }
             }
 
-            val styledMessage = messageFormatter(
-                text = messageBody,
-                primary = isUserMe
-            )
+            if (messageBody.isNotBlank()) {
+                val styledMessage = messageFormatter(
+                    text = messageBody,
+                    primary = isUserMe
+                )
 
-            val media = message.parts.filter { !it.isText() && !it.isSmil() }
+                ClickableMessage(
+                    styledMessage = styledMessage,
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontWeight =  FontWeight.Normal,
+                        color = Colors.WHITE,
+                        fontFamily = Fonts.INTER
+                    ),
+                    onLongClick = onLongClick,
+                    onClick = {
 
-
-            AsyncImage(model = media.firstOrNull()?.getUri(), contentDescription = "")
-
-            ClickableMessage(
-                styledMessage = styledMessage,
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    fontWeight =  FontWeight.Normal,
-                    color = Colors.WHITE,
-                    fontFamily = Fonts.INTER
-                ),
-                onLongClick = onLongClick,
-                onClick = {
-
-                    styledMessage
-                        .getStringAnnotations(start = it, end = it)
-                        .firstOrNull()
-                        ?.let { annotation ->
-                            when (annotation.tag) {
-                                SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                                SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-                                else -> Unit
+                        styledMessage
+                            .getStringAnnotations(start = it, end = it)
+                            .firstOrNull()
+                            ?.let { annotation ->
+                                when (annotation.tag) {
+                                    SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
+                                    SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
+                                    else -> Unit
+                                }
                             }
-                        }
-                }
-            )
+                    }
+                )
+            }
         }
     }
 }
