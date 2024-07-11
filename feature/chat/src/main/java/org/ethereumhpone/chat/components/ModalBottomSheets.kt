@@ -30,7 +30,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Contacts
+import androidx.compose.material.icons.outlined.LocalPhone
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.rounded.ArrowForwardIos
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
@@ -41,9 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,15 +60,28 @@ import androidx.core.content.ContextCompat.startActivity
 import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.Recipient
 import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.haptics.EthOSHaptics
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
 
+
+enum class DetailSelector {
+    ASSET,
+    CONTACT,
+    MEDIA,
+    MEMBERS,
+    TXS
+}
+
 @Composable
 fun ContactSheet(
-    contact: Contact,
+    modifier: Modifier = Modifier,
+    name: String,
+    recipient: Recipient?,
+    image: String,
     ens: List<String> = emptyList()
 ){
     Column(
@@ -73,23 +93,23 @@ fun ContactSheet(
                 )
             )
             //.background(Color(0xFF262626))
-            .padding(start = 24.dp, end = 24.dp, bottom = 48.dp)
+            .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 48.dp)
     ) {
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
                 modifier = Modifier
-                    .size(86.dp)
+                    .size(214.dp)
                     .clip(CircleShape)
                     .background(Colors.DARK_GRAY)
             ){
-                if (contact.photoUri != null && contact.photoUri != "") {
+                if (image.isNotEmpty() && image.isNotBlank()) {
                     Image(
-                        painter = rememberAsyncImagePainter(contact.photoUri),
+                        painter = rememberAsyncImagePainter(image),
                         contentDescription = "Contact Profile Pic",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -98,87 +118,63 @@ fun ContactSheet(
                     Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
                 }
             }
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = contact.name,
-                    fontSize = 24.sp,
-                    color = Colors.WHITE,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = getEnsAddresses(ens),
-                    fontSize = 18.sp,
-                    color = Colors.GRAY,
-                    fontWeight = FontWeight.Normal
-                )
-            }
         }
 
-        Spacer(modifier = Modifier.height(56.dp))
 
 
-        Column (
-            verticalArrangement = Arrangement.spacedBy(12.dp),
 
-            ){
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                val currentContext = LocalContext.current
-
-                ethOSIconButton(
-                    onClick = {
-                        // Call contact
-                        val intent = Intent(Intent.ACTION_DIAL).apply {
-                            data = Uri.parse("tel:${contact.getDefaultNumber()?.address}")
-                        }
-                        currentContext.startActivity(intent)
-                              },
-                    icon = Icons.Outlined.Call,
-                    contentDescription="Call"
-                )
-                ethOSIconButton(
-                    onClick = {
-                        getContactIdFromPhoneNumber(currentContext, contact.getDefaultNumber()?.address ?: "")?.let {
-                            val uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, it)
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = uri
-                            }
-                            currentContext.startActivity(intent)
-                        }
-                    },
-                    icon = Icons.Outlined.Contacts,
-                    contentDescription="Contact"
-                )
-
-            }
-            Divider(
-                modifier = Modifier.fillMaxWidth(),
-                color = Colors.DARK_GRAY
-            )
-        }
 
         Spacer(modifier = Modifier.height(36.dp))
         Box(
             contentAlignment = Alignment.Center
         ) {
             Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-
-                ContactItem(
-                    title= "Phone Number",
-                    detail= contact.getDefaultNumber()?.address ?: "No Phone Number"
+                Text(
+                    "Info",
+                    color = Colors.WHITE,
+                    fontFamily = Fonts.INTER,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                ContactItem(
-                    title= "ENS",
-                    detail= getEnsAddresses(ens)
-                )
+
+                ContactInfo(title = name, icon = Icons.Outlined.Person)
+                recipient?.contact?.numbers?.get(0)?.let { ContactInfo(title = it.address, icon = Icons.Outlined.LocalPhone) }
+
+
+                recipient?.contact?.ethAddress.let {
+                    if (it != null && it.isNotBlank()) {
+                        ContactInfo(title = it, icon = ImageVector.vectorResource(id = R.drawable.ethereum_logo))
+                    }
+                }
+                if(getEnsAddresses(ens).isNotEmpty() || getEnsAddresses(ens).isNotBlank()){
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+
+
+                        Text(
+                            "ENS",
+                            color = Colors.WHITE,
+                            fontFamily = Fonts.INTER,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            getEnsAddresses(ens),
+                            color = Colors.WHITE,
+                            fontFamily = Fonts.INTER,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                    }
+                }
+
 
             }
 
@@ -186,6 +182,129 @@ fun ContactSheet(
         }
     }
 }
+
+@Composable
+fun MediaSheet(
+    modifier: Modifier = Modifier,
+){
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(
+                RoundedCornerShape(
+                    topStart = 12.dp,
+                    topEnd = 12.dp
+                )
+            )
+            //.background(Color(0xFF262626))
+            .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+
+            Text(
+                text = "Media",
+                fontSize = 24.sp,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+fun MembersSheet(
+    modifier: Modifier = Modifier,
+){
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(
+                RoundedCornerShape(
+                    topStart = 12.dp,
+                    topEnd = 12.dp
+                )
+            )
+            //.background(Color(0xFF262626))
+            .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+
+            Text(
+                text = "Members",
+                fontSize = 24.sp,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+fun TXSheet(
+    modifier: Modifier = Modifier,
+){
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(
+                RoundedCornerShape(
+                    topStart = 12.dp,
+                    topEnd = 12.dp
+                )
+            )
+            //.background(Color(0xFF262626))
+            .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+
+            Text(
+                text = "Transactions",
+                fontSize = 24.sp,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+fun ContactInfo(
+    title: String,
+    icon: ImageVector
+){
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+
+
+        Icon(
+            icon,
+            contentDescription = "Icon",
+            tint = Colors.WHITE,
+            modifier = Modifier.size(32.dp),
+        )
+        Text(
+            title,
+            color = Colors.WHITE,
+            fontFamily = Fonts.INTER,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+    }
+}
+
+
 
 fun getContactIdFromPhoneNumber(context: Context, phoneNumber: String): String? {
     val uri: Uri = Uri.withAppendedPath(

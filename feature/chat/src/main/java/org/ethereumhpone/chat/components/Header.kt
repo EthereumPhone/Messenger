@@ -71,7 +71,10 @@ import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
+import org.ethereumhpone.chat.BuildConfig
+import org.kethereum.rpc.HttpEthereumRPC
 
+import java.util.concurrent.CompletableFuture
 
 
 @Composable
@@ -136,33 +139,56 @@ fun ChatHeader(
                         }
                     }
 
-                    Column (
-                        modifier = modifier.clickable {
-                            onContactClick()
-                        }
-                    ){
-                        Text(
-                            textAlign = TextAlign.Center,
-                            text = name,
-                            fontSize = 18.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = Fonts.INTER,
-                        )
-
-                        if (ens.isNotEmpty()){
-                            val enss = getEnsAddresses(ens)
+                    if (ens.isNotEmpty()){
+                        Column (
+                            verticalArrangement = Arrangement.Center,
+                            modifier = modifier.clickable {
+                                onContactClick()
+                            }
+                        ){
                             Text(
                                 textAlign = TextAlign.Center,
-                                text = enss,
-                                fontSize = 14.sp,
-                                color = Colors.GRAY,
-                                fontWeight = FontWeight.Normal,
+                                text = name,
+                                fontSize = 18.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
                                 fontFamily = Fonts.INTER,
                             )
                         }
+                    }
+                    else
+                    {
+
+
+                            Column (
+                                modifier = modifier.clickable {
+                                    onContactClick()
+                                }
+                            ){
+                                Text(
+                                    textAlign = TextAlign.Center,
+                                    text = name,
+                                    fontSize = 18.sp,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontFamily = Fonts.INTER,
+                                )
+                                //val enss = getEnsAddresses(ens)
+                                Text(
+                                    textAlign = TextAlign.Center,
+                                    text = "",//enss,
+                                    fontSize = 14.sp,
+                                    color = Colors.GRAY,
+                                    fontWeight = FontWeight.Normal,
+                                    fontFamily = Fonts.INTER,
+                                )
+
+                            }
+
+
 
                     }
+
 
 
                 }

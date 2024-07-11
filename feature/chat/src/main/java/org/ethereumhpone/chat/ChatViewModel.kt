@@ -56,6 +56,7 @@ import org.ethereumphone.walletsdk.WalletSDK
 import org.kethereum.model.Address
 import org.kethereum.rpc.EthereumRPC
 import org.kethereum.rpc.HttpEthereumRPC
+//import org.kethereum.ens.ENS
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
 import java.math.BigDecimal
@@ -63,6 +64,7 @@ import java.math.BigInteger
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
+import java.util.concurrent.CompletableFuture
 import javax.inject.Inject
 
 
@@ -129,6 +131,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
 
+
+
     val currentChainId: StateFlow<Int> = flow {
         while (true) {
             val chainId = walletSDK.getChainId()
@@ -168,6 +172,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             initialValue = "",
             started = SharingStarted.WhileSubscribed(5_000)
         )
+
+
+
 
     fun callPhone() {
         recipientState.value?.contact?.numbers?.firstOrNull()?.let {
@@ -309,6 +316,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             initialValue = null,
             started = SharingStarted.WhileSubscribed(5_000)
         )
+
+
+
 
 
 

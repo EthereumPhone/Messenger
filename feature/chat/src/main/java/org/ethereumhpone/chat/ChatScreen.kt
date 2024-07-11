@@ -12,6 +12,8 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -75,10 +77,12 @@ import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.InsertPhoto
 import androidx.compose.material.icons.outlined.Mood
+import androidx.compose.material.icons.outlined.PermMedia
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Call
@@ -110,7 +114,6 @@ import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.MotionLayout
 import androidx.constraintlayout.compose.MotionScene
 import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
-import org.ethereumhpone.chat.components.ModalSelector
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -119,8 +122,13 @@ import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.components.ChatHeader
 import org.ethereumhpone.chat.components.Message.ComposablePosition
 import org.ethereumhpone.chat.components.ContactItem
+import org.ethereumhpone.chat.components.ContactSheet
+import org.ethereumhpone.chat.components.DetailSelector
 import org.ethereumhpone.chat.components.GallerySheet
+import org.ethereumhpone.chat.components.MediaSheet
+import org.ethereumhpone.chat.components.MembersSheet
 import org.ethereumhpone.chat.components.Message.TxMessage
+import org.ethereumhpone.chat.components.TXSheet
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.components.makePhoneCall
@@ -128,6 +136,7 @@ import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
 import org.ethosmobile.components.library.core.ethOSIconButton
+import java.util.Collections.list
 
 
 @Composable
@@ -144,6 +153,7 @@ fun ChatRoute(
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
     val selectedAttachments by chatViewModel.selectedAttachments.collectAsStateWithLifecycle()
     val focusedMessage by chatViewModel.focusedMessage.collectAsStateWithLifecycle()
+   // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
 
 
     ChatScreen(
@@ -155,14 +165,14 @@ fun ChatRoute(
         tokenBalance = tokenBalance,
         chainName = chainName,
         videoPlayer = videoPlayer,
+        focusedMessage = focusedMessage,
         onSendEthClicked = chatViewModel::sendEth,
         onAttachmentClicked = chatViewModel::toggleSelection,
         onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
-        focusedMessage = focusedMessage,
         onFocusedMessageUpdate = chatViewModel::updatefocusedMessage,
         onPhoneClicked = chatViewModel::callPhone,
-        onPlayVideo = mediaViewModel::playVideo
+        onPlayVideo = mediaViewModel::playVideo,
 
     )
 }
@@ -186,9 +196,9 @@ fun ChatScreen(
     focusedMessage: Message?,
     onFocusedMessageUpdate: (Message) -> Unit,
     onPhoneClicked: () -> Unit,
-    onPlayVideo: (Uri) -> Unit
+    onPlayVideo: (Uri) -> Unit,
 ){
-    Log.d("MY SWAG", recipient?.getDisplayName()?:"")
+
     
 
 
@@ -198,12 +208,12 @@ fun ChatScreen(
 
 
     //ModalSheets
-    var showAssetSheet by remember { mutableStateOf(false) }
+    var showModalSheet by remember { mutableStateOf(false) }
     val modalAssetSheetState = rememberModalBottomSheetState(true)
 
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
-    var currentModalSelector by rememberSaveable { mutableStateOf(ModalSelector.CONTACT) }
+    var currentModalSelector by rememberSaveable { mutableStateOf(DetailSelector.CONTACT) }
 
 
     val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
@@ -237,6 +247,9 @@ fun ChatScreen(
     val profileview = remember {
         mutableStateOf(false)
     }
+    val image = recipient?.contact?.photoUri ?: ""
+
+
     var detailview by remember {
         mutableStateOf(false)
     }
@@ -245,23 +258,6 @@ fun ChatScreen(
 
 
     val context = LocalContext.current
-    val motionScene = context.resources
-            .openRawResource(R.raw.motion_scene)
-            .readBytes()
-            .decodeToString()
-
-    val profileAnimationProgress by animateFloatAsState(
-
-        // specifying target value on below line.
-        targetValue = if (profileview.value) 1f else 0f,
-
-        // on below line we are specifying
-        // animation specific duration's 1 sec
-        animationSpec = tween(1000,)
-    )
-
-    val alpha0: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(500,500))
-
 
 
     Scaffold (
@@ -279,6 +275,44 @@ fun ChatScreen(
         Box(modifier = modifier
             .fillMaxSize()
             .padding(paddingValues)) {
+
+            AnimatedVisibility(
+                modifier = modifier.zIndex(10f),
+                visible = profileview.value,
+                enter = slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth }, // Start from right
+                        animationSpec = tween(300)
+                    )
+                ,
+                exit = slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> fullWidth }, // Exit to left
+                        animationSpec = tween(300)
+                    )
+            ) {
+                ContactDetailView(
+                    name = recipient?.getDisplayName() ?: "",
+                    image = recipient?.contact?.photoUri ?: "",
+                    ens = listOf(""),
+                    recipient = recipient,
+                    profileview = profileview,
+                    onMembersClick = {
+                        currentModalSelector = DetailSelector.MEMBERS
+                        showModalSheet = true
+                    },onMediaClick = {
+                        currentModalSelector = DetailSelector.MEDIA
+                        showModalSheet = true
+                    },
+                    onTxClick = {
+                        currentModalSelector = DetailSelector.TXS
+                        showModalSheet = true
+                    },
+                    onContactClick = {
+                        currentModalSelector = DetailSelector.CONTACT
+                        showModalSheet = true
+                    }
+                )
+            }
+
                 Box(modifier = modifier
                     .fillMaxSize()
                     .customBlur(if (focusMode.value) 100f else 0f)
@@ -315,9 +349,10 @@ fun ChatScreen(
                             onBackClick = navigateBackToConversations,
                             onPhoneClick = onPhoneClicked,
                             onContactClick = {
-                                currentModalSelector = ModalSelector.CONTACT
-                                showAssetSheet = true
-                            }
+                                //currentModalSelector = ModalSelector.CONTACT
+                                profileview.value = true
+                                //showAssetSheet = true
+                            },
                         )
 
 
@@ -635,57 +670,7 @@ fun ChatScreen(
                     }
 
                     //-----------------------
-                    //------------PROFILE VIEW START------------
 
-                    val alpha1: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,500))
-                    val alpha2: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1000))
-                    val alpha3: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1250))
-                    val alpha4: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1750))
-                    val alpha5: Float by animateFloatAsState(if (profileview.value) 1f else 0.0f, animationSpec = tween(1000,1750))
-
-
-                    Column (
-                        modifier = modifier
-                            .layoutId("profileactions")
-                            .fillMaxHeight()
-                            .padding(start = 24.dp, end = 24.dp, top = 48.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ){
-                        Row(
-                            modifier = Modifier.graphicsLayer(alpha = alpha1),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-
-                            Box(modifier = Modifier.graphicsLayer(alpha = alpha1)) {
-                                ethOSIconButton(
-                                    onClick = {
-                                        if (recipient?.contact?.numbers?.get(0)  != null) {
-                                            makePhoneCall(context, recipient.contact?.numbers?.get(0)!!.address)
-                                        }
-                                    },
-                                    icon = Icons.Outlined.Call,
-                                    contentDescription="Call"
-                                )
-                            }
-                            Box(modifier = Modifier.graphicsLayer(alpha = alpha2)) {
-                                ethOSIconButton(
-                                    onClick = { /*TODO*/ },
-                                    icon = Icons.Outlined.Contacts,
-                                    contentDescription="Contact"
-                                )
-                            }
-
-
-
-                        }
-                        Divider(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer(alpha = alpha3),
-                            color = Colors.DARK_GRAY
-                        )
-                    }
                     //------------PROFILE VIEW END------------
                 }
 
@@ -729,7 +714,7 @@ fun ChatScreen(
 
             //Asset ModalSheet
 
-            if(showAssetSheet){
+            if(showModalSheet){
                 ModalBottomSheet(
                     containerColor= Colors.BLACK,
                     contentColor= Colors.WHITE,
@@ -738,12 +723,28 @@ fun ChatScreen(
                         scope.launch {
                             modalAssetSheetState.hide()
                         }.invokeOnCompletion {
-                            if(!modalAssetSheetState.isVisible) showAssetSheet = false
+                            if(!modalAssetSheetState.isVisible) showModalSheet = false
                         }
                     },
                     sheetState = modalAssetSheetState
                 ) {
-                    AssetPickerSheet()
+                    when(currentModalSelector){
+                        DetailSelector.CONTACT -> {
+
+                            ContactSheet(
+                                name = recipient?.getDisplayName() ?: "",
+                                image = recipient?.contact?.photoUri ?: "",
+                                ens = listOf(""),
+                                recipient = recipient,
+                            )
+                        }
+
+                        DetailSelector.MEDIA -> MediaSheet()
+                        DetailSelector.MEMBERS -> MembersSheet()
+                        DetailSelector.TXS -> TXSheet()
+                        DetailSelector.ASSET -> AssetPickerSheet()
+                    }
+
                 }
             }
         }

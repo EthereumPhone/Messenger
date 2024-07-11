@@ -132,10 +132,7 @@ enum class InputSelector {
     PICTURE
 }
 
-enum class ModalSelector {
-    ASSETS,
-    CONTACT,
-}
+
 
 
 
