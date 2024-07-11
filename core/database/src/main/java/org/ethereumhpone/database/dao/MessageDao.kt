@@ -18,7 +18,7 @@ interface MessageDao {
     @Query("SELECT * FROM message WHERE threadId = :threadId AND " +
             "(body LIKE '%' || :query || '%' OR " +
             "EXISTS (SELECT 1 FROM mms_part WHERE messageId = message.id AND text LIKE '%' || :query || '%')) " +
-            "ORDER BY date")
+            "ORDER BY date DESC")
     fun getMessages(threadId: Long, query: String = ""): Flow<List<Message>>
 
     @Query("SELECT * FROM message where id == :id")

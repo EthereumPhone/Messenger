@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import org.ethereumhpone.chat.components.Message.ComposablePosition
+import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.Message
 import org.ethosmobile.components.library.theme.Colors

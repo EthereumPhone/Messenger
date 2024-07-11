@@ -37,7 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import org.ethereumhpone.chat.components.Message.ComposablePosition
+import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.FocusMessage
 import org.ethosmobile.components.library.core.ethOSButton
 

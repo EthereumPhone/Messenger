@@ -160,11 +160,7 @@ class ConversationRepositoryImpl @Inject constructor(
             return flowOf(null)
         }
 
-        Log.d("addresses 2", addresses[0])
-
         return getThreadId(addresses).flatMapLatest { id ->
-            //Log.d("holA HOLa", TelephonyCompat.getOrCreateThreadId(context, addresses).toString())
-
 
             (id ?: tryOrNull { TelephonyCompat.getOrCreateThreadId(context, addresses.toSet()) })
                 ?.takeIf { threadId -> threadId != 0L }

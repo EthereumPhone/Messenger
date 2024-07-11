@@ -3,15 +3,16 @@ package org.ethereumhpone.data.receiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.ethereumhpone.domain.repository.SyncRepository
 import javax.inject.Inject
 
-class DefaultSmsChangedReceiver @Inject constructor(
-    private val syncRepository: SyncRepository
-): HiltBroadcastReceiver() {
+@AndroidEntryPoint
+class DefaultSmsChangedReceiver: HiltBroadcastReceiver() {
+    @Inject lateinit var syncRepository: SyncRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)

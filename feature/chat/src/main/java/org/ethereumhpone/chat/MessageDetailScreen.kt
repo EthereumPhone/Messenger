@@ -11,7 +11,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.ethereumhpone.chat.components.Message.ComposablePosition
+import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.FocusMessage
 
 @Composable

@@ -4,7 +4,6 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -17,7 +16,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +27,6 @@ import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
@@ -72,7 +69,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.AssetPickerSheet
 import org.ethereumhpone.chat.components.InputSelector
-import org.ethereumhpone.chat.components.Message.Message
+import org.ethereumhpone.chat.components.message.MessageItem
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import androidx.compose.material.icons.Icons
@@ -85,40 +82,26 @@ import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material.icons.outlined.PermMedia
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.draw.alpha
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.zIndex
-import androidx.constraintlayout.compose.MotionLayout
-import androidx.constraintlayout.compose.MotionScene
 import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
-import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.components.ChatHeader
 import org.ethereumhpone.chat.components.Message.ComposablePosition
 import org.ethereumhpone.chat.components.ContactItem
@@ -362,7 +345,6 @@ fun ChatScreen(
                         )
 
                         when(messagesUiState) {
-
                             is MessagesUiState.Loading -> {
                                 Box(
                                     modifier = Modifier
@@ -396,7 +378,7 @@ fun ChatScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = 24.dp)
                                 ) {
-                                    items(items = messagesUiState.messages.sortedBy { it.date }.reversed(), key = { it.id }) { message ->
+                                    items(items = messagesUiState.messages, key = { it.id }) { message ->
 
                                         val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
                                         val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
@@ -414,7 +396,7 @@ fun ChatScreen(
                                                     isLastMessageByAuthor = isLastMessageByAuthor,
                                                     networkName = chainIdToReadableName(it.chainId),
                                                 )
-                                            } ?: Message(
+                                            } ?: MessageItem(
                                                 onAuthorClick = { },
                                                 msg = message,
                                                 isUserMe = message.isMe(),
@@ -427,7 +409,7 @@ fun ChatScreen(
                                                 },
                                             )
                                         } else {
-                                            Message(
+                                            MessageItem(
                                                 onAuthorClick = { },
                                                 msg = message,
                                                 isUserMe = message.isMe(),
