@@ -274,6 +274,7 @@ fun ChatScreen(
                     )
             ) {
                 ContactDetailView(
+                    messagesUiState = messagesUiState,
                     name = recipient?.getDisplayName() ?: "",
                     image = recipient?.contact?.photoUri ?: "",
                     ens = listOf(""),
@@ -371,6 +372,7 @@ fun ChatScreen(
                                     listState.animateScrollToItem(0)
                                 }
 
+                                val t = messagesUiState.messages
                                 LazyColumn(
                                     state = listState,
                                     reverseLayout = true,
@@ -380,6 +382,9 @@ fun ChatScreen(
                                         .padding(horizontal = 24.dp)
                                 ) {
                                     items(items = messagesUiState.messages, key = { it.id }) { message ->
+
+
+                                        Log.d("DEBUG", "${message.id} - ${message.body} - ${message.parts.toString()}")
 
                                         val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
                                         val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
@@ -410,6 +415,7 @@ fun ChatScreen(
                                                 },
                                             )
                                         } else {
+                                            //Log.d("MESSAGE",message.body)
                                             MessageItem(
                                                 onAuthorClick = { },
                                                 msg = message,
@@ -418,7 +424,6 @@ fun ChatScreen(
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
                                                 onLongClick = {
-                                                    Log.d("DEBUG Before", "${message.id} - ${message.body} - ${message}")
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
                                                 },
@@ -722,7 +727,7 @@ fun ChatScreen(
                             )
                         }
 
-                        DetailSelector.MEDIA -> MediaSheet()
+                        DetailSelector.MEDIA -> MediaSheet(messagesUiState)
                         DetailSelector.MEMBERS -> MembersSheet()
                         DetailSelector.TXS -> TXSheet()
                         DetailSelector.ASSET -> AssetPickerSheet()

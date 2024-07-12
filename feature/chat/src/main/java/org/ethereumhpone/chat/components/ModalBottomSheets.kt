@@ -16,13 +16,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,6 +38,7 @@ import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.LocalPhone
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.rounded.ArrowForwardIos
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,10 +63,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startActivity
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import org.ethereumhpone.chat.MessagesUiState
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.chat.components.message.parts.getVideoThumbnail
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.isSmil
+import org.ethereumhpone.database.model.isText
+import org.ethereumhpone.database.model.isVideo
 import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.haptics.EthOSHaptics
 import org.ethosmobile.components.library.theme.Colors
@@ -185,6 +197,7 @@ fun ContactSheet(
 
 @Composable
 fun MediaSheet(
+    messagesUiState: MessagesUiState,
     modifier: Modifier = Modifier,
 ){
     Column(
@@ -200,7 +213,7 @@ fun MediaSheet(
             .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
             horizontalArrangement = Arrangement.Center
         ) {
 
@@ -210,6 +223,61 @@ fun MediaSheet(
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold
             )
+        }
+        Box(
+            modifier = modifier.fillMaxSize(),
+
+        ){
+            when(messagesUiState){
+                is MessagesUiState.Loading -> {
+
+                }
+
+                is MessagesUiState.Success -> {
+                    val allmedia = messagesUiState.messages.filter { it.parts.isNotEmpty() }
+
+
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(2),
+                        verticalItemSpacing = 4.dp,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        content = {
+                            items(items = allmedia){
+                                val media = remember { it.parts.filter { !it.isText() && !it.isSmil() } }
+
+                                media.forEachIndexed { index, item ->
+                                    Box(Modifier.clip(RoundedCornerShape(15.dp))) {
+                                        AsyncImage(
+                                            model = if (item.isVideo()) item.getUri().getVideoThumbnail(LocalContext.current) else item.getUri(),
+                                            contentDescription = "",
+                                            contentScale = ContentScale.Crop,
+                                            placeholder = painterResource(id = R.drawable.ethos_placeholder),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp))
+                                        )
+
+                                        if(item.isVideo()) {
+                                            androidx.compose.material.Icon(
+                                                imageVector = Icons.Rounded.PlayArrow,
+                                                contentDescription = "",
+                                                tint = Color.White,
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomStart)
+                                                    .offset(10.dp, (-10).dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color.Black.copy(alpha = 0.5f))
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    )
+
+                }
+            }
         }
     }
 }
@@ -231,9 +299,8 @@ fun MembersSheet(
             .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
+            ) {
 
             Text(
                 text = "Members",
@@ -262,9 +329,9 @@ fun TXSheet(
             .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
+
+            ) {
 
             Text(
                 text = "Transactions",

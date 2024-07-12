@@ -58,6 +58,7 @@ import org.ethosmobile.components.library.theme.Fonts
 @Composable
 fun ContactDetailView(
     modifier: Modifier = Modifier,
+    messagesUiState: MessagesUiState,
     profileview: MutableState<Boolean>,
     name: String,
     ens: List<String>,
@@ -80,151 +81,160 @@ fun ContactDetailView(
     ) {
         //------------PROFILE VIEW START------------
 
-        Column (
-            modifier = modifier
-
-                .fillMaxHeight()
-                .padding(start = 24.dp, end = 24.dp, top = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            Row(
-                modifier = modifier
-                    .fillMaxWidth(),
-                //.padding(start = 24.dp, end = 24.dp, top = 12.dp),
-                horizontalArrangement = Arrangement.Start,
-            ) {
-
-
-                IconButton(
-                    onClick = { profileview.value = false },
-                    modifier = modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ArrowBackIosNew,
-                        contentDescription = "Go back",
-                        tint = Colors.WHITE,
-                        modifier = modifier.size(24.dp)
-                    )
-                }
+        when(messagesUiState){
+            MessagesUiState.Loading -> {
+                TODO()
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(
-                    modifier = Modifier
-                        .size(96.dp)
-                        .clip(CircleShape)
+            is MessagesUiState.Success -> {
+                Column (
+                        modifier = modifier
 
+                            .fillMaxHeight()
+                            .padding(start = 24.dp, end = 24.dp, top = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
                 ){
+                    Row(
+                        modifier = modifier
+                            .fillMaxWidth(),
+                        //.padding(start = 24.dp, end = 24.dp, top = 12.dp),
+                        horizontalArrangement = Arrangement.Start,
+                    ) {
 
-                    if (image != ""){
-                        Image(
-                            painter = rememberAsyncImagePainter(image),
-                            contentDescription = "Contact Profile Pic",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else{
-                        Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+
+                        IconButton(
+                            onClick = { profileview.value = false },
+                            modifier = modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowBackIosNew,
+                                contentDescription = "Go back",
+                                tint = Colors.WHITE,
+                                modifier = modifier.size(24.dp)
+                            )
+                        }
                     }
-                }
-                Text(
-                    textAlign = TextAlign.Center,
-                    text = name,
-                    fontSize = 24.sp,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = Fonts.INTER,
-                )
-            }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(96.dp)
+                                .clip(CircleShape)
 
+                        ){
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(
-                    modifier = Modifier.graphicsLayer(alpha = alpha1),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start,
-                ) {
-
-                    Box(modifier = Modifier
-                        .graphicsLayer(alpha = alpha1)
-                        .padding(end = 12.dp)) {
-                        ethOSIconButton(
-                            onClick = {
-                                if (recipient?.contact?.numbers?.get(0)  != null) {
-                                    makePhoneCall(context, recipient.contact?.numbers?.get(0)!!.address)
-                                }
-                            },
-                            icon = Icons.Outlined.Call,
-                            contentDescription="Call"
-                        )
-                    }
-                    Box(modifier = Modifier.graphicsLayer(alpha = alpha2)) {
-                        ethOSIconButton(
-                            onClick = onContactClick,
-                            icon = Icons.Outlined.Contacts,
-                            contentDescription="Contact"
+                            if (image != ""){
+                                Image(
+                                    painter = rememberAsyncImagePainter(image),
+                                    contentDescription = "Contact Profile Pic",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else{
+                                Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                            }
+                        }
+                        Text(
+                            textAlign = TextAlign.Center,
+                            text = name,
+                            fontSize = 24.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Fonts.INTER,
                         )
                     }
 
 
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.graphicsLayer(alpha = alpha1),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start,
+                        ) {
 
-                }
-                Divider(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer(alpha = alpha3),
-                    color = Colors.DARK_GRAY
-                )
-            }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            Box(modifier = Modifier
+                                .graphicsLayer(alpha = alpha1)
+                                .padding(end = 12.dp)) {
+                                ethOSIconButton(
+                                    onClick = {
+                                        if (recipient?.contact?.numbers?.get(0)  != null) {
+                                            makePhoneCall(context, recipient.contact?.numbers?.get(0)!!.address)
+                                        }
+                                    },
+                                    icon = Icons.Outlined.Call,
+                                    contentDescription="Call"
+                                )
+                            }
+                            Box(modifier = Modifier.graphicsLayer(alpha = alpha2)) {
+                                ethOSIconButton(
+                                    onClick = onContactClick,
+                                    icon = Icons.Outlined.Contacts,
+                                    contentDescription="Contact"
+                                )
+                            }
 
-                ) {
-                ProfileDetailItem(
-                    title = "Media",
-                    icon = Icons.Outlined.PermMedia,
-                    onClick = onMediaClick,
-                )
 
-                ProfileDetailItem(
-                    title = "Transaction",
-                    icon = Icons.Outlined.AttachMoney,
-                    onClick = onTxClick,
-                )
 
-                //TODO: Members
+                        }
+                        Divider(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer(alpha = alpha3),
+                            color = Colors.DARK_GRAY
+                        )
+                    }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+
+                        ) {
+                        ProfileDetailItem(
+                            title = "Media",
+                            icon = Icons.Outlined.PermMedia,
+                            onClick = onMediaClick,
+                            amount = messagesUiState.messages.filter { it.parts.isNotEmpty() }.size
+                        )
+
+                        ProfileDetailItem(
+                            title = "Transaction",
+                            icon = Icons.Outlined.AttachMoney,
+                            onClick = onTxClick,
+                        )
+
+                        //TODO: Members
 //                ProfileDetailItem(
 //                    title = "Members",
 //                    icon = Icons.Outlined.Person,
 //                    onClick = onMembersClick,
 //                )
-            }
+                    }
 
 
-            recipient?.contact?.numbers?.get(0).let {
-                if (it != null) {
-                    ContactItem(
-                        modifier = Modifier,//.graphicsLayer(alpha = alpha4),
-                        title= "Phone Number",
-                        detail= it.address
-                    )
+                    recipient?.contact?.numbers?.get(0).let {
+                        if (it != null) {
+                            ContactItem(
+                                modifier = Modifier,//.graphicsLayer(alpha = alpha4),
+                                title= "Phone Number",
+                                detail= it.address
+                            )
+                        }
+                    }
+
+                    recipient?.contact?.ethAddress.let {
+                        if (it != null && it.isNotBlank()) {
+                            ContactItem(
+                                modifier = Modifier,//.graphicsLayer(alpha = alpha5),
+                                title= "Ethereum Address",
+                                detail= it
+                            )
+                        }
+                    }
+
                 }
             }
-
-            recipient?.contact?.ethAddress.let {
-                if (it != null && it.isNotBlank()) {
-                    ContactItem(
-                        modifier = Modifier,//.graphicsLayer(alpha = alpha5),
-                        title= "Ethereum Address",
-                        detail= it
-                    )
-                }
-            }
-
         }
+
 
     }
 }
@@ -234,12 +244,16 @@ fun ProfileDetailItem(
     modifier: Modifier = Modifier,
     title: String,
     onClick: () -> Unit = {},
-    icon: ImageVector
+    icon: ImageVector,
+    amount: Int = 0
 ) {
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical=12.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 12.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -259,17 +273,31 @@ fun ProfileDetailItem(
             )
         }
 
-        IconButton(
-            onClick = onClick,
-            modifier = modifier.size(18.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Rounded.ArrowForwardIos,
-                contentDescription = "Go back",
-                tint = Colors.WHITE,
-                modifier = modifier.size(24.dp)
+            Text(
+                "$amount",
+                color = Colors.GRAY,
+                fontFamily = Fonts.INTER,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
             )
+            IconButton(
+                onClick = onClick,
+                modifier = modifier.size(18.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ArrowForwardIos,
+                    contentDescription = "Go back",
+                    tint = Colors.WHITE,
+                    modifier = modifier.size(24.dp)
+                )
+            }
         }
+
+
     }
 }
 
