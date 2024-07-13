@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
@@ -36,6 +38,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.LocalPhone
+import androidx.compose.material.icons.outlined.PermMedia
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.rounded.ArrowForwardIos
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -52,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -68,6 +72,8 @@ import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.MessagesUiState
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.message.parts.getVideoThumbnail
+import org.ethereumhpone.chat.extractTransactionDetails
+import org.ethereumhpone.chat.isValidTransactionMessage
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.database.model.isSmil
@@ -77,7 +83,10 @@ import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.haptics.EthOSHaptics
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
-
+import org.ethosmobile.components.library.walletmanager.ethOSTransferListItem
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 
 
 enum class DetailSelector {
@@ -213,7 +222,9 @@ fun MediaSheet(
             .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 32.dp),
             horizontalArrangement = Arrangement.Center
         ) {
 
@@ -226,55 +237,82 @@ fun MediaSheet(
         }
         Box(
             modifier = modifier.fillMaxSize(),
-
+            contentAlignment = Alignment.Center
         ){
             when(messagesUiState){
                 is MessagesUiState.Loading -> {
-
+                    Text(text = "Loading", color = Colors.WHITE)
                 }
 
                 is MessagesUiState.Success -> {
                     val allmedia = messagesUiState.messages.filter { it.parts.isNotEmpty() }
 
+                    if (allmedia.isEmpty()){
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Image(
+                                modifier = Modifier.size(82.dp),
+                                contentScale = ContentScale.Fit,
+                                imageVector = Icons.Outlined.PermMedia, //painterResource(id = R.drawable.no_transfer),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(Colors.GRAY)
+                            )
+                            Text(text = "No Media", color = Colors.GRAY, fontSize = 24.sp, fontWeight = FontWeight.Medium)
 
-                    LazyVerticalStaggeredGrid(
-                        columns = StaggeredGridCells.Fixed(2),
-                        verticalItemSpacing = 4.dp,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        content = {
-                            items(items = allmedia){
-                                val media = remember { it.parts.filter { !it.isText() && !it.isSmil() } }
+                        }
+                    }else{
+                        LazyVerticalStaggeredGrid(
+                            modifier = modifier.fillMaxSize(),
+                            columns = StaggeredGridCells.Fixed(2),
+                            verticalItemSpacing = 4.dp,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            content = {
+                                items(items = allmedia){
+                                    val media = remember { it.parts.filter { !it.isText() && !it.isSmil() } }
 
-                                media.forEachIndexed { index, item ->
-                                    Box(Modifier.clip(RoundedCornerShape(15.dp))) {
-                                        AsyncImage(
-                                            model = if (item.isVideo()) item.getUri().getVideoThumbnail(LocalContext.current) else item.getUri(),
-                                            contentDescription = "",
-                                            contentScale = ContentScale.Crop,
-                                            placeholder = painterResource(id = R.drawable.ethos_placeholder),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .aspectRatio(1f)
-                                                .clip(RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp))
-                                        )
-
-                                        if(item.isVideo()) {
-                                            androidx.compose.material.Icon(
-                                                imageVector = Icons.Rounded.PlayArrow,
+                                    media.forEachIndexed { index, item ->
+                                        Box(Modifier.clip(RoundedCornerShape(15.dp))) {
+                                            AsyncImage(
+                                                model = if (item.isVideo()) item.getUri().getVideoThumbnail(LocalContext.current) else item.getUri(),
                                                 contentDescription = "",
-                                                tint = Color.White,
+                                                contentScale = ContentScale.Crop,
+                                                placeholder = painterResource(id = R.drawable.ethos_placeholder),
                                                 modifier = Modifier
-                                                    .align(Alignment.BottomStart)
-                                                    .offset(10.dp, (-10).dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color.Black.copy(alpha = 0.5f))
+                                                    .fillMaxWidth()
+                                                    .aspectRatio(1f)
+                                                    .clip(
+                                                        RoundedCornerShape(
+                                                            32.dp,
+                                                            32.dp,
+                                                            32.dp,
+                                                            32.dp
+                                                        )
+                                                    )
                                             )
+
+                                            if(item.isVideo()) {
+                                                androidx.compose.material.Icon(
+                                                    imageVector = Icons.Rounded.PlayArrow,
+                                                    contentDescription = "",
+                                                    tint = Color.White,
+                                                    modifier = Modifier
+                                                        .align(Alignment.BottomStart)
+                                                        .offset(10.dp, (-10).dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color.Black.copy(alpha = 0.5f))
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
+
+
+
 
                 }
             }
@@ -299,7 +337,9 @@ fun MembersSheet(
             .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 32.dp),
             ) {
 
             Text(
@@ -314,8 +354,10 @@ fun MembersSheet(
 
 @Composable
 fun TXSheet(
+    messagesUiState: MessagesUiState,
     modifier: Modifier = Modifier,
 ){
+    val context = LocalContext.current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -329,16 +371,77 @@ fun TXSheet(
             .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
-
-            ) {
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 32.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
 
             Text(
-                text = "Transactions",
+                text = "Transaction",
                 fontSize = 24.sp,
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold
             )
+        }
+        Box(
+            modifier = modifier.fillMaxSize(),
+    contentAlignment = Alignment.Center
+            ) {
+            when (messagesUiState) {
+                MessagesUiState.Loading -> TODO()
+                is MessagesUiState.Success -> {
+                    val alltxs = messagesUiState.messages.filter { isValidTransactionMessage(it.body) }
+
+                    if(alltxs.isEmpty() ){
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Image(
+                                modifier = Modifier.size(82.dp),
+                                contentScale = ContentScale.Fit,
+                                painter = painterResource(id = R.drawable.no_transfer),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(Colors.GRAY)
+                            )
+                            Text(text = "No transfers", color = Colors.GRAY, fontSize = 24.sp, fontWeight = FontWeight.Medium)
+
+                        }
+                    }else{
+                        LazyColumn(
+                            modifier = modifier.fillMaxSize()
+                        ) {
+                            items(items = alltxs, key = { it.id }) { message ->
+                                val transactionDetails = extractTransactionDetails(message.body)
+                                val formatedDate = printFormattedDateInfo(Date(message.date))
+
+                                transactionDetails?.let {
+                                    if (formatedDate != null) {
+                                        ethOSTransferListItem(
+                                            asset = "ETH",
+                                            value = "${it.amount.toDouble()}",
+                                            timeStamp =  formatedDate,
+                                            userSent = message.isMe(),
+                                            onCardClick = {
+                                                //Go to link
+                                                // Open link in browser
+                                                val intent = Intent(Intent.ACTION_VIEW)
+                                                intent.data = Uri.parse(it.url)
+                                                startActivity(context, intent, null)
+                                            }
+                                        )
+                                    }
+                                }
+
+
+                            }
+
+                        }
+                    }
+
+                }
+            }
         }
     }
 }
@@ -654,6 +757,96 @@ fun ContactItem(modifier: Modifier=Modifier,title: String, detail: String){//, v
 }
 
 
+fun printFormattedDateInfo(date: Date?): String? {
+
+
+    val formattedDate = date?.let { formatDate(it) }
+
+    val calendar = Calendar.getInstance()
+    if (date != null) {
+        calendar.time = date
+    }
+
+    val currentCalendar = Calendar.getInstance()
+
+    when {
+        date?.let { isWithinLast7Days(it) } == true -> {
+            val weekday = getWeekday(date)
+            if (isSameDay(calendar, currentCalendar)){
+                return formattedDate
+            }
+
+            return weekday
+        }
+        date?.let { isBeforeLast7Days(it) } == true -> {
+            println("The date $formattedDate is before the last 7 days.")
+            return formattedDate
+        }
+        else -> {
+            println("The date $formattedDate is not within the last 7 days and not before the last 7 days (i.e., it's in the future).")
+            return formattedDate
+        }
+    }
+}
+
+fun formatDate(date: Date): String {
+    val calendar = Calendar.getInstance()
+    calendar.time = date
+
+    val currentCalendar = Calendar.getInstance()
+
+    return when {
+        isSameDay(calendar, currentCalendar) -> {
+            SimpleDateFormat("HH:mm").format(date)
+        }
+        calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) -> {
+            SimpleDateFormat("MM.dd").format(date)
+        }
+        else -> {
+            SimpleDateFormat("yyyy.MM.dd").format(date)
+        }
+    }
+}
+
+fun isSameDay(calendar1: Calendar, calendar2: Calendar): Boolean {
+    return calendar1.get(Calendar.YEAR) == calendar2.get(Calendar.YEAR) &&
+            calendar1.get(Calendar.DAY_OF_YEAR) == calendar2.get(Calendar.DAY_OF_YEAR)
+}
+
+fun isWithinLast7Days(date: Date): Boolean {
+    val currentDate = Date()
+    val sevenDaysAgo = Calendar.getInstance().apply {
+        time = currentDate
+        add(Calendar.DAY_OF_YEAR, -7)
+    }.time
+
+    return !date.before(sevenDaysAgo) && !date.after(currentDate)
+}
+
+fun isBeforeLast7Days(date: Date): Boolean {
+    val sevenDaysAgo = Calendar.getInstance().apply {
+        time = Date()
+        add(Calendar.DAY_OF_YEAR, -7)
+    }.time
+
+    return date.before(sevenDaysAgo)
+}
+
+fun getWeekday(date: Date): String {
+    val calendar = Calendar.getInstance()
+    calendar.time = date
+
+    return when (calendar.get(Calendar.DAY_OF_WEEK)) {
+        Calendar.SUNDAY -> "Sunday"
+        Calendar.MONDAY -> "Monday"
+        Calendar.TUESDAY -> "Tuesday"
+        Calendar.WEDNESDAY -> "Wednesday"
+        Calendar.THURSDAY -> "Thursday"
+        Calendar.FRIDAY -> "Friday"
+        Calendar.SATURDAY -> "Saturday"
+        else -> "Unknown"
+    }
+}
 
 @Composable
 @Preview

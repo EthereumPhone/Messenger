@@ -200,6 +200,7 @@ fun ContactDetailView(
                             title = "Transaction",
                             icon = Icons.Outlined.AttachMoney,
                             onClick = onTxClick,
+                            amount = messagesUiState.messages.filter { isValidTransactionMessage(it.body) }.size
                         )
 
                         //TODO: Members

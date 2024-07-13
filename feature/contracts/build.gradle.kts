@@ -90,7 +90,7 @@ dependencies {
 
 
     implementation(libs.coil.compose.v210)
-    implementation("com.github.EthereumPhone:ethOS-Component-Library:1a10060494")
+    implementation("com.github.EthereumPhone:ethOS-Component-Library:27d4348853")
 
     implementation(libs.androidx.navigation.common.ktx)
     implementation(libs.androidx.navigation.runtime.ktx)

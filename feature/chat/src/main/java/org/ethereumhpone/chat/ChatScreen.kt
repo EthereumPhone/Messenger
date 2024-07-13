@@ -372,7 +372,6 @@ fun ChatScreen(
                                     listState.animateScrollToItem(0)
                                 }
 
-                                val t = messagesUiState.messages
                                 LazyColumn(
                                     state = listState,
                                     reverseLayout = true,
@@ -729,7 +728,7 @@ fun ChatScreen(
 
                         DetailSelector.MEDIA -> MediaSheet(messagesUiState)
                         DetailSelector.MEMBERS -> MembersSheet()
-                        DetailSelector.TXS -> TXSheet()
+                        DetailSelector.TXS -> TXSheet(messagesUiState)
                         DetailSelector.ASSET -> AssetPickerSheet()
                     }
 
@@ -756,7 +755,7 @@ fun isValidTransactionMessage(message: String): Boolean {
 
 data class TransactionDetails(val amount: String, val url: String, val chainId: Int)
 
-fun extractTransactionDetails(message: String): TransactionDetails? {
+fun  extractTransactionDetails(message: String): TransactionDetails? {
     val regex = """^Sent (\d+(\.\d+)?) ETH: (https://[a-zA-Z0-9.-]+/tx/0x[a-fA-F0-9]{64})$""".toRegex()
     val matchResult = regex.find(message) ?: return null
 
