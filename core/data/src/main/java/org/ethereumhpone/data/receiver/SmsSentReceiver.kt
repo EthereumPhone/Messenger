@@ -21,17 +21,24 @@ class SmsSentReceiver : HiltBroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         val id = intent.getLongExtra("id", 0L)
-        val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            when (resultCode) {
-                Activity.RESULT_OK -> {
-                    messageRepositoryImpl.markSent(id)
+            try {
+                when (resultCode) {
+                    Activity.RESULT_OK -> {
+
+                        val pendingResult = goAsync()
+                        messageRepositoryImpl.markSent(id)
+                        pendingResult.finish()
+                    }
+                    else -> {
+                        val pendingResult = goAsync()
+                        messageRepositoryImpl.markFailed(id, resultCode)
+                        pendingResult.finish()
+                    }
                 }
-                else -> {
-                    messageRepositoryImpl.markFailed(id, resultCode)
-                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            pendingResult.finish()
         }
     }
 }
