@@ -71,11 +71,15 @@ class MmsSentReceiver : HiltBroadcastReceiver() {
         }
 
         Uri.parse(intent.getStringExtra("content_uri"))?.let { contentUri ->
-            goAsync()
+            val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                val message = syncRepository.syncMessage(contentUri)
-                message?.let {
-                    conversationRepository.updateConversations(message.threadId)
+                try {
+                    val message = syncRepository.syncMessage(contentUri)
+                    message?.let {
+                        conversationRepository.updateConversations(message.threadId)
+                    }
+                } finally {
+                    pendingResult.finish()
                 }
             }
         }
