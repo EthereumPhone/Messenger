@@ -2,11 +2,16 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
     namespace = "org.ethereumhpone.common"
     compileSdk = 34
+
+
+
 
     defaultConfig {
         minSdk = 34
@@ -31,6 +36,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    configurations {
+        all { // You should exclude one of them not both of them
+            //exclude(group = "com.android.support", module = "support-compat")
+        }
+    }
 }
 
 dependencies {
@@ -43,7 +54,28 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
 
     implementation("com.jakewharton.timber:timber:4.7.1")
-    implementation(libs.coil)
-    implementation(libs.coil.gif)
+
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+
+
+
+
+
+
+    implementation("com.github.bumptech.glide:glide:4.9.0") {
+        exclude(group = "com.android.support", module = "support-compat")
+    }
+    implementation("com.github.bumptech.glide:gifencoder-integration:4.9.0") {
+        exclude(group = "com.android.support", module = "support-compat")
+    }
+    
+
+
+    kapt("com.github.bumptech.glide:compiler:4.9.0")
+
+
+
+
 
 }
