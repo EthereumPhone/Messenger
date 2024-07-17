@@ -166,33 +166,31 @@ class SyncRepositoryImpl @Inject constructor(
 
         val id = tryOrNull { ContentUris.parseId(uri) } ?: return null
 
-        val existingId = messageDao.getMessageId(id, type)
+        val existingId = messageDao.getMessageId(id, type).first()
 
         val stableUri = when (type) {
             "mms" -> ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, id)
             else -> ContentUris.withAppendedId(Telephony.Sms.CONTENT_URI, id)
         }
 
-        return contentResolver.query(
-            stableUri, null, null, null, null
-        )?.use { cursor ->
 
-            if(!cursor.moveToFirst()) return null
+        return contentResolver.query(stableUri, null, null, null, null)?.use { cursor ->
+
+            // If there are no rows, return null. Otherwise, we've moved to the first row
+            if (!cursor.moveToFirst()) return null
 
             val columnsMap = MessageCursor.MessageColumns(cursor)
-            messageCursor.map(Pair(cursor, columnsMap)).apply {
 
-                conversationRepository.getOrCreateConversation(threadId)
-                messageDao.upsertMessage(
-                    this.copy(
-                        id = existingId.first() ?: this.id,
-                        parts = if(isSms()) {
-                            partCursor.getPartsCursor(contentId)?.map {
-                                partCursor.map(it)
-                            }.orEmpty()
-                        } else this.parts
-                    )
+            messageCursor.map(Pair(cursor, columnsMap)).apply {
+                val message = this.copy(
+                    id = existingId ?: this.id,
+                    parts = if (isMms()) {
+                        partCursor.getPartsCursor(contentId)?.map { partCursor.map(it) }.orEmpty()
+                    } else { this.parts }
                 )
+
+                messageDao.upsertMessage(message)
+                conversationRepository.getOrCreateConversation(threadId)
             }
         }
     }

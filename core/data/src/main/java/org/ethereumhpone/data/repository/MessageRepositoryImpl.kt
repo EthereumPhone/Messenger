@@ -225,7 +225,7 @@ class MessageRepositoryImpl @Inject constructor(
 
             val messageParts = smsManager.divideMessage(strippedBody).orEmpty()
             val forceMms = prefs.longAsMms && messageParts.size > 1
-            if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // S
+            if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // SMS
                 try {
                     val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
                     sendSms(message)
@@ -263,7 +263,10 @@ class MessageRepositoryImpl @Inject constructor(
                     .mapNotNull { attachment -> attachment as? Attachment.Image }
                     .associateWith { attachment ->
                         val uri = attachment.getUri() ?: return@associateWith byteArrayOf()
-                        ImageUtils.getScaledDrawable(context, uri, maxWidth, maxHeight)
+                        when (attachment.isGif(context)) {
+                            true -> ImageUtils.getScaledGif(context, uri, maxWidth, maxHeight)
+                            false -> ImageUtils.getScaledImage(context, uri, maxWidth, maxHeight)
+                        }
                     }
                     .toMutableMap()
 
@@ -304,8 +307,14 @@ class MessageRepositoryImpl @Inject constructor(
                             val newHeight = (newWidth / aspectRatio).toInt()
 
                             attempts++
-                            scaledBytes = ImageUtils.getScaledDrawable(context, uri, newWidth, newHeight, 80)
+                            scaledBytes = when (attachment.isGif(context)) {
+                                true -> ImageUtils.getScaledGif(context, uri, newWidth, newHeight, 80)
+                                false -> ImageUtils.getScaledImage(context, uri, newWidth, newHeight, 80)
+                            }
+
+                            Timber.d("Compression attempt $attempts: ${scaledBytes.size / 1024}/${maxBytes.toInt() / 1024}Kb ($width*$height -> $newWidth*$newHeight)")
                         }
+
                         imageBytesByAttachment[attachment] = scaledBytes
                     }
                 }
@@ -363,9 +372,12 @@ class MessageRepositoryImpl @Inject constructor(
     override suspend fun resendMms(message: Message) {
         val subId = message.subId
         val threadId = message.threadId
-        val pdu = tryOrNull {
+        val pdu = try {
             PduPersister.getPduPersister(context).load(message.getUri()) as MultimediaMessagePdu
-        } ?: return
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return
+        }
 
         val addresses = pdu.to.map { it.string }.filter { it.isNotBlank() }
         val parts = message.parts.mapNotNull { part ->
@@ -386,7 +398,6 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         date: Long
     ): Message {
-        println("ETHOSDEBUG: insertSentSms $body")
         val message = Message(
             threadId = threadId,
             address = address,
