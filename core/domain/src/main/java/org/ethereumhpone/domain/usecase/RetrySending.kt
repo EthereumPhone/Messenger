@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import org.ethereumhpone.domain.repository.MessageRepository
 import javax.inject.Inject
 
-class retrySending @Inject constructor(
+class RetrySending @Inject constructor(
     private val messageRepository: MessageRepository
 ) {
 

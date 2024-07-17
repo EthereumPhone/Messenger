@@ -1,16 +1,15 @@
 package org.ethereumhpone.data.receiver
 
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.ethereumhpone.domain.usecase.retrySending
+import org.ethereumhpone.domain.usecase.RetrySending
 import javax.inject.Inject
 
 class SendSmsReceiver @Inject constructor(
-    private val retrySending: retrySending
+    private val retrySending: RetrySending
 ): HiltBroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
@@ -18,8 +17,13 @@ class SendSmsReceiver @Inject constructor(
 
         val result = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            retrySending(messageId)
-            result.finish()
+            try {
+                retrySending(messageId)
+            } catch(e: Exception) {
+                e.printStackTrace()
+            } finally {
+                result.finish()
+            }
         }
     }
 }

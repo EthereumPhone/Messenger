@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat.components.message
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -169,9 +170,6 @@ fun MessageItem(
             }
 
             //TODO: handle vCard parts
-
-
-
 
             ChatItemBubble(
                 message = msg,
@@ -452,7 +450,7 @@ fun ChatItemBubble(
                         .filter { part -> part.isText() }
                         .mapNotNull { part -> part.text }
                         .filter { text -> text.isNotBlank() }
-                        .joinToString { "\n" }
+                        .joinToString("\n")
                 }
             }
 

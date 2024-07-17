@@ -314,7 +314,6 @@ class MessageRepositoryImpl @Inject constructor(
 
                             Timber.d("Compression attempt $attempts: ${scaledBytes.size / 1024}/${maxBytes.toInt() / 1024}Kb ($width*$height -> $newWidth*$newHeight)")
                         }
-                        Timber.v("Compressed ${originalBytes.size / 1024}Kb to ${scaledBytes.size / 1024}Kb with a target size of ${maxBytes.toInt() / 1024}Kb in $attempts attempts")
 
                         imageBytesByAttachment[attachment] = scaledBytes
                     }
@@ -373,9 +372,12 @@ class MessageRepositoryImpl @Inject constructor(
     override suspend fun resendMms(message: Message) {
         val subId = message.subId
         val threadId = message.threadId
-        val pdu = tryOrNull {
+        val pdu = try {
             PduPersister.getPduPersister(context).load(message.getUri()) as MultimediaMessagePdu
-        } ?: return
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return
+        }
 
         val addresses = pdu.to.map { it.string }.filter { it.isNotBlank() }
         val parts = message.parts.mapNotNull { part ->
@@ -396,7 +398,6 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         date: Long
     ): Message {
-        println("ETHOSDEBUG: insertSentSms $body")
         val message = Message(
             threadId = threadId,
             address = address,
