@@ -283,7 +283,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         137 -> "polygon-mainnet"
         8453 -> "base-mainnet"
         5 -> "eth-goerli"
-        else -> ""
+        else -> "eth-mainnet"
     }
 
     fun chainIdToReadableName(chainId: Int): String = when(chainId) {
@@ -294,7 +294,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         137 -> "Polygon Mainnet"
         8453 -> "Base Mainnet"
         5 -> "Ethereum Goerli"
-        else -> ""
+        else -> "Ethereum Mainnet"
     }
 
     fun chainIdToRPC(chainId: Int): String {
