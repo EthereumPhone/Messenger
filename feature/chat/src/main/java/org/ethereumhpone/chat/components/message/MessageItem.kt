@@ -205,54 +205,47 @@ fun MessageItem(
 
 //TIMESTAMP
 @Composable
-private fun AuthorNameTimestamp(
-    msg: Message,
+fun AuthorNameTimestamp(
+    message: Message,
     isUserMe: Boolean,
     modifier: Modifier = Modifier,
 ) {
 
     //Date formating
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val time = sdf.format(Date(msg.date))
-
-    val mod = when(isUserMe){
-        true -> Modifier.background(Color.Red).padding(end = 16.dp, start = 24.dp).semantics(mergeDescendants = true) {}
-        false -> Modifier.background(Color.Green).padding(end = 24.dp).semantics(mergeDescendants = true) {}
-    }
+    val time = sdf.format(Date(message.date))
 
     // Combine author and timestamp for a11y.
     Row(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.background(Color.Red)
+        modifier = modifier.padding(end = 18.dp, bottom = 8.dp).semantics(mergeDescendants = true) {}
     ) {
 
         Text(
             text = "$time",
             fontSize = 12.sp,
             fontFamily = Fonts.INTER,
-            modifier = Modifier.alignBy(LastBaseline),//.padding(start = 32.dp),
+            modifier = Modifier.alignBy(LastBaseline).alpha(0.5f),//.padding(start = 32.dp),
             color = Colors.WHITE,
-
-
-            )
+        )
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        if(isUserMe){
-            if(msg.read){
+        if (isUserMe) {
+            if (message.read) {
                 Icon(
-                    painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
+                    painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
-                    tint =  Colors.WHITE,
-                    modifier = Modifier.size(16.dp)
+                    tint = Colors.WHITE,
+                    modifier = Modifier.size(16.dp).alpha(0.5f)
                 )
-            }else{
+            } else {
                 Icon(
                     painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
-                    tint =  Colors.WHITE,
-                    modifier = Modifier.size(16.dp)
+                    tint = Colors.WHITE,
+                    modifier = Modifier.size(16.dp).alpha(0.5f)
                 )
             }
         }
@@ -260,14 +253,12 @@ private fun AuthorNameTimestamp(
     }
 }
 
-private val ChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
-private val UserChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
+ val ChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
+ val UserChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
 
-private val LastChatBubbleShape = RoundedCornerShape(20.dp, 32.dp, 32.dp, 4.dp)
-private val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.dp)
-
-
-private val TxChatBubbleShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 20.dp)
+ val LastChatBubbleShape = RoundedCornerShape(20.dp, 32.dp, 32.dp, 4.dp)
+ val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.dp)
+ val TxChatBubbleShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 20.dp)
 
 
 @Composable
@@ -456,12 +447,6 @@ fun ChatItemBubble(
         }
     }
 
-    val context = LocalContext.current
-
-
-    var row1Size by remember { mutableStateOf(IntSize.Zero) }
-    var row2Size by remember { mutableStateOf(IntSize.Zero) }
-
     Column(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier.fillMaxWidth()
@@ -543,32 +528,10 @@ fun ClickableMessage(
 
 ) {
 
-    var row1Size by remember { mutableStateOf(IntSize.Zero) }
-    var row2Size by remember { mutableStateOf(IntSize.Zero) }
-
-
-    val messageModifier = when(isUserMe){
-        true -> {
-            if (isLastMessageByAuthor){
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
-            }else {
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
-            }
-
-        }
-        false -> Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
-    }
 
     val timeModifier = Modifier.padding(end = 64.dp)
+    val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
-
-
-//        Box(
-//            modifier = Modifier.padding(16.dp),
-//        ){
-            val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
-
-            val context = LocalContext.current
             //SelectionContainer {
             BasicText(
                 text = styledMessage,
@@ -591,59 +554,21 @@ fun ClickableMessage(
 
                         )
                     }
-                    .onGloballyPositioned { coordinates ->
-                        row1Size = coordinates.size
-                    }.then(timeModifier)
+//                    .onGloballyPositioned { coordinates ->
+//                        row1Size = coordinates.size
+//                    }
+                    .then(timeModifier)
                 ,
                 onTextLayout = {
                     layoutResult.value = it
                     onTextLayout(it)
                 }
             )
-    
 
-    //Date formating
-    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val time = sdf.format(Date(message.date))
+    AuthorNameTimestamp(message,isUserMe)
 
-    // Combine author and timestamp for a11y.
-    Row(
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(end = 18.dp, bottom = 8.dp).semantics(mergeDescendants = true) {}.onGloballyPositioned { coordinates ->
-            row2Size = coordinates.size
-        }
-    ) {
 
-        Text(
-            text = "$time",
-            fontSize = 12.sp,
-            fontFamily = Fonts.INTER,
-            modifier = Modifier.alignBy(LastBaseline).alpha(0.5f),//.padding(start = 32.dp),
-            color = Colors.WHITE,
-        )
 
-        Spacer(modifier = Modifier.width(8.dp))
-
-        if (isUserMe) {
-            if (message.read) {
-                Icon(
-                    painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
-                    contentDescription = "Go back",
-                    tint = Colors.WHITE,
-                    modifier = Modifier.size(16.dp).alpha(0.5f)
-                )
-            } else {
-                Icon(
-                    painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
-                    contentDescription = "Go back",
-                    tint = Colors.WHITE,
-                    modifier = Modifier.size(16.dp).alpha(0.5f)
-                )
-            }
-        }
-
-    }
 }
 @Preview
 @Composable

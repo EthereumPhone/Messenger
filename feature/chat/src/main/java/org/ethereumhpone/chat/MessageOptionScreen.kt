@@ -91,7 +91,7 @@ fun MessageOptionsScreen(
                animationSpec = tween(300),
            ),
            exit = fadeOut(
-               animationSpec = tween(500,),
+               animationSpec = tween(500),
            ),
        ){
            DeleteMessage(
