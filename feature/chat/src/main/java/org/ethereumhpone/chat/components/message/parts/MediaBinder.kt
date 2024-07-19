@@ -78,12 +78,16 @@ fun MediaBinder(
 
     // grouping logic
     if (media.size <= 3) {
-        MediaListContainer(media) { offset = it }
+        MediaListContainer(media) {
+            offset = it
+            showExpandedMedia = true
+        }
     } else {
-        MediaGridContainer(media) { offset = it }
+        MediaGridContainer(media) {
+            offset = it
+            showExpandedMedia = true
+        }
     }
-
-
 
     // image clicked
     if (showExpandedMedia) {
