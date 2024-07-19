@@ -130,7 +130,7 @@ data class Message(
     }
 
     fun isDelivered(): Boolean {
-        val isDeliveredMms = false // TODO
+        val isDeliveredMms = boxId == Telephony.Mms.MESSAGE_BOX_SENT
         val isDeliveredSms = deliveryStatus == Telephony.Sms.STATUS_COMPLETE
         return isDeliveredMms || isDeliveredSms
     }
