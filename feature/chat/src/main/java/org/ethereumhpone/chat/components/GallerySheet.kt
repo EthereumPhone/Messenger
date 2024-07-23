@@ -67,7 +67,7 @@ fun GallerySheet(
 
     val pickMedia = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()) {
-        onItemClicked(Attachment.Image(uri = it!!))
+        it?.let { onItemClicked(Attachment.Image(uri = it)) }
     }
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
