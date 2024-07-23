@@ -132,7 +132,7 @@ fun MessageItem(
     isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
     player: Player? = null,
-    onPlayVideo: (Uri) -> Unit,
+    onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {}
 ) {
 
@@ -170,9 +170,7 @@ fun MessageItem(
 
 
             // Handle media parts
-            MediaBinder(videoPlayer = player, message = msg) {
-                
-            }
+            MediaBinder(videoPlayer = player, message = msg) { onPrepareVideo(it) }
 
             // vCard handling
             VCardBinder(message = msg)
