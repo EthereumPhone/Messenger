@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
+import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
@@ -72,7 +73,7 @@ import javax.inject.Inject
 class ChatViewModel @SuppressLint("StaticFieldLeak")
 @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    conversationRepository: ConversationRepository,
+    private val conversationRepository: ConversationRepository,
     mediaRepository: MediaRepository,
     private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
@@ -324,7 +325,12 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
 
     fun sendMessage(messageBody: String) {
-        //if(!permissionManager.isDefaultSms()) return
+
+
+        if(!permissionManager.isDefaultSms()) {
+            // TODO: add request permission
+            return
+        }
         if(!permissionManager.hasSendSms()) {
             //TODO: add request permission
             return
@@ -332,24 +338,17 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
         val subId = -1 //TODO: Add sunscroptionId logic
 
-
-        // this sends a message for an existing conversation
         conversationState.value?.let { convo ->
-            // send message to convo with only one recipient
-            if(convo.recipients.size == 1) {
-                val address = convo.recipients.map { it.address }
 
-                viewModelScope.launch {
-                    sendMessageUseCase(subId, convo.id, address, messageBody, _selectedAttachments.value.toList())
-                }
+            val addresses = convo.recipients.map { it.address }
+
+            viewModelScope.launch {
+                sendMessageUseCase(subId, convo.id, addresses, messageBody, _selectedAttachments.value.toList())
+
+                // remove attached items
+                _selectedAttachments.value = emptySet()
             }
         }
-
-        //TODO: Create a new conversation with one address
-
-
-        // remove attached items
-        _selectedAttachments.value = emptySet()
     }
 
     fun toggleSelection(attachment: Attachment) {
