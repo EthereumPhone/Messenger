@@ -91,7 +91,7 @@ fun GallerySheet(
                         contentColor=Colors.WHITE,
                     ),
                     shape = RoundedCornerShape(25),
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     }) {
