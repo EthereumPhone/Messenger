@@ -251,7 +251,7 @@ private fun SearchTextField(
                 if (textFieldValue.text.isEmpty() && !focusState) {
                     Text(
                         modifier = Modifier,
-                        text = "Enter phone number or contact name",
+                        text = "Enter address or name",
                         textAlign = TextAlign.Start,
                         fontWeight = FontWeight.Medium,
                         fontFamily = Fonts.INTER,
