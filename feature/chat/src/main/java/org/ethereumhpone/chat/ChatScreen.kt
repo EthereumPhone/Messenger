@@ -402,7 +402,7 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
-                                                onPlayVideo = { onPlayVideo(it) },
+                                                onPrepareVideo = { onPlayVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
@@ -417,7 +417,7 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
-                                                onPlayVideo = { onPlayVideo(it) },
+                                                onPrepareVideo = { onPlayVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
