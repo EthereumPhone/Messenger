@@ -126,6 +126,7 @@ fun ChatHeader(
                             .size(42.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF262626))
+                            .clickable { onContactClick() }
                     ){
                         if (image != ""){
                             Image(
