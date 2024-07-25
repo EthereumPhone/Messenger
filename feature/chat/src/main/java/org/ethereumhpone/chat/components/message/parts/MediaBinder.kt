@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.util.Log
 import androidx.camera.core.AspectRatio
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -20,10 +21,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -62,6 +59,7 @@ import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.isSmil
 import org.ethereumhpone.database.model.isText
 import org.ethereumhpone.database.model.isVideo
+import java.util.Random
 
 
 @Composable
@@ -95,7 +93,7 @@ fun MediaBinder(
             media,
             videoPlayer,
             offset,
-            onPlayVideo = { onPlayVideo(it) },
+            onPrepareVideo = { onPlayVideo(it) },
             onDismissRequest = { showExpandedMedia = false }
         )
     }
@@ -145,63 +143,66 @@ private fun MediaGridContainer(
     media: List<MmsPart>,
     imageClickedIndex: (Int) -> Unit // index
 ) {
+    var index = 0
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-        media.take(4).forEachIndexed { index, mediaItem ->
-            item {
-                Box(
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(5))
-                        .clickable { imageClickedIndex(index) }
-                ) {
-                    AsyncImage(
-                        model = if (mediaItem.isVideo()) mediaItem.getUri().getVideoThumbnail(LocalContext.current) else mediaItem.getUri(),
-                        contentDescription = "",
-                        contentScale = ContentScale.Crop,
-                        placeholder = painterResource(id = R.drawable.ethos_placeholder),
-                        modifier = Modifier.fillMaxSize()
-                    )
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        repeat(2) {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                repeat(2) {
+                    val currentIndex = index
 
-                    // video indicator
-                    if(mediaItem.isVideo()) {
-                        Icon(
-                            imageVector = Icons.Rounded.PlayArrow,
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(5))
+                            .clickable { imageClickedIndex(currentIndex) }
+                    ) {
+                        AsyncImage(
+                            model = if (media[index].isVideo()) media[index].getUri().getVideoThumbnail(LocalContext.current) else media[index].getUri(),
                             contentDescription = "",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .offset(10.dp, (-10).dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.5f))
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(id = R.drawable.ethos_placeholder),
                         )
-                    }
 
-                    // show more indicator
-                    if (index == 3 && media.size > 4) {
-                        Box(
-                            Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.4f))
-                                .clickable { imageClickedIndex(0) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "+ ${media.size - 4}",
-                                color = Color.White,
-                                fontSize = 28.sp
+                        // video indicator
+                        if(media[index].isVideo()) {
+                            Icon(
+                                imageVector = Icons.Rounded.PlayArrow,
+                                contentDescription = "",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .offset(10.dp, (-10).dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.5f))
                             )
                         }
+
+                        // show more indicator
+                        if (index == 3 && media.size > 4) {
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.4f))
+                                    .clickable { imageClickedIndex(0) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+ ${media.size - 4}",
+                                    color = Color.White,
+                                    fontSize = 28.sp
+                                )
+                            }
+                        }
                     }
+                    index++
                 }
             }
         }
     }
 }
+
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -210,7 +211,7 @@ private fun ExpandedMediaDialog(
     media: List<MmsPart>,
     videoPlayer: Player?,
     indexOffset: Int = 0,
-    onPlayVideo: (Uri) -> Unit,
+    onPrepareVideo: (Uri) -> Unit,
     onDismissRequest: () -> Unit
 ) {
 
@@ -231,6 +232,18 @@ private fun ExpandedMediaDialog(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
+
+            // Header
+            Row(
+                Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+            ) {
+
+            }
+
+
+            //
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -238,6 +251,7 @@ private fun ExpandedMediaDialog(
                 //videoPlayer.stop() // stop reproducing video when swiping
                 if (media[page].isVideo()) {
                     videoPlayer?.let { VideoPlayer(videoPlayer) }
+                    onPrepareVideo(media[page].getUri())
                 } else {
                     AsyncImage(
                         model = media[page].getUri(),
@@ -248,23 +262,25 @@ private fun ExpandedMediaDialog(
                 }
             }
 
-            Row(
-                Modifier
-                    .wrapContentHeight()
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                repeat(pagerState.pageCount) { iteration ->
-                    val color = if (pagerState.currentPage == iteration) Color.DarkGray else Color.LightGray
-                    Box(
-                        modifier = Modifier
-                            .padding(2.dp)
-                            .clip(CircleShape)
-                            .background(color)
-                            .size(16.dp)
-                    )
+            if (pagerState.pageCount > 1) {
+                Row(
+                    Modifier
+                        .wrapContentHeight()
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    repeat(pagerState.pageCount) { iteration ->
+                        val color = if (pagerState.currentPage == iteration) Color.DarkGray else Color.LightGray
+                        Box(
+                            modifier = Modifier
+                                .padding(2.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .size(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -321,8 +337,9 @@ fun PreviewExpandedMediaDialog() {
     // video item
     val videoUri = "android.resource://${LocalContext.current.packageName}/${R.raw.sample_video}"
     val player = ExoPlayer.Builder(LocalContext.current).build()
-    player.addMediaItem(MediaItem.fromUri(videoUri))
     player.prepare()
+
+    player.addMediaItem(MediaItem.fromUri(videoUri))
 
 
     val mmsPart = MmsPart()
@@ -331,16 +348,18 @@ fun PreviewExpandedMediaDialog() {
 
     var showDialog by remember { mutableStateOf(true) }
 
+
     Column {
         if (showDialog) {
             ExpandedMediaDialog(
                 media,
                 player,
-                onPlayVideo = { player.play() },
+                onPrepareVideo = { player.play() },
                 onDismissRequest = { showDialog = false }
             )
         }
     }
+
 }
 
 @Preview

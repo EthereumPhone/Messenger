@@ -242,9 +242,6 @@ fun ChatScreen(
 
     Scaffold (
         containerColor = Color.Black,
-        topBar = {
-
-        },
         contentWindowInsets = ScaffoldDefaults
             .contentWindowInsets
             .exclude(WindowInsets.navigationBars)
@@ -380,7 +377,7 @@ fun ChatScreen(
                                     items(items = messagesUiState.messages, key = { it.id }) { message ->
 
 
-                                        Log.d("DEBUG", "${message.id} - ${message.body} - ${message.parts.toString()}")
+                                        //Log.d("DEBUG", "${message.id} - ${message.body} - ${message.parts.toString()}")
 
                                         val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
                                         val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
@@ -405,6 +402,7 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
+                                                onPlayVideo = { onPlayVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
@@ -419,6 +417,7 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
+                                                onPlayVideo = { onPlayVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
@@ -652,10 +651,6 @@ fun ChatScreen(
                             }
                         }
                     }
-
-                    //-----------------------
-
-                    //------------PROFILE VIEW END------------
                 }
 
                 AnimatedVisibility(

@@ -1,5 +1,7 @@
 package org.ethereumhpone.chat.components.message
 
+import android.net.Uri
+import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,12 +56,12 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
+import org.ethereumhpone.chat.components.message.parts.VCardBinder
 
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
@@ -96,7 +100,6 @@ fun TxMessage(
         modifier = spaceBetweenAuthors,
         horizontalArrangement = Arrangement.End
     ) {
-//        Text(text = ""+ isFirstMessageByAuthor)
         Column(
             modifier = modifier,
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
@@ -129,10 +132,10 @@ fun MessageItem(
     isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
     player: Player? = null,
+    onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {}
 ) {
 
-    val context = LocalContext.current
     var positionComp by remember { mutableStateOf(Offset.Zero) }
     var compSize by remember { mutableIntStateOf(0) }
 
@@ -167,13 +170,10 @@ fun MessageItem(
 
 
             // Handle media parts
-            MediaBinder(videoPlayer = player, message = msg) {
+            MediaBinder(videoPlayer = player, message = msg) { onPrepareVideo(it) }
 
-            }
-
-            //TODO: handle vCard parts
-
-
+            // vCard handling
+            VCardBinder(message = msg)
 
 
             ChatItemBubble(
@@ -187,9 +187,16 @@ fun MessageItem(
                     onLongClick()
                 }
             )
-//            if (isFirstMessageByAuthor) {
-//                AuthorNameTimestamp(msg)
-//            }
+
+            if (msg.isFailedMessage()) {
+                Text(
+                    text = "Tap to resend",
+                    fontFamily = Fonts.INTER,
+                    fontSize = 12.sp,
+                    color = Color.White
+                )
+            }
+
             if (isFirstMessageByAuthor) {
                 // Last bubble before next author
                 Spacer(modifier = Modifier.height(8.dp))
@@ -219,19 +226,54 @@ fun AuthorNameTimestamp(
     Row(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(end = 18.dp, bottom = 8.dp).semantics(mergeDescendants = true) {}
+        modifier = modifier
+            .padding(end = 18.dp, bottom = 8.dp)
+            .semantics(mergeDescendants = true) {}
     ) {
 
         Text(
             text = "$time",
             fontSize = 12.sp,
             fontFamily = Fonts.INTER,
-            modifier = Modifier.alignBy(LastBaseline).alpha(0.5f),//.padding(start = 32.dp),
+            modifier = Modifier
+                .alignBy(LastBaseline)
+                .alpha(0.5f),//.padding(start = 32.dp),
             color = Colors.WHITE,
         )
 
         Spacer(modifier = Modifier.width(8.dp))
 
+        when {
+            message.isFailedMessage() -> Icon(
+                    imageVector = Icons.Rounded.Error,//Icons.Filled.CheckCircleOutline,
+                    contentDescription = "Go back",
+                    tint = Colors.WHITE,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .alpha(0.5f)
+            )
+
+            message.isSending() -> Icon(
+                    painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
+                    contentDescription = "Go back",
+                    tint = Colors.WHITE,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .alpha(0.5f)
+            )
+
+            message.isDelivered() -> Icon(
+                    painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
+                    contentDescription = "Go back",
+                    tint = Colors.WHITE,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .alpha(0.5f)
+            )
+        }
+
+
+        /*
         if (isUserMe) {
             if (message.read) {
                 Icon(
@@ -249,6 +291,8 @@ fun AuthorNameTimestamp(
                 )
             }
         }
+         */
+
 
     }
 }
@@ -461,16 +505,16 @@ fun ChatItemBubble(
         ){
                 val uriHandler = LocalUriHandler.current
 
-                val messageBody = when (message.isSms()) {
-                    true -> message.body
-                    false -> {
-                        message.parts
-                            .filter { part -> part.isText() }
-                            .mapNotNull { part -> part.text }
-                            .filter { text -> text.isNotBlank() }
-                            .joinToString { "\n" }
-                    }
+            val messageBody = when (message.isSms()) {
+                true -> message.body
+                false -> {
+                    message.parts
+                        .filter { part -> part.isText() }
+                        .mapNotNull { part -> part.text }
+                        .filter { text -> text.isNotBlank() }
+                        .joinToString("\n")
                 }
+            }
 
                 if (messageBody.isNotBlank()) {
                     val styledMessage = messageFormatter(
@@ -538,7 +582,7 @@ fun ClickableMessage(
                 style = style,
                 modifier = Modifier
 
-                    .padding(end = 20.dp,start = 16.dp,top = 16.dp, bottom = 16.dp)
+                    .padding(end = 20.dp, start = 16.dp, top = 16.dp, bottom = 16.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {
