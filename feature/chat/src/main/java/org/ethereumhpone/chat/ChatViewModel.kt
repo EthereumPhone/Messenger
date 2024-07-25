@@ -130,7 +130,33 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
+    fun onOpenContact() {
+         recipientState.value?.contact?.lookupKey?.let {
+             println("Opening contact with lookup key: $it")
+             getContactIdFromLookupKey(it)?.let { contactId ->
+                 val intent = Intent(Intent.ACTION_VIEW).apply {
+                     data = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactId)
+                 }
+                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                 context.startActivity(intent)
+             }
+         }
+    }
 
+    private fun getContactIdFromLookupKey(lookupKey: String): String? {
+        val uri = Uri.withAppendedPath(
+            ContactsContract.Contacts.CONTENT_LOOKUP_URI,
+            lookupKey
+        )
+        val projection = arrayOf(ContactsContract.Contacts._ID)
+        var contactId: String? = null
+        context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                contactId = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
+            }
+        }
+        return contactId
+    }
 
 
     val currentChainId: StateFlow<Int> = flow {
@@ -308,7 +334,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             if (it.recipients.isNotEmpty()) {
                 it.recipients[0]
             } else {
-
                 Recipient(address = addresses[0])
             }
     }.stateIn(
