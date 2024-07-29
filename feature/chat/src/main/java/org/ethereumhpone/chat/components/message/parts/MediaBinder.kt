@@ -26,8 +26,10 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +44,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,6 +63,8 @@ import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.isSmil
 import org.ethereumhpone.database.model.isText
 import org.ethereumhpone.database.model.isVideo
+import org.ethosmobile.components.library.theme.Colors
+import org.ethosmobile.components.library.theme.Fonts
 import java.util.Random
 
 
@@ -66,7 +72,8 @@ import java.util.Random
 fun MediaBinder(
     message: Message,
     videoPlayer: Player?,
-    onPlayVideo: (Uri) -> Unit
+    onPlayVideo: (Uri) -> Unit,
+    name: String
 ) {
 
     val media = remember { message.parts.filter { !it.isText() && !it.isSmil() } }
@@ -94,7 +101,8 @@ fun MediaBinder(
             videoPlayer,
             offset,
             onPrepareVideo = { onPlayVideo(it) },
-            onDismissRequest = { showExpandedMedia = false }
+            onDismissRequest = { showExpandedMedia = false },
+            contactname = name
         )
     }
 }
@@ -212,7 +220,8 @@ private fun ExpandedMediaDialog(
     videoPlayer: Player?,
     indexOffset: Int = 0,
     onPrepareVideo: (Uri) -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    contactname: String
 ) {
 
     Dialog(
@@ -227,7 +236,7 @@ private fun ExpandedMediaDialog(
             pageCount = {media.size}
         )
 
-        Box(
+        Column(
             Modifier
                 .fillMaxSize()
                 .background(Color.Black)
@@ -235,11 +244,29 @@ private fun ExpandedMediaDialog(
 
             // Header
             Row(
-                Modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth()
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp)
             ) {
-
+                IconButton(
+                    onClick = { onDismissRequest() },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.ArrowBackIosNew,
+                        contentDescription = "Go back",
+                        tint =  Colors.WHITE,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                androidx.compose.material3.Text(
+                    textAlign = TextAlign.Center,
+                    text = contactname,
+                    fontSize = 18.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = Fonts.INTER,
+                )
             }
 
 
@@ -267,7 +294,7 @@ private fun ExpandedMediaDialog(
                     Modifier
                         .wrapContentHeight()
                         .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
+                        //.align(Alignment.BottomCenter)
                         .padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -355,7 +382,8 @@ fun PreviewExpandedMediaDialog() {
                 media,
                 player,
                 onPrepareVideo = { player.play() },
-                onDismissRequest = { showDialog = false }
+                onDismissRequest = { showDialog = false },
+                contactname = "Text"
             )
         }
     }

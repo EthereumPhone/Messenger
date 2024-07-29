@@ -138,22 +138,6 @@ fun FocusMessage(
             }
         }
 
-
-    val Bubbleshape = if(isUserMe) {
-        if (isFirstMessageByAuthor){
-            LastUserChatBubbleShape
-        }else{
-            UserChatBubbleShape
-        }
-    }
-    else{
-        if (isFirstMessageByAuthor){
-            LastChatBubbleShape
-        }else{
-            ChatBubbleShape
-        }
-    }
-
     val gradient = Brush.verticalGradient(
         colors = listOf(
             Color(0xFF8C7DF7),
@@ -175,18 +159,6 @@ fun FocusMessage(
         )
     )
 
-    val messageBrush = when(isUserMe){
-        true -> { //message from user
-            if(isLastMessageByAuthor){
-                nogradient
-            } else {
-                gradient
-            }
-        }
-        false -> { //message not from user
-            reciepientcolor
-        }
-    }
 
 
 
@@ -203,8 +175,6 @@ fun FocusMessage(
             isUserMe = isUserMe,
             isFirstMessageByAuthor = isFirstMessageByAuthor,
             isLastMessageByAuthor=isLastMessageByAuthor,
-//            bubbleshape = Bubbleshape,
-//            messageBrush = messageBrush,
             onLongClick = onLongClick
         )
 
@@ -243,7 +213,7 @@ fun FocusClickableMessage(
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
 
-            .padding(end = 20.dp, start = 16.dp, top = 16.dp, bottom = 16.dp)
+            .padding(end = 20.dp, start = 16.dp, top = 8.dp, bottom = 8.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = {
@@ -302,12 +272,7 @@ fun FocusChatItemBubble(
         }
     }
 
-    val gradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF6555D8)
-        )
-    )
+
 
     val nogradient = Brush.verticalGradient(
         colors = listOf(

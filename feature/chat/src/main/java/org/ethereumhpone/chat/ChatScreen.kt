@@ -407,9 +407,9 @@ fun ChatScreen(
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
                                                 },
+                                                name = recipient?.getDisplayName() ?: ""
                                             )
                                         } else {
-                                            //Log.d("MESSAGE",message.body)
                                             MessageItem(
                                                 onAuthorClick = { },
                                                 msg = message,
@@ -422,6 +422,7 @@ fun ChatScreen(
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
                                                 },
+                                                name = recipient?.getDisplayName() ?: ""
                                             )
                                         }
                                     }

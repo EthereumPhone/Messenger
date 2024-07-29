@@ -2,6 +2,7 @@ package org.ethereumhpone.chat.components.message
 
 import android.net.Uri
 import android.text.format.DateFormat
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,6 +68,7 @@ import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.isSmil
 import org.ethereumhpone.database.model.isText
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -133,7 +136,8 @@ fun MessageItem(
     composablePositionState: MutableState<ComposablePosition>,
     player: Player? = null,
     onPrepareVideo: (Uri) -> Unit,
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    name: String
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
@@ -169,24 +173,59 @@ fun MessageItem(
         ) {
 
 
-            // Handle media parts
-            MediaBinder(videoPlayer = player, message = msg) { onPrepareVideo(it) }
-
-            // vCard handling
-            VCardBinder(message = msg)
-
-
-            ChatItemBubble(
-                message = msg,
-                isUserMe = isUserMe,
-                isLastMessageByAuthor=isLastMessageByAuthor,
-                isFirstMessageByAuthor=isFirstMessageByAuthor,
-                onLongClick = {
-                    composablePositionState.value.height = compSize
-                    composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
-                    onLongClick()
+            val media = remember { msg.parts.filter { !it.isText() && !it.isSmil() } }.isNotEmpty()
+            when(media){
+                true -> {
+                    ImageChatItemBubble(
+                        message = msg,
+                        isUserMe = isUserMe,
+                        isLastMessageByAuthor=isLastMessageByAuthor,
+                        isFirstMessageByAuthor=isFirstMessageByAuthor,
+                        onLongClick = {
+                            composablePositionState.value.height = compSize
+                            composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
+                            onLongClick()
+                        },
+                        videoPlayer = player,
+                        onPlayVideo = {onPrepareVideo(it)},
+                        name = name
+                    )
                 }
-            )
+                false -> {
+                    ChatItemBubble(
+                        message = msg,
+                        isUserMe = isUserMe,
+                        isLastMessageByAuthor=isLastMessageByAuthor,
+                        isFirstMessageByAuthor=isFirstMessageByAuthor,
+                        onLongClick = {
+                            composablePositionState.value.height = compSize
+                            composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
+                            onLongClick()
+                        }
+                    )
+                }
+            }
+
+
+
+////             Handle media parts
+//            MediaBinder(videoPlayer = player, message = msg) { onPrepareVideo(it) }
+//
+////             vCard handling
+//            VCardBinder(message = msg)
+//
+//
+//            ChatItemBubble(
+//                message = msg,
+//                isUserMe = isUserMe,
+//                isLastMessageByAuthor=isLastMessageByAuthor,
+//                isFirstMessageByAuthor=isFirstMessageByAuthor,
+//                onLongClick = {
+//                    composablePositionState.value.height = compSize
+//                    composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
+//                    onLongClick()
+//                }
+//            )
 
             if (msg.isFailedMessage()) {
                 Text(
@@ -227,7 +266,7 @@ fun AuthorNameTimestamp(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .padding(end = 18.dp, bottom = 8.dp)
+            .padding(end = 18.dp, bottom = 4.dp)
             .semantics(mergeDescendants = true) {}
     ) {
 
@@ -241,7 +280,7 @@ fun AuthorNameTimestamp(
             color = Colors.WHITE,
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(4.dp))
 
         when {
             message.isFailedMessage() -> Icon(
@@ -451,14 +490,7 @@ fun ChatItemBubble(
             ChatBubbleShape
         }
     }
-
-    val gradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF6555D8)
-        )
-    )
-
+    
     val nogradient = Brush.verticalGradient(
         colors = listOf(
             Color(0xFF8C7DF7),
@@ -476,15 +508,6 @@ fun ChatItemBubble(
     val messageBrush = when(isUserMe){
         true -> { //message from user
             nogradient
-
-            /*
-            if(isLastMessageByAuthor){
-                nogradient
-            } else {
-                gradient
-            }
-             */
-
         }
         false -> { //message not from user
             reciepientcolor
@@ -558,6 +581,141 @@ fun ChatItemBubble(
 
 
 @Composable
+fun ImageChatItemBubble(
+    modifier: Modifier = Modifier,
+    message: Message,
+    isUserMe: Boolean,
+    authorClicked: (String) -> Unit = {},
+    isLastMessageByAuthor: Boolean,
+    isFirstMessageByAuthor: Boolean,
+    onLongClick: () -> Unit = {},
+    videoPlayer: Player?,
+    onPlayVideo: (Uri) -> Unit,
+    name: String
+
+) {
+
+    val Bubbleshape = if(isUserMe) {
+        if (isFirstMessageByAuthor){
+            LastUserChatBubbleShape
+        }else{
+            UserChatBubbleShape
+        }
+    } else{
+        if (isFirstMessageByAuthor){
+            LastChatBubbleShape
+        }else{
+            ChatBubbleShape
+        }
+    }
+
+    val nogradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF8C7DF7),
+            Color(0xFF8C7DF7)
+        )
+    )
+
+    val reciepientcolor = Brush.verticalGradient(
+        colors = listOf(
+            Colors.DARK_GRAY,
+            Colors.DARK_GRAY
+        )
+    )
+
+    val messageBrush = when(isUserMe){
+        true -> { //message from user
+            nogradient
+        }
+        false -> { //message not from user
+            reciepientcolor
+        }
+    }
+
+
+
+
+    Column(
+        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
+        modifier = modifier
+            .clip(Bubbleshape)
+            .background(
+                brush = messageBrush
+            ),
+    ) {
+
+        Box(modifier = modifier.padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp).sizeIn(maxHeight = 256.dp,maxWidth = 256.dp)){
+            MediaBinder(name= name, videoPlayer = videoPlayer, message = message, onPlayVideo = { onPlayVideo(it) })
+        }
+
+        Box (
+            modifier = modifier,
+            contentAlignment = Alignment.BottomEnd
+        ){
+//            Column(
+//                horizontalAlignment = Alignment.End,
+//                modifier = modifier.padding(8.dp).background(Color.Red)
+//            ) {
+
+                val uriHandler = LocalUriHandler.current
+
+                val messageBody = when (message.isSms()) {
+                    true -> message.body
+                    false -> {
+                        message.parts
+                            .filter { part -> part.isText() }
+                            .mapNotNull { part -> part.text }
+                            .filter { text -> text.isNotBlank() }
+                            .joinToString("\n")
+                    }
+                }
+
+                if (messageBody.isNotBlank()) {
+                    val styledMessage = messageFormatter(
+                        text = messageBody,
+                        primary = isUserMe
+                    )
+                    //Box(modifier = Modifier.background(Color.Green)){
+
+
+
+                    ClickableMessage(
+                        message = message,
+                        isLastMessageByAuthor = isLastMessageByAuthor,
+                        styledMessage = styledMessage,
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight =  FontWeight.Normal,
+                            color = Colors.WHITE,
+                            fontFamily = Fonts.INTER
+                        ),
+                        onLongClick = onLongClick,
+                        isUserMe = isUserMe,
+                        onClick = {
+
+                            styledMessage
+                                .getStringAnnotations(start = it, end = it)
+                                .firstOrNull()
+                                ?.let { annotation ->
+                                    when (annotation.tag) {
+                                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
+                                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
+                                        else -> Unit
+                                    }
+                                }
+                        },
+                    )
+                }
+//            }
+
+
+        }
+
+    }
+}
+
+
+@Composable
 fun ClickableMessage(
     modifier: Modifier = Modifier,
     isLastMessageByAuthor: Boolean,
@@ -582,7 +740,7 @@ fun ClickableMessage(
                 style = style,
                 modifier = Modifier
 
-                    .padding(end = 20.dp, start = 16.dp, top = 16.dp, bottom = 16.dp)
+                    .padding(end = 20.dp, start = 16.dp, top = 8.dp, bottom = 8.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {
@@ -785,4 +943,5 @@ fun ConversationPreview() {
 
 
 }
+
 
