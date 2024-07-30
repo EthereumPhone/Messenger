@@ -672,24 +672,6 @@ fun ChatScreen(
                     }
 
                 }
-
-//                TODO: Implement Infooscreen
-//                AnimatedVisibility(
-//                    detailview ,
-//                    enter = fadeIn(
-//                        animationSpec = tween(300),
-//                    ),
-//                    exit = fadeOut(
-//                        animationSpec = tween(300,),
-//                    ),
-//                ){
-//                    if (focusedMessage != null) {
-//                        MessageDetailsScreen(
-//                            Modifier,focusedMessage,composablePositionState, focusMode, onDeleteMessage
-//                        )
-//                    }
-//
-//                }
             }
 
             //Asset ModalSheet
@@ -732,6 +714,29 @@ fun ChatScreen(
                     }
                 }
             }
+
+
+        //                TODO: Implement Infooscreen
+                AnimatedVisibility(
+                    detailview ,
+                    enter = slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth }, // Start from right
+                        animationSpec = tween(300)
+                    )
+                    ,
+                    exit = slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> fullWidth }, // Exit to left
+                        animationSpec = tween(300)
+                    ),
+                ){
+                    if (focusedMessage != null) {
+                        MessageDetailView(
+                            focusedMessage,
+                            focusedMessage.isMe()
+                        ) { detailview = false }
+                    }
+
+                }
         }
 }
 
