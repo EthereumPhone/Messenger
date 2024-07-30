@@ -400,6 +400,7 @@ fun ChatScreen(
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
                                                 },
+                                                player = videoPlayer,
                                                 name = recipient?.getDisplayName() ?: ""                                            )
                                         } else {
                                             //Log.d("MESSAGE",message.body)
@@ -410,6 +411,7 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
+                                                player = videoPlayer,
                                                 onPrepareVideo = { onPrepareVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)

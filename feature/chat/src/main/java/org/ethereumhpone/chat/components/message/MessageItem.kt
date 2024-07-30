@@ -1,8 +1,6 @@
 package org.ethereumhpone.chat.components.message
 
 import android.net.Uri
-import android.text.format.DateFormat
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,14 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -49,7 +45,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
@@ -64,12 +59,14 @@ import androidx.media3.common.Player
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
-
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.isImage
 import org.ethereumhpone.database.model.isSmil
 import org.ethereumhpone.database.model.isText
+import org.ethereumhpone.database.model.isVCard
+import org.ethereumhpone.database.model.isVideo
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.DecimalFormat
@@ -134,7 +131,7 @@ fun MessageItem(
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
-    player: Player? = null,
+    player: Player?,
     onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
     name: String
@@ -172,69 +169,41 @@ fun MessageItem(
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
 
+            ChatItemBubble(
+                message = msg,
+                isUserMe = isUserMe,
+                isLastMessageByAuthor=isLastMessageByAuthor,
+                isFirstMessageByAuthor=isFirstMessageByAuthor,
+                videoPlayer = player,
+                onPlayVideo = { onPrepareVideo(it) },
+                onLongClick = {
+                    composablePositionState.value.height = compSize
+                    composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
+                    onLongClick()
+                              },
+                name = name
+            )
 
-            val media = remember { msg.parts.filter { !it.isText() && !it.isSmil() } }.isNotEmpty()
-            when(media){
-                true -> {
-                    ImageChatItemBubble(
-                        message = msg,
-                        isUserMe = isUserMe,
-                        isLastMessageByAuthor=isLastMessageByAuthor,
-                        isFirstMessageByAuthor=isFirstMessageByAuthor,
-                        onLongClick = {
-                            composablePositionState.value.height = compSize
-                            composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
-                            onLongClick()
-                        },
-                        videoPlayer = player,
-                        onPlayVideo = {onPrepareVideo(it)},
-                        name = name
-                    )
-                }
-                false -> {
-                    ChatItemBubble(
-                        message = msg,
-                        isUserMe = isUserMe,
-                        isLastMessageByAuthor=isLastMessageByAuthor,
-                        isFirstMessageByAuthor=isFirstMessageByAuthor,
-                        onLongClick = {
-                            composablePositionState.value.height = compSize
-                            composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
-                            onLongClick()
-                        }
-                    )
-                }
+
+
+
+
+            val messageText = when {
+                msg.isSending() -> "Sending..."
+                msg.isFailedMessage() -> "Tap to resend"
+                else -> ""
             }
 
-
-
-////             Handle media parts
-//            MediaBinder(videoPlayer = player, message = msg) { onPrepareVideo(it) }
-//
-////             vCard handling
-//            VCardBinder(message = msg)
-//
-//
-//            ChatItemBubble(
-//                message = msg,
-//                isUserMe = isUserMe,
-//                isLastMessageByAuthor=isLastMessageByAuthor,
-//                isFirstMessageByAuthor=isFirstMessageByAuthor,
-//                onLongClick = {
-//                    composablePositionState.value.height = compSize
-//                    composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
-//                    onLongClick()
-//                }
-//            )
-
-            if (msg.isFailedMessage()) {
+            if (messageText.isNotEmpty()) {
                 Text(
-                    text = "Tap to resend",
+                    text = messageText,
                     fontFamily = Fonts.INTER,
                     fontSize = 12.sp,
                     color = Color.White
                 )
             }
+
+
 
             if (isFirstMessageByAuthor) {
                 // Last bubble before next author
@@ -439,11 +408,7 @@ fun TxChatItemBubble(
                         )
                     )
                 }
-
             }
-
-
-
         }
 
 //        message.image?.let {
@@ -470,11 +435,13 @@ fun ChatItemBubble(
     modifier: Modifier = Modifier,
     message: Message,
     isUserMe: Boolean,
-    authorClicked: (String) -> Unit = {},
+    name: String = "",
     isLastMessageByAuthor: Boolean,
     isFirstMessageByAuthor: Boolean,
-    onLongClick: () -> Unit = {}
-
+    videoPlayer: Player?,
+    onPlayVideo: (Uri) -> Unit,
+    onLongClick: () -> Unit = {},
+    authorClicked: (String) -> Unit = {}
 ) {
 
     val Bubbleshape = if(isUserMe) {
@@ -518,6 +485,42 @@ fun ChatItemBubble(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier.fillMaxWidth()
     ) {
+
+        // image
+
+        val media = remember { message.parts.filter { it.isImage() || it.isVideo() } }
+
+        if (media.isNotEmpty()) {
+            Box(
+                modifier = modifier
+                    .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
+                    .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
+            {
+                MediaBinder(
+                    name= name,
+                    videoPlayer = videoPlayer,
+                    message = message,
+                    onPrepareVideo = { onPlayVideo(it) }
+                )
+            }
+        }
+
+        // vCard
+        val contacts = remember {
+            message.parts.filter { it.isVCard() }
+        }
+
+        if (contacts.isNotEmpty()) {
+            Box(
+                modifier = modifier
+                    .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
+                    .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
+            {
+                VCardBinder(message)
+            }
+        }
+
+
         Box (
             modifier = modifier
                 .clip(Bubbleshape)
@@ -525,8 +528,8 @@ fun ChatItemBubble(
                     brush = messageBrush
                 ),
             contentAlignment = Alignment.BottomEnd
-        ){
-                val uriHandler = LocalUriHandler.current
+        ) {
+            val uriHandler = LocalUriHandler.current
 
             val messageBody = when (message.isSms()) {
                 true -> message.body
@@ -539,180 +542,43 @@ fun ChatItemBubble(
                 }
             }
 
-                if (messageBody.isNotBlank()) {
-                    val styledMessage = messageFormatter(
-                        text = messageBody,
-                        primary = isUserMe
-                    )
+            if (messageBody.isNotBlank()) {
+                val styledMessage = messageFormatter(
+                    text = messageBody,
+                    primary = isUserMe
+                )
 
-                    ClickableMessage(
-                        message = message,
-                        isLastMessageByAuthor = isLastMessageByAuthor,
-                        styledMessage = styledMessage,
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            fontWeight =  FontWeight.Normal,
-                            color = Colors.WHITE,
-                            fontFamily = Fonts.INTER
-                        ),
-                        onLongClick = onLongClick,
-                        isUserMe = isUserMe,
-                        onClick = {
+                ClickableMessage(
+                    message = message,
+                    isLastMessageByAuthor = isLastMessageByAuthor,
+                    styledMessage = styledMessage,
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontWeight =  FontWeight.Normal,
+                        color = Colors.WHITE,
+                        fontFamily = Fonts.INTER
+                    ),
+                    onLongClick = onLongClick,
+                    isUserMe = isUserMe,
+                    onClick = {
 
-                            styledMessage
-                                .getStringAnnotations(start = it, end = it)
-                                .firstOrNull()
-                                ?.let { annotation ->
-                                    when (annotation.tag) {
-                                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-                                        else -> Unit
-                                    }
+                        styledMessage
+                            .getStringAnnotations(start = it, end = it)
+                            .firstOrNull()
+                            ?.let { annotation ->
+                                when (annotation.tag) {
+                                    SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
+                                    SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
+                                    else -> Unit
                                 }
-                        },
-
-                    )
-                }
-
+                            }
+                    },
+                )
+            }
         }
-
     }
 }
 
-
-@Composable
-fun ImageChatItemBubble(
-    modifier: Modifier = Modifier,
-    message: Message,
-    isUserMe: Boolean,
-    authorClicked: (String) -> Unit = {},
-    isLastMessageByAuthor: Boolean,
-    isFirstMessageByAuthor: Boolean,
-    onLongClick: () -> Unit = {},
-    videoPlayer: Player?,
-    onPlayVideo: (Uri) -> Unit,
-    name: String
-
-) {
-
-    val Bubbleshape = if(isUserMe) {
-        if (isFirstMessageByAuthor){
-            LastUserChatBubbleShape
-        }else{
-            UserChatBubbleShape
-        }
-    } else{
-        if (isFirstMessageByAuthor){
-            LastChatBubbleShape
-        }else{
-            ChatBubbleShape
-        }
-    }
-
-    val nogradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF8C7DF7)
-        )
-    )
-
-    val reciepientcolor = Brush.verticalGradient(
-        colors = listOf(
-            Colors.DARK_GRAY,
-            Colors.DARK_GRAY
-        )
-    )
-
-    val messageBrush = when(isUserMe){
-        true -> { //message from user
-            nogradient
-        }
-        false -> { //message not from user
-            reciepientcolor
-        }
-    }
-
-
-
-
-    Column(
-        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = modifier
-            .clip(Bubbleshape)
-            .background(
-                brush = messageBrush
-            ),
-    ) {
-
-        Box(modifier = modifier.padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp).sizeIn(maxHeight = 256.dp,maxWidth = 256.dp)){
-            MediaBinder(name= name, videoPlayer = videoPlayer, message = message, onPlayVideo = { onPlayVideo(it) })
-        }
-
-        Box (
-            modifier = modifier,
-            contentAlignment = Alignment.BottomEnd
-        ){
-//            Column(
-//                horizontalAlignment = Alignment.End,
-//                modifier = modifier.padding(8.dp).background(Color.Red)
-//            ) {
-
-                val uriHandler = LocalUriHandler.current
-
-                val messageBody = when (message.isSms()) {
-                    true -> message.body
-                    false -> {
-                        message.parts
-                            .filter { part -> part.isText() }
-                            .mapNotNull { part -> part.text }
-                            .filter { text -> text.isNotBlank() }
-                            .joinToString("\n")
-                    }
-                }
-
-                if (messageBody.isNotBlank()) {
-                    val styledMessage = messageFormatter(
-                        text = messageBody,
-                        primary = isUserMe
-                    )
-                    //Box(modifier = Modifier.background(Color.Green)){
-
-
-
-                    ClickableMessage(
-                        message = message,
-                        isLastMessageByAuthor = isLastMessageByAuthor,
-                        styledMessage = styledMessage,
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            fontWeight =  FontWeight.Normal,
-                            color = Colors.WHITE,
-                            fontFamily = Fonts.INTER
-                        ),
-                        onLongClick = onLongClick,
-                        isUserMe = isUserMe,
-                        onClick = {
-
-                            styledMessage
-                                .getStringAnnotations(start = it, end = it)
-                                .firstOrNull()
-                                ?.let { annotation ->
-                                    when (annotation.tag) {
-                                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-                                        else -> Unit
-                                    }
-                                }
-                        },
-                    )
-                }
-//            }
-
-
-        }
-
-    }
-}
 
 
 @Composable
@@ -831,11 +697,13 @@ fun previewTChatItemBubble() {
             body = "Check it out!",
             subject = "8:07 PM"
         ),
+        videoPlayer = null,
         isUserMe = true,
         authorClicked = {},
         isLastMessageByAuthor = false,
         isFirstMessageByAuthor= true,
-        onLongClick = {}
+        onLongClick = {},
+        onPlayVideo = {}
 
     )
 
@@ -907,8 +775,10 @@ fun ConversationPreview() {
                 ChatItemBubble(
                     message = content,
                     isUserMe = content.address == authorMe,
+                    videoPlayer = null,
                     isFirstMessageByAuthor = isFirstMessageByAuthor,
-                    isLastMessageByAuthor = isLastMessageByAuthor
+                    isLastMessageByAuthor = isLastMessageByAuthor,
+                    onPlayVideo = {}
                 )
             }
 

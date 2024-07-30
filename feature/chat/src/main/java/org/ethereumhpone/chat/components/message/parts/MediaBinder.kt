@@ -60,6 +60,7 @@ import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
+import org.ethereumhpone.database.model.isImage
 import org.ethereumhpone.database.model.isSmil
 import org.ethereumhpone.database.model.isText
 import org.ethereumhpone.database.model.isVideo
@@ -72,11 +73,11 @@ import java.util.Random
 fun MediaBinder(
     message: Message,
     videoPlayer: Player?,
-    onPlayVideo: (Uri) -> Unit,
+    onPrepareVideo: (Uri) -> Unit,
     name: String
 ) {
 
-    val media = remember { message.parts.filter { !it.isText() && !it.isSmil() } }
+    val media = remember { message.parts.filter { it.isImage() || it.isVideo() } }
     var showExpandedMedia by remember { mutableStateOf(false) }
 
     var offset by remember { mutableIntStateOf(0) }
@@ -100,7 +101,7 @@ fun MediaBinder(
             media,
             videoPlayer,
             offset,
-            onPrepareVideo = { onPlayVideo(it) },
+            onPrepareVideo = { onPrepareVideo(it) },
             onDismissRequest = { showExpandedMedia = false },
             contactname = name
         )
