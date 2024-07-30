@@ -126,7 +126,8 @@ fun FocusMessage(
             Modifier
                 .fillMaxWidth()
                 .offset {
-                    IntOffset(0,
+                    IntOffset(
+                        0,
                         animatedProgress.value.toInt() - 60.dp
                             .toPx()
                             .roundToInt()
@@ -137,27 +138,6 @@ fun FocusMessage(
                 IntOffset(0,animatedProgress.value.toInt()-60.dp.toPx().roundToInt())
             }
         }
-
-    val gradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF6555D8)
-        )
-    )
-
-    val nogradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF8C7DF7)
-        )
-    )
-
-    val reciepientcolor = Brush.verticalGradient(
-        colors = listOf(
-            Colors.DARK_GRAY,
-            Colors.DARK_GRAY
-        )
-    )
 
 
 
@@ -178,7 +158,7 @@ fun FocusMessage(
             onLongClick = onLongClick
         )
 
-       MessageActionList(message = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
+       MessageActionList(isUserMe = isUserMe, message = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
 
     }
 
@@ -347,7 +327,9 @@ fun FocusChatItemBubble(
                             ?.let { annotation ->
                                 when (annotation.tag) {
                                     SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                                    SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
+                                    SymbolAnnotationType.PERSON.name -> {
+                                        authorClicked(annotation.item)
+                                    }
                                     else -> Unit
                                 }
                             }

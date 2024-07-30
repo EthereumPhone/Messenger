@@ -280,28 +280,6 @@ fun AuthorNameTimestamp(
             )
         }
 
-
-        /*
-        if (isUserMe) {
-            if (message.read) {
-                Icon(
-                    painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
-                    contentDescription = "Go back",
-                    tint = Colors.WHITE,
-                    modifier = Modifier.size(16.dp).alpha(0.5f)
-                )
-            } else {
-                Icon(
-                    painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
-                    contentDescription = "Go back",
-                    tint = Colors.WHITE,
-                    modifier = Modifier.size(16.dp).alpha(0.5f)
-                )
-            }
-        }
-         */
-
-
     }
 }
 
