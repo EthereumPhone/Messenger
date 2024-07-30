@@ -124,6 +124,7 @@ hilt-android = {id = "com.google.dagger.hilt.android", version.ref = "hilt"}
 kotlin-kapt = {id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin"}
 google-protobuf = {id = "com.google.protobuf", version.ref = "protobufPlugin"}
 org-jetbrains-kotlin-serialization = {id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin"}
+android-application = { id = "com.android.application", version.ref = "agp" }
 
 [bundles]
 roomb = ["room-runtime", "room-ktx", "room-compiler", "kotlin-serialization"]

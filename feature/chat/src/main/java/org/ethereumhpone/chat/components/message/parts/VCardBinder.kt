@@ -34,18 +34,17 @@ fun VCardBinder(
 ) {
     val vCards = remember { message.parts.filter(MmsPart::isVCard) }
 
-    LazyColumn(
-        contentPadding = PaddingValues(5.dp)
+    Column(
+        modifier = Modifier.padding(5.dp)
     ) {
         vCards.forEach { card ->
-            item {
-                val vCard = LocalContext.current.contentResolver.openInputStream(card.getUri()).use {
-                    Ezvcard.parse(it).first()
-                }
-                VCard(vCard.getDisplayName() ?: "" ,  message.isMe())
-            }
+            val vCard = LocalContext.current.contentResolver.openInputStream(card.getUri())
+                .use { Ezvcard.parse(it).first() }
+            VCard(vCard.getDisplayName() ?: "" ,  message.isMe())
         }
     }
+
+    //TODO: Add ActionClick for vCard
 }
 
 @Composable

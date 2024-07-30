@@ -17,44 +17,20 @@ internal const val VideoUriArg = "videoUris"
 
 @HiltViewModel
 class MediaViewModel @Inject constructor(
-    private val savedStateHandle: SavedStateHandle,
     val exoPlayer: ExoPlayer
 ): ViewModel()  {
-    private val videoUris = savedStateHandle.getStateFlow(VideoUriArg, emptyList<Uri>())
-
-    val videoItems = videoUris.map { uris ->
-        uris.map { uri ->
-            VideoItem(uri, MediaItem.fromUri(uri))
-        }
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        emptyList()
-    )
 
     init {
         exoPlayer.prepare()
     }
 
     fun addVideoUri(uri: Uri) {
-        savedStateHandle[VideoUriArg] =  uri
         exoPlayer.addMediaItem(MediaItem.fromUri(uri))
     }
 
-    fun playVideo(uri: Uri) {
-        exoPlayer.setMediaItem(
-            videoItems.value.find { it.uri == uri }?. mediaItem ?: return
-        )
-        exoPlayer.play()
-    }
 
     override fun onCleared() {
         super.onCleared()
-
         exoPlayer.release()
     }
-
 }
-
-
-data class VideoItem(val uri: Uri, val mediaItem: MediaItem)

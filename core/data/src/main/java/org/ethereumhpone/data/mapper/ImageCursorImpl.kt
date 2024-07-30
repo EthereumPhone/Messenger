@@ -3,11 +3,10 @@ package org.ethereumhpone.data.mapper
 import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
+import android.net.Uri
 import android.provider.MediaStore
-import androidx.core.database.getLongOrNull
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.mapper.ImageCursor
-import org.ethereumhpone.domain.model.Attachment
 import javax.inject.Inject
 
 class ImageCursorImpl @Inject constructor(
@@ -30,12 +29,8 @@ class ImageCursorImpl @Inject constructor(
         }
     }
 
-    override fun map(from: Cursor): Attachment.Image {
+    override fun map(from: Cursor): Uri {
         val id = from.getLong(from.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
-        val uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
-
-        return Attachment.Image(
-            uri = uri,
-        )
+        return ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
     }
 }

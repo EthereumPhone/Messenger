@@ -1,7 +1,6 @@
 package org.ethereumhpone.chat
 
 import android.net.Uri
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -13,7 +12,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -24,7 +22,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -74,13 +71,8 @@ import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.AttachMoney
-import androidx.compose.material.icons.outlined.Call
-import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.InsertPhoto
-import androidx.compose.material.icons.outlined.Mood
-import androidx.compose.material.icons.outlined.PermMedia
-import androidx.compose.material.icons.rounded.ArrowBackIosNew
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -116,6 +108,7 @@ import org.ethereumhpone.chat.components.TXSheet
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.chat.components.customBlur
 import org.ethereumhpone.chat.components.makePhoneCall
+import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
@@ -131,11 +124,12 @@ fun ChatRoute(
 ){
     val videoPlayer = mediaViewModel.exoPlayer
     val messagesUiState by chatViewModel.messagesState.collectAsStateWithLifecycle()
+    val contacts by chatViewModel.contacts.collectAsStateWithLifecycle()
+    val media by chatViewModel.media.collectAsStateWithLifecycle()
     val recipient by chatViewModel.recipientState.collectAsStateWithLifecycle()
     val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by chatViewModel.chainName.collectAsStateWithLifecycle()
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
-    val selectedAttachments by chatViewModel.selectedAttachments.collectAsStateWithLifecycle()
     val focusedMessage by chatViewModel.focusedMessage.collectAsStateWithLifecycle()
    // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
 
@@ -143,21 +137,22 @@ fun ChatRoute(
     ChatScreen(
         messagesUiState = messagesUiState,
         recipient = recipient,
+        contacts = contacts,
+        media = media,
         attachments = attachments,
-        selectedAttachments = selectedAttachments,
         navigateBackToConversations = navigateBackToConversations,
         tokenBalance = tokenBalance,
         chainName = chainName,
         videoPlayer = videoPlayer,
         focusedMessage = focusedMessage,
         onSendEthClicked = chatViewModel::sendEth,
-        onAttachmentClicked = chatViewModel::toggleSelection,
         onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
         onFocusedMessageUpdate = chatViewModel::updatefocusedMessage,
         onPhoneClicked = chatViewModel::callPhone,
-        onPlayVideo = mediaViewModel::playVideo,
-
+        onPrepareVideo = mediaViewModel::addVideoUri,
+        onContactSelected = chatViewModel::parseContact,
+        onToggleAttachment = chatViewModel::toggleAttachment
     )
 }
 
@@ -167,25 +162,23 @@ fun ChatScreen(
     modifier: Modifier = Modifier,
     messagesUiState: MessagesUiState,
     recipient: Recipient?,
-    attachments: List<Attachment> = emptyList(),
-    selectedAttachments: Set<Attachment> = emptySet(),
+    contacts: List<Contact> = emptyList(),
+    media: List<Uri> = emptyList(),
+    attachments: Set<Attachment> = emptySet(),
     navigateBackToConversations: () -> Unit,
     onSendEthClicked: (amount: Double) -> Unit,
     tokenBalance: Double = 0.0,
     chainName: String = "?",
     videoPlayer: Player,
-    onAttachmentClicked: (Attachment) -> Unit,
+    onContactSelected: (Contact) -> Unit,
+    onToggleAttachment: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
     onDeleteMessage: (Long) -> Unit,
     focusedMessage: Message?,
     onFocusedMessageUpdate: (Message) -> Unit,
     onPhoneClicked: () -> Unit,
-    onPlayVideo: (Uri) -> Unit,
-){
-
-    
-
-
+    onPrepareVideo: (Uri) -> Unit,
+) {
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -239,9 +232,6 @@ fun ChatScreen(
     }
 
     val controller = LocalSoftwareKeyboardController.current
-
-
-    val context = LocalContext.current
 
 
     Scaffold (
@@ -405,7 +395,7 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
-                                                onPlayVideo = { onPlayVideo(it) },
+                                                onPrepareVideo = { onPrepareVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
@@ -420,7 +410,7 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
-                                                onPlayVideo = { onPlayVideo(it) },
+                                                onPrepareVideo = { onPrepareVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
@@ -436,8 +426,8 @@ fun ChatScreen(
                         ) {
 
                             AttachmentRow(
-                                selectedAttachments = selectedAttachments.toList(),
-                                attachmentRemoved = { onAttachmentClicked(it) }
+                                selectedAttachments = attachments.toList(),
+                                onToggleAttachment = { onToggleAttachment(it) }
                             )
 
                             SelectionContainer {
@@ -547,7 +537,7 @@ fun ChatScreen(
 
 
                                     AnimatedVisibility(
-                                        textState.text.isNotBlank() || selectedAttachments.isNotEmpty(),
+                                        textState.text.isNotBlank() || attachments.isNotEmpty(),
                                         enter = expandHorizontally(),
                                         exit = shrinkHorizontally(),
                                     ) {
@@ -620,7 +610,14 @@ fun ChatScreen(
                                         tonalElevation = 8.dp
                                     ) {
                                         when (currentInputSelector) {
-                                            InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
+
+                                            //TODO: swasg
+                                            InputSelector.CONTACT -> ContactSheet(
+                                                contacts = contacts,
+                                                attachments = attachments,
+                                                onContactClicked = { onContactSelected(it) }
+                                            )
+                                            //InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
                                             InputSelector.WALLET -> WalletSelector(
                                                 focusRequester = FocusRequester(),
                                                 onSendEth = {
@@ -638,9 +635,9 @@ fun ChatScreen(
                                             )
                                             InputSelector.PICTURE -> {
                                                 GallerySheet(
+                                                    media = media,
                                                     attachments = attachments,
-                                                    selectedAttachments = selectedAttachments,
-                                                    onItemClicked = { onAttachmentClicked(it) },
+                                                    onMediaClicked = { onToggleAttachment(it) },
                                                 )
                                             }
 
@@ -801,7 +798,7 @@ fun SelectorExpanded(
             ,
             enabled = true,
             onClick = {
-                onSelectorChange(InputSelector.EMOJI)
+                onSelectorChange(InputSelector.CONTACT)
                 onHideKeyboard()
                 onShowSelectionbar()
             },
@@ -809,9 +806,9 @@ fun SelectorExpanded(
             Box(
                 contentAlignment = Alignment.Center
             ){
-                Icon(imageVector = Icons.Outlined.Mood, modifier= Modifier
+                Icon(imageVector = Icons.Outlined.Person, modifier= Modifier
                     .size(32.dp)
-                    ,contentDescription = "Send",tint = Color.White)
+                    ,contentDescription = "Contact",tint = Color.White)
             }
 
         }
