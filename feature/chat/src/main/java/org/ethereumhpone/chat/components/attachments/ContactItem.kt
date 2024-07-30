@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,9 +75,10 @@ fun ContactItem(
                 // contact name
                 val data = Ezvcard.parse(contact.vCard).first()
                 Text(
-                    data.getDisplayName() ?: "",
+                    data.getDisplayName()?.trimEllipse(12) ?: "",
                     color = Color.White,
-                    fontSize = 18.sp
+                    fontSize = 18.sp,
+                    maxLines = 1
                 )
 
                 // see ens
@@ -102,6 +104,14 @@ fun VCard.getEns(): String? {
     return getExtendedProperty("DATA15")?.value
 }
 
+fun String.trimEllipse(size: Int): String {
+    if (this.length > size) {
+        return this.take(size)+"..."
+    }
+
+    return this
+}
+
 @Preview
 @Composable
 fun PreviewContactItem() {
@@ -111,8 +121,8 @@ fun PreviewContactItem() {
 
     val vcard = "BEGIN:VCARD\r\n" +
             "VERSION:4.0\r\n" +
-            "N:Doe;Jonathan;;Mr;\r\n" +
-            "FN:John Doe\r\n" +
+            "N:Cernea;Nicola;;CTO;\r\n" +
+            "FN:Nicola Ceornea\r\n" +
             "DATA15: myEns\r\n\""
             "END:VCARD\r\n";
 
