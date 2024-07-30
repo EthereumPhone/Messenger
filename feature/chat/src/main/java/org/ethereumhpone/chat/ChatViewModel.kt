@@ -13,6 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -38,10 +40,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.ethereumhpone.chat.components.attachments.getDisplayName
 import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.map
+import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
@@ -73,7 +77,8 @@ import javax.inject.Inject
 class ChatViewModel @SuppressLint("StaticFieldLeak")
 @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val conversationRepository: ConversationRepository,
+    conversationRepository: ConversationRepository,
+    private val contactRepository: ContactRepository,
     mediaRepository: MediaRepository,
     private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
@@ -86,7 +91,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val threadId = ThreadIdArgs(savedStateHandle).threadId.toLong()
     private val addresses = AddressesArgs(savedStateHandle).addresses
 
-    // conversation state state
+    // conversation state
     private val conversationState = merge(
         conversationRepository.getConversation(threadId), // initial Conversation
         selectedConversationState(addresses, conversationRepository)
@@ -96,67 +101,71 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
+    // recipients state
+    val recipientState = conversationState
+        .filterNotNull()
+        .map {
+            if (it.recipients.isNotEmpty()) {
+                it.recipients[0]
+            } else { Recipient(address = addresses[0]) }
+        }.stateIn(
+            scope = viewModelScope,
+            initialValue = null,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
+    // message state
     @OptIn(ExperimentalCoroutinesApi::class)
     val messagesState = conversationState
         .filterNotNull()
         .flatMapLatest {
             messageRepository.getMessages(it.id).map(MessagesUiState::Success)
-    }.stateIn(
-        scope = viewModelScope,
-        initialValue = MessagesUiState.Loading,
-        started = SharingStarted.WhileSubscribed(5_000)
-    )
+        }.stateIn(
+            scope = viewModelScope,
+            initialValue = MessagesUiState.Loading,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
 
-    val attachments: StateFlow<List<Attachment>> = attachmentState(mediaRepository)
+    // contacts state
+    val contacts: StateFlow<List<Contact>> = contactRepository.getContacts()
         .stateIn(
             scope = viewModelScope,
             initialValue = emptyList(),
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
-    private val _selectedAttachments = MutableStateFlow<Set<Attachment>>(emptySet())
-    val selectedAttachments: StateFlow<Set<Attachment>> = _selectedAttachments
+    // media
+    val media: StateFlow<List<Uri>> = mediaRepository.getImages()
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = emptyList(),
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
+
+    private val _attachments = MutableStateFlow<Set<Attachment>>(emptySet())
+    val attachments: StateFlow<Set<Attachment>> = _attachments
+
+
 
     // Write a piece of code that gets the eth balance of address "0x0" and saves it to a state variable
     private val _focusedMessage = MutableStateFlow<Message?>(null)
     val focusedMessage: StateFlow<Message?> = _focusedMessage
 
-    fun updatefocusedMessage(newMessage: Message) {
-        _focusedMessage.value = newMessage
+
+    fun parseContact(contact: Contact) {
+        toggleAttachment(Attachment.Contact(contact.lookupKey, contact.photoUri?.toUri(), getVCard(contact.lookupKey)!!))
     }
 
-    fun deleteMessage(id: Long){
-        viewModelScope.launch {
-            messageRepository.deleteMessage(id)
-        }
-    }
 
-    fun onOpenContact() {
-         recipientState.value?.contact?.lookupKey?.let {
-             println("Opening contact with lookup key: $it")
-             getContactIdFromLookupKey(it)?.let { contactId ->
-                 val intent = Intent(Intent.ACTION_VIEW).apply {
-                     data = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactId)
-                 }
-                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                 context.startActivity(intent)
-             }
-         }
-    }
-
-    private fun getContactIdFromLookupKey(lookupKey: String): String? {
-        val uri = Uri.withAppendedPath(
-            ContactsContract.Contacts.CONTENT_LOOKUP_URI,
-            lookupKey
-        )
-        val projection = arrayOf(ContactsContract.Contacts._ID)
-        var contactId: String? = null
-        context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                contactId = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
+    fun toggleAttachment(attachment: Attachment) {
+        _attachments.update { curr ->
+            if(curr.contains(attachment)) {
+                curr - attachment
+            } else {
+                curr + attachment
             }
         }
-        return contactId
     }
 
 
@@ -247,9 +256,19 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         return value.multiply(multiplier).divide(divisor)
     }
 
+    fun updatefocusedMessage(newMessage: Message) {
+        _focusedMessage.value = newMessage
+    }
+
+    fun deleteMessage(id: Long){
+        viewModelScope.launch {
+            messageRepository.deleteMessage(id)
+        }
+    }
 
 
 
+    //TODO: Make suspend
     fun sendEth(amount: Double) {
         val chainIdLocked = currentChainId.value
         val decimalFormat = DecimalFormat("#.###########", DecimalFormatSymbols(Locale.US).apply {
@@ -280,6 +299,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
+
+    //TODO: Make suspend
     fun chainToApiKey(networkName: String): String = when(networkName) {
         "eth-mainnet" -> BuildConfig.ETHEREUM_API
         "eth-sepolia" -> BuildConfig.SEPOLIA_API
@@ -291,6 +312,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         else -> ""
     }
 
+    //TODO: move all to own helper class
     fun chainIdToEtherscan(chainId: Int): String = when(chainId) {
         1 -> "https://etherscan.io"
         11155111 -> "https://sepolia.etherscan.io"
@@ -329,29 +351,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
 
-    val recipientState = conversationState
-        .filterNotNull()
-        .map {
-            if (it.recipients.isNotEmpty()) {
-                it.recipients[0]
-            } else {
-                Recipient(address = addresses[0])
-            }
-    }.stateIn(
-            scope = viewModelScope,
-            initialValue = null,
-            started = SharingStarted.WhileSubscribed(5_000)
-        )
-
-
-
-
-
-
 
     fun sendMessage(messageBody: String) {
-
-
         if(!permissionManager.isDefaultSms()) {
             // TODO: add request permission
             return
@@ -368,20 +369,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             val addresses = convo.recipients.map { it.address }
 
             viewModelScope.launch {
-                sendMessageUseCase(subId, convo.id, addresses, messageBody, _selectedAttachments.value.toList())
+                sendMessageUseCase(subId, convo.id, addresses, messageBody, _attachments.value.toList())
 
                 // remove attached items
-                _selectedAttachments.value = emptySet()
-            }
-        }
-    }
-
-    fun toggleSelection(attachment: Attachment) {
-        _selectedAttachments.update { curr ->
-            if (curr.contains(attachment)) {
-                curr - attachment
-            } else {
-                curr + attachment
+                _attachments.value = emptySet()
             }
         }
     }
@@ -446,14 +437,12 @@ private fun selectedConversationState(
     }
 }
 
-
-private fun attachmentState(
-    mediaRepository: MediaRepository,
-): Flow<List<Attachment>> {
-    return mediaRepository.getImages()
-}
-
 sealed interface MessagesUiState {
     object Loading : MessagesUiState
     data class Success(val messages: List<Message>): MessagesUiState
 }
+
+
+
+
+

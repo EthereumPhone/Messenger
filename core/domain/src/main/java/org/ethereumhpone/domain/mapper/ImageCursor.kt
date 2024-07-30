@@ -1,9 +1,9 @@
 package org.ethereumhpone.domain.mapper
 
 import android.database.Cursor
-import org.ethereumhpone.domain.model.Attachment
+import android.net.Uri
 
-interface ImageCursor: Mapper<Cursor, Attachment.Image> {
+interface ImageCursor: Mapper<Cursor, Uri> {
 
     fun getImageCursor(): Cursor?
 }

@@ -38,7 +38,7 @@ import org.ethereumhpone.domain.model.Attachment
 @Composable
 fun AttachmentRow(
     selectedAttachments: List<Attachment>,
-    attachmentRemoved: (Attachment) -> Unit,
+    onToggleAttachment: (Attachment) -> Unit,
 ) {
     LazyRow(
         contentPadding = PaddingValues(10.dp),
@@ -47,13 +47,13 @@ fun AttachmentRow(
     ) {
         items(selectedAttachments) { attachment ->
             SelectedAttachment(
-                iconClicked = { attachmentRemoved(attachment) }
+                iconClicked = { onToggleAttachment(attachment) }
             ) {
                 when(attachment) {
                     is Attachment.Image, is Attachment.Video -> {
                         MediaItem(
                             modifier = Modifier
-                                .size(100.dp)
+                                .size(64.dp)
                                 .clip(RoundedCornerShape(20.dp)),
                             attachment = attachment
                         )

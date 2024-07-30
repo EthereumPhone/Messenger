@@ -1,6 +1,9 @@
 package org.ethereumhpone.data.repository
 
+import android.content.Context
 import android.net.Uri
+import android.provider.BaseColumns
+import android.provider.ContactsContract
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.ethereumhpone.database.dao.ContactDao
@@ -10,10 +13,26 @@ import org.ethereumhpone.domain.repository.ContactRepository
 import javax.inject.Inject
 
 class ContactRepositoryImpl @Inject constructor(
-    private val contactDao: ContactDao
-): ContactRepository {
-    override fun findContactUri(address: String): Flow<Uri?> {
-        TODO("Not yet implemented")
+    private val contactDao: ContactDao,
+    private val context: Context,
+
+    ): ContactRepository {
+    override suspend fun findContactUri(address: String): Uri {
+        val uri = when {
+            address.contains('@') -> {
+                Uri.withAppendedPath(ContactsContract.CommonDataKinds.Email.CONTENT_FILTER_URI, Uri.encode(address))
+            }
+            else -> Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(address))
+        }
+
+        /*
+        uri?.let {
+            val cur = context.contentResolver.query(uri, arrayOf(BaseColumns._ID), null, null, null)
+            cur.
+        }
+         */
+
+        TODO()
     }
 
     override fun getContacts(): Flow<List<Contact>> =

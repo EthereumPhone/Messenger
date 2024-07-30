@@ -60,6 +60,7 @@ sealed class Attachment {
     }
 
     data class Contact(
+        val lookupKey: String? = null,
         val imageUri: Uri? = null,
         val vCard: String
     ) : Attachment()

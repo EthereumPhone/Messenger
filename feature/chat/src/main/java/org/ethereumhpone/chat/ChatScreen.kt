@@ -1,11 +1,8 @@
 package org.ethereumhpone.chat
 
-import android.content.Intent
 import android.net.Uri
-import android.provider.ContactsContract
-import android.util.Log
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -27,7 +24,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
@@ -40,27 +36,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.InsertPhoto
-import androidx.compose.material.icons.outlined.Mood
-import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material3.Divider
+import androidx.compose.material3.TextField
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,52 +53,67 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.layoutId
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import org.ethereumhpone.chat.components.AssetPickerSheet
+import org.ethereumhpone.chat.components.InputSelector
+import org.ethereumhpone.chat.components.message.MessageItem
+import org.ethosmobile.components.library.theme.Colors
+import org.ethosmobile.components.library.theme.Fonts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.InsertPhoto
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.zIndex
+import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
+import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
-import kotlinx.coroutines.launch
-import org.ethereumhpone.chat.components.AssetPickerSheet
 import org.ethereumhpone.chat.components.ChatHeader
+import org.ethereumhpone.chat.components.message.ComposablePosition
+import org.ethereumhpone.chat.components.ContactItem
 import org.ethereumhpone.chat.components.ContactSheet
 import org.ethereumhpone.chat.components.DetailSelector
-import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
 import org.ethereumhpone.chat.components.GallerySheet
-import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.chat.components.MediaSheet
 import org.ethereumhpone.chat.components.MembersSheet
+import org.ethereumhpone.chat.components.message.TxMessage
 import org.ethereumhpone.chat.components.TXSheet
-import org.ethereumhpone.chat.components.WalletSelector
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.chat.components.customBlur
-import org.ethereumhpone.chat.components.message.ComposablePosition
-import org.ethereumhpone.chat.components.message.MessageItem
-import org.ethereumhpone.chat.components.message.TxMessage
+import org.ethereumhpone.chat.components.makePhoneCall
+import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
-import org.ethosmobile.components.library.theme.Colors
-import org.ethosmobile.components.library.theme.Fonts
+import org.ethosmobile.components.library.core.ethOSIconButton
+import java.util.Collections.list
 
 
 @Composable
@@ -125,11 +124,12 @@ fun ChatRoute(
 ){
     val videoPlayer = mediaViewModel.exoPlayer
     val messagesUiState by chatViewModel.messagesState.collectAsStateWithLifecycle()
+    val contacts by chatViewModel.contacts.collectAsStateWithLifecycle()
+    val media by chatViewModel.media.collectAsStateWithLifecycle()
     val recipient by chatViewModel.recipientState.collectAsStateWithLifecycle()
     val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by chatViewModel.chainName.collectAsStateWithLifecycle()
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
-    val selectedAttachments by chatViewModel.selectedAttachments.collectAsStateWithLifecycle()
     val focusedMessage by chatViewModel.focusedMessage.collectAsStateWithLifecycle()
    // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
 
@@ -137,22 +137,22 @@ fun ChatRoute(
     ChatScreen(
         messagesUiState = messagesUiState,
         recipient = recipient,
+        contacts = contacts,
+        media = media,
         attachments = attachments,
-        selectedAttachments = selectedAttachments,
         navigateBackToConversations = navigateBackToConversations,
         tokenBalance = tokenBalance,
         chainName = chainName,
         videoPlayer = videoPlayer,
         focusedMessage = focusedMessage,
         onSendEthClicked = chatViewModel::sendEth,
-        onAttachmentClicked = chatViewModel::toggleSelection,
         onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
         onFocusedMessageUpdate = chatViewModel::updatefocusedMessage,
         onPhoneClicked = chatViewModel::callPhone,
-        onPlayVideo = mediaViewModel::playVideo,
-        onOpenContact = chatViewModel::onOpenContact
-
+        onPrepareVideo = mediaViewModel::addVideoUri,
+        onContactSelected = chatViewModel::parseContact,
+        onToggleAttachment = chatViewModel::toggleAttachment
     )
 }
 
@@ -162,26 +162,23 @@ fun ChatScreen(
     modifier: Modifier = Modifier,
     messagesUiState: MessagesUiState,
     recipient: Recipient?,
-    attachments: List<Attachment> = emptyList(),
-    selectedAttachments: Set<Attachment> = emptySet(),
+    contacts: List<Contact> = emptyList(),
+    media: List<Uri> = emptyList(),
+    attachments: Set<Attachment> = emptySet(),
     navigateBackToConversations: () -> Unit,
     onSendEthClicked: (amount: Double) -> Unit,
     tokenBalance: Double = 0.0,
     chainName: String = "?",
     videoPlayer: Player,
-    onAttachmentClicked: (Attachment) -> Unit,
+    onContactSelected: (Contact) -> Unit,
+    onToggleAttachment: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
     onDeleteMessage: (Long) -> Unit,
     focusedMessage: Message?,
     onFocusedMessageUpdate: (Message) -> Unit,
     onPhoneClicked: () -> Unit,
-    onPlayVideo: (Uri) -> Unit,
-    onOpenContact: () -> Unit
-){
-
-    
-
-
+    onPrepareVideo: (Uri) -> Unit,
+) {
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val scope = rememberCoroutineScope()
@@ -237,9 +234,6 @@ fun ChatScreen(
     val controller = LocalSoftwareKeyboardController.current
 
 
-    val context = LocalContext.current
-
-
     Scaffold (
         containerColor = Color.Black,
         contentWindowInsets = ScaffoldDefaults
@@ -285,32 +279,31 @@ fun ChatScreen(
                         showModalSheet = true
                     },
                     onContactClick = {
-                        // Redirect to contacts app
-                        onOpenContact()
+                        currentModalSelector = DetailSelector.CONTACT
+                        showModalSheet = true
                     }
                 )
             }
 
-                Box(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .customBlur(if (focusMode.value) 100f else 0f)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = {
-                                    if (focusMode.value) {
-                                        //Toast.makeText(context,"focus tap press -kkkk",Toast.LENGTH_SHORT).show()
-                                        focusMode.value = false
-                                    }
-                                },
-                                onLongPress = {
-                                    if (focusMode.value) {
-                                        //Toast.makeText(context,"focus tap press -kkkk",Toast.LENGTH_SHORT).show()
-                                        focusMode.value = false
-                                    }
+                Box(modifier = modifier
+                    .fillMaxSize()
+                    .customBlur(if (focusMode.value) 100f else 0f)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = {
+                                if (focusMode.value) {
+                                    //Toast.makeText(context,"focus tap press -kkkk",Toast.LENGTH_SHORT).show()
+                                    focusMode.value = false
                                 }
-                            )
-                        },
+                            },
+                            onLongPress = {
+                                if (focusMode.value) {
+                                    //Toast.makeText(context,"focus tap press -kkkk",Toast.LENGTH_SHORT).show()
+                                    focusMode.value = false
+                                }
+                            }
+                        )
+                    },
                 ){
 
                     Column(
@@ -402,14 +395,14 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
-                                                onPrepareVideo = { onPlayVideo(it) },
+                                                onPrepareVideo = { onPrepareVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
                                                 },
-                                                name = recipient?.getDisplayName() ?: ""
-                                            )
+                                                name = recipient?.getDisplayName() ?: ""                                            )
                                         } else {
+                                            //Log.d("MESSAGE",message.body)
                                             MessageItem(
                                                 onAuthorClick = { },
                                                 msg = message,
@@ -417,7 +410,7 @@ fun ChatScreen(
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
-                                                onPrepareVideo = { onPlayVideo(it) },
+                                                onPrepareVideo = { onPrepareVideo(it) },
                                                 onLongClick = {
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
@@ -434,8 +427,8 @@ fun ChatScreen(
                         ) {
 
                             AttachmentRow(
-                                selectedAttachments = selectedAttachments.toList(),
-                                attachmentRemoved = { onAttachmentClicked(it) }
+                                selectedAttachments = attachments.toList(),
+                                onToggleAttachment = { onToggleAttachment(it) }
                             )
 
                             SelectionContainer {
@@ -545,7 +538,7 @@ fun ChatScreen(
 
 
                                     AnimatedVisibility(
-                                        textState.text.isNotBlank() || selectedAttachments.isNotEmpty(),
+                                        textState.text.isNotBlank() || attachments.isNotEmpty(),
                                         enter = expandHorizontally(),
                                         exit = shrinkHorizontally(),
                                     ) {
@@ -618,7 +611,14 @@ fun ChatScreen(
                                         tonalElevation = 8.dp
                                     ) {
                                         when (currentInputSelector) {
-                                            InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
+
+                                            //TODO: swasg
+                                            InputSelector.CONTACT -> ContactSheet(
+                                                contacts = contacts,
+                                                attachments = attachments,
+                                                onContactClicked = { onContactSelected(it) }
+                                            )
+                                            //InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
                                             InputSelector.WALLET -> WalletSelector(
                                                 focusRequester = FocusRequester(),
                                                 onSendEth = {
@@ -636,9 +636,9 @@ fun ChatScreen(
                                             )
                                             InputSelector.PICTURE -> {
                                                 GallerySheet(
+                                                    media = media,
                                                     attachments = attachments,
-                                                    selectedAttachments = selectedAttachments,
-                                                    onItemClicked = { onAttachmentClicked(it) },
+                                                    onMediaClicked = { onToggleAttachment(it) },
                                                 )
                                             }
 
@@ -660,7 +660,7 @@ fun ChatScreen(
                         animationSpec = tween(300),
                     ),
                     exit = fadeOut(
-                        animationSpec = tween(300),
+                        animationSpec = tween(300,),
                     ),
                 ){
                     if (focusedMessage != null) {
@@ -690,28 +690,23 @@ fun ChatScreen(
                     },
                     sheetState = modalAssetSheetState
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(LocalConfiguration.current.screenHeightDp.dp.times(0.7f)) // Set height to 70% of the screen
-                    ) {
-                        when(currentModalSelector){
-                            DetailSelector.CONTACT -> {
+                    when(currentModalSelector){
+                        DetailSelector.CONTACT -> {
 
-                                ContactSheet(
-                                    name = recipient?.getDisplayName() ?: "",
-                                    image = recipient?.contact?.photoUri ?: "",
-                                    ens = listOf(""),
-                                    recipient = recipient,
-                                )
-                            }
-
-                            DetailSelector.MEDIA -> MediaSheet(messagesUiState)
-                            DetailSelector.MEMBERS -> MembersSheet()
-                            DetailSelector.TXS -> TXSheet(messagesUiState)
-                            DetailSelector.ASSET -> AssetPickerSheet()
+                            ContactSheet(
+                                name = recipient?.getDisplayName() ?: "",
+                                image = recipient?.contact?.photoUri ?: "",
+                                ens = listOf(""),
+                                recipient = recipient,
+                            )
                         }
+
+                        DetailSelector.MEDIA -> MediaSheet(messagesUiState)
+                        DetailSelector.MEMBERS -> MembersSheet()
+                        DetailSelector.TXS -> TXSheet(messagesUiState)
+                        DetailSelector.ASSET -> AssetPickerSheet()
                     }
+
                 }
             }
 
@@ -805,10 +800,11 @@ fun SelectorExpanded(
             modifier = Modifier
                 .padding(top = 8.dp)
                 .clip(CircleShape)
-                .size(42.dp),
+                .size(42.dp)
+            ,
             enabled = true,
             onClick = {
-                onSelectorChange(InputSelector.EMOJI)
+                onSelectorChange(InputSelector.CONTACT)
                 onHideKeyboard()
                 onShowSelectionbar()
             },
@@ -816,9 +812,9 @@ fun SelectorExpanded(
             Box(
                 contentAlignment = Alignment.Center
             ){
-                Icon(imageVector = Icons.Outlined.Mood, modifier= Modifier
+                Icon(imageVector = Icons.Outlined.Person, modifier= Modifier
                     .size(32.dp)
-                    ,contentDescription = "Send",tint = Color.White)
+                    ,contentDescription = "Contact",tint = Color.White)
             }
 
         }
@@ -829,7 +825,8 @@ fun SelectorExpanded(
                 modifier = Modifier
                     .padding(top = 8.dp)
                     .clip(CircleShape)
-                    .size(42.dp),
+                    .size(42.dp)
+                ,
                 enabled = true,
                 onClick = {
                     onSelectorChange(InputSelector.WALLET)
@@ -855,7 +852,8 @@ fun SelectorExpanded(
             modifier = Modifier
                 .padding(top = 8.dp)
                 .clip(CircleShape)
-                .size(42.dp),
+                .size(42.dp)
+            ,
             enabled = true,
             onClick = {
                 onSelectorChange(InputSelector.PICTURE)

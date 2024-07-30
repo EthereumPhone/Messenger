@@ -1,5 +1,6 @@
 package org.ethereumhpone.data.repository
 
+import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -12,13 +13,11 @@ import javax.inject.Inject
 class MediaRepositoryImpl @Inject constructor(
     private val imageCursor: ImageCursor
 ): MediaRepository {
-    override fun getImages(): Flow<List<Attachment.Image>> = flow {
+    override fun getImages(): Flow<List<Uri>> = flow {
 
         val images = imageCursor.getImageCursor()
             ?.map(imageCursor::map)
             .orEmpty()
-
-        Log.d("SWAG", images.size.toString())
 
         emit(images)
     }

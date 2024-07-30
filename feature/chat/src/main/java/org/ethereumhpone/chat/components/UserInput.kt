@@ -129,7 +129,8 @@ enum class InputSelector {
     NONE,
     EMOJI,
     WALLET,
-    PICTURE
+    PICTURE,
+    CONTACT
 }
 
 

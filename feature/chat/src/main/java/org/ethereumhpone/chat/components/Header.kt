@@ -119,7 +119,8 @@ fun ChatHeader(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.clickable { onContactClick()  }
                 ) {
                     Box(
                         modifier = Modifier
@@ -135,17 +136,14 @@ fun ChatHeader(
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
-                        } else{
+                        } else {
                             Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
                         }
                     }
 
-                    if (ens.isNotEmpty()){
+                    if (ens.isNotEmpty()) {
                         Column (
                             verticalArrangement = Arrangement.Center,
-                            modifier = modifier.clickable {
-                                onContactClick()
-                            }
                         ){
                             Text(
                                 textAlign = TextAlign.Center,
@@ -157,45 +155,29 @@ fun ChatHeader(
                             )
                         }
                     }
-                    else
-                    {
-
-
-                            Column (
-                                modifier = modifier.clickable {
-                                    onContactClick()
-                                }
-                            ){
-                                Text(
-                                    textAlign = TextAlign.Center,
-                                    text = name,
-                                    fontSize = 18.sp,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontFamily = Fonts.INTER,
-                                )
-                                //val enss = getEnsAddresses(ens)
-                                Text(
-                                    textAlign = TextAlign.Center,
-                                    text = "",//enss,
-                                    fontSize = 14.sp,
-                                    color = Colors.GRAY,
-                                    fontWeight = FontWeight.Normal,
-                                    fontFamily = Fonts.INTER,
-                                )
-
-                            }
-
-
-
+                    else {
+                        Column {
+                            Text(
+                                textAlign = TextAlign.Center,
+                                text = name,
+                                fontSize = 18.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = Fonts.INTER,
+                            )
+                            //val enss = getEnsAddresses(ens)
+                            Text(
+                                textAlign = TextAlign.Center,
+                                text = "",//enss,
+                                fontSize = 14.sp,
+                                color = Colors.GRAY,
+                                fontWeight = FontWeight.Normal,
+                                fontFamily = Fonts.INTER,
+                            )
+                        }
                     }
-
-
-
                 }
             }
-
-
 
 //      Warning or info
             Row(

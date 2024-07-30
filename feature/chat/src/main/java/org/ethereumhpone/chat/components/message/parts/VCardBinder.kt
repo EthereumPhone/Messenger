@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,15 +35,16 @@ fun VCardBinder(
     val vCards = remember { message.parts.filter(MmsPart::isVCard) }
 
     Column(
+        modifier = Modifier.padding(5.dp)
     ) {
         vCards.forEach { card ->
-            val vCard = LocalContext.current.contentResolver.openInputStream(card.getUri()).use {
-                Ezvcard.parse(it).first()
-            }
+            val vCard = LocalContext.current.contentResolver.openInputStream(card.getUri())
+                .use { Ezvcard.parse(it).first() }
             VCard(vCard.getDisplayName() ?: "" ,  message.isMe())
-            Spacer(modifier = Modifier.padding(5.dp))
         }
     }
+
+    //TODO: Add ActionClick for vCard
 }
 
 @Composable

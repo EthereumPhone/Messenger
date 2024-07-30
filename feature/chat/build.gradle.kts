@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(project(":core:common"))
     implementation(libs.androidx.constraintlayout)
+    implementation(project(":core:data"))
     testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 

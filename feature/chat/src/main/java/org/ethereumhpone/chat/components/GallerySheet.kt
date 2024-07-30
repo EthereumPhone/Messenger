@@ -60,14 +60,14 @@ import kotlin.random.Random
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun GallerySheet(
-    attachments: List<Attachment>,
-    selectedAttachments: Set<Attachment> = emptySet(),
-    onItemClicked: (Attachment) -> Unit,
+    media: List<Uri>,
+    attachments: Set<Attachment> = emptySet(),
+    onMediaClicked: (Attachment) -> Unit,
 ) {
 
     val pickMedia = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()) {
-        it?.let { onItemClicked(Attachment.Image(uri = it)) }
+        it?.let { onMediaClicked(Attachment.Image(uri = it)) }
     }
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
@@ -80,7 +80,7 @@ fun GallerySheet(
                         .clip(RoundedCornerShape(20.dp))
                         .height(240.dp)
                     ,
-                    onPhotoCaptured = { onItemClicked(Attachment.Image(it)) }
+                    onPhotoCaptured = { onMediaClicked(Attachment.Image(uri = it)) }
                 )
             }
 
@@ -111,12 +111,12 @@ fun GallerySheet(
                 }
             }
 
-            items(items = attachments){
+            items(items = media){
                 GallerySheetItem(
                     modifier = Modifier.clip(RoundedCornerShape(15.dp)),
-                    attachment = it,
-                    isSelected = selectedAttachments.contains(it),
-                    itemClicked = { onItemClicked(it) }
+                    uri = it,
+                    isSelected = attachments.contains(Attachment.Image(uri = it)),
+                    itemClicked = { onMediaClicked(Attachment.Image(uri = it)) }
                 )
             }
         }
@@ -127,14 +127,14 @@ fun GallerySheet(
 @Composable
 private fun GallerySheetItem(
     modifier: Modifier = Modifier,
-    attachment: Attachment,
+    uri: Uri,
     isSelected: Boolean,
     itemClicked: () -> Unit
 ) {
     Box(Modifier.clickable { itemClicked() }) {
         MediaItem(
             modifier = modifier.aspectRatio(1f),
-            attachment = attachment
+            attachment = Attachment.Image(uri)
         )
 
         if (isSelected) {
@@ -159,14 +159,7 @@ private fun GallerySheetItem(
 @Preview
 fun PreviewGallerySheet() {
     GallerySheet(
-        listOf(
-            Attachment.Image(),
-            Attachment.Image(),
-            Attachment.Image(),
-            Attachment.Image(),
-            Attachment.Image(),
-            Attachment.Image()
-        ),
+        listOf(Uri.EMPTY, Uri.EMPTY, Uri.EMPTY),
         emptySet(),
         {},
     )
