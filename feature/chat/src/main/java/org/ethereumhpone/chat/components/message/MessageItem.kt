@@ -63,7 +63,6 @@ import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.isImage
-import org.ethereumhpone.database.model.isSmil
 import org.ethereumhpone.database.model.isText
 import org.ethereumhpone.database.model.isVCard
 import org.ethereumhpone.database.model.isVideo
@@ -164,6 +163,7 @@ fun MessageItem(
         modifier = spaceBetweenAuthors,
         horizontalArrangement = Arrangement.End
     ) {
+
         Column(
             modifier = alignmessage,
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
@@ -388,22 +388,6 @@ fun TxChatItemBubble(
                 }
             }
         }
-
-//        message.image?.let {
-//            Spacer(modifier = Modifier.height(4.dp))
-//            Surface(
-//                modifier = if(isUserMe) usercolor else reciepientcolor,
-//                color = Color.Transparent,
-//                shape = if(isUserMe) UserChatBubbleShape else ChatBubbleShape
-//            ) {
-//                Image(
-//                    painter = painterResource(it),
-//                    contentScale = ContentScale.Fit,
-//                    modifier = Modifier.size(160.dp),
-//                    contentDescription = "Attached Image"
-//                )
-//            }
-//        }
     }
 }
 

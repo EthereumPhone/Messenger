@@ -311,7 +311,7 @@ fun MessageDetailView(
                 horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
                 verticalArrangement = Arrangement.Center
             ) {
-                
+
 
 
                 val messageBrush = Brush.verticalGradient(
