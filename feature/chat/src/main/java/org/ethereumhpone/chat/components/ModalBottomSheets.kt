@@ -3,6 +3,8 @@ package org.ethereumhpone.chat.components
 import android.content.Context
 import android.content.Intent
 import android.database.Cursor
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.ContactsContract
 import android.view.View
@@ -71,7 +73,6 @@ import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.MessagesUiState
 import org.ethereumhpone.chat.R
-import org.ethereumhpone.chat.components.message.parts.getVideoThumbnail
 import org.ethereumhpone.chat.extractTransactionDetails
 import org.ethereumhpone.chat.isValidTransactionMessage
 import org.ethereumhpone.database.model.Contact
@@ -79,11 +80,15 @@ import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.database.model.isSmil
 import org.ethereumhpone.database.model.isText
 import org.ethereumhpone.database.model.isVideo
+import org.ethereumhpone.domain.model.Attachment
 import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.haptics.EthOSHaptics
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import org.ethosmobile.components.library.walletmanager.ethOSTransferListItem
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -275,7 +280,7 @@ fun MediaSheet(
                                     media.forEachIndexed { index, item ->
                                         Box(Modifier.clip(RoundedCornerShape(15.dp))) {
                                             AsyncImage(
-                                                model = if (item.isVideo()) item.getUri().getVideoThumbnail(LocalContext.current) else item.getUri(),
+                                                model = if (item.isVideo()) Attachment.Video(uri = item.getUri()).getThumbnail(LocalContext.current) else item.getUri(),
                                                 contentDescription = "",
                                                 contentScale = ContentScale.Crop,
                                                 placeholder = painterResource(id = R.drawable.ethos_placeholder),
