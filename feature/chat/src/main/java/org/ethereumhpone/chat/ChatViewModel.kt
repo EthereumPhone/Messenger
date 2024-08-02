@@ -153,6 +153,23 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val focusedMessage: StateFlow<Message?> = _focusedMessage
 
 
+
+
+    private val _selectedMessages = MutableStateFlow<MutableList<Message?>>(mutableListOf())
+    val selectedMessages: StateFlow<MutableList<Message?>> = _selectedMessages
+
+
+
+    fun removeSelectedMessage(message: Message) {
+        _selectedMessages.value.remove(message)
+    }
+    fun addSelectedMessage(message: Message) {
+        _selectedMessages.value.add(message)
+    }
+
+
+
+
     fun parseContact(contact: Contact) {
         toggleAttachment(Attachment.Contact(contact.lookupKey, contact.photoUri?.toUri(), getVCard(contact.lookupKey)!!))
     }

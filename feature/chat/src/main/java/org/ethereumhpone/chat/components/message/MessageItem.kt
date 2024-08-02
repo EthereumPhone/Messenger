@@ -1,6 +1,7 @@
 package org.ethereumhpone.chat.components.message
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.chat.components.EthOSCheckbox
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
@@ -131,9 +133,13 @@ fun MessageItem(
     isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
     player: Player?,
+    name: String,
+    selectMode: MutableState<Boolean>,
     onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
-    name: String
+    checked: MutableState<Boolean>,
+    onSelect: (Boolean) -> Unit,
+    onDoubleClick: () -> Unit
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
@@ -161,9 +167,18 @@ fun MessageItem(
 
     Row(
         modifier = spaceBetweenAuthors,
-        horizontalArrangement = Arrangement.End
+        verticalAlignment = Alignment.CenterVertically
     ) {
-
+        AnimatedVisibility(selectMode.value){
+            EthOSCheckbox(
+                checked = checked.value,//checkedbox.value,
+                onCheckedChange = {
+                    //checkedbox.value = it
+                    onSelect(checked.value)//checkedbox.value)
+                    checked.value = it
+                },
+            )
+        }
         Column(
             modifier = alignmessage,
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
@@ -172,7 +187,6 @@ fun MessageItem(
             ChatItemBubble(
                 message = msg,
                 isUserMe = isUserMe,
-                isLastMessageByAuthor=isLastMessageByAuthor,
                 isFirstMessageByAuthor=isFirstMessageByAuthor,
                 videoPlayer = player,
                 onPlayVideo = { onPrepareVideo(it) },
@@ -180,12 +194,10 @@ fun MessageItem(
                     composablePositionState.value.height = compSize
                     composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
                     onLongClick()
-                              },
-                name = name
+                },
+                name = name,
+                onDoubleClick = onDoubleClick
             )
-
-
-
 
 
             val messageText = when {
@@ -398,12 +410,12 @@ fun ChatItemBubble(
     message: Message,
     isUserMe: Boolean,
     name: String = "",
-    isLastMessageByAuthor: Boolean,
     isFirstMessageByAuthor: Boolean,
     videoPlayer: Player?,
     onPlayVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
-    authorClicked: (String) -> Unit = {}
+    authorClicked: (String) -> Unit = {},
+    onDoubleClick: () -> Unit = {},
 ) {
 
     val Bubbleshape = if(isUserMe) {
@@ -512,7 +524,6 @@ fun ChatItemBubble(
 
                 ClickableMessage(
                     message = message,
-                    isLastMessageByAuthor = isLastMessageByAuthor,
                     styledMessage = styledMessage,
                     style = TextStyle(
                         fontSize = 16.sp,
@@ -535,6 +546,7 @@ fun ChatItemBubble(
                                 }
                             }
                     },
+                    onDoubleClick = onDoubleClick
                 )
             }
         }
@@ -546,7 +558,6 @@ fun ChatItemBubble(
 @Composable
 fun ClickableMessage(
     modifier: Modifier = Modifier,
-    isLastMessageByAuthor: Boolean,
     message: Message,
     isUserMe: Boolean,
     styledMessage: AnnotatedString,
@@ -580,6 +591,9 @@ fun ClickableMessage(
                                     //Toast.makeText(context,"tap",Toast.LENGTH_SHORT).show()
                                     onClick(layoutResult.getOffsetForPosition(pos))
                                 }
+                            },
+                            onDoubleTap = {
+                                onDoubleClick()
                             }
 
                         )
@@ -662,7 +676,6 @@ fun previewTChatItemBubble() {
         videoPlayer = null,
         isUserMe = true,
         authorClicked = {},
-        isLastMessageByAuthor = false,
         isFirstMessageByAuthor= true,
         onLongClick = {},
         onPlayVideo = {}
@@ -739,7 +752,6 @@ fun ConversationPreview() {
                     isUserMe = content.address == authorMe,
                     videoPlayer = null,
                     isFirstMessageByAuthor = isFirstMessageByAuthor,
-                    isLastMessageByAuthor = isLastMessageByAuthor,
                     onPlayVideo = {}
                 )
             }

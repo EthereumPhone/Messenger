@@ -1,8 +1,10 @@
 package org.ethereumhpone.chat
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
@@ -31,7 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,8 +74,11 @@ import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.InsertPhoto
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Shortcut
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -81,23 +87,24 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layoutId
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.zIndex
-import org.ethereumhpone.chat.components.FunctionalityNotAvailablePanel
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import org.ethereumhpone.chat.components.ChatHeader
 import org.ethereumhpone.chat.components.message.ComposablePosition
-import org.ethereumhpone.chat.components.ContactItem
 import org.ethereumhpone.chat.components.ContactSheet
 import org.ethereumhpone.chat.components.DetailSelector
 import org.ethereumhpone.chat.components.GallerySheet
@@ -107,13 +114,10 @@ import org.ethereumhpone.chat.components.message.TxMessage
 import org.ethereumhpone.chat.components.TXSheet
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.chat.components.customBlur
-import org.ethereumhpone.chat.components.makePhoneCall
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.Attachment
-import org.ethosmobile.components.library.core.ethOSIconButton
-import java.util.Collections.list
 
 
 @Composable
@@ -133,6 +137,8 @@ fun ChatRoute(
     val focusedMessage by chatViewModel.focusedMessage.collectAsStateWithLifecycle()
    // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
 
+    val selectedMessaged by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
+
 
     ChatScreen(
         messagesUiState = messagesUiState,
@@ -145,6 +151,7 @@ fun ChatRoute(
         chainName = chainName,
         videoPlayer = videoPlayer,
         focusedMessage = focusedMessage,
+        selectedMessaged = selectedMessaged,
         onSendEthClicked = chatViewModel::sendEth,
         onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
@@ -152,7 +159,9 @@ fun ChatRoute(
         onPhoneClicked = chatViewModel::callPhone,
         onPrepareVideo = mediaViewModel::addVideoUri,
         onContactSelected = chatViewModel::parseContact,
-        onToggleAttachment = chatViewModel::toggleAttachment
+        onToggleAttachment = chatViewModel::toggleAttachment,
+        onRemoveSelectedMessage = chatViewModel::removeSelectedMessage,
+        onAddSelectedMessage = chatViewModel::addSelectedMessage,
     )
 }
 
@@ -170,6 +179,7 @@ fun ChatScreen(
     tokenBalance: Double = 0.0,
     chainName: String = "?",
     videoPlayer: Player,
+    selectedMessaged: List<Message?>,
     onContactSelected: (Contact) -> Unit,
     onToggleAttachment: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
@@ -178,6 +188,8 @@ fun ChatScreen(
     onFocusedMessageUpdate: (Message) -> Unit,
     onPhoneClicked: () -> Unit,
     onPrepareVideo: (Uri) -> Unit,
+    onRemoveSelectedMessage: (Message) -> Unit,
+    onAddSelectedMessage: (Message) -> Unit,
 ) {
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
@@ -220,16 +232,23 @@ fun ChatScreen(
     val composablePositionState = remember { mutableStateOf(ComposablePosition()) }//gets offset of message composable
 
 
-
     val profileview = remember {
         mutableStateOf(false)
     }
-    val image = recipient?.contact?.photoUri ?: ""
-
 
     var detailview by remember {
         mutableStateOf(false)
     }
+
+    val selectMode = remember {
+        mutableStateOf(false)
+    }
+
+    var selectAll = remember {
+        mutableStateOf(false)
+    }
+
+    var messageSelectedList by remember { mutableStateOf(mutableStateListOf<Message?>()) }
 
     val controller = LocalSoftwareKeyboardController.current
 
@@ -325,6 +344,11 @@ fun ChatScreen(
                                 profileview.value = true
                                 //showAssetSheet = true
                             },
+                            selectMode = selectMode,
+                            selectAll = selectAll,
+                            onSelectAll = {
+                                selectAll.value = !selectAll.value
+                            }
                         )
 
 
@@ -353,11 +377,40 @@ fun ChatScreen(
                             }
 
                             is MessagesUiState.Success -> {
+                                // Initialize states for the child checkboxes
+                                val size = messagesUiState.messages.size
+                                val childCheckedStates = remember { MutableList(size) { mutableStateOf(false) } }
+
                                 val listState = rememberLazyListState()
-                                
+
+
                                 LaunchedEffect(key1 = messagesUiState) {
                                     listState.animateScrollToItem(0)
                                 }
+
+                                //selectAll = if(selectAll && (childCheckedStates.all { it.value})) { false }
+
+                                if(selectMode.value) {
+                                    if (selectAll.value) {
+                                        childCheckedStates.forEachIndexed { index, _ ->
+                                            if(!childCheckedStates[index].value){
+                                                childCheckedStates[index].value = true
+                                                //onAddSelectedMessage(messagesUiState.messages[index])
+                                                messageSelectedList.add(messagesUiState.messages[index])
+                                            }
+
+                                        }
+                                    } else {
+                                        childCheckedStates.forEachIndexed { index, _ ->
+                                            childCheckedStates[index].value = false
+                                            messageSelectedList.remove(messagesUiState.messages[index])
+                                        }
+                                    }
+                                }
+
+
+
+
 
                                 LazyColumn(
                                     state = listState,
@@ -367,7 +420,7 @@ fun ChatScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = 24.dp)
                                 ) {
-                                    items(items = messagesUiState.messages, key = { it.id }) { message ->
+                                    itemsIndexed(items = messagesUiState.messages) { index, message ->
 
 
                                         //Log.d("DEBUG", "${message.id} - ${message.body} - ${message.parts.toString()}")
@@ -376,6 +429,8 @@ fun ChatScreen(
                                         val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
                                         val isFirstMessageByAuthor = prevAuthor != message.address
                                         val isLastMessageByAuthor = nextAuthor != message.address
+
+                                        Log.d("SelectAll","${selectedMessaged.size} - $message")
 
                                         if (isValidTransactionMessage(message.body)) {
                                             val transactionDetails = extractTransactionDetails(message.body)
@@ -401,7 +456,38 @@ fun ChatScreen(
                                                     focusMode.value = true
                                                 },
                                                 player = videoPlayer,
-                                                name = recipient?.getDisplayName() ?: ""                                            )
+                                                name = recipient?.getDisplayName() ?: "",
+                                                checked = childCheckedStates[index],
+                                                selectMode = selectMode,
+                                                onSelect = { isChecked ->
+
+                                                    childCheckedStates[index].value = isChecked
+                                                    if (isChecked) {
+                                                        //onAddSelectedMessage(message)
+                                                        messageSelectedList.remove(message)
+                                                        Log.d("SelectAll","${selectedMessaged.size} - $message")
+                                                    } else {
+
+                                                        //onRemoveSelectedMessage(message)
+                                                        messageSelectedList.add(message)
+                                                        Log.d("SelectAll flase","${selectedMessaged.size} - $message")
+                                                    }
+
+//                                                    childCheckedStates[index].value = !isChecked
+//
+//                                                    if(!isChecked){
+//                                                        Log.d("SelectAll TEST","$message - $isChecked")
+//                                                        onAddSelectedMessage(message)
+//                                                    } else {
+//                                                        Log.d("SelectAll TEST NP","$message - $isChecked")
+//                                                        onRemoveSelectedMessage(message)
+//                                                    }
+//                                                    Log.d("SelectAll - childCheckedStates","$selectedMessaged - ${childCheckedStates[index].value} - $isChecked")
+
+                                                }
+                                            ) {
+                                                selectMode.value = !selectMode.value
+                                            }
                                         } else {
                                             //Log.d("MESSAGE",message.body)
                                             MessageItem(
@@ -417,242 +503,378 @@ fun ChatScreen(
                                                     onFocusedMessageUpdate(message)
                                                     focusMode.value = true
                                                 },
-                                                name = recipient?.getDisplayName() ?: ""
-                                            )
+                                                name = recipient?.getDisplayName() ?: "",
+                                                checked = childCheckedStates[index],
+                                                selectMode = selectMode,
+                                                onSelect = { isChecked ->
+
+                                                    childCheckedStates[index].value = isChecked
+                                                    if (isChecked) {
+                                                        //onAddSelectedMessage(message)
+                                                        messageSelectedList.remove(message)
+                                                        Log.d("SelectAll","${selectedMessaged.size} - $message")
+                                                    } else {
+
+                                                        //onRemoveSelectedMessage(message)
+                                                        messageSelectedList.add(message)
+                                                        Log.d("SelectAll flase","${selectedMessaged.size} - $message")
+                                                    }
+
+//                                                    Log.d("SelectAll - childCheckedStates","$childCheckedStates ${childCheckedStates[index].value}")
+////                                                    Log.d("SelectAll - childCheckedStates","$childCheckedStates")
+//                                                    childCheckedStates[index].value = !isChecked
+//
+//                                                    if(!isChecked){
+//
+//                                                        onAddSelectedMessage(message)
+//                                                        Log.d("SelectAll TESTutfuy","${selectedMessaged.size} - $message")
+//                                                    } else {
+//                                                        Log.d("SelectAll TEST NP","${selectedMessaged.size} - $message")
+//                                                        onRemoveSelectedMessage(message)
+//                                                    }
+
+
+//                                                    Log.d("SelectAll - childCheckedStates","$selectedMessaged - ${childCheckedStates[index].value} - $isChecked")
+                                                }
+                                            ) {
+                                                selectMode.value = !selectMode.value
+                                            }
                                         }
+
+
+//                                        MessageItem(
+//                                            onAuthorClick = { },
+//                                            msg = message,
+//                                            isUserMe = message.isMe(),
+//                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+//                                            isLastMessageByAuthor = isLastMessageByAuthor,
+//                                            composablePositionState = composablePositionState,
+//                                            player = videoPlayer,
+//                                            onPrepareVideo = { onPrepareVideo(it) },
+//                                            onLongClick = {
+//                                                onFocusedMessageUpdate(message)
+//                                                focusMode.value = true
+//                                            },
+//                                            name = recipient?.getDisplayName() ?: "",
+//                                            checked = childCheckedStates[index],
+//                                            selectMode = selectMode,
+//                                            onSelect = { isChecked ->
+//
+//                                                childCheckedStates[index].value = isChecked
+//                                                if (isChecked) {
+//                                                    //onAddSelectedMessage(message)
+//                                                    messageSelectedList.remove(message)
+//                                                    Log.d("SelectAll","${selectedMessaged.size} - $message")
+//                                                } else {
+//
+//                                                    //onRemoveSelectedMessage(message)
+//                                                    messageSelectedList.add(message)
+//                                                    Log.d("SelectAll flase","${selectedMessaged.size} - $message")
+//                                                }
+//
+////                                                    Log.d("SelectAll - childCheckedStates","$childCheckedStates ${childCheckedStates[index].value}")
+//////                                                    Log.d("SelectAll - childCheckedStates","$childCheckedStates")
+////                                                    childCheckedStates[index].value = !isChecked
+////
+////                                                    if(!isChecked){
+////
+////                                                        onAddSelectedMessage(message)
+////                                                        Log.d("SelectAll TESTutfuy","${selectedMessaged.size} - $message")
+////                                                    } else {
+////                                                        Log.d("SelectAll TEST NP","${selectedMessaged.size} - $message")
+////                                                        onRemoveSelectedMessage(message)
+////                                                    }
+//
+//
+////                                                    Log.d("SelectAll - childCheckedStates","$selectedMessaged - ${childCheckedStates[index].value} - $isChecked")
+//                                            }
+//                                        ) {
+//                                            selectMode.value = !selectMode.value
+//                                        }
                                     }
                                 }
                             }
                         }
+
+
+
+
                         Column(
-                            modifier = modifier.padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
+                            modifier = modifier
+                                .padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
                         ) {
-
-                            AttachmentRow(
-                                selectedAttachments = attachments.toList(),
-                                onToggleAttachment = { onToggleAttachment(it) }
-                            )
-
-                            SelectionContainer {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.Top,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 8.dp)
-                                ) {
-                                    var startAnimation by remember { mutableStateOf(false) }
-                                    val animationSpec = tween<Float>(
-                                        durationMillis = 400,
-                                        easing = LinearOutSlowInEasing
-                                    )
-                                    val rotationAngle by animateFloatAsState(
-                                        targetValue = if (startAnimation) 45f else 0f,
-                                        animationSpec = animationSpec,
-                                        label = ""
-                                    )
-                                    IconButton(
-                                        modifier = Modifier
-                                            .padding(top = 8.dp)
-                                            .clip(CircleShape)
-                                            .size(42.dp),
-                                        enabled = true,
-                                        onClick = {
-                                            //onChangeShowActionBar()
-                                            dismissKeyboard()
-                                            controller?.hide() // Keyboard
-
-                                            showActionbar = !showActionbar
-
-                                            if (showSelectionbar) {
-                                                showSelectionbar = false
-                                            }
-                                            startAnimation = !startAnimation
-                                        },
-                                    ) {
-                                        Box(
-                                            contentAlignment = Alignment.Center
+                            AnimatedContent(
+                                modifier = Modifier.fillMaxWidth(),
+                                targetState = selectMode.value, label = "",
+                            ) { targetMode ->
+                                if(targetMode) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(56.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ){
+                                        IconButton(
+                                            onClick = {  },
+                                            modifier = modifier.size(28.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Filled.Add,
-                                                modifier = Modifier
-                                                    .size(32.dp)
-                                                    .graphicsLayer(rotationZ = rotationAngle),
-                                                contentDescription = "Send",
-                                                tint = Color.White
+                                                imageVector = Icons.Outlined.Delete,
+                                                contentDescription = "Go back",
+                                                tint = Colors.WHITE,
+                                                modifier = modifier.size(28.dp)
                                             )
                                         }
-
-                                    }
-
-                                    var lastFocusState by remember { mutableStateOf(false) }
-                                    TextField(
-                                        shape = RoundedCornerShape(35.dp),
-                                        value = textState,
-                                        onValueChange = { textState = it },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(35.dp))
-                                            .border(
-                                                2.dp,
-                                                Colors.DARK_GRAY,
-                                                RoundedCornerShape(35.dp)
-                                            )
-                                            .heightIn(min = 56.dp, max = 100.dp)
-                                            .onFocusChanged { state ->
-                                                if (lastFocusState != state.isFocused) {
-
-                                                    if (state.isFocused) {
-                                                        currentInputSelector =
-                                                            InputSelector.NONE
-                                                        //resetScroll()
-                                                    }
-                                                    textFieldFocusState = state.isFocused
-
-                                                }
-                                                lastFocusState = state.isFocused
-                                            },
-
-                                        placeholder = {
-                                            Text("Type a message")
-                                        },
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedTextColor = Colors.WHITE,
-                                            unfocusedTextColor = Colors.WHITE,
-                                            focusedContainerColor = Colors.TRANSPARENT,
-                                            unfocusedContainerColor = Colors.TRANSPARENT,
-                                            disabledContainerColor = Colors.TRANSPARENT,
-                                            cursorColor = Colors.WHITE,
-                                            errorCursorColor = Colors.WHITE,
-                                            focusedBorderColor = Colors.TRANSPARENT,
-                                            unfocusedBorderColor = Colors.TRANSPARENT,
-                                            focusedPlaceholderColor = Colors.GRAY,
-                                            unfocusedPlaceholderColor = Colors.GRAY,
-                                        ),
-                                        textStyle = TextStyle(
-                                            fontWeight = FontWeight.Medium,
+                                        Text(
+                                            text = "${messageSelectedList.size} Selected Messages",//"${selectedMessaged.size} Selected Messages",
+                                            fontSize = 16.sp,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Normal,
                                             fontFamily = Fonts.INTER,
-                                            fontSize = 18.sp,
-                                            color = Colors.WHITE,
                                         )
 
-                                    )
-
-
-                                    AnimatedVisibility(
-                                        textState.text.isNotBlank() || attachments.isNotEmpty(),
-                                        enter = expandHorizontally(),
-                                        exit = shrinkHorizontally(),
-                                    ) {
                                         IconButton(
-                                            modifier = Modifier
-                                                .padding(top = 8.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFF8C7DF7))
-                                                .size(42.dp),
-                                            enabled = true,
-                                            onClick = {
-                                                // Move scroll to bottom
-                                                //resetScroll()
-                                                dismissKeyboard()
-
-                                                if (showSelectionbar) {
-                                                    showSelectionbar = false
-                                                }
-
-                                                if (showActionbar) {
-                                                    showActionbar = false
-                                                    startAnimation = !startAnimation
-                                                }
-
-
-
-                                                controller?.hide() // Keyboard
-
-                                                lastFocusState = false
-                                                textFieldFocusState = false
-                                                onSendMessageClicked(textState.text)
-                                                textState = TextFieldValue()
-                                            },
+                                            onClick = {  },
+                                            modifier = modifier.size(28.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Rounded.ArrowUpward,
-                                                modifier = Modifier
-                                                    .size(32.dp),
-                                                contentDescription = "Send",
-                                                tint = Color.White
+                                                imageVector = Icons.Outlined.Shortcut,
+                                                contentDescription = "Go back",
+                                                tint = Colors.WHITE,
+                                                modifier = modifier.size(28.dp)
                                             )
                                         }
                                     }
+                                } else {
 
-                                }
-                            }
+                                    AttachmentRow(
+                                        selectedAttachments = attachments.toList(),
+                                        onToggleAttachment = { onToggleAttachment(it) }
+                                    )
 
-                            // Animated visibility will eventually remove the item from the composition once the animation has finished.
-                            AnimatedVisibility(showActionbar) {
-
-                                SelectorExpanded(
-                                    onSelectorChange = {
-                                        currentInputSelector = it
-                                    },
-                                    onShowSelectionbar = {
-                                        if (!showSelectionbar) {
-                                            showSelectionbar = true
-                                        }
-                                    },
-                                    onHideKeyboard = { controller?.hide() },
-                                    recipient = recipient
-                                )
-                            }
-
-
-                            AnimatedVisibility(showSelectionbar) {
-                                if(showActionbar){
-                                    Surface(
-                                        color = Colors.TRANSPARENT,
-                                        tonalElevation = 8.dp
-                                    ) {
-                                        when (currentInputSelector) {
-
-                                            //TODO: swasg
-                                            InputSelector.CONTACT -> ContactSheet(
-                                                contacts = contacts,
-                                                attachments = attachments,
-                                                onContactClicked = { onContactSelected(it) }
+                                    SelectionContainer {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.Top,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 8.dp)
+                                        ) {
+                                            var startAnimation by remember { mutableStateOf(false) }
+                                            val animationSpec = tween<Float>(
+                                                durationMillis = 400,
+                                                easing = LinearOutSlowInEasing
                                             )
-                                            //InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
-                                            InputSelector.WALLET -> WalletSelector(
-                                                focusRequester = FocusRequester(),
-                                                onSendEth = {
-                                                    onSendEthClicked(it)
+                                            val rotationAngle by animateFloatAsState(
+                                                targetValue = if (startAnimation) 45f else 0f,
+                                                animationSpec = animationSpec,
+                                                label = ""
+                                            )
+                                            IconButton(
+                                                modifier = Modifier
+                                                    .padding(top = 8.dp)
+                                                    .clip(CircleShape)
+                                                    .size(42.dp),
+                                                enabled = true,
+                                                onClick = {
+                                                    //onChangeShowActionBar()
                                                     dismissKeyboard()
                                                     controller?.hide() // Keyboard
 
                                                     showActionbar = !showActionbar
-                                                    if(showSelectionbar){
+
+                                                    if (showSelectionbar) {
                                                         showSelectionbar = false
                                                     }
+                                                    startAnimation = !startAnimation
                                                 },
-                                                tokenBalance = tokenBalance,
-                                                chainName = chainName
-                                            )
-                                            InputSelector.PICTURE -> {
-                                                GallerySheet(
-                                                    media = media,
-                                                    attachments = attachments,
-                                                    onMediaClicked = { onToggleAttachment(it) },
-                                                )
+                                            ) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Add,
+                                                        modifier = Modifier
+                                                            .size(32.dp)
+                                                            .graphicsLayer(rotationZ = rotationAngle),
+                                                        contentDescription = "Send",
+                                                        tint = Color.White
+                                                    )
+                                                }
+
                                             }
 
-                                            else -> {
-                                                //TODO: commented the code because sending message defaults to this route and crashes the app
-                                                //throw NotImplementedError()
+                                            var lastFocusState by remember { mutableStateOf(false) }
+                                            TextField(
+                                                shape = RoundedCornerShape(35.dp),
+                                                value = textState,
+                                                onValueChange = { textState = it },
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(35.dp))
+                                                    .border(
+                                                        2.dp,
+                                                        Colors.DARK_GRAY,
+                                                        RoundedCornerShape(35.dp)
+                                                    )
+                                                    .heightIn(min = 56.dp, max = 100.dp)
+                                                    .onFocusChanged { state ->
+                                                        if (lastFocusState != state.isFocused) {
+
+                                                            if (state.isFocused) {
+                                                                currentInputSelector =
+                                                                    InputSelector.NONE
+                                                                //resetScroll()
+                                                            }
+                                                            textFieldFocusState = state.isFocused
+
+                                                        }
+                                                        lastFocusState = state.isFocused
+                                                    },
+
+                                                placeholder = {
+                                                    Text("Type a message")
+                                                },
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedTextColor = Colors.WHITE,
+                                                    unfocusedTextColor = Colors.WHITE,
+                                                    focusedContainerColor = Colors.TRANSPARENT,
+                                                    unfocusedContainerColor = Colors.TRANSPARENT,
+                                                    disabledContainerColor = Colors.TRANSPARENT,
+                                                    cursorColor = Colors.WHITE,
+                                                    errorCursorColor = Colors.WHITE,
+                                                    focusedBorderColor = Colors.TRANSPARENT,
+                                                    unfocusedBorderColor = Colors.TRANSPARENT,
+                                                    focusedPlaceholderColor = Colors.GRAY,
+                                                    unfocusedPlaceholderColor = Colors.GRAY,
+                                                ),
+                                                textStyle = TextStyle(
+                                                    fontWeight = FontWeight.Medium,
+                                                    fontFamily = Fonts.INTER,
+                                                    fontSize = 18.sp,
+                                                    color = Colors.WHITE,
+                                                )
+
+                                            )
+
+
+                                            AnimatedVisibility(
+                                                textState.text.isNotBlank() || attachments.isNotEmpty(),
+                                                enter = expandHorizontally(),
+                                                exit = shrinkHorizontally(),
+                                            ) {
+                                                IconButton(
+                                                    modifier = Modifier
+                                                        .padding(top = 8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF8C7DF7))
+                                                        .size(42.dp),
+                                                    enabled = true,
+                                                    onClick = {
+                                                        // Move scroll to bottom
+                                                        //resetScroll()
+                                                        dismissKeyboard()
+
+                                                        if (showSelectionbar) {
+                                                            showSelectionbar = false
+                                                        }
+
+                                                        if (showActionbar) {
+                                                            showActionbar = false
+                                                            startAnimation = !startAnimation
+                                                        }
+
+
+
+                                                        controller?.hide() // Keyboard
+
+                                                        lastFocusState = false
+                                                        textFieldFocusState = false
+                                                        onSendMessageClicked(textState.text)
+                                                        textState = TextFieldValue()
+                                                    },
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.ArrowUpward,
+                                                        modifier = Modifier
+                                                            .size(32.dp),
+                                                        contentDescription = "Send",
+                                                        tint = Color.White
+                                                    )
+                                                }
+                                            }
+
+                                        }
+                                    }
+
+                                    // Animated visibility will eventually remove the item from the composition once the animation has finished.
+                                    AnimatedVisibility(showActionbar) {
+
+                                        SelectorExpanded(
+                                            onSelectorChange = {
+                                                currentInputSelector = it
+                                            },
+                                            onShowSelectionbar = {
+                                                if (!showSelectionbar) {
+                                                    showSelectionbar = true
+                                                }
+                                            },
+                                            onHideKeyboard = { controller?.hide() },
+                                            recipient = recipient
+                                        )
+                                    }
+
+
+                                    AnimatedVisibility(showSelectionbar) {
+                                        if(showActionbar){
+                                            Surface(
+                                                color = Colors.TRANSPARENT,
+                                                tonalElevation = 8.dp
+                                            ) {
+                                                when (currentInputSelector) {
+
+                                                    InputSelector.CONTACT -> ContactSheet(
+                                                        contacts = contacts,
+                                                        attachments = attachments,
+                                                        onContactClicked = { onContactSelected(it) }
+                                                    )
+                                                    //InputSelector.EMOJI -> FunctionalityNotAvailablePanel("Emoji")
+                                                    InputSelector.WALLET -> WalletSelector(
+                                                        focusRequester = FocusRequester(),
+                                                        onSendEth = {
+                                                            onSendEthClicked(it)
+                                                            dismissKeyboard()
+                                                            controller?.hide() // Keyboard
+
+                                                            showActionbar = !showActionbar
+                                                            if(showSelectionbar){
+                                                                showSelectionbar = false
+                                                            }
+                                                        },
+                                                        tokenBalance = tokenBalance,
+                                                        chainName = chainName
+                                                    )
+                                                    InputSelector.PICTURE -> {
+                                                        GallerySheet(
+                                                            media = media,
+                                                            attachments = attachments,
+                                                            onMediaClicked = { onToggleAttachment(it) },
+                                                        )
+                                                    }
+
+                                                    else -> {
+                                                        //TODO: commented the code because sending message defaults to this route and crashes the app
+                                                        //throw NotImplementedError()
+                                                    }
+                                                }
                                             }
                                         }
                                     }
+
+
                                 }
                             }
                         }
+
                     }
                 }
 
@@ -774,7 +996,6 @@ fun  extractTransactionDetails(message: String): TransactionDetails? {
 
     return if (chainId != -1) TransactionDetails(amount, url, chainId) else null
 }
-
 
 
 

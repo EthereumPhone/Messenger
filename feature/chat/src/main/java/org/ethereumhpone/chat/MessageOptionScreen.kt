@@ -406,7 +406,7 @@ fun MessageDetailView(
                             ),
                             onClick = { expanded = !expanded }
                         ) {
-                            Text(text = if(expanded) "Show less" else "Show more")
+                            Text(text = if(expanded) "Show less" else "Show more", fontFamily = Fonts.INTER)
                         }
                     }
 

@@ -8,12 +8,17 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.triStateToggleable
 import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material3.Button
 import androidx.compose.material3.CheckboxColors
+import androidx.compose.material3.Text
 import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -457,3 +462,42 @@ class EthOSCheckboxColors internal constructor(
         return result
     }
 }
+
+@Composable
+fun ListWithButton() {
+    // Create a mutable list and use a state to manage it
+    var itemList by remember { mutableStateOf(listOf<String>()) }
+
+    Column {
+        // Button to add items to the list
+        AddItemButton { newItem ->
+            itemList = itemList + newItem
+        }
+
+        // LazyColumn to display the items
+        LazyColumn {
+            items(itemList) { item ->
+                Text(text = item, modifier = androidx.compose.ui.Modifier.padding(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun AddItemButton(onAddItem: (String) -> Unit) {
+    var counter by remember { mutableStateOf(1) }
+
+    Button(onClick = {
+        onAddItem("Item $counter")
+        counter++
+    }) {
+        Text("Add Item")
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ListWithButtonPreview() {
+    ListWithButton()
+}
+
