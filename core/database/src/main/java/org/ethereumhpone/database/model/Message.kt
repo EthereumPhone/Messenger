@@ -120,7 +120,11 @@ data class Message(
     }
 
     fun isSending(): Boolean {
-        return !isFailedMessage() && isOutgoingMessage()
+        return if (!isMe()) {
+            !isFailedMessage() && isOutgoingMessage()
+        } else {
+            false
+        }
     }
 
     fun compareSender(other: Message): Boolean = when {
