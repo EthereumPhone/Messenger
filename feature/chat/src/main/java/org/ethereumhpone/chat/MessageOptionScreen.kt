@@ -311,7 +311,7 @@ fun MessageDetailView(
                 horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
                 verticalArrangement = Arrangement.Center
             ) {
-                
+
 
 
                 val messageBrush = Brush.verticalGradient(
@@ -406,7 +406,7 @@ fun MessageDetailView(
                             ),
                             onClick = { expanded = !expanded }
                         ) {
-                            Text(text = if(expanded) "Show less" else "Show more")
+                            Text(text = if(expanded) "Show less" else "Show more", fontFamily = Fonts.INTER)
                         }
                     }
 

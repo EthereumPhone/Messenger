@@ -70,6 +70,12 @@ import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import android.net.Uri
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import org.ethereumhpone.chat.BuildConfig
 import org.kethereum.rpc.HttpEthereumRPC
@@ -83,9 +89,12 @@ fun ChatHeader(
     name: String,
     ens: List<String>,
     image: String,
+    selectMode: MutableState<Boolean>,
+    selectAll: MutableState<Boolean>,
     onBackClick: () -> Unit = {},
     onPhoneClick: () -> Unit = {},
     onContactClick: () -> Unit = {},
+    onSelectAll: () -> Unit = {},
 ){
     val iconsize = 24.dp
     Column(
@@ -93,116 +102,164 @@ fun ChatHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier.padding(bottom = 8.dp),
     ) {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-
+        AnimatedContent(
+            modifier = Modifier.fillMaxWidth(),
+            targetState = selectMode.value, label = "",
+        ){targetMode ->
             Row(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = modifier.size(iconsize)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ArrowBackIosNew,
-                        contentDescription = "Go back",
-                        tint =  Colors.WHITE,
-                        modifier = modifier.size(iconsize)
-                    )
-                }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.clickable { onContactClick()  }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF262626))
-                            .clickable { onContactClick() }
-                    ){
-                        if (image != ""){
-                            Image(
-                                painter = rememberAsyncImagePainter(image),
-                                contentDescription = "Contact Profile Pic",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
-                        }
-                    }
 
-                    if (ens.isNotEmpty()) {
-                        Column (
-                            verticalArrangement = Arrangement.Center,
-                        ){
-                            Text(
-                                textAlign = TextAlign.Center,
-                                text = name,
-                                fontSize = 18.sp,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = Fonts.INTER,
-                            )
-                        }
-                    }
-                    else {
-                        Column {
-                            Text(
-                                textAlign = TextAlign.Center,
-                                text = name,
-                                fontSize = 18.sp,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = Fonts.INTER,
-                            )
-                            //val enss = getEnsAddresses(ens)
-                            Text(
-                                textAlign = TextAlign.Center,
-                                text = "",//enss,
-                                fontSize = 14.sp,
-                                color = Colors.GRAY,
-                                fontWeight = FontWeight.Normal,
-                                fontFamily = Fonts.INTER,
-                            )
-                        }
-                    }
-                }
-            }
-
-//      Warning or info
-            Row(
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-
-                ) {
-                Row(
-                    horizontalArrangement = Arrangement.Start,
-                ) {
-                    IconButton(
-                        onClick = onPhoneClick,
-                        modifier = modifier.size(iconsize)
+                if(targetMode) {
+                    TextButton(
+                        onClick = onSelectAll,
+                        modifier = modifier
+                            .height(42.dp)
+                            ,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Colors.TRANSPARENT,
+                            contentColor = Colors.WHITE,
+                        )
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Phone,
-                            contentDescription = "Go back",
-                            tint =  Colors.WHITE,
-                            modifier = modifier.size(iconsize)
+                        Text(
+                            text = if(selectAll.value) { "Deselect All" } else {  "Select All"},
+                            fontSize = 16.sp,
+                            fontFamily = Fonts.INTER,
+                            color = Colors.WHITE,
                         )
                     }
-                }
-            }
-        }
 
+                    TextButton(
+                        onClick = {
+                            selectMode.value = false
+                        },
+                        modifier = modifier
+                            .height(42.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Colors.TRANSPARENT,
+                            contentColor = Colors.WHITE,
+                        )
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            fontSize = 16.sp,
+                            fontFamily = Fonts.INTER,
+                            color = Colors.WHITE,
+                        )
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        IconButton(
+                            onClick = onBackClick,
+                            modifier = modifier.size(iconsize)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowBackIosNew,
+                                contentDescription = "Go back",
+                                tint =  Colors.WHITE,
+                                modifier = modifier.size(iconsize)
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.clickable { onContactClick()  }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF262626))
+                                    .clickable { onContactClick() }
+                            ){
+                                if (image != ""){
+                                    Image(
+                                        painter = rememberAsyncImagePainter(image),
+                                        contentDescription = "Contact Profile Pic",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
+                                }
+                            }
+
+                            if (ens.isNotEmpty()) {
+                                Column (
+                                    verticalArrangement = Arrangement.Center,
+                                ){
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = name,
+                                        fontSize = 18.sp,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontFamily = Fonts.INTER,
+                                    )
+                                }
+                            }
+                            else {
+                                Column {
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = name,
+                                        fontSize = 18.sp,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontFamily = Fonts.INTER,
+                                    )
+                                    //val enss = getEnsAddresses(ens)
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = "",//enss,
+                                        fontSize = 14.sp,
+                                        color = Colors.GRAY,
+                                        fontWeight = FontWeight.Normal,
+                                        fontFamily = Fonts.INTER,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+//      Warning or info
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Start,
+                        ) {
+                            IconButton(
+                                onClick = onPhoneClick,
+                                modifier = modifier.size(iconsize)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Phone,
+                                    contentDescription = "Go back",
+                                    tint =  Colors.WHITE,
+                                    modifier = modifier.size(iconsize)
+                                )
+                            }
+                        }
+                    }
+                }
+
+
+
+
+            }
+
+        }
     }
 
 }
