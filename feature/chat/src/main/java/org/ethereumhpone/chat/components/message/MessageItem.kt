@@ -201,7 +201,7 @@ fun MessageItem(
 
 
             val messageText = when {
-                msg.isSending() -> "Sending..."
+                msg.isSending() -> ""
                 msg.isFailedMessage() -> "Tap to resend"
                 else -> ""
             }
