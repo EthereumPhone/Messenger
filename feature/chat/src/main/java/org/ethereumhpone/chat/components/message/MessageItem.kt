@@ -9,15 +9,19 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -151,6 +155,7 @@ fun MessageItem(
 
     val alignmessage = if(isUserMe) {
         Modifier
+            .fillMaxWidth()
             .padding(start = 16.dp)
             .onGloballyPositioned { coordinates ->
                 compSize = coordinates.size.height
@@ -158,6 +163,7 @@ fun MessageItem(
             }
     } else {
         Modifier
+            .fillMaxWidth()
             .padding(end = 16.dp)
             .onGloballyPositioned { coordinates ->
                 compSize = coordinates.size.height
@@ -171,10 +177,9 @@ fun MessageItem(
     ) {
         AnimatedVisibility(selectMode.value){
             EthOSCheckbox(
-                checked = checked.value,//checkedbox.value,
+                checked = checked.value,
                 onCheckedChange = {
-                    //checkedbox.value = it
-                    onSelect(checked.value)//checkedbox.value)
+                    onSelect(checked.value)
                     checked.value = it
                 },
             )
@@ -187,7 +192,7 @@ fun MessageItem(
             ChatItemBubble(
                 message = msg,
                 isUserMe = isUserMe,
-                isFirstMessageByAuthor=isFirstMessageByAuthor,
+                isFirstMessageByAuthor = isFirstMessageByAuthor,
                 videoPlayer = player,
                 onPlayVideo = { onPrepareVideo(it) },
                 onLongClick = {
@@ -211,7 +216,8 @@ fun MessageItem(
                     text = messageText,
                     fontFamily = Fonts.INTER,
                     fontSize = 12.sp,
-                    color = Color.White
+                    color = Color.White,
+                    modifier = Modifier.clickable {  }
                 )
             }
 
@@ -234,7 +240,6 @@ fun MessageItem(
 @Composable
 fun AuthorNameTimestamp(
     message: Message,
-    isUserMe: Boolean,
     modifier: Modifier = Modifier,
 ) {
 
@@ -247,8 +252,7 @@ fun AuthorNameTimestamp(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .padding(end = 18.dp, bottom = 4.dp)
-            .semantics(mergeDescendants = true) {}
+            .padding(top = 4.dp)
     ) {
 
         Text(
@@ -257,7 +261,7 @@ fun AuthorNameTimestamp(
             fontFamily = Fonts.INTER,
             modifier = Modifier
                 .alignBy(LastBaseline)
-                .alpha(0.5f),//.padding(start = 32.dp),
+                .alpha(0.5f),
             color = Colors.WHITE,
         )
 
@@ -345,9 +349,8 @@ fun TxChatItemBubble(
     ) {
         Surface(
             modifier = if(isUserMe) usercolor else reciepientcolor,
-            color = Color.Transparent,//backgroundBubbleColor,
+            color = Color.Transparent,
             shape = TxChatBubbleShape
-
         ) {
 
             Column(
@@ -404,6 +407,7 @@ fun TxChatItemBubble(
 }
 
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatItemBubble(
     modifier: Modifier = Modifier,
@@ -455,13 +459,14 @@ fun ChatItemBubble(
         }
     }
 
-    Column(
+
+    Column (
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = modifier.fillMaxWidth()
-    ) {
-
-        // image
-
+        modifier = Modifier.clip(Bubbleshape)
+            .background(
+                brush = messageBrush
+            )
+    ){
         val media = remember { message.parts.filter { it.isImage() || it.isVideo() } }
 
         if (media.isNotEmpty()) {
@@ -493,64 +498,71 @@ fun ChatItemBubble(
                 VCardBinder(message)
             }
         }
-
-
-        Box (
-            modifier = modifier
-                .clip(Bubbleshape)
-                .background(
-                    brush = messageBrush
-                ),
-            contentAlignment = Alignment.BottomEnd
+        FlowRow (
+            modifier = Modifier
+                .padding(end = 20.dp, start = 16.dp, top = 8.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalArrangement = Arrangement.Bottom
         ) {
-            val uriHandler = LocalUriHandler.current
 
-            val messageBody = when (message.isSms()) {
-                true -> message.body
-                false -> {
-                    message.parts
-                        .filter { part -> part.isText() }
-                        .mapNotNull { part -> part.text }
-                        .filter { text -> text.isNotBlank() }
-                        .joinToString("\n")
+                val uriHandler = LocalUriHandler.current
+
+                val messageBody = when (message.isSms()) {
+                    true -> message.body
+                    false -> {
+                        message.parts
+                            .filter { part -> part.isText() }
+                            .mapNotNull { part -> part.text }
+                            .filter { text -> text.isNotBlank() }
+                            .joinToString("\n")
+                    }
                 }
-            }
 
-            if (messageBody.isNotBlank()) {
-                val styledMessage = messageFormatter(
-                    text = messageBody,
-                    primary = isUserMe
-                )
+                if (messageBody.isNotBlank()) {
+                    val styledMessage = messageFormatter(
+                        text = messageBody,
+                        primary = isUserMe
+                    )
 
-                ClickableMessage(
-                    message = message,
-                    styledMessage = styledMessage,
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        fontWeight =  FontWeight.Normal,
-                        color = Colors.WHITE,
-                        fontFamily = Fonts.INTER
-                    ),
-                    onLongClick = onLongClick,
-                    isUserMe = isUserMe,
-                    onClick = {
+                    ClickableMessage(
+                        message = message,
+                        styledMessage = styledMessage,
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight =  FontWeight.Normal,
+                            color = Colors.WHITE,
+                            fontFamily = Fonts.INTER
+                        ),
+                        onLongClick = onLongClick,
+                        isUserMe = isUserMe,
+                        onClick = {
 
-                        styledMessage
-                            .getStringAnnotations(start = it, end = it)
-                            .firstOrNull()
-                            ?.let { annotation ->
-                                when (annotation.tag) {
-                                    SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                                    SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
-                                    else -> Unit
+                            styledMessage
+                                .getStringAnnotations(start = it, end = it)
+                                .firstOrNull()
+                                ?.let { annotation ->
+                                    when (annotation.tag) {
+                                        SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
+                                        SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
+                                        else -> Unit
+                                    }
                                 }
-                            }
-                    },
-                    onDoubleClick = onDoubleClick
-                )
-            }
+                        },
+                        onDoubleClick = onDoubleClick
+                    )
+                }
+
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            AuthorNameTimestamp(message)
+
+
+
         }
     }
+
+//    }
 }
 
 
@@ -570,7 +582,6 @@ fun ClickableMessage(
 ) {
 
 
-    val timeModifier = Modifier.padding(end = 64.dp)
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
             //SelectionContainer {
@@ -578,17 +589,13 @@ fun ClickableMessage(
                 text = styledMessage,
                 style = style,
                 modifier = Modifier
-
-                    .padding(end = 20.dp, start = 16.dp, top = 8.dp, bottom = 8.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {
-                                //Toast.makeText(context,"long press",Toast.LENGTH_SHORT).show()
                                 onLongClick()
                             },
                             onTap = { pos ->
                                 layoutResult.value?.let { layoutResult ->
-                                    //Toast.makeText(context,"tap",Toast.LENGTH_SHORT).show()
                                     onClick(layoutResult.getOffsetForPosition(pos))
                                 }
                             },
@@ -598,21 +605,12 @@ fun ClickableMessage(
 
                         )
                     }
-//                    .onGloballyPositioned { coordinates ->
-//                        row1Size = coordinates.size
-//                    }
-                    .then(timeModifier)
                 ,
                 onTextLayout = {
                     layoutResult.value = it
                     onTextLayout(it)
                 }
             )
-
-    AuthorNameTimestamp(message,isUserMe)
-
-
-
 }
 @Preview
 @Composable

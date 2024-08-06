@@ -220,7 +220,7 @@ fun FocusClickableMessage(
         }
     )
 
-    AuthorNameTimestamp(message,isUserMe)
+    AuthorNameTimestamp(message)
 
 
 
