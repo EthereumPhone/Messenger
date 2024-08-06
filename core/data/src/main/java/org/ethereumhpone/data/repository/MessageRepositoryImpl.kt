@@ -398,7 +398,7 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         date: Long
     ): Message {
-        val message = Message(
+        val initialMessage = Message(
             threadId = threadId,
             address = address,
             body = body,
@@ -418,6 +418,9 @@ class MessageRepositoryImpl @Inject constructor(
             Telephony.Sms.TYPE to Telephony.Sms.MESSAGE_TYPE_OUTBOX,
             Telephony.Sms.THREAD_ID to threadId
         )
+
+        val id = messageDao.insertMessage(initialMessage)
+        val message = initialMessage.copy(id = id)
 
         println("Before prefs")
 
@@ -441,7 +444,7 @@ class MessageRepositoryImpl @Inject constructor(
             uri?.let { syncRepository.syncMessage(it) }
         }
 
-        return message
+        return message.copy()
     }
 
     override suspend fun insertReceivedSms(
