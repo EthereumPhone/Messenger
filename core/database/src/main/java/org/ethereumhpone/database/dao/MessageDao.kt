@@ -80,6 +80,9 @@ interface MessageDao {
     @Upsert
     suspend fun upsertMessage(message: Message)
 
+    @Insert
+    suspend fun insertMessage(message: Message): Long
+
     @Upsert
     suspend fun upsertMessagePart(mmsPart: MmsPart)
 
