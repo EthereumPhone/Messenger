@@ -119,13 +119,7 @@ data class Message(
         return isFailedMms || isFailedSms
     }
 
-    fun isSending(): Boolean {
-        return if (!isMe()) {
-            !isFailedMessage() && isOutgoingMessage()
-        } else {
-            false
-        }
-    }
+    fun isSending(): Boolean = !isFailedMessage() && isOutgoingMessage()
 
     fun compareSender(other: Message): Boolean = when {
         isMe() && other.isMe() -> subId == other.subId
