@@ -12,9 +12,11 @@ import android.os.IBinder
 import androidx.annotation.CallSuper
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.internal.Provider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.messenger.MainActivity
 import org.ethereumhpone.messenger.R
@@ -26,7 +28,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MyForegroundService : HiltService() {
 
-    @Inject lateinit var xmtpClient: Client
+    @Inject lateinit var clientWrapperProvider: Provider<ClientWrapper>
 
     override fun onCreate() {
         super.onCreate()
@@ -47,6 +49,12 @@ class MyForegroundService : HiltService() {
             PendingIntent.FLAG_IMMUTABLE)
         println("RUN_RECEIVER: foreground onStartCommand")
 
+        val clientWrapper = clientWrapperProvider.get()
+
+        if (clientWrapper.client == null) {
+            println("RUN_RECEIVER: foreground onStartCommand: client is null")
+        }
+
         val notification: Notification = NotificationCompat.Builder(this, "MyForegroundServiceChannel")
             .setContentTitle("My Service")
             .setContentText("Service is running")
@@ -58,7 +66,7 @@ class MyForegroundService : HiltService() {
 
 
         CoroutineScope(Dispatchers.IO).launch {
-            xmtpClient.conversations.streamAllMessages().collect { message ->
+            clientWrapper.client?.conversations?.streamAllMessages()?.collect { message ->
                 handleMessage(message)
             }
         }
