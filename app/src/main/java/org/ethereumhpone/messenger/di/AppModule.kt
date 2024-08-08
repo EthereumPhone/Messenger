@@ -99,7 +99,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideXmtpClient(walletSDK: WalletSDK, @ApplicationContext context: Context): Client {
-        val options = ClientOptions(api = ClientOptions.Api(env = XMTPEnvironment.PRODUCTION, isSecure = true), enableV3 = true, appContext = context)
+        val options = ClientOptions(api = ClientOptions.Api(env = XMTPEnvironment.PRODUCTION, isSecure = true), appContext = context)
 
         return runBlocking {
             CoroutineScope(Dispatchers.IO).async {
