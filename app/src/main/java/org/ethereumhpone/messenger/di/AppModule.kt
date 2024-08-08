@@ -103,37 +103,30 @@ object AppModule {
 
         return runBlocking {
             CoroutineScope(Dispatchers.IO).async {
-                Client().create(account = ethOSSigningKey(walletSDK), options = options)
+                Client().create(account = EthOSSigningKey(walletSDK), options = options)
             }.await()
         }
     }
 
-    private class ethOSSigningKey(private val walletSDK: WalletSDK) : SigningKey {
+    private class EthOSSigningKey(private val walletSDK: WalletSDK) : SigningKey {
         override val address: String
             get() = walletSDK.getAddress()
 
         override suspend fun sign(data: ByteArray): SignatureOuterClass.Signature? {
-            val signatureString = walletSDK.signMessage(data.toString())
-            val signatureBytes = hexStringToByteArray(signatureString)
-
-            val ecdsaCompact = SignatureOuterClass.Signature.ECDSACompact.newBuilder()
-                .setBytes(ByteString.copyFrom(signatureBytes))
-                .setRecovery(0)  // Set the correct recovery value if available
-                .build()
-
-            return SignatureOuterClass.Signature.newBuilder()
-                .setEcdsaCompact(ecdsaCompact)
-                .build()
+            return sign(String(data))
         }
 
         override suspend fun sign(message: String): SignatureOuterClass.Signature? {
-            // Replace "0x000" with the actual signature string you get after signing
             val signatureString = walletSDK.signMessage(message)
-            val signatureBytes = hexStringToByteArray(signatureString)
+            val signatureBytes = signatureString.removePrefix("0x").chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+
+            val r = signatureBytes.sliceArray(0 until 32)
+            val s = signatureBytes.sliceArray(32 until 64)
+            val v = signatureBytes[64].toInt() - 27  // Adjust v value as required
 
             val ecdsaCompact = SignatureOuterClass.Signature.ECDSACompact.newBuilder()
-                .setBytes(ByteString.copyFrom(signatureBytes))
-                .setRecovery(0)  // Set the correct recovery value if available
+                .setBytes((r + s).toByteString())
+                .setRecovery(v)
                 .build()
 
             return SignatureOuterClass.Signature.newBuilder()
@@ -141,17 +134,12 @@ object AppModule {
                 .build()
         }
 
-        private fun hexStringToByteArray(hex: String): ByteArray {
-            val cleanInput = hex.removePrefix("0x")
-            val len = cleanInput.length
-            val data = ByteArray(len / 2)
-            for (i in 0 until len step 2) {
-                data[i / 2] = ((Character.digit(cleanInput[i], 16) shl 4)
-                        + Character.digit(cleanInput[i + 1], 16)).toByte()
-            }
-            return data
+        // Utility extension function to convert ByteArray to ByteString
+        fun ByteArray.toByteString(): ByteString {
+            return ByteString.copyFrom(this)
         }
     }
+
 
 
 }
