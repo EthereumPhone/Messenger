@@ -27,10 +27,18 @@ import kotlinx.coroutines.withContext
 import org.ethereumhpone.data.observer.observe
 import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.domain.manager.PermissionManager
+import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.model.LogTimeHandler
+import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.domain.repository.SyncRepository
+import org.ethereumhpone.messenger.di.AppModule.EthOSSigningKey
 import org.ethereumhpone.messenger.ui.MessagingApp
 import org.ethereumhpone.messenger.ui.theme.MessengerTheme
+import org.ethereumphone.walletsdk.WalletSDK
+import org.xmtp.android.library.Client
+import org.xmtp.android.library.ClientOptions
+import org.xmtp.android.library.XMTPEnvironment
+import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
 import javax.inject.Inject
 
 
@@ -50,6 +58,12 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var logTimeHandler: LogTimeHandler
+
+    @Inject
+    lateinit var privateKeyHandler: XMTPPrivateKeyHandler
+
+    @Inject
+    lateinit var walletSDK: WalletSDK
 
 
     private val contentObserver = object : ContentObserver(null) {
@@ -94,11 +108,24 @@ class MainActivity : ComponentActivity() {
         }
          */
 
-
-
         // checks if android db contacts have been changed and adds them to the database
         if (permissionManager.hasContacts()) {
             contentResolver.registerContentObserver(contactsURI, true, contentObserver)
+        }
+
+
+        if (privateKeyHandler.getPrivate() == null) {
+            val context = this
+            val options = ClientOptions(api = ClientOptions.Api(env = XMTPEnvironment.PRODUCTION, isSecure = true), appContext = context)
+            CoroutineScope(Dispatchers.IO).launch {
+                // Create client to save key
+                val client = Client().create(account = EthOSSigningKey(walletSDK), options = options)
+                privateKeyHandler.setPrivate(PrivateKeyBundleV1Builder.encodeData(client.privateKeyBundleV1))
+
+                // Start foreground service
+                val intent = Intent(context, MyForegroundService::class.java)
+                context.startForegroundService(intent)
+            }
         }
 
         // check if it has permissions and never never ran a message sync
@@ -106,8 +133,12 @@ class MainActivity : ComponentActivity() {
             val lastSync = logTimeHandler.getLastLog()
             if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
+
+
             }
         }
+
+
 
         setContent {
             MessengerTheme {

@@ -3,6 +3,7 @@ package org.ethereumhpone.messenger.di
 import android.app.Application
 import android.content.ContentResolver
 import android.content.Context
+import androidx.annotation.Nullable
 import com.google.protobuf.ByteString
 import dagger.Binds
 import dagger.Module
@@ -10,13 +11,16 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dagger.internal.Provider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.model.LogTimeHandler
+import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.messenger.BuildConfig
 import org.ethereumphone.walletsdk.WalletSDK
 import org.web3j.protocol.Web3j
@@ -25,6 +29,7 @@ import org.xmtp.android.library.Client
 import org.xmtp.android.library.ClientOptions
 import org.xmtp.android.library.SigningKey
 import org.xmtp.android.library.XMTPEnvironment
+import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
 import org.xmtp.proto.message.contents.SignatureOuterClass
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -75,6 +80,10 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun providePrivateKeyHandler(@ApplicationContext context: Context) = XMTPPrivateKeyHandler(context.getSharedPreferences("app", Context.MODE_PRIVATE))
+
+    @Provides
+    @Singleton
     fun provideWeb3j(): Web3j {
         return Web3j.build(HttpService(chainIdToRPC(1)))
     }
@@ -97,18 +106,40 @@ object AppModule {
     }
 
     @Provides
-    @Singleton
-    fun provideXmtpClient(walletSDK: WalletSDK, @ApplicationContext context: Context): Client {
+    fun provideXmtpClientProvider(
+        walletSDK: WalletSDK,
+        @ApplicationContext context: Context,
+        logTimeHandler: LogTimeHandler,
+        xmtpPrivateKeyHandler: XMTPPrivateKeyHandler
+    ): Provider<ClientWrapper> = Provider {
         val options = ClientOptions(api = ClientOptions.Api(env = XMTPEnvironment.PRODUCTION, isSecure = true), appContext = context)
-
-        return runBlocking {
-            CoroutineScope(Dispatchers.IO).async {
-                Client().create(account = EthOSSigningKey(walletSDK), options = options)
-            }.await()
+        if (logTimeHandler.getLastLog() > 1723136155 && xmtpPrivateKeyHandler.getPrivate() != null) {
+            runBlocking {
+                CoroutineScope(Dispatchers.IO).async {
+                    println("RUN_RECEIVER: Creating new client...")
+                    val xmtpPrivateKey = xmtpPrivateKeyHandler.getPrivate()
+                    println("RUN_RECEIVER xmtpPrivateKey: $xmtpPrivateKey")
+                    if (xmtpPrivateKey == null) {
+                        val client = Client().create(account = EthOSSigningKey(walletSDK), options = options)
+                        xmtpPrivateKeyHandler.setPrivate(PrivateKeyBundleV1Builder.encodeData(client.privateKeyBundleV1))
+                        println("RUN_RECEIVER: Returning $client")
+                        ClientWrapper(client)
+                    } else {
+                        val keys = PrivateKeyBundleV1Builder.fromEncodedData(xmtpPrivateKey)
+                        val client = Client().buildFrom(bundle = keys, options = options)
+                        println("RUN_RECEIVER: Returning $client from saved key")
+                        ClientWrapper(client)
+                    }
+                }.await()
+            }
+        } else {
+            println("RUN_RECEIVER: ${logTimeHandler.getLastLog() > 0} ::: ${xmtpPrivateKeyHandler.getPrivate()}")
+            ClientWrapper(null)
         }
     }
 
-    private class EthOSSigningKey(private val walletSDK: WalletSDK) : SigningKey {
+
+    class EthOSSigningKey(private val walletSDK: WalletSDK) : SigningKey {
         override val address: String
             get() = walletSDK.getAddress()
 
