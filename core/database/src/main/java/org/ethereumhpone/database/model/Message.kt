@@ -8,6 +8,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import kotlinx.serialization.Serializable
+import org.xmtp.android.library.messages.MessageDeliveryStatus
 
 @Entity("message")
 @Serializable
@@ -47,8 +48,10 @@ data class Message(
     val textContentType: String = "",
     val parts: List<MmsPart> = emptyList(),
 
-
-
+    //XMTP only
+    val clientAddress: String = "",
+    val xmtpDeliveryStatus: MessageDeliveryStatus = MessageDeliveryStatus.PUBLISHED,
+    val contentType: String = ""
 ) {
     enum class AttachmentType {
         TEXT,
@@ -68,6 +71,8 @@ data class Message(
 
     fun isSms(): Boolean = type == "sms"
 
+    fun isXmtp(): Boolean = type == "xmtp"
+
     fun isMe(): Boolean {
         val isIncomingMms = isMms() && (boxId == Telephony.Mms.MESSAGE_BOX_INBOX || boxId == Telephony.Mms.MESSAGE_BOX_ALL)
         val isIncomingSms = isSms() && (boxId == Telephony.Sms.MESSAGE_TYPE_INBOX || boxId == Telephony.Sms.MESSAGE_TYPE_ALL)
@@ -81,12 +86,14 @@ data class Message(
                 || boxId == Telephony.Sms.MESSAGE_TYPE_OUTBOX
                 || boxId == Telephony.Sms.MESSAGE_TYPE_QUEUED)
 
-        return isOutgoingMms || isOutgoingSms
+        val isOutgoingXmtp = isXmtp() && clientAddress == address
+
+        return isOutgoingMms || isOutgoingSms || isOutgoingXmtp
     }
 
     fun getText(): String {
         return when {
-            isSms() -> body
+            isSms() || isXmtp() -> body
 
             else -> parts
                 .filter { it.type == "text/plain" }
@@ -96,7 +103,7 @@ data class Message(
     }
 
     fun getSummary(): String = when {
-        isSms() -> body
+        isSms() || isXmtp() -> body
 
         else -> {
             val sb = StringBuilder()
@@ -116,16 +123,11 @@ data class Message(
     fun isFailedMessage(): Boolean {
         val isFailedMms = isMms() && (errorType >= Telephony.MmsSms.ERR_TYPE_GENERIC_PERMANENT || boxId == Telephony.Mms.MESSAGE_BOX_FAILED)
         val isFailedSms = isSms() && boxId == Telephony.Sms.MESSAGE_TYPE_FAILED
-        return isFailedMms || isFailedSms
+        val isfailedXmtp = isXmtp() && xmtpDeliveryStatus == MessageDeliveryStatus.FAILED
+        return isFailedMms || isFailedSms || isfailedXmtp
     }
 
-    fun isSending(): Boolean {
-        return if (!isMe()) {
-            !isFailedMessage() && isOutgoingMessage()
-        } else {
-            false
-        }
-    }
+    fun isSending(): Boolean =!isFailedMessage() && isOutgoingMessage()
 
     fun compareSender(other: Message): Boolean = when {
         isMe() && other.isMe() -> subId == other.subId
@@ -136,7 +138,8 @@ data class Message(
     fun isDelivered(): Boolean {
         val isDeliveredMms = boxId == Telephony.Mms.MESSAGE_BOX_SENT
         val isDeliveredSms = deliveryStatus == Telephony.Sms.STATUS_COMPLETE
-        return isDeliveredMms || isDeliveredSms
+        val isDeliveredXmtp = xmtpDeliveryStatus == MessageDeliveryStatus.PUBLISHED
+        return isDeliveredMms || isDeliveredSms || isDeliveredXmtp
     }
 
 }
