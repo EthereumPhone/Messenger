@@ -29,6 +29,11 @@ import org.xmtp.android.library.Client
 import org.xmtp.android.library.ClientOptions
 import org.xmtp.android.library.SigningKey
 import org.xmtp.android.library.XMTPEnvironment
+import org.xmtp.android.library.codecs.AttachmentCodec
+import org.xmtp.android.library.codecs.ReactionCodec
+import org.xmtp.android.library.codecs.ReadReceiptCodec
+import org.xmtp.android.library.codecs.RemoteAttachmentCodec
+import org.xmtp.android.library.codecs.ReplyCodec
 import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
 import org.xmtp.proto.message.contents.SignatureOuterClass
 import javax.inject.Inject
@@ -112,6 +117,12 @@ object AppModule {
         logTimeHandler: LogTimeHandler,
         xmtpPrivateKeyHandler: XMTPPrivateKeyHandler
     ): Provider<ClientWrapper> = Provider {
+        Client.register(codec = ReadReceiptCodec())
+        Client.register(codec = ReactionCodec())
+        Client.register(codec = ReplyCodec())
+        Client.register(codec = AttachmentCodec())
+        Client.register(codec = RemoteAttachmentCodec())
+
         val options = ClientOptions(api = ClientOptions.Api(env = XMTPEnvironment.PRODUCTION, isSecure = true), appContext = context)
         if (logTimeHandler.getLastLog() > 1723136155 && xmtpPrivateKeyHandler.getPrivate() != null) {
             runBlocking {
