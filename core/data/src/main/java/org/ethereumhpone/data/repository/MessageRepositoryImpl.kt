@@ -38,6 +38,7 @@ import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
+import org.ethereumhpone.database.model.isAudio
 import org.ethereumhpone.database.model.isImage
 import org.ethereumhpone.database.model.isVideo
 import org.ethereumhpone.datastore.MessengerPreferences
@@ -104,6 +105,7 @@ class MessageRepositoryImpl @Inject constructor(
             values.put(MediaStore.MediaColumns.RELATIVE_PATH, when {
                 part.isImage() -> "${Environment.DIRECTORY_PICTURES}/ethOSMessenger"
                 part.isVideo() -> "${Environment.DIRECTORY_MOVIES}/ethOSMessenger"
+                part.isAudio() -> "${Environment.DIRECTORY_MUSIC}/ethOSMessenger"
                 else -> "${Environment.DIRECTORY_DOWNLOADS}/ethOSMessenger"
             })
         }

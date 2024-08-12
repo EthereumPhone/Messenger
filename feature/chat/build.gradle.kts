@@ -127,6 +127,9 @@ dependencies {
     // mediaplayer
     implementation(libs.bundles.media3)
 
+    implementation(libs.xmtp)
+
+
 
 
 

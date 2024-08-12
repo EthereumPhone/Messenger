@@ -1,5 +1,6 @@
 package org.ethereumhpone.database.model
 
+import android.net.Uri
 import androidx.core.net.toUri
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -17,13 +18,21 @@ data class MmsPart(
     val name: String? = null,
     val text: String? = null
 ) {
-    fun getUri() = "content://mms/part/$id".toUri()
+
+    // We want to reuse MmsPart for Xmtp messages, without needing to change the database
+    fun getUri(partType: String = "mms"): Uri {
+        return when(partType) {
+            "mms" -> "content://mms/part/$id".toUri()
+            else -> "$id".toUri()
+        }
+    }
 
     fun getSummary(): String? = when {
         type == "text/plain" -> text
         type == "text/x-vCard" -> "Contact card"
         type.startsWith("image") -> "Photo"
         type.startsWith("video") -> "Video"
+        type.startsWith("audio") -> "Audio"
         else -> null
     }
 }
@@ -35,5 +44,7 @@ fun MmsPart.isImage() = ContentType.isImageType(type)
 fun MmsPart.isVideo() = ContentType.isVideoType(type)
 
 fun MmsPart.isText() = ContentType.TEXT_PLAIN == type
+
+fun MmsPart.isAudio() = ContentType.isAudioType(type)
 
 fun MmsPart.isVCard() = ContentType.TEXT_VCARD == type
