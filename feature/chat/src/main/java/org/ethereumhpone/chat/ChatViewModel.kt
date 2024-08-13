@@ -66,6 +66,7 @@ import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.security.MessageDigest
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -90,7 +91,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     // nav arguments
     private val threadId = ThreadIdArgs(savedStateHandle).threadId.toLong()
     private val addresses = AddressesArgs(savedStateHandle).addresses
-    private val isXMTP = MutableStateFlow(true)
     // conversation state
     private val conversationState = merge(
         conversationRepository.getConversation(threadId), // initial Conversation
@@ -108,6 +108,11 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             if (it.recipients.isNotEmpty()) {
                 it.recipients[0]
             } else { Recipient(address = addresses[0]) }
+            addresses.firstOrNull()?.let { firstAddress ->
+                if (isAddress(firstAddress)) {
+                    _isXMTP.value = true
+                }
+            }
         }.stateIn(
             scope = viewModelScope,
             initialValue = null,
@@ -157,6 +162,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     private val _selectedMessages = MutableStateFlow<MutableList<Message?>>(mutableListOf())
     val selectedMessages: StateFlow<MutableList<Message?>> = _selectedMessages
+
+
+    private val _isXMTP = MutableStateFlow<Boolean>(false)
+    val isXMTP: StateFlow<Boolean> = _isXMTP
 
 
 
@@ -316,6 +325,45 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
+    fun isAddress(address: String): Boolean {
+        // Check if the address has the basic requirements
+        if (!address.matches(Regex("^(0x)?[0-9a-fA-F]{40}$"))) {
+            return false
+        }
+
+        // Check if it's all lowercase or all uppercase
+        return if (address.matches(Regex("^(0x)?[0-9a-f]{40}$")) || address.matches(Regex("^(0x)?[0-9A-F]{40}$"))) {
+            true
+        } else {
+            // Otherwise, check if it's a checksum address
+            isChecksumAddress(address)
+        }
+    }
+
+    fun isChecksumAddress(address: String): Boolean {
+        // Remove '0x' prefix if it exists
+        val cleanAddress = address.replace("0x", "")
+
+        // Hash the address
+        val addressHash = sha3(cleanAddress.lowercase())
+
+        for (i in 0 until 40) {
+            // Check if the nth character should be uppercase or lowercase
+            val hashChar = addressHash[i].digitToInt(16)
+            val addressChar = cleanAddress[i]
+
+            if ((hashChar > 7 && addressChar != addressChar.uppercaseChar()) || (hashChar <= 7 && addressChar != addressChar.lowercaseChar())) {
+                return false
+            }
+        }
+        return true
+    }
+
+    fun sha3(input: String): String {
+        val digest = MessageDigest.getInstance("SHA3-256")
+        val hashBytes = digest.digest(input.toByteArray(Charsets.UTF_8))
+        return hashBytes.joinToString("") { "%02x".format(it) }
+    }
 
     //TODO: Make suspend
     fun chainToApiKey(networkName: String): String = when(networkName) {
