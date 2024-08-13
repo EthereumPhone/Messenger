@@ -132,7 +132,7 @@ fun TxMessage(
 fun MessageItem(
     onAuthorClick: (String) -> Unit,
     msg: Message,
-    isUserMe: Boolean,
+    isSelected: Boolean = false,
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
@@ -141,13 +141,13 @@ fun MessageItem(
     selectMode: MutableState<Boolean>,
     onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
-    checked: MutableState<Boolean>,
-    onSelect: (Boolean) -> Unit,
+    onSelect: (Message) -> Unit,
     onDoubleClick: () -> Unit
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
     var compSize by remember { mutableIntStateOf(0) }
+    val isUserMe = msg.isMe()
 
     val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
         .padding(top = 8.dp)
@@ -177,10 +177,9 @@ fun MessageItem(
     ) {
         AnimatedVisibility(selectMode.value){
             EthOSCheckbox(
-                checked = checked.value,
+                checked = isSelected,
                 onCheckedChange = {
-                    onSelect(checked.value)
-                    checked.value = it
+                    onSelect(msg)
                 },
             )
         }
@@ -467,7 +466,7 @@ fun ChatItemBubble(
                 brush = messageBrush
             )
     ){
-        val media = remember { message.parts.filter { it.isImage() || it.isVideo() } }
+        val media = message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -485,9 +484,8 @@ fun ChatItemBubble(
         }
 
         // vCard
-        val contacts = remember {
-            message.parts.filter { it.isVCard() }
-        }
+        val contacts = message.parts.filter { it.isVCard() }
+
 
         if (contacts.isNotEmpty()) {
             Box(
