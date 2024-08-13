@@ -105,14 +105,14 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val recipientState = conversationState
         .filterNotNull()
         .map {
-            if (it.recipients.isNotEmpty()) {
-                it.recipients[0]
-            } else { Recipient(address = addresses[0]) }
             addresses.firstOrNull()?.let { firstAddress ->
                 if (isAddress(firstAddress)) {
                     _isXMTP.value = true
                 }
             }
+            if (it.recipients.isNotEmpty()) {
+                it.recipients[0]
+            } else { Recipient(address = addresses[0]) }
         }.stateIn(
             scope = viewModelScope,
             initialValue = null,
@@ -434,7 +434,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             val addresses = convo.recipients.map { it.address }
 
             viewModelScope.launch {
-                sendMessageUseCase(subId, convo.id, addresses, messageBody, _attachments.value.toList())
+                sendMessageUseCase(subId, convo.id, addresses, messageBody, _attachments.value.toList(), isXMTP.value)
 
                 // remove attached items
                 _attachments.value = emptySet()
