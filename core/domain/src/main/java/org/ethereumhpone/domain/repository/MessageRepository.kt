@@ -32,7 +32,8 @@ interface MessageRepository {
         threadId: Long,
         addresses: List<String>,
         body: String,
-        attachments: List<Attachment>
+        attachments: List<Attachment>,
+        isXMTP: Boolean = false
     )
     suspend fun sendSms(message: Message)
     suspend fun resendMms(message: Message)

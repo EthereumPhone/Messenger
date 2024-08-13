@@ -22,6 +22,7 @@ import com.google.android.mms.pdu_alt.MultimediaMessagePdu
 import com.google.android.mms.pdu_alt.PduPersister
 import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Transaction
+import dagger.internal.Provider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -44,6 +45,7 @@ import org.ethereumhpone.database.model.isVideo
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import timber.log.Timber
@@ -62,6 +64,7 @@ class MessageRepositoryImpl @Inject constructor(
     private val syncRepository: SyncRepository,
     private val activeConversationManager: ActiveConversationManager,
     private val context: Context,
+    private val xmtpClientProvider: Provider<ClientWrapper>
 ): MessageRepository {
     override fun getMessages(threadId: Long, query: String): Flow<List<Message>> =
         messageDao.getMessages(threadId, query)
@@ -204,12 +207,19 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    suspend fun sendXmtpMessage(message: Message) {
+        val xmtpClient = xmtpClientProvider.get().client ?: return
+        val newConversation = xmtpClient.conversations.newConversation(message.clientAddress)
+        newConversation.send(text = message.body)
+    }
+
     override suspend fun sendMessage(
         subId: Int,
         threadId: Long,
         addresses: List<String>,
         body: String,
-        attachments: List<Attachment>
+        attachments: List<Attachment>,
+        isXMTP: Boolean
     ) {
         messengerPreferences.prefs.firstOrNull()?.let { prefs ->
             val signedBody = when {
@@ -230,7 +240,12 @@ class MessageRepositoryImpl @Inject constructor(
             if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // SMS
                 try {
                     val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
-                    sendSms(message)
+                    if (!isXMTP) {
+                        sendSms(message)
+                    } else {
+                        sendXmtpMessage(message)
+                    }
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
