@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -262,14 +263,15 @@ private fun SearchTextField(
     var lastFocusState by remember { mutableStateOf(false) }
     Row (
         modifier = Modifier
-            .clip(CircleShape)
-            .border(1.dp, Colors.GRAY, CircleShape)
+            .clip(RoundedCornerShape(35.dp))
+            .border(2.dp,Colors.DARK_GRAY, RoundedCornerShape(35.dp))
     ){
         BasicTextField(
             value = textFieldValue,
             onValueChange = { onTextChanged(it) },
             modifier = modifier
-                .padding(12.dp)
+                .padding(horizontal = 8.dp)
+                .heightIn(min = 56.dp, max = 100.dp)
                 .onFocusChanged { state ->
                     if (lastFocusState != state.isFocused) {
                         onTextFieldFocused(state.isFocused)

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -447,14 +448,15 @@ fun ChatScreen(
                                 }
                             }
                         }
-                        Column(
-                            modifier = modifier
-                                .padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
-                        ) {
-                            AnimatedContent(
-                                modifier = Modifier.fillMaxWidth(),
-                                targetState = selectMode.value, label = "",
-                            ) { targetMode ->
+
+                        AnimatedContent(
+                            modifier = Modifier.fillMaxWidth(),
+                            targetState = selectMode.value, label = ""
+                        ) {targetMode ->
+                            Column(
+                                modifier = modifier.padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
+                            ) {
+
                                 if(targetMode) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(56.dp),
@@ -753,6 +755,7 @@ fun ChatScreen(
                     containerColor= Colors.BLACK,
                     contentColor= Colors.WHITE,
 
+                    modifier = Modifier.fillMaxHeight(0.95f),
                     onDismissRequest = {
                         scope.launch {
                             modalAssetSheetState.hide()
