@@ -447,14 +447,15 @@ fun ChatScreen(
                                 }
                             }
                         }
-                        Column(
-                            modifier = modifier
-                                .padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
-                        ) {
-                            AnimatedContent(
-                                modifier = Modifier.fillMaxWidth(),
-                                targetState = selectMode.value, label = "",
-                            ) { targetMode ->
+
+                        AnimatedContent(
+                            modifier = Modifier.fillMaxWidth(),
+                            targetState = selectMode.value, label = ""
+                        ) {targetMode ->
+                            Column(
+                                modifier = modifier.padding(top = 8.dp, bottom = 24.dp, end = 12.dp, start = 12.dp)
+                            ) {
+
                                 if(targetMode) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(56.dp),
