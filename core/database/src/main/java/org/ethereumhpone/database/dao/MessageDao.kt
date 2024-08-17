@@ -5,10 +5,12 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.MessageWithReactions
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.relation.MessageWithParts
 
@@ -20,6 +22,17 @@ interface MessageDao {
             "EXISTS (SELECT 1 FROM mms_part WHERE messageId = message.id AND text LIKE '%' || :query || '%')) " +
             "ORDER BY date DESC")
     fun getMessages(threadId: Long, query: String = ""): Flow<List<Message>>
+
+
+    @Query("SELECT * FROM message where threadId = :threadId AND type == 'xmtp' and seenDate == 0 ORDER BY date DESC")
+    suspend fun getXmtpMessages(threadId: Long): List<Message>
+
+    @Query("SELECT * FROM message where xmtpMessageId = :xmtpMessageId")
+    suspend fun getXmtpMessage(xmtpMessageId: String): Message?
+
+    @Transaction
+    @Query("SELECT * FROM message")
+    fun getMessagesWithReactions(): Flow<List<MessageWithReactions>>
 
     @Query("SELECT * FROM message where id == :id")
     fun getMessage(id: Long): Flow<Message?>

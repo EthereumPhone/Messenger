@@ -49,9 +49,11 @@ data class Message(
     val parts: List<MmsPart> = emptyList(),
 
     //XMTP only
-    val clientAddress: String = "",
+    val xmtpMessageId: String = "", // needed for xmtp reply/reactions
+    val clientAddress: String = "", // the address of the user
+    val seenDate: Long = 0,
     val xmtpDeliveryStatus: MessageDeliveryStatus = MessageDeliveryStatus.PUBLISHED,
-    val contentType: String = ""
+
 ) {
     enum class AttachmentType {
         TEXT,
@@ -76,8 +78,9 @@ data class Message(
     fun isMe(): Boolean {
         val isIncomingMms = isMms() && (boxId == Telephony.Mms.MESSAGE_BOX_INBOX || boxId == Telephony.Mms.MESSAGE_BOX_ALL)
         val isIncomingSms = isSms() && (boxId == Telephony.Sms.MESSAGE_TYPE_INBOX || boxId == Telephony.Sms.MESSAGE_TYPE_ALL)
+        val isIncomingXmtp = isXmtp() && clientAddress == address
 
-        return !(isIncomingMms || isIncomingSms)
+        return !(isIncomingMms || isIncomingSms || isIncomingXmtp)
     }
 
     fun isOutgoingMessage(): Boolean {
@@ -86,7 +89,7 @@ data class Message(
                 || boxId == Telephony.Sms.MESSAGE_TYPE_OUTBOX
                 || boxId == Telephony.Sms.MESSAGE_TYPE_QUEUED)
 
-        val isOutgoingXmtp = isXmtp() && clientAddress == address
+        val isOutgoingXmtp = isXmtp() && xmtpDeliveryStatus == MessageDeliveryStatus.UNPUBLISHED
 
         return isOutgoingMms || isOutgoingSms || isOutgoingXmtp
     }

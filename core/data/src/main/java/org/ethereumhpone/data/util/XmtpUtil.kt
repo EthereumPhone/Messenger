@@ -1,11 +1,11 @@
 import android.content.Context
 import android.net.Uri
 import android.webkit.MimeTypeMap
-import com.google.protobuf.ByteString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.xmtp.android.library.ClientOptions
+import org.xmtp.android.library.XMTPEnvironment
 import org.xmtp.android.library.codecs.Attachment
-import org.xmtp.android.library.codecs.Fetcher
 import org.xmtp.android.library.codecs.RemoteAttachment
 
 

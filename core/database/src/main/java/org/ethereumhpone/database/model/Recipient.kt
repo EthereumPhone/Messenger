@@ -13,7 +13,10 @@ data class Recipient(
     @PrimaryKey val id: Long = 0,
     val address: String = "",
     val contact: Contact? = null,
-    val lastUpdate: Long = 0
+    val lastUpdate: Long = 0,
+
+    // XMTP only
+    val inboxId: String = ""
 ) {
     fun getDisplayName(): String = contact?.name?.takeIf { it.isNotBlank() }
         ?: PhoneNumberUtils.formatNumber(address, Locale.getDefault().country)
