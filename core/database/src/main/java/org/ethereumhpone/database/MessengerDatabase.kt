@@ -10,6 +10,7 @@ import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.dao.PhoneNumberDao
+import org.ethereumhpone.database.dao.ReactionDao
 import org.ethereumhpone.database.dao.RecipientDao
 import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.database.model.BlockedNumber
@@ -17,6 +18,7 @@ import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.ContactGroup
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.MessageReaction
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.Recipient
@@ -28,6 +30,7 @@ import org.ethereumhpone.database.util.Converters
         Contact::class,
         Conversation::class,
         Message::class,
+        MessageReaction::class,
         MmsPart::class,
         PhoneNumber::class,
         Recipient::class,
@@ -47,6 +50,7 @@ abstract class MessengerDatabase: RoomDatabase() {
     abstract val blockingDao: BlockingDao
     abstract val phoneNumberDao: PhoneNumberDao
     abstract val syncLogDao: SyncLogDao
+    abstract val reactionDao: ReactionDao
 
 }
 

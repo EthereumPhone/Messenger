@@ -8,12 +8,9 @@ import kotlinx.serialization.Serializable
 
 @Entity("reaction")
 @Serializable
-data class Reaction(
+data class MessageReaction(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val messageId: Long = 0,
     val senderAddress: String = "",
     val content: String = "",
-) {
-    enum class Schema { UNICODE, SHORTCODE }
-
-}
+)
