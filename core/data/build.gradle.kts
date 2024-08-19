@@ -65,4 +65,6 @@ dependencies {
 
     implementation(libs.xmtp)
 
+    implementation("com.vdurmont:emoji-java:5.1.1") // emoji parser
+
 }

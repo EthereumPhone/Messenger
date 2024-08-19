@@ -25,5 +25,8 @@ interface RecipientDao {
     @Upsert
     suspend fun upsertRecipient(recipient: Recipient)
 
+    @Upsert
+    suspend fun upsertRecipients(recipients: List<Recipient>)
+
 
 }

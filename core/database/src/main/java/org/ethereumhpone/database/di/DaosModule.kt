@@ -10,6 +10,7 @@ import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.dao.PhoneNumberDao
+import org.ethereumhpone.database.dao.ReactionDao
 import org.ethereumhpone.database.dao.RecipientDao
 import org.ethereumhpone.database.dao.SyncLogDao
 
@@ -51,4 +52,9 @@ object DaosModule {
     fun provideSyncLogDao(
         database: MessengerDatabase
     ): SyncLogDao =  database.syncLogDao
+
+    @Provides
+    fun provideReactionDao(
+        database: MessengerDatabase
+    ): ReactionDao = database.reactionDao
 }

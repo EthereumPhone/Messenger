@@ -5,6 +5,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
+import com.vdurmont.emoji.EmojiParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -25,6 +26,7 @@ import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.dao.PhoneNumberDao
+import org.ethereumhpone.database.dao.ReactionDao
 import org.ethereumhpone.database.dao.RecipientDao
 import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.database.model.Contact
@@ -32,7 +34,7 @@ import org.ethereumhpone.database.model.ContactGroup
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.PhoneNumber
-import org.ethereumhpone.database.model.Reaction
+import org.ethereumhpone.database.model.MessageReaction
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.datastore.MessengerPreferences
@@ -53,7 +55,10 @@ import org.xmtp.android.library.codecs.ContentTypeReaction
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
 import org.xmtp.android.library.codecs.ContentTypeRemoteAttachment
 import org.xmtp.android.library.codecs.ContentTypeReply
+import org.xmtp.android.library.codecs.ContentTypeText
+import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
+import org.xmtp.android.library.codecs.ReactionSchema
 import org.xmtp.android.library.codecs.ReadReceipt
 import org.xmtp.android.library.codecs.Reply
 import javax.inject.Inject
@@ -72,6 +77,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val phoneNumberUtils: PhoneNumberUtils,
     private val messengerPreferences: MessengerPreferences,
     private val conversationDao: ConversationDao,
+    private val reactionDao: ReactionDao,
     private val messageDao: MessageDao,
     private val contactDao: ContactDao,
     private val recipientDao: RecipientDao,
@@ -300,92 +306,24 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     private suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
-        val contacts = getContacts()
+
 
         client.conversations.list().forEach { convo ->
             launch {
+                // handle messages
+                val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
+                convo.messages().forEach { manageMessage(threadId, it, client.address) }
+
+
+                // update recipients
+                val contacts = getContacts()
                 val recipients = convo.peerAddresses.map { address ->
                     Recipient(
                         address = address,
                         contact = contacts.firstOrNull { it.ethAddress == address },
                         inboxId = client.inboxIdFromAddress(address)!! // assume xmtp V3
                     )
-                }
-
-                convo.messages().first().content<ReadReceipt>()
-
-                recipients.forEach { recipientDao.upsertRecipient(it) }
-
-                val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
-                convo.messages().forEach { msg ->
-
-                    val template = Message(
-                        threadId = threadId,
-                        address = msg.senderAddress,
-                        type = "xmtp", // DO NOT CHANGE
-                        date = msg.sent.time, // for historical messages, new ones use System time
-                        dateSent = msg.sent.time,
-                        clientAddress = client.address,
-                        xmtpDeliveryStatus = msg.deliveryStatus,
-                        xmtpMessageId = msg.id
-                    )
-
-
-                    when(msg.encodedContent.type) {
-                        ContentTypeReadReceipt -> {
-                            //ReadReceipt doesn't actually contain a timestamp,
-                            //Everything is a message on XMTP, hence use the msg.sent.time instead
-                            messageDao.getXmtpMessages(threadId)
-                                .map { it.copy(seenDate = msg.sent.time) }
-                                .also { messageDao.updateMessages(it) }
-                        }
-                        ContentTypeReply -> {
-                            //TODO: ReplyContentType also need to be handled
-                            val reply = msg.content<Reply>()
-
-                        }
-                        ContentTypeReaction -> {
-                            //TODO: map shortcode to unicode
-                            msg.content<org.xmtp.android.library.codecs.Reaction>()?.let { xmtpReaction ->
-                                when(xmtpReaction.action) {
-                                    ReactionAction.Added -> messageDao.getXmtpMessage(xmtpReaction.reference)
-                                        ?.let { xmtpMessage ->
-                                            Reaction(
-                                                messageId = xmtpMessage.id,
-                                                senderAddress = msg.senderAddress,
-                                                content = xmtpReaction.content,
-                                            )
-                                        }?.also {
-
-                                        }
-
-                                    ReactionAction.Removed -> {
-                                        messageDao.getXmtpMessage(xmtpReaction.reference)
-                                            ?.let { toUpdate ->
-                                                //toUpdate.reactions.indexOfFirst { xmtpReaction.content }
-
-                                            }
-
-
-                                    }
-
-                                    ReactionAction.Unknown -> {
-
-                                    }
-                                }
-                            }
-                        }
-                        ContentTypeAttachment, ContentTypeRemoteAttachment -> {
-
-                        }
-
-                        else -> {
-
-                        }
-                    }
-
-                }
-
+                }.also { recipientDao.upsertRecipients(it) }
 
 
                 val conversation = Conversation(
@@ -395,7 +333,75 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-    suspend fun handleXmtpMessageType(msg: DecodedMessage) {
+    private suspend fun manageMessage(
+        threadId: Long,
+        msg: DecodedMessage,
+        clientAddress: String
+    ) {
+        val template = Message(
+            threadId = threadId,
+            address = msg.senderAddress,
+            type = "xmtp", // DO NOT CHANGE
+            date = msg.sent.time, // for historical messages, new ones use System time
+            dateSent = msg.sent.time,
+            clientAddress = clientAddress,
+            xmtpDeliveryStatus = msg.deliveryStatus,
+            xmtpMessageId = msg.id
+        )
 
+        //handle content types
+        when (msg.encodedContent.type) {
+            ContentTypeReadReceipt -> messageDao.getXmtpMessages(threadId)
+                .map { it.copy(seenDate = msg.sent.time) }
+                .also { messageDao.updateMessages(it) }
+
+            ContentTypeReply -> {
+                msg.content<Reply>()?.let { reply ->
+                    //reply.
+                }
+
+            }
+
+            ContentTypeReaction -> msg.content<Reaction>()?.let { reaction ->
+                val content = if (reaction.schema == ReactionSchema.Shortcode) {
+                    EmojiParser.parseToUnicode(reaction.content)
+                } else { reaction.content }
+
+                when (reaction.action) {
+                    ReactionAction.Added -> messageDao.getXmtpMessage(reaction.reference)
+                        ?.let { xmtpMessage ->
+                            reactionDao.upsertReaction(
+                                MessageReaction(
+                                    messageId = xmtpMessage.id,
+                                    senderAddress = msg.senderAddress,
+                                    content = content
+                                )
+                            )
+                        }
+
+                    ReactionAction.Removed -> messageDao.getXmtpMessage(reaction.reference)
+                        ?.let {
+                            reactionDao.getReactionByContent(
+                                it.id,
+                                msg.senderAddress,
+                                content
+                            )
+                        }
+                        ?.let { reactionDao.deleteReaction(it) }
+
+                    //TODO: add fallback
+                    ReactionAction.Unknown -> {}
+                }
+            }
+
+            ContentTypeAttachment, ContentTypeRemoteAttachment -> {
+
+            }
+
+            ContentTypeText -> template.copy(body = msg.body).also { messageDao.insertMessage(it) }
+
+
+            else -> { }
+        }
     }
 }

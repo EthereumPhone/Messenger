@@ -3,9 +3,12 @@ import android.net.Uri
 import android.webkit.MimeTypeMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.ethereumhpone.database.model.MessageReaction
 import org.xmtp.android.library.ClientOptions
 import org.xmtp.android.library.XMTPEnvironment
 import org.xmtp.android.library.codecs.Attachment
+import org.xmtp.android.library.codecs.Reaction
+import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.RemoteAttachment
 
 
