@@ -27,12 +27,12 @@ class SmsSentReceiver : HiltBroadcastReceiver() {
                     Activity.RESULT_OK -> {
 
                         val pendingResult = goAsync()
-                        messageRepositoryImpl.markSent(id)
+                        messageRepositoryImpl.markSent(id.toString())
                         pendingResult.finish()
                     }
                     else -> {
                         val pendingResult = goAsync()
-                        messageRepositoryImpl.markFailed(id, resultCode)
+                        messageRepositoryImpl.markFailed(id.toString(), resultCode)
                         pendingResult.finish()
                     }
                 }

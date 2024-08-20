@@ -9,7 +9,7 @@ class RetrySending @Inject constructor(
     private val messageRepository: MessageRepository
 ) {
 
-    suspend operator fun invoke(id: Long) {
+    suspend operator fun invoke(id: String) {
         messageRepository.markSending(id)
         messageRepository.getMessage(id)
             .filterNotNull()

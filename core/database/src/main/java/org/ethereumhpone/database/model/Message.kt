@@ -9,12 +9,13 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import kotlinx.serialization.Serializable
 import org.xmtp.android.library.messages.MessageDeliveryStatus
+import java.util.UUID
 
 @Entity("message")
 @Serializable
 data class Message(
 
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
     @ColumnInfo(index = true) val threadId: Long = 0,
     // MMS-SMS are stored in separate tables in Android and thus can return the same id.
     // this contentId should be used if fetching from the content provider is needed.
@@ -49,12 +50,11 @@ data class Message(
     val parts: List<MmsPart> = emptyList(),
 
     //XMTP only
-    val xmtpMessageId: String = "", // needed for xmtp reply/reactions
     val clientAddress: String = "", // the address of the user
     val seenDate: Long = 0,
     val xmtpDeliveryStatus: MessageDeliveryStatus = MessageDeliveryStatus.PUBLISHED,
 
-) {
+    ) {
     enum class AttachmentType {
         TEXT,
         IMAGE,

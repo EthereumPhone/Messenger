@@ -11,20 +11,21 @@ import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.RemoteAttachment
 
+object XmtpUtil {
+    suspend fun saveAttachmentType(context: Context, attachment: Attachment): Long? = withContext(Dispatchers.IO) {
+        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(attachment.mimeType)
+            ?: return@withContext null
 
-suspend fun saveAttachmentType(context: Context, attachment: Attachment): Uri? = withContext(Dispatchers.IO) {
-    val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(attachment.mimeType)
-        ?: return@withContext null
+        val name = "${System.currentTimeMillis()}"
 
-    val name = attachment.filename.takeIf { name -> name.endsWith(extension) }
-        ?:"${System.currentTimeMillis()}.$extension"
+        context.openFileOutput(name, Context.MODE_PRIVATE).use {
+            it.write(attachment.data.toByteArray())
+        }
 
-    context.openFileOutput(name, Context.MODE_PRIVATE).use {
-        it.write(attachment.data.toByteArray())
+        return@withContext name.toLong()
     }
 
-    Uri.fromFile(context.getFileStreamPath(name))
+    suspend fun saveRemoteAttachment(context: Context, remoteAttachment: RemoteAttachment): Long? =
+        saveAttachmentType(context, remoteAttachment.load<Attachment>()!!)
 }
 
-suspend fun saveRemoteAttachment(context: Context, remoteAttachment: RemoteAttachment): Uri? =
-    saveAttachmentType(context, remoteAttachment.load<Attachment>()!!)

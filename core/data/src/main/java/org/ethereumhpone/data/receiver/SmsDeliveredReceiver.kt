@@ -25,11 +25,11 @@ class SmsDeliveredReceiver @Inject constructor(
                 when(resultCode) {
                     // TODO notify about delivery
                     Activity.RESULT_OK -> {
-                        messageRepositoryImpl.markDelivered(id)
+                        messageRepositoryImpl.markDelivered(id.toString())
                     }
                     else -> {
                         // TODO notify about delivery failure
-                        messageRepositoryImpl.markFailed(id, resultCode)
+                        messageRepositoryImpl.markFailed(id.toString(), resultCode)
                     }
                 }
             }

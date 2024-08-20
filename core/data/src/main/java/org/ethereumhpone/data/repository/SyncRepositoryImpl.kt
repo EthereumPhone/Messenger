@@ -1,5 +1,6 @@
 package org.ethereumhpone.data.repository
 
+import XmtpUtil
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
@@ -35,6 +36,7 @@ import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.MessageReaction
+import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.datastore.MessengerPreferences
@@ -50,6 +52,7 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.Client
 import org.xmtp.android.library.DecodedMessage
+import org.xmtp.android.library.codecs.Attachment
 import org.xmtp.android.library.codecs.ContentTypeAttachment
 import org.xmtp.android.library.codecs.ContentTypeReaction
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
@@ -59,7 +62,6 @@ import org.xmtp.android.library.codecs.ContentTypeText
 import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.ReactionSchema
-import org.xmtp.android.library.codecs.ReadReceipt
 import org.xmtp.android.library.codecs.Reply
 import javax.inject.Inject
 
@@ -94,11 +96,6 @@ class SyncRepositoryImpl @Inject constructor(
 
         if(_isSyncing.value) return
         _isSyncing.value = true
-
-        val persistedData = conversationDao.getPersistedData()
-            .first()
-            .associateBy { conversation -> conversation.id }
-            .toMutableMap()
 
 
         val partsCursor = partCursor.getPartsCursor()
@@ -141,7 +138,7 @@ class SyncRepositoryImpl @Inject constructor(
                 val message = messageCursor.map(Pair(cursor, messageColumns))
                 CoroutineScope(Dispatchers.IO).launch {
                     if (message.isMms()) {
-                        messageDao.getPartsForConversation(message.contentId).collectLatest { mmsParts ->
+                        messageDao.getPartsForConversation(message.contentId.toString()).collectLatest { mmsParts ->
                             val updatedMessage = message.copy(parts = mmsParts) // copy needs to be done here or it will not work correctly
                             messageDao.upsertMessage(updatedMessage)
                         }
@@ -183,7 +180,7 @@ class SyncRepositoryImpl @Inject constructor(
 
         val id = tryOrNull { ContentUris.parseId(uri) } ?: return null
 
-        val existingId = messageDao.getMessageId(id, type).first()
+        val existingId = messageDao.getMessageId(id, type)
 
         val stableUri = when (type) {
             "mms" -> ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, id)
@@ -312,7 +309,7 @@ class SyncRepositoryImpl @Inject constructor(
             launch {
                 // handle messages
                 val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
-                convo.messages().forEach { manageMessage(threadId, it, client.address) }
+                convo.messages().forEach { manageMessage(context, threadId, it, client.address) }
 
 
                 // update recipients
@@ -333,12 +330,19 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
+
+    private suspend fun manageContentType(msg: DecodedMessage) {
+
+    }
+
     private suspend fun manageMessage(
+        context: Context,
         threadId: Long,
         msg: DecodedMessage,
-        clientAddress: String
+        clientAddress: String,
     ) {
         val template = Message(
+            id = msg.id,
             threadId = threadId,
             address = msg.senderAddress,
             type = "xmtp", // DO NOT CHANGE
@@ -346,7 +350,6 @@ class SyncRepositoryImpl @Inject constructor(
             dateSent = msg.sent.time,
             clientAddress = clientAddress,
             xmtpDeliveryStatus = msg.deliveryStatus,
-            xmtpMessageId = msg.id
         )
 
         //handle content types
@@ -356,37 +359,31 @@ class SyncRepositoryImpl @Inject constructor(
                 .also { messageDao.updateMessages(it) }
 
             ContentTypeReply -> {
+                //TODO
                 msg.content<Reply>()?.let { reply ->
-                    //reply.
+
                 }
 
             }
 
             ContentTypeReaction -> msg.content<Reaction>()?.let { reaction ->
-                val content = if (reaction.schema == ReactionSchema.Shortcode) {
+                val unicode = if (reaction.schema == ReactionSchema.Shortcode) {
                     EmojiParser.parseToUnicode(reaction.content)
                 } else { reaction.content }
 
                 when (reaction.action) {
-                    ReactionAction.Added -> messageDao.getXmtpMessage(reaction.reference)
-                        ?.let { xmtpMessage ->
-                            reactionDao.upsertReaction(
-                                MessageReaction(
-                                    messageId = xmtpMessage.id,
-                                    senderAddress = msg.senderAddress,
-                                    content = content
-                                )
+                    ReactionAction.Added -> messageDao.getMessage(reaction.reference)?.let { message ->
+                        reactionDao.upsertReaction(
+                            MessageReaction(
+                                messageId = message.id,
+                                senderAddress = msg.senderAddress,
+                                unicode = unicode
                             )
-                        }
+                        )
+                    }
 
-                    ReactionAction.Removed -> messageDao.getXmtpMessage(reaction.reference)
-                        ?.let {
-                            reactionDao.getReactionByContent(
-                                it.id,
-                                msg.senderAddress,
-                                content
-                            )
-                        }
+                    ReactionAction.Removed -> messageDao.getMessage(reaction.reference)
+                        ?.let { reactionDao.getReactionByContent(it.id, msg.senderAddress, unicode) }
                         ?.let { reactionDao.deleteReaction(it) }
 
                     //TODO: add fallback
@@ -394,7 +391,15 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
 
-            ContentTypeAttachment, ContentTypeRemoteAttachment -> {
+            ContentTypeAttachment -> {
+                //TODO: This needs to be updated after MmsPart Message decoupling
+                msg.content<Attachment>()?.let { attachment ->
+
+                }
+
+            }
+
+            ContentTypeRemoteAttachment -> {
 
             }
 

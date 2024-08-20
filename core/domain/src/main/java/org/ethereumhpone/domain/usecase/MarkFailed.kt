@@ -9,7 +9,7 @@ class MarkFailed @Inject constructor(
     private val notificationManager: NotificationManager
 ) {
 
-    suspend operator fun invoke(id: Long, resultCode: Int) {
+    suspend operator fun invoke(id: String, resultCode: Int) {
         messageRepository.markFailed(id, resultCode)
         notificationManager.notifyFailed(id)
     }

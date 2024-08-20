@@ -21,9 +21,10 @@ class DeleteMessagesReceiver @Inject constructor(
         val pendingResult = goAsync()
         val threadId = intent.getLongExtra("threadId", 0)
         val messageIds = intent.getLongArrayExtra("messageIds") ?: longArrayOf()
+        val messageIdStrings = messageIds.map { it.toString() }.toTypedArray()
 
         CoroutineScope(Dispatchers.IO).launch {
-            messageRepository.deleteMessage(*messageIds)
+            messageRepository.deleteMessage(*messageIdStrings)
             conversationRepository.updateConversations(threadId)
             notificationManager.update(threadId)
             pendingResult.finish()

@@ -14,9 +14,10 @@ interface ReactionDao {
     fun getReactions(messageId: Long): Flow<List<MessageReaction>>
 
     @Query("SELECT * FROM reaction WHERE " +
-            "senderAddress = :senderAddress AND messageId = :messageId AND content = :content")
+            "senderAddress = :senderAddress AND messageId = :messageId AND unicode = :content"
+    )
     suspend fun getReactionByContent(
-        messageId: Long,
+        messageId: String,
         senderAddress: String,
         content: String
     ): MessageReaction?

@@ -6,7 +6,7 @@ interface NotificationManager {
 
     suspend fun update(threadId: Long)
 
-    fun notifyFailed(threadId: Long)
+    fun notifyFailed(threadId: String)
 
     suspend fun createNotificationChannel(threadId: Long = 0L)
 

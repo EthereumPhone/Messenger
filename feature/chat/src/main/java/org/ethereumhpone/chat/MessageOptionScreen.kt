@@ -86,7 +86,7 @@ fun MessageOptionsScreen(
     message: Message,
     composablePositionState: MutableState<ComposablePosition>,
     focusMode: MutableState<Boolean>,
-    onDeleteMessage: (Long) -> Unit = {},
+    onDeleteMessage: (String) -> Unit = {},
     onDetailMessage: () -> Unit = {}
 ){
     var deleteConfirmation = remember {
@@ -154,7 +154,7 @@ fun MessageOptionsScreen(
 fun DeleteMessage(
     deleteConfirmation: MutableState<Boolean>,
     message: Message,
-    onDeleteMessage: (Long) -> Unit = {},
+    onDeleteMessage: (String) -> Unit = {},
     focusMode: MutableState<Boolean>,
 ){
     Dialog(onDismissRequest = {

@@ -183,7 +183,7 @@ fun ChatScreen(
     onContactSelected: (Contact) -> Unit,
     onToggleAttachment: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
-    onDeleteMessage: (Long) -> Unit,
+    onDeleteMessage: (String) -> Unit,
     focusedMessage: Message?,
     onFocusedMessageUpdate: (Message) -> Unit,
     onPhoneClicked: () -> Unit,

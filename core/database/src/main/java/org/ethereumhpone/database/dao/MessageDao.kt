@@ -27,18 +27,15 @@ interface MessageDao {
     @Query("SELECT * FROM message where threadId = :threadId AND type == 'xmtp' and seenDate == 0 ORDER BY date DESC")
     suspend fun getXmtpMessages(threadId: Long): List<Message>
 
-    @Query("SELECT * FROM message where xmtpMessageId = :xmtpMessageId")
-    suspend fun getXmtpMessage(xmtpMessageId: String): Message?
-
     @Transaction
     @Query("SELECT * FROM message")
     fun getMessagesWithReactions(): Flow<List<MessageWithReactions>>
 
     @Query("SELECT * FROM message where id == :id")
-    fun getMessage(id: Long): Flow<Message?>
+    fun getMessage(id: String): Message?
 
     @Query("SELECT * FROM message where id IN (SELECT messageId FROM mms_part WHERE id = :id)")
-    fun getMessageForPart(id: Long): Flow<Message?>
+    fun getMessageForPart(id: String): Flow<Message?>
 
     @Query("SELECT * FROM message where threadId = :threadId ORDER BY date DESC LIMIT 1")
     fun getLastConversationMessage(threadId: Long): Flow<Message?>
@@ -65,23 +62,23 @@ interface MessageDao {
     fun getUnseenMessages(): Flow<List<Message>>
 
     @Query("SELECT * FROM mms_part WHERE id = :id")
-    fun getPart(id: Long): Flow<MmsPart?>
+    fun getPart(id: String): Flow<MmsPart?>
 
     @Query("SELECT * FROM mms_part WHERE messageId = :messageId")
-    fun getPartsForConversation(messageId: Long): Flow<List<MmsPart>>
+    fun getPartsForConversation(messageId: String): Flow<List<MmsPart>>
 
     @Query("SELECT * FROM message WHERE id = :id")
-    fun getMessagesWithParts(id: Long): Flow<List<MessageWithParts>>
+    fun getMessagesWithParts(id: String): Flow<List<MessageWithParts>>
 
     @Query("SELECT * FROM message WHERE body LIKE '%' || :query || '%' OR " +
             "EXISTS (SELECT 1 FROM mms_part WHERE id = mms_part.id AND mms_part.text LIKE '%' || :query || '%')")
     fun searchMessages(query: String): Flow<List<Message>>
 
     @Query("SELECT * FROM mms_part WHERE messageId = :messageId")
-    fun getMmsPartByMessageId(messageId: Long): Flow<List<MmsPart>>
+    fun getMmsPartByMessageId(messageId: String): Flow<List<MmsPart>>
 
     @Query("SELECT id FROM message WHERE contentId = :contentId AND type = :type LIMIT 1")
-    fun getMessageId(contentId: Long, type: String): Flow<Long?>
+    suspend fun getMessageId(contentId: Long, type: String): String?
 
 
     @Insert

@@ -26,6 +26,7 @@ import dagger.internal.Provider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.send_message.SmsManagerFactory
@@ -69,10 +70,10 @@ class MessageRepositoryImpl @Inject constructor(
     override fun getMessages(threadId: Long, query: String): Flow<List<Message>> =
         messageDao.getMessages(threadId, query)
 
-    override fun getMessage(id: Long): Flow<Message?> =
-        messageDao.getMessage(id)
+    override fun getMessage(id: String): Flow<Message?> =
+        flowOf(messageDao.getMessage(id))
 
-    override fun getMessageForPart(id: Long): Flow<Message?> =
+    override fun getMessageForPart(id: String): Flow<Message?> =
         messageDao.getMessageForPart(id)
 
     override fun getLastIncomingMessage(
@@ -84,13 +85,13 @@ class MessageRepositoryImpl @Inject constructor(
     override fun getUnreadCount(): Flow<Long> =
         messageDao.getUnreadCount()
 
-    override fun getPart(id: Long): Flow<MmsPart?> =
+    override fun getPart(id: String): Flow<MmsPart?> =
         messageDao.getPart(id)
 
-    override fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>> =
+    override fun getPartsForConversation(threadId: String): Flow<List<MmsPart>> =
         messageDao.getPartsForConversation(threadId)
 
-    override suspend fun savePart(id: Long): Uri? {
+    override suspend fun savePart(id: String): Uri? {
         val part = getPart(id).first() ?: return null
 
         val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(part.type) ?: return null
@@ -437,7 +438,7 @@ class MessageRepositoryImpl @Inject constructor(
         )
 
         val id = messageDao.insertMessage(initialMessage)
-        val message = initialMessage.copy(id = id)
+        val message = initialMessage.copy(id = id.toString())
 
         println("Before prefs")
 
@@ -504,109 +505,98 @@ class MessageRepositoryImpl @Inject constructor(
         return message
     }
 
-    override suspend fun markSending(id: Long) {
-        messageDao.getMessage(id).collect { message ->
-            message?.let {
-                messageDao.upsertMessage(
-                    it.copy(
-                        boxId = when(it.isSms()) {
-                            true -> Telephony.Sms.MESSAGE_TYPE_OUTBOX
-                            false -> Telephony.Mms.MESSAGE_BOX_OUTBOX
-                        }
-                    )
+    override suspend fun markSending(id: String) {
+        messageDao.getMessage(id)?.let { message ->
+            messageDao.upsertMessage(
+                message.copy(
+                    boxId = when(message.isSms()) {
+                        true -> Telephony.Sms.MESSAGE_TYPE_OUTBOX
+                        false -> Telephony.Mms.MESSAGE_BOX_OUTBOX
+                    }
                 )
-                val values = when (message.isSms()) {
-                    true -> contentValuesOf(Telephony.Sms.TYPE to Telephony.Sms.MESSAGE_TYPE_OUTBOX)
-                    false -> contentValuesOf(Telephony.Mms.MESSAGE_BOX to Telephony.Mms.MESSAGE_BOX_OUTBOX)
-                }
-                context.contentResolver.update(message.getUri(), values, null, null)
+            )
+            val values = when (message.isSms()) {
+                true -> contentValuesOf(Telephony.Sms.TYPE to Telephony.Sms.MESSAGE_TYPE_OUTBOX)
+                false -> contentValuesOf(Telephony.Mms.MESSAGE_BOX to Telephony.Mms.MESSAGE_BOX_OUTBOX)
             }
-        }
-
-    }
-
-    override suspend fun markSent(id: Long) {
-        messageDao.getMessage(id).collect { message ->
-            message?.let {
-                messageDao.upsertMessage(
-                    it.copy(
-                        boxId = Telephony.Sms.MESSAGE_TYPE_SENT
-                    )
-                )
-                val values = ContentValues()
-                values.put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_SENT)
-
-                context.contentResolver.update(message.getUri(), values, null, null)
-            }
+            context.contentResolver.update(message.getUri(), values, null, null)
         }
     }
 
-    override suspend fun markFailed(id: Long, resultCode: Int) {
-        messageDao.getMessage(id).collect { message ->
-            message?.let {
-                messageDao.upsertMessage(
-                    it.copy(
-                        boxId = Telephony.Sms.MESSAGE_TYPE_FAILED,
-                        errorCode = resultCode
-                    )
+    override suspend fun markSent(id: String) {
+        messageDao.getMessage(id)?.let { message ->
+            messageDao.upsertMessage(
+                message.copy(
+                    boxId = Telephony.Sms.MESSAGE_TYPE_SENT
                 )
-                val values = ContentValues()
-                values.put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_FAILED)
-                values.put(Telephony.Sms.ERROR_CODE, resultCode)
+            )
+            val values = ContentValues()
+            values.put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_SENT)
 
-                context.contentResolver.update(message.getUri(), values, null, null)
-            }
+            context.contentResolver.update(message.getUri(), values, null, null)
         }
     }
 
-    override suspend fun markDelivered(id: Long) {
-        messageDao.getMessage(id).collect { message ->
-            message?.let {
-                messageDao.upsertMessage(
-                    it.copy(
-                        boxId = Telephony.Sms.STATUS_COMPLETE,
-                    )
+    override suspend fun markFailed(id: String, resultCode: Int) {
+        messageDao.getMessage(id)?.let { message ->
+            messageDao.upsertMessage(
+                message.copy(
+                    boxId = Telephony.Sms.MESSAGE_TYPE_FAILED,
+                    errorCode = resultCode
                 )
-                val values = ContentValues()
-                values.put(Telephony.Sms.STATUS, Telephony.Sms.STATUS_COMPLETE)
-                values.put(Telephony.Sms.DATE_SENT, System.currentTimeMillis())
-                values.put(Telephony.Sms.READ, true)
+            )
+            val values = ContentValues()
+            values.put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_FAILED)
+            values.put(Telephony.Sms.ERROR_CODE, resultCode)
 
-                context.contentResolver.update(message.getUri(), values, null, null)
-            }
+            context.contentResolver.update(message.getUri(), values, null, null)
         }
     }
 
-    override suspend fun markDeliveryFailed(id: Long, resultCode: Int) {
-        messageDao.getMessage(id).collect { message ->
-            message?.let {
-                messageDao.upsertMessage(
-                    it.copy(
-                        deliveryStatus = Telephony.Sms.STATUS_FAILED,
-                        dateSent = System.currentTimeMillis(),
-                        read = true,
-                        errorCode = resultCode
-                    )
+    override suspend fun markDelivered(id: String) {
+        messageDao.getMessage(id)?.let { message ->
+            messageDao.upsertMessage(
+                message.copy(
+                    boxId = Telephony.Sms.STATUS_COMPLETE,
                 )
-                val values = ContentValues()
-                values.put(Telephony.Sms.STATUS, Telephony.Sms.STATUS_FAILED)
-                values.put(Telephony.Sms.DATE_SENT, System.currentTimeMillis())
-                values.put(Telephony.Sms.READ, true)
-                values.put(Telephony.Sms.ERROR_CODE, resultCode)
+            )
+            val values = ContentValues()
+            values.put(Telephony.Sms.STATUS, Telephony.Sms.STATUS_COMPLETE)
+            values.put(Telephony.Sms.DATE_SENT, System.currentTimeMillis())
+            values.put(Telephony.Sms.READ, true)
 
-                context.contentResolver.update(message.getUri(), values, null, null)
-            }
+            context.contentResolver.update(message.getUri(), values, null, null)
+
         }
     }
 
-    override suspend fun deleteMessage(vararg messageIds: Long) {
+    override suspend fun markDeliveryFailed(id: String, resultCode: Int) {
+        messageDao.getMessage(id)?.let { message ->
+            messageDao.upsertMessage(
+                message.copy(
+                    deliveryStatus = Telephony.Sms.STATUS_FAILED,
+                    dateSent = System.currentTimeMillis(),
+                    read = true,
+                    errorCode = resultCode
+                )
+            )
+            val values = ContentValues()
+            values.put(Telephony.Sms.STATUS, Telephony.Sms.STATUS_FAILED)
+            values.put(Telephony.Sms.DATE_SENT, System.currentTimeMillis())
+            values.put(Telephony.Sms.READ, true)
+            values.put(Telephony.Sms.ERROR_CODE, resultCode)
+
+            context.contentResolver.update(message.getUri(), values, null, null)
+
+        }
+    }
+
+    override suspend fun deleteMessage(vararg messageIds: String) {
         messageIds.forEach { id ->
-            messageDao.getMessage(id).collect { message ->
-                message?.let {
-                    val uri = message.getUri()
-                    messageDao.deleteMessage(message)
-                    context.contentResolver.delete(uri, null, null)
-                }
+            messageDao.getMessage(id)?.let { message ->
+                val uri = message.getUri()
+                messageDao.deleteMessage(message)
+                context.contentResolver.delete(uri, null, null)
             }
         }
     }

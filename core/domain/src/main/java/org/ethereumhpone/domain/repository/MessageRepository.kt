@@ -11,17 +11,17 @@ import java.io.File
 interface MessageRepository {
 
     fun getMessages(threadId: Long, query: String = ""): Flow<List<Message>>
-    fun getMessage(id: Long): Flow<Message?>
-    fun getMessageForPart(id: Long): Flow<Message?>
+    fun getMessage(id: String): Flow<Message?>
+    fun getMessageForPart(id: String): Flow<Message?>
     fun getLastIncomingMessage(
         threadId: Long,
         smsInboxTypes: IntArray = intArrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX, Telephony.Sms.MESSAGE_TYPE_ALL),
         mmsInboxTypes: IntArray = intArrayOf(Telephony.Mms.MESSAGE_BOX_INBOX, Telephony.Mms.MESSAGE_BOX_ALL)
     ): Flow<Message>
     fun getUnreadCount(): Flow<Long>
-    fun getPart(id: Long): Flow<MmsPart?>
-    fun getPartsForConversation(threadId: Long): Flow<List<MmsPart>>
-    suspend fun savePart(id: Long): Uri?
+    fun getPart(id: String): Flow<MmsPart?>
+    fun getPartsForConversation(threadId: String): Flow<List<MmsPart>>
+    suspend fun savePart(id: String): Uri?
     suspend fun getUnreadUnseenMessages(threadId: Long): List<Message>
     suspend fun markAllSeen()
     suspend fun markSeen(threadId: Long)
@@ -50,11 +50,11 @@ interface MessageRepository {
         body: String,
         sentTime: Long
     ): Message
-    suspend fun markSending(id: Long)
-    suspend fun markSent(id: Long)
-    suspend fun markFailed(id: Long, resultCode: Int)
-    suspend fun markDelivered(id: Long)
-    suspend fun markDeliveryFailed(id: Long, resultCode: Int)
-    suspend fun deleteMessage(vararg messageIds: Long)
+    suspend fun markSending(id: String)
+    suspend fun markSent(id: String)
+    suspend fun markFailed(id: String, resultCode: Int)
+    suspend fun markDelivered(id: String)
+    suspend fun markDeliveryFailed(id: String, resultCode: Int)
+    suspend fun deleteMessage(vararg messageIds: String)
 
 }

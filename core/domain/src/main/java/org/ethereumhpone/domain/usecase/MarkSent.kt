@@ -7,7 +7,7 @@ class MarkSent @Inject constructor(
     private val messageRepository: MessageRepository
 ) {
 
-    suspend operator fun invoke(id: Long) {
+    suspend operator fun invoke(id: String) {
         messageRepository.markSent(id)
     }
 }

@@ -10,7 +10,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MessageReaction(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val messageId: Long = 0,
+    val messageId: String = "",
     val senderAddress: String = "",
-    val content: String = "",
-)
+    val unicode: String = "",
+) {
+
+    fun getSummary(): String? {
+        TODO()
+    }
+}

@@ -110,7 +110,7 @@ class NotificationManagerImpl @Inject constructor(
 
     }
 
-    override fun notifyFailed(threadId: Long) {
+    override fun notifyFailed(threadId: String) {
         TODO("Not yet implemented")
     }
 

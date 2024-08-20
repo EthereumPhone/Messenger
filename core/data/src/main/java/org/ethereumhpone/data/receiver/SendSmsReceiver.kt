@@ -18,7 +18,7 @@ class SendSmsReceiver @Inject constructor(
         val result = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                retrySending(messageId)
+                retrySending(messageId.toString())
             } catch(e: Exception) {
                 e.printStackTrace()
             } finally {

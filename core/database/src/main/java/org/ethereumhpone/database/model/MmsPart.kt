@@ -11,8 +11,8 @@ import kotlinx.serialization.Serializable
 @Entity("mms_part")
 @Serializable
 data class MmsPart(
-    @PrimaryKey val id: Long = 0,
-    @ColumnInfo(index = true) val messageId: Long = 0,
+    @PrimaryKey val id: String = "",
+    @ColumnInfo(index = true) val messageId: String = "",
     val type: String = "",
     val seq: Int = -1,
     val name: String? = null,
@@ -23,7 +23,7 @@ data class MmsPart(
     fun getUri(partType: String = "mms"): Uri {
         return when(partType) {
             "mms" -> "content://mms/part/$id".toUri()
-            else -> "$id".toUri()
+            else -> id.toUri()
         }
     }
 
@@ -48,3 +48,4 @@ fun MmsPart.isText() = ContentType.TEXT_PLAIN == type
 fun MmsPart.isAudio() = ContentType.isAudioType(type)
 
 fun MmsPart.isVCard() = ContentType.TEXT_VCARD == type
+

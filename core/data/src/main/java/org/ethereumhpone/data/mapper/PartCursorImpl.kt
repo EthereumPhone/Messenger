@@ -27,8 +27,8 @@ class PartCursorImpl @Inject constructor(
 
     override fun map(from: Cursor): MmsPart {
         return MmsPart(
-            id = from.getLong(from.getColumnIndexOrThrow(Telephony.Mms.Part._ID)),
-            messageId = from.getLong(from.getColumnIndexOrThrow(Telephony.Mms.Part.MSG_ID)),
+            id = from.getLong(from.getColumnIndexOrThrow(Telephony.Mms.Part._ID)).toString(),
+            messageId = from.getLong(from.getColumnIndexOrThrow(Telephony.Mms.Part.MSG_ID)).toString(),
             type = from.getStringOrNull(from.getColumnIndexOrThrow(Telephony.Mms.Part.CONTENT_TYPE)) ?: "*/*",
             seq = from.getIntOrNull(from.getColumnIndexOrThrow(Telephony.Mms.Part.SEQ)) ?: -1,
             name = from.getStringOrNull(from.getColumnIndexOrThrow(Telephony.Mms.Part.NAME))
