@@ -69,19 +69,4 @@ abstract class RepositoryModule{
     @Binds
     abstract fun provideNotificationManager(message: NotificationManagerImpl): NotificationManager
 
-//    @Binds
-//    @Singleton
-//    abstract fun bindKeyManager(impl: KeyManagerImpl): KeyManager
-
-//    companion object {
-//        @JvmStatic @Provides
-//        fun provideSyncRepository(impl: SyncRepositoryImpl?): SyncRepository? {
-//            return impl
-//        }
-//        @JvmStatic @Provides
-//        fun provideActiveConversationManager(impl: ActiveConversationManagerImpl?): ActiveConversationManager? {
-//            return impl
-//        }
-//    }
-
 }

@@ -51,6 +51,7 @@ data class Message(
 
     //XMTP only
     val clientAddress: String = "", // the address of the user
+    val replyReference: String = "", // empty means not a reply
     val seenDate: Long = 0,
     val xmtpDeliveryStatus: MessageDeliveryStatus = MessageDeliveryStatus.PUBLISHED,
 

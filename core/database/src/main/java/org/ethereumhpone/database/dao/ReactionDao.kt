@@ -29,6 +29,9 @@ interface ReactionDao {
     @Delete
     suspend fun deleteReaction(messageReaction: MessageReaction)
 
+    @Query("DELETE FROM reaction WHERE id = :id")
+    suspend fun deleteReaction(id: String)
+
 
 
 }

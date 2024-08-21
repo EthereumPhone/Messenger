@@ -12,20 +12,16 @@ import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.RemoteAttachment
 
 object XmtpUtil {
-    suspend fun saveAttachmentType(context: Context, attachment: Attachment): Long? = withContext(Dispatchers.IO) {
-        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(attachment.mimeType)
-            ?: return@withContext null
-
-        val name = "${System.currentTimeMillis()}"
+    suspend fun saveAttachmentType(context: Context, attachment: Attachment) = withContext(Dispatchers.IO) {
+        val name = attachment.filename
 
         context.openFileOutput(name, Context.MODE_PRIVATE).use {
             it.write(attachment.data.toByteArray())
         }
 
-        return@withContext name.toLong()
     }
 
-    suspend fun saveRemoteAttachment(context: Context, remoteAttachment: RemoteAttachment): Long? =
+    suspend fun saveRemoteAttachment(context: Context, remoteAttachment: RemoteAttachment) =
         saveAttachmentType(context, remoteAttachment.load<Attachment>()!!)
 }
 

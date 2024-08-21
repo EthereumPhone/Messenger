@@ -6,6 +6,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
+import com.google.android.mms.ContentType
 import com.vdurmont.emoji.EmojiParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,22 +52,40 @@ import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.Client
+import org.xmtp.android.library.CodecRegistry
 import org.xmtp.android.library.DecodedMessage
+import org.xmtp.android.library.SendOptions
+import org.xmtp.android.library.XMTPException
 import org.xmtp.android.library.codecs.Attachment
+import org.xmtp.android.library.codecs.AttachmentCodec
+import org.xmtp.android.library.codecs.ContentCodec
 import org.xmtp.android.library.codecs.ContentTypeAttachment
 import org.xmtp.android.library.codecs.ContentTypeReaction
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
 import org.xmtp.android.library.codecs.ContentTypeRemoteAttachment
 import org.xmtp.android.library.codecs.ContentTypeReply
 import org.xmtp.android.library.codecs.ContentTypeText
+import org.xmtp.android.library.codecs.EncodedContent
 import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.ReactionSchema
+import org.xmtp.android.library.codecs.ReadReceipt
+import org.xmtp.android.library.codecs.ReadReceiptCodec
+import org.xmtp.android.library.codecs.RemoteAttachment
 import org.xmtp.android.library.codecs.Reply
+import org.xmtp.android.library.codecs.ReplyCodec
+import org.xmtp.android.library.codecs.compress
+import org.xmtp.android.library.codecs.description
+import org.xmtp.android.library.codecs.id
+import org.xmtp.proto.message.contents.Content
+import org.xmtp.proto.message.contents.copy
+import java.nio.charset.Charset
 import javax.inject.Inject
 
 
 class SyncRepositoryImpl @Inject constructor(
+    private val context: Context,
+    private val xmtpClient: Client,
     private val contentResolver: ContentResolver,
     private val conversationRepository: ConversationRepository,
     private val conversationCursor: ConversationCursor,
@@ -93,7 +112,7 @@ class SyncRepositoryImpl @Inject constructor(
 
 
     override suspend fun syncMessages() {
-
+        // once sync at the time
         if(_isSyncing.value) return
         _isSyncing.value = true
 
@@ -248,6 +267,8 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
         }
+
+        syncXmtp(context = context, xmtpClient)
     }
 
     private suspend fun getContacts(): List<Contact> {
@@ -309,7 +330,7 @@ class SyncRepositoryImpl @Inject constructor(
             launch {
                 // handle messages
                 val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
-                convo.messages().forEach { manageMessage(context, threadId, it, client.address) }
+                convo.messages().forEach { manageMessage(threadId, it, client, "", context) }
 
 
                 // update recipients
@@ -330,26 +351,24 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-
-    private suspend fun manageContentType(msg: DecodedMessage) {
-
-    }
-
     private suspend fun manageMessage(
-        context: Context,
         threadId: Long,
         msg: DecodedMessage,
-        clientAddress: String,
+        client: Client,
+        replyReference: String = "", // empty if not a reply
+        context: Context
     ) {
         val template = Message(
             id = msg.id,
             threadId = threadId,
+            body = msg.body, // text or fallback content
             address = msg.senderAddress,
             type = "xmtp", // DO NOT CHANGE
             date = msg.sent.time, // for historical messages, new ones use System time
             dateSent = msg.sent.time,
-            clientAddress = clientAddress,
+            clientAddress = client.address,
             xmtpDeliveryStatus = msg.deliveryStatus,
+            replyReference = replyReference // only for reply
         )
 
         //handle content types
@@ -358,55 +377,98 @@ class SyncRepositoryImpl @Inject constructor(
                 .map { it.copy(seenDate = msg.sent.time) }
                 .also { messageDao.updateMessages(it) }
 
-            ContentTypeReply -> {
-                //TODO
-                msg.content<Reply>()?.let { reply ->
-
-                }
-
-            }
-
             ContentTypeReaction -> msg.content<Reaction>()?.let { reaction ->
                 val unicode = if (reaction.schema == ReactionSchema.Shortcode) {
                     EmojiParser.parseToUnicode(reaction.content)
-                } else { reaction.content }
+                } else reaction.content
 
                 when (reaction.action) {
-                    ReactionAction.Added -> messageDao.getMessage(reaction.reference)?.let { message ->
-                        reactionDao.upsertReaction(
-                            MessageReaction(
-                                messageId = message.id,
-                                senderAddress = msg.senderAddress,
-                                unicode = unicode
-                            )
-                        )
-                    }
+                    ReactionAction.Added -> reactionDao.upsertReaction(
+                        MessageReaction(
+                            id = msg.id,
+                            senderAddress = msg.id,
+                            unicode = unicode
+                        ))
 
-                    ReactionAction.Removed -> messageDao.getMessage(reaction.reference)
-                        ?.let { reactionDao.getReactionByContent(it.id, msg.senderAddress, unicode) }
-                        ?.let { reactionDao.deleteReaction(it) }
+                    ReactionAction.Removed -> reactionDao.deleteReaction(msg.id)
 
                     //TODO: add fallback
                     ReactionAction.Unknown -> {}
                 }
             }
 
-            ContentTypeAttachment -> {
+            ContentTypeAttachment, ContentTypeRemoteAttachment -> {
                 //TODO: This needs to be updated after MmsPart Message decoupling
-                msg.content<Attachment>()?.let { attachment ->
+
+                val content = msg.content() as? RemoteAttachment
+                val attachment = if (content != null ) content.load<Attachment>() else msg.content<Attachment>()
+
+                attachment?.let {
+                    val name = attachment.filename
+
+                    // don't save if plain text
+                    val text = if (attachment.mimeType == ContentType.TEXT_PLAIN) {
+                        attachment.data.toByteArray().toString(Charsets.UTF_8)
+                    } else {
+                        context.openFileOutput(name, Context.MODE_PRIVATE).use {
+                            it.write(attachment.data.toByteArray())
+                        }
+                        ""
+                    }
+
+                    val mmsPart = MmsPart(
+                        id = attachment.filename,
+                        type = attachment.mimeType,
+                        text = text
+                    ).also { messageDao.upsertMessagePart(it) }
+                    template.copy(parts = listOf(mmsPart)).also { messageDao.upsertMessage(it) }
 
                 }
-
             }
 
-            ContentTypeRemoteAttachment -> {
-
+            ContentTypeReply -> msg.content<Reply>()?.let { reply ->
+                // recursive reply handling
+                val newMessage = msg.copy(encodedContent = encodeContent(reply.content, reply.contentType))
+                manageMessage(threadId, newMessage, client, reply.reference, context)
             }
 
-            ContentTypeText -> template.copy(body = msg.body).also { messageDao.insertMessage(it) }
-
-
-            else -> { }
+            //TODO: handle fallback
+            else -> {  }
         }
     }
+
+
+    // Copied from XMTP sdk
+    private fun <T> encodeContent(content: T, id: Content.ContentTypeId): EncodedContent {
+        val codec = Client.codecRegistry.find(id)
+
+        fun <Codec : ContentCodec<T>> encode(codec: Codec, content: Any?): EncodedContent {
+            val contentType = content as? T
+            if (contentType != null) {
+                return codec.encode(contentType)
+            } else {
+                throw XMTPException("Codec type is not registered")
+            }
+        }
+
+        var encoded = encode(codec = codec as ContentCodec<T>, content = content)
+        val fallback = codec.fallback(content)
+        if (!fallback.isNullOrBlank()) {
+            encoded = encoded.toBuilder().also {
+                it.fallback = fallback
+            }.build()
+        }
+
+        return encoded
+    }
+
+
+    // Assuming you have registered all codecs in the Client's codecRegistry
+
+    /*
+    fun encodeReplyContent(reply: Reply, codecRegistry: CodecRegistry): EncodedContent? {
+        val codec = codecRegistry.find(reply.contentType) as? ContentCodec<Any>
+        return (reply.content as? Any)?.let { codec?.encode(it) }
+    }
+     */
 }
