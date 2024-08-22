@@ -64,6 +64,8 @@ dependencies {
     implementation(libs.bundles.media3)
 
     implementation(libs.xmtp)
+    implementation(libs.walletsdk)
+
 
     implementation("com.vdurmont:emoji-java:5.1.1") // emoji parser
 

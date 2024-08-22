@@ -16,6 +16,7 @@ import dagger.internal.Provider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.messenger.MainActivity
@@ -28,7 +29,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MyForegroundService : HiltService() {
 
-    @Inject lateinit var clientWrapperProvider: Provider<ClientWrapper>
+    @Inject lateinit var xmtpClientManager: XmtpClientManager
 
     override fun onCreate() {
         super.onCreate()
@@ -49,11 +50,6 @@ class MyForegroundService : HiltService() {
             PendingIntent.FLAG_IMMUTABLE)
         println("RUN_RECEIVER: foreground onStartCommand")
 
-        val clientWrapper = clientWrapperProvider.get()
-
-        if (clientWrapper.client == null) {
-            println("RUN_RECEIVER: foreground onStartCommand: client is null")
-        }
 
         val notification: Notification = NotificationCompat.Builder(this, "MyForegroundServiceChannel")
             .setContentTitle("My Service")
@@ -65,8 +61,9 @@ class MyForegroundService : HiltService() {
         startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
 
 
+        // service only started once the client is ready
         CoroutineScope(Dispatchers.IO).launch {
-            clientWrapper.client?.conversations?.streamAllMessages()?.collect { message ->
+            xmtpClientManager.client.conversations.streamAllMessages().collect { message ->
                 handleMessage(message)
             }
         }

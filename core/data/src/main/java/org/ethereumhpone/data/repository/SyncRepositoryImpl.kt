@@ -6,8 +6,10 @@ import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
+import android.util.Log
 import com.google.android.mms.ContentType
 import com.vdurmont.emoji.EmojiParser
+import dagger.internal.Provider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -23,6 +25,7 @@ import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.forEach
 import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.common.util.tryOrNull
+import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.dao.ConversationDao
@@ -48,6 +51,7 @@ import org.ethereumhpone.domain.mapper.ConversationCursor
 import org.ethereumhpone.domain.mapper.MessageCursor
 import org.ethereumhpone.domain.mapper.PartCursor
 import org.ethereumhpone.domain.mapper.RecipientCursor
+import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
@@ -85,7 +89,7 @@ import javax.inject.Inject
 
 class SyncRepositoryImpl @Inject constructor(
     private val context: Context,
-    private val xmtpClient: Client,
+    private val xmtpClientManager: XmtpClientManager,
     private val contentResolver: ContentResolver,
     private val conversationRepository: ConversationRepository,
     private val conversationCursor: ConversationCursor,
@@ -106,15 +110,15 @@ class SyncRepositoryImpl @Inject constructor(
     private val syncLogDao: SyncLogDao,
     private val logTimeHandler: LogTimeHandler
 ): SyncRepository {
-
     private val _isSyncing = MutableStateFlow(false)
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
-
 
     override suspend fun syncMessages() {
         // once sync at the time
         if(_isSyncing.value) return
         _isSyncing.value = true
+
+
 
 
         val partsCursor = partCursor.getPartsCursor()
@@ -185,6 +189,13 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
         }
+
+
+        // syncXMTP
+        if (xmtpClientManager.clientState.value == XmtpClientManager.ClientState.Ready) {
+            syncXmtp(context = context, xmtpClientManager.client)
+        }
+
         logTimeHandler.setLastLog(SyncLog().date)
         _isSyncing.value = false
     }
@@ -267,8 +278,6 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
         }
-
-        syncXmtp(context = context, xmtpClient)
     }
 
     private suspend fun getContacts(): List<Contact> {
@@ -325,12 +334,14 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
 
-
         client.conversations.list().forEach { convo ->
             launch {
                 // handle messages
                 val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
-                convo.messages().forEach { manageMessage(threadId, it, client, "", context) }
+                convo.messages().forEach { message ->
+                    Log.d("current message: ${message.id}", "fallback: ${message.encodedContent.type}")
+                    manageMessage(threadId, message, client, "", context)
+                }
 
 
                 // update recipients
@@ -358,10 +369,10 @@ class SyncRepositoryImpl @Inject constructor(
         replyReference: String = "", // empty if not a reply
         context: Context
     ) {
+        Log.d("MANAGING MSG", "LET'S GO")
         val template = Message(
             id = msg.id,
             threadId = threadId,
-            body = msg.body, // text or fallback content
             address = msg.senderAddress,
             type = "xmtp", // DO NOT CHANGE
             date = msg.sent.time, // for historical messages, new ones use System time
@@ -421,6 +432,7 @@ class SyncRepositoryImpl @Inject constructor(
                         type = attachment.mimeType,
                         text = text
                     ).also { messageDao.upsertMessagePart(it) }
+
                     template.copy(parts = listOf(mmsPart)).also { messageDao.upsertMessage(it) }
 
                 }
@@ -432,7 +444,7 @@ class SyncRepositoryImpl @Inject constructor(
                 manageMessage(threadId, newMessage, client, reply.reference, context)
             }
 
-            //TODO: handle fallback
+            ContentTypeText -> template.copy(body = msg.body).also { messageDao.upsertMessage(it) }
             else -> {  }
         }
     }

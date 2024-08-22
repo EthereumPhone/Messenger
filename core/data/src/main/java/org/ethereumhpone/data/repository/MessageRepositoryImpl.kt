@@ -33,6 +33,7 @@ import org.ethereumhpone.common.send_message.SmsManagerFactory
 import org.ethereumhpone.common.util.ImageUtils
 import org.ethereumhpone.common.util.removeAccents
 import org.ethereumhpone.common.util.tryOrNull
+import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.receiver.SmsDeliveredReceiver
 import org.ethereumhpone.data.receiver.SmsSentReceiver
 import org.ethereumhpone.data.util.PhoneNumberUtils
@@ -49,6 +50,7 @@ import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
+import org.xmtp.android.library.Client
 import timber.log.Timber
 import java.io.File
 import java.io.FileNotFoundException
@@ -65,7 +67,7 @@ class MessageRepositoryImpl @Inject constructor(
     private val syncRepository: SyncRepository,
     private val activeConversationManager: ActiveConversationManager,
     private val context: Context,
-    private val xmtpClientProvider: Provider<ClientWrapper>
+    private val xmtpClientManager: XmtpClientManager
 ): MessageRepository {
     override fun getMessages(threadId: Long, query: String): Flow<List<Message>> =
         messageDao.getMessages(threadId, query)
@@ -209,8 +211,8 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
     suspend fun sendXmtpMessage(message: Message) {
-        val xmtpClient = xmtpClientProvider.get().client ?: return
-        val newConversation = xmtpClient.conversations.newConversation(message.clientAddress)
+        //TODO: Only works for text, fix it
+        val newConversation = xmtpClientManager.client.conversations.newConversation(message.clientAddress)
         newConversation.send(text = message.body)
     }
 

@@ -346,11 +346,11 @@ fun printFormattedDateInfo(date: Date?): String? {
             return weekday
         }
         date?.let { isBeforeLast7Days(it) } == true -> {
-            println("The date $formattedDate is before the last 7 days.")
+            //println("The date $formattedDate is before the last 7 days.")
             return formattedDate
         }
         else -> {
-            println("The date $formattedDate is not within the last 7 days and not before the last 7 days (i.e., it's in the future).")
+            //println("The date $formattedDate is not within the last 7 days and not before the last 7 days (i.e., it's in the future).")
             return formattedDate
         }
     }
