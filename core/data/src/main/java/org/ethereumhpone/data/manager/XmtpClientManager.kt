@@ -32,11 +32,11 @@ object XmtpClientManager {
 
     fun clientOptions(appContext: Context, address: String): ClientOptions {
         val keyUtil = KeyUtil(appContext)
-        var encryptionKey = keyUtil.retrieveKey(address)
+        var encryptionKey = keyUtil.retrieveKey("${address}_encryption")
 
         if (encryptionKey.isNullOrEmpty()) {
             encryptionKey = Base64.getEncoder().encodeToString(SecureRandom().generateSeed(32))
-            keyUtil.storeKey(address, encryptionKey)
+            keyUtil.storeKey("${address}_encryption", encryptionKey)
         }
 
         return ClientOptions(
