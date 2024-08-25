@@ -6,6 +6,7 @@ import android.util.Base64.decode
 import android.util.Base64.encodeToString
 import androidx.annotation.UiThread
 import com.google.protobuf.ByteString
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,9 @@ import org.xmtp.android.library.messages.walletAddress
 import org.xmtp.proto.message.contents.SignatureOuterClass
 import java.security.SecureRandom
 import java.util.Base64
+import javax.inject.Singleton
 
+@Singleton
 object XmtpClientManager {
 
     fun clientOptions(appContext: Context, address: String): ClientOptions {
@@ -65,7 +68,7 @@ object XmtpClientManager {
 
 
 
-    @UiThread
+    @OptIn(DelicateCoroutinesApi::class)
     fun createClient(
         encodedPrivateKeyData: String,
         appContext: Context
