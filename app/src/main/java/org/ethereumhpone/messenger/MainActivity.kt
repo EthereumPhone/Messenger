@@ -29,6 +29,7 @@ import org.ethereumhpone.data.manager.EthOSSigningKey
 import org.ethereumhpone.data.manager.KeyUtil
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.database.dao.SyncLogDao
+import org.ethereumhpone.domain.manager.NetworkManager
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var privateKeyHandler: XMTPPrivateKeyHandler
     @Inject lateinit var walletSDK: WalletSDK
     @Inject lateinit var xmtpClientManager: XmtpClientManager
+    @Inject lateinit var networkManager: NetworkManager
 
 
     private val contentObserver = object : ContentObserver(null) {
@@ -71,23 +73,10 @@ class MainActivity : ComponentActivity() {
 
 
         val keyManager = KeyUtil(this)
-
-
-        while (walletSDK.getAddress() == "") {
-            "aaa"
-        }
-
-
-
-
-
-        Log.d("MY ADD", walletSDK.getAddress())
         var keys = keyManager.retrieveKey(walletSDK.getAddress())
-        Log.d("MY key", keys?: "")
 
         if (keys == null) {
             val context = this
-            //CoroutineScope(Dispatchers.IO).launch {
             runBlocking {
                 Client().create(
                     EthOSSigningKey(walletSDK),
@@ -100,26 +89,24 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        lifecycleScope.launch {
+            networkManager.isOnline.collect {
+
+            }
+        }
+
         xmtpClientManager.createClient(keys!! , this)
 
+        CoroutineScope(Dispatchers.Default).launch {
 
+        }
 
         lifecycleScope.launch {
+
             xmtpClientManager.clientState.collectLatest { state ->
+                if (state is XmtpClientManager.ClientState.Error) {
+                    Log.d("ERRIR", state.message)
 
-                when(state) {
-                    is XmtpClientManager.ClientState.Ready -> {
-                        Log.d("STATE", "ready")
-
-                    }
-                    is XmtpClientManager.ClientState.Unknown -> {
-                        Log.d("STATE", "not ready")
-
-                    }
-                    is XmtpClientManager.ClientState.Error -> {
-                        Log.d("STATE", state.message)
-
-                    }
                 }
 
                 if (state == XmtpClientManager.ClientState.Ready) {
@@ -138,26 +125,6 @@ class MainActivity : ComponentActivity() {
             null
         }
 
-
-
-        /*
-        if (privateKeyHandler.getPrivate() == null) {
-            val context = this
-            val options = ClientOptions(api = ClientOptions.Api(env = XMTPEnvironment.PRODUCTION, isSecure = true), appContext = context)
-            CoroutineScope(Dispatchers.IO).launch {
-                // Create client to save key
-                val client = Client().create(account = EthOSSigningKey(walletSDK), options = options)
-                privateKeyHandler.setPrivate(PrivateKeyBundleV1Builder.encodeData(client.privateKeyBundleV1))
-
-                // Start foreground service
-                val intent = Intent(context, MyForegroundService::class.java)
-                context.startForegroundService(intent)
-            }
-        }
-         */
-
-
-
         if(!permissionManager.isDefaultSms()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val roleManager = this.getSystemService(RoleManager::class.java) as RoleManager
@@ -170,22 +137,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // initial contacts fetching
-        /*
-        if (permissionManager.hasContacts()) {
-            CoroutineScope(Dispatchers.IO).launch {
-                syncRepository.syncContacts()
-            }
-        }
-         */
-
         // checks if android db contacts have been changed and adds them to the database
         if (permissionManager.hasContacts()) {
             contentResolver.registerContentObserver(contactsURI, true, contentObserver)
         }
-
-
-
 
 
         // check if it has permissions and never never ran a message sync
@@ -198,9 +153,8 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-
-
         setContent {
+
             MessengerTheme {
                 MessagingApp(threadId = threadId)
             }

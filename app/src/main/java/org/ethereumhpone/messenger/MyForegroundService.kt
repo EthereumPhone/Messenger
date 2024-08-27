@@ -4,32 +4,53 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.annotation.CallSuper
+import androidx.compose.runtime.collectAsState
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.internal.Provider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.cancellable
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
-import org.ethereumhpone.domain.model.ClientWrapper
-import org.ethereumhpone.domain.repository.SyncRepository
-import org.ethereumhpone.messenger.MainActivity
-import org.ethereumhpone.messenger.R
-import org.ethereumphone.walletsdk.WalletSDK
-import org.xmtp.android.library.Client
+import org.ethereumhpone.domain.manager.NetworkManager
+import org.web3j.abi.datatypes.Bool
 import org.xmtp.android.library.DecodedMessage
+import org.xmtp.android.library.Util.Companion.envelopeFromFFi
+import org.xmtp.android.library.messages.Topic
+import uniffi.xmtpv3.FfiEnvelope
+import uniffi.xmtpv3.FfiV2SubscribeRequest
+import uniffi.xmtpv3.FfiV2Subscription
+import uniffi.xmtpv3.FfiV2SubscriptionCallback
+import uniffi.xmtpv3.NoPointer
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MyForegroundService : HiltService() {
 
     @Inject lateinit var xmtpClientManager: XmtpClientManager
+    @Inject lateinit var networkManager: NetworkManager
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val client = xmtpClientManager.client
 
     override fun onCreate() {
         super.onCreate()
@@ -60,11 +81,37 @@ class MyForegroundService : HiltService() {
 
         startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
 
-
         // service only started once the client is ready
-        CoroutineScope(Dispatchers.IO).launch {
-            xmtpClientManager.client.conversations.streamAllMessages().collect { message ->
-                handleMessage(message)
+
+
+
+
+        coroutineScope.launch {
+            var collectionJob: Job? = null
+
+
+            networkManager.isOnline.collect { isOnline ->
+                if (isOnline) {
+                    Log.d("STARTED AGAIN", "LETS go")
+                    try {
+                        collectionJob = launch {
+                            xmtpClientManager.client.conversations.streamAllMessages()
+                                .cancellable()
+                                .takeWhile { isOnline }
+                                .collect {
+                                    Log.d("Collected", "Collected")
+                                    handleMessage(it)
+                                }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+
+
+                } else {
+                    collectionJob?.cancel()
+                    collectionJob = null
+                }
             }
         }
 
@@ -83,6 +130,11 @@ class MyForegroundService : HiltService() {
     override fun onDestroy() {
         super.onDestroy()
     }
+
+    private fun streamMessageAfterEpoch(timestamp: Long) {
+
+    }
+
 }
 
 

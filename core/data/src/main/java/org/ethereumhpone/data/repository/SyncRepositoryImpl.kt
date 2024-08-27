@@ -1,6 +1,5 @@
 package org.ethereumhpone.data.repository
 
-import XmtpUtil
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
@@ -9,7 +8,6 @@ import android.provider.Telephony
 import android.util.Log
 import com.google.android.mms.ContentType
 import com.vdurmont.emoji.EmojiParser
-import dagger.internal.Provider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -51,17 +49,14 @@ import org.ethereumhpone.domain.mapper.ConversationCursor
 import org.ethereumhpone.domain.mapper.MessageCursor
 import org.ethereumhpone.domain.mapper.PartCursor
 import org.ethereumhpone.domain.mapper.RecipientCursor
-import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.Client
-import org.xmtp.android.library.CodecRegistry
+import org.xmtp.android.library.ConsentState
 import org.xmtp.android.library.DecodedMessage
-import org.xmtp.android.library.SendOptions
 import org.xmtp.android.library.XMTPException
 import org.xmtp.android.library.codecs.Attachment
-import org.xmtp.android.library.codecs.AttachmentCodec
 import org.xmtp.android.library.codecs.ContentCodec
 import org.xmtp.android.library.codecs.ContentTypeAttachment
 import org.xmtp.android.library.codecs.ContentTypeReaction
@@ -73,17 +68,9 @@ import org.xmtp.android.library.codecs.EncodedContent
 import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.ReactionSchema
-import org.xmtp.android.library.codecs.ReadReceipt
-import org.xmtp.android.library.codecs.ReadReceiptCodec
 import org.xmtp.android.library.codecs.RemoteAttachment
 import org.xmtp.android.library.codecs.Reply
-import org.xmtp.android.library.codecs.ReplyCodec
-import org.xmtp.android.library.codecs.compress
-import org.xmtp.android.library.codecs.description
-import org.xmtp.android.library.codecs.id
 import org.xmtp.proto.message.contents.Content
-import org.xmtp.proto.message.contents.copy
-import java.nio.charset.Charset
 import javax.inject.Inject
 
 
@@ -192,9 +179,13 @@ class SyncRepositoryImpl @Inject constructor(
 
 
         // syncXMTP
-        if (xmtpClientManager.clientState.value == XmtpClientManager.ClientState.Ready) {
-            syncXmtp(context = context, xmtpClientManager.client)
+
+        xmtpClientManager.clientState.collectLatest {
+            if (it == XmtpClientManager.ClientState.Ready) {
+                syncXmtp(context = context, xmtpClientManager.client)
+            }
         }
+
 
         logTimeHandler.setLastLog(SyncLog().date)
         _isSyncing.value = false
@@ -339,37 +330,42 @@ class SyncRepositoryImpl @Inject constructor(
                 // handle messages
                 val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
                 convo.messages().forEach { message ->
-                    Log.d("current message: ${message.id}", "fallback: ${message.encodedContent.type}")
-                    manageMessage(threadId, message, client, "", context)
+                    manageXmtpMessage(
+                        threadId = threadId,
+                        msg = message,
+                        client = client,
+                        context = context
+                    )
                 }
-
 
                 // update recipients
                 val contacts = getContacts()
                 val recipients = convo.peerAddresses.map { address ->
                     Recipient(
                         address = address,
-                        contact = contacts.firstOrNull { it.ethAddress == address },
+                        contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
                         inboxId = client.inboxIdFromAddress(address)!! // assume xmtp V3
                     )
                 }.also { recipientDao.upsertRecipients(it) }
 
-
-                val conversation = Conversation(
-                    recipients = recipients
-                )
+                // update convo
+                Conversation(
+                    id = threadId,
+                    recipients = recipients,
+                    lastMessage = messageDao.getLastConversationMessage(threadId).first(),
+                    blocked = convo.consentState() == ConsentState.DENIED,
+                ).also { conversationDao.upsertConversation(it) }
             }
         }
     }
 
-    private suspend fun manageMessage(
+    private suspend fun manageXmtpMessage(
         threadId: Long,
         msg: DecodedMessage,
         client: Client,
         replyReference: String = "", // empty if not a reply
         context: Context
     ) {
-        Log.d("MANAGING MSG", "LET'S GO")
         val template = Message(
             id = msg.id,
             threadId = threadId,
@@ -441,7 +437,7 @@ class SyncRepositoryImpl @Inject constructor(
             ContentTypeReply -> msg.content<Reply>()?.let { reply ->
                 // recursive reply handling
                 val newMessage = msg.copy(encodedContent = encodeContent(reply.content, reply.contentType))
-                manageMessage(threadId, newMessage, client, reply.reference, context)
+                manageXmtpMessage(threadId, newMessage, client, reply.reference, context)
             }
 
             ContentTypeText -> template.copy(body = msg.body).also { messageDao.upsertMessage(it) }

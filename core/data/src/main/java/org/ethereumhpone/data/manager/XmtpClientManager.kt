@@ -1,10 +1,6 @@
 package org.ethereumhpone.data.manager
 
 import android.content.Context
-import android.util.Base64.NO_WRAP
-import android.util.Base64.decode
-import android.util.Base64.encodeToString
-import androidx.annotation.UiThread
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -28,10 +24,13 @@ import org.xmtp.android.library.messages.walletAddress
 import org.xmtp.proto.message.contents.SignatureOuterClass
 import java.security.SecureRandom
 import java.util.Base64
+import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 object XmtpClientManager {
+
+    //@Inject private lateinit var networkManagerImpl: NetworkManagerImpl
 
     fun clientOptions(appContext: Context, address: String): ClientOptions {
         val keyUtil = KeyUtil(appContext)
@@ -72,7 +71,6 @@ object XmtpClientManager {
     fun createClient(
         encodedPrivateKeyData: String,
         appContext: Context
-
     ) {
         if (clientState.value is ClientState.Ready) return
         GlobalScope.launch(Dispatchers.IO) {
@@ -94,9 +92,6 @@ object XmtpClientManager {
             }
         }
     }
-
-
-
 
     sealed class ClientState {
         object Unknown : ClientState()

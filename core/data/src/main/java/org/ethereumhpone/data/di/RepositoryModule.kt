@@ -2,12 +2,11 @@ package org.ethereumhpone.data.di
 
 import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import org.ethereumhpone.data.blocking.MessengerBlockingClient
 import org.ethereumhpone.data.manager.ActiveConversationManagerImpl
-import org.ethereumhpone.data.manager.KeyManagerImpl
+import org.ethereumhpone.data.manager.NetworkManagerImpl
 import org.ethereumhpone.data.manager.NotificationManagerImpl
 import org.ethereumhpone.data.repository.BlockingRepositoryImpl
 import org.ethereumhpone.data.repository.ContactRepositoryImpl
@@ -17,7 +16,7 @@ import org.ethereumhpone.data.repository.MessageRepositoryImpl
 import org.ethereumhpone.data.repository.SyncRepositoryImpl
 import org.ethereumhpone.domain.blocking.BlockingClient
 import org.ethereumhpone.domain.manager.ActiveConversationManager
-import org.ethereumhpone.domain.manager.KeyManager
+import org.ethereumhpone.domain.manager.NetworkManager
 import org.ethereumhpone.domain.manager.NotificationManager
 import org.ethereumhpone.domain.repository.BlockingRepository
 import org.ethereumhpone.domain.repository.ContactRepository
@@ -31,8 +30,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule{
-
-
 
     @Binds
     @Singleton
@@ -68,5 +65,9 @@ abstract class RepositoryModule{
 
     @Binds
     abstract fun provideNotificationManager(message: NotificationManagerImpl): NotificationManager
+
+    @Binds
+    @Singleton
+    abstract fun bindsNetworkManager(impl: NetworkManagerImpl): NetworkManager
 
 }

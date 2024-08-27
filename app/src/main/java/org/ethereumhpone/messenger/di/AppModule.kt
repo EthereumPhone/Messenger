@@ -117,5 +117,7 @@ object AppModule {
     @Provides
     fun provideXmtpClientManger(): XmtpClientManager = XmtpClientManager
 
+
+
 }
 
