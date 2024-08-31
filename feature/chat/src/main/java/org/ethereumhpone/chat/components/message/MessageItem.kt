@@ -507,7 +507,7 @@ fun ChatItemBubble(
 
                 val uriHandler = LocalUriHandler.current
 
-                val messageBody = when (message.isSms()) {
+                val messageBody = when (message.isSms() || message.isXmtp()) {
                     true -> message.body
                     false -> {
                         message.parts
