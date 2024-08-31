@@ -23,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.ethereumhpone.data.manager.EthOSSigningKey
@@ -103,17 +104,24 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
 
-            xmtpClientManager.clientState.collectLatest { state ->
-                if (state is XmtpClientManager.ClientState.Error) {
-                    Log.d("ERRIR", state.message)
+            // Inside a coroutine scope
+            val clientState = xmtpClientManager.clientState.first {
+                it is XmtpClientManager.ClientState.Error || it == XmtpClientManager.ClientState.Ready
+            }
 
+            when (clientState) {
+                is XmtpClientManager.ClientState.Error -> {
+                    Log.d("ERROR", clientState.message)
                 }
-
-                if (state == XmtpClientManager.ClientState.Ready) {
+                XmtpClientManager.ClientState.Ready -> {
                     Log.d("Start service", "IT started")
 
                     val intent = Intent(this@MainActivity, MyForegroundService::class.java)
-                    this@MainActivity.startForegroundService(intent)
+                    // Uncomment the line below to start the foreground service
+                    // this@MainActivity.startForegroundService(intent)
+                }
+                else -> {
+                    Log.d("ERROR", "Client state is not ready")
                 }
             }
         }
@@ -148,7 +156,6 @@ class MainActivity : ComponentActivity() {
             val lastSync = logTimeHandler.getLastLog()
             if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
-
 
             }
         }
