@@ -42,6 +42,7 @@ interface MessageRepository {
         threadId: Long,
         address: String,
         body: String,
+        type: String = "sms",
         date: Long
     ): Message
     suspend fun insertReceivedSms(
