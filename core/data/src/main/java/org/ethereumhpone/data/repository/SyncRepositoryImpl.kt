@@ -180,10 +180,13 @@ class SyncRepositoryImpl @Inject constructor(
 
         // syncXMTP
 
-        xmtpClientManager.clientState.collectLatest {
-            if (it == XmtpClientManager.ClientState.Ready) {
-                syncXmtp(context = context, xmtpClientManager.client)
-            }
+        val clientState = xmtpClientManager.clientState.first {
+            it == XmtpClientManager.ClientState.Ready
+        }
+
+        if (clientState == XmtpClientManager.ClientState.Ready) {
+            println("Syncing XMTP messages now...")
+            syncXmtp(context = context, xmtpClientManager.client)
         }
 
 
@@ -329,14 +332,6 @@ class SyncRepositoryImpl @Inject constructor(
             launch {
                 // handle messages
                 val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
-                convo.messages().forEach { message ->
-                    manageXmtpMessage(
-                        threadId = threadId,
-                        msg = message,
-                        client = client,
-                        context = context
-                    )
-                }
 
                 // update recipients
                 val contacts = getContacts()
@@ -344,17 +339,32 @@ class SyncRepositoryImpl @Inject constructor(
                     Recipient(
                         address = address,
                         contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
-                        inboxId = client.inboxIdFromAddress(address)!! // assume xmtp V3
+                        inboxId = client.inboxIdFromAddress(address) ?: "-1"// assume xmtp V3
                     )
-                }.also { recipientDao.upsertRecipients(it) }
-
-                // update convo
-                Conversation(
+                }.also {
+                    recipientDao.upsertRecipients(it)
+                }
+                val savedConversation = Conversation(
                     id = threadId,
                     recipients = recipients,
                     lastMessage = messageDao.getLastConversationMessage(threadId).first(),
                     blocked = convo.consentState() == ConsentState.DENIED,
-                ).also { conversationDao.upsertConversation(it) }
+                    unknown = convo.consentState() == ConsentState.UNKNOWN
+                )
+
+                convo.messages().forEach { message ->
+                    manageXmtpMessage(
+                        threadId = threadId,
+                        msg = message,
+                        client = client,
+                        conversation = savedConversation,
+                        context = context
+                    )
+                }
+                // update convo
+                conversationDao.upsertConversation(savedConversation)
+
+
             }
         }
     }
@@ -364,6 +374,7 @@ class SyncRepositoryImpl @Inject constructor(
         msg: DecodedMessage,
         client: Client,
         replyReference: String = "", // empty if not a reply
+        conversation: Conversation,
         context: Context
     ) {
         val template = Message(
@@ -437,12 +448,13 @@ class SyncRepositoryImpl @Inject constructor(
             ContentTypeReply -> msg.content<Reply>()?.let { reply ->
                 // recursive reply handling
                 val newMessage = msg.copy(encodedContent = encodeContent(reply.content, reply.contentType))
-                manageXmtpMessage(threadId, newMessage, client, reply.reference, context)
+                manageXmtpMessage(threadId, newMessage, client, reply.reference, conversation, context)
             }
 
             ContentTypeText -> template.copy(body = msg.body).also { messageDao.upsertMessage(it) }
             else -> {  }
         }
+
     }
 
 
