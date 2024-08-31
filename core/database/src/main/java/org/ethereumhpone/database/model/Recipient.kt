@@ -21,4 +21,13 @@ data class Recipient(
     fun getDisplayName(): String = contact?.name?.takeIf { it.isNotBlank() }
         ?: PhoneNumberUtils.formatNumber(address, Locale.getDefault().country)
         ?: address
+
+    fun getShortNameIfEthereum(): String {
+        val longName = getDisplayName()
+        return if (longName.startsWith("0x") && longName.length == 42) {
+            longName.substring(0, 6) + "..." + longName.substring(longName.length - 6)
+        } else {
+            longName
+        }
+    }
 }

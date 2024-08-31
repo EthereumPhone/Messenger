@@ -16,7 +16,9 @@ data class Conversation(
     val draft: String = "",
     val blockingClient: Int? = null,
     val blockReason: String? = null,
-    val title: String = "" // conversation title
+    val title: String = "", // conversation title
+    // XMTP field
+    var unknown : Boolean = false
 ) {
     val date: Long get() = lastMessage?.date ?: 0
     val snippet: String? get() = lastMessage?.getSummary()
@@ -26,5 +28,14 @@ data class Conversation(
     fun getConversationTitle(): String {
         return title.takeIf { it.isNotBlank() }
             ?: recipients.joinToString { recipient -> recipient.getDisplayName() }
+    }
+
+    fun getShortTitleIfEthereum(): String {
+        val longName = getConversationTitle()
+        return if (longName.startsWith("0x") && longName.length == 42) {
+            longName.substring(0, 6) + "..." + longName.substring(longName.length - 6)
+        } else {
+            longName
+        }
     }
 }
