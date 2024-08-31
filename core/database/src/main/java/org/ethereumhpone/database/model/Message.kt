@@ -79,7 +79,8 @@ data class Message(
     fun isMe(): Boolean {
         val isIncomingMms = isMms() && (boxId == Telephony.Mms.MESSAGE_BOX_INBOX || boxId == Telephony.Mms.MESSAGE_BOX_ALL)
         val isIncomingSms = isSms() && (boxId == Telephony.Sms.MESSAGE_TYPE_INBOX || boxId == Telephony.Sms.MESSAGE_TYPE_ALL)
-        val isIncomingXmtp = isXmtp() && clientAddress == address
+
+        val isIncomingXmtp = isXmtp() && clientAddress != address
 
         return !(isIncomingMms || isIncomingSms || isIncomingXmtp)
     }
