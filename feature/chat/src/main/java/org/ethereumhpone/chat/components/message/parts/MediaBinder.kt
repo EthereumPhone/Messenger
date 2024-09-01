@@ -357,55 +357,6 @@ fun PreviewImageContainerGrid() {
     MediaGridContainer(media) {}
 }
 
-@Composable
-@Preview
-fun PreviewExpandedMediaDialog() {
-
-
-    // video item
-    val videoUri = "android.resource://${LocalContext.current.packageName}/${R.raw.sample_video}"
-    val player = ExoPlayer.Builder(LocalContext.current).build()
-    player.prepare()
-
-    player.addMediaItem(MediaItem.fromUri(videoUri))
-
-
-    val mmsPart = MmsPart()
-    val mmsVideoPart = MmsPart(type = "\"video/\"")
-    val media = listOf(mmsPart, mmsPart, mmsPart, mmsVideoPart)
-
-    var showDialog by remember { mutableStateOf(true) }
-
-
-    Column {
-        if (showDialog) {
-            ExpandedMediaDialog(
-                media,
-                player,
-                onPrepareVideo = { player.play() },
-                onDismissRequest = { showDialog = false },
-                contactname = "Text"
-            )
-        }
-    }
-
-}
-
-@Preview
-@Composable
-fun PreviewImageThumbnail() {
-    val uri = "android.resource://${LocalContext.current.packageName}/${R.raw.sample_video}"
-    val videoUri = Uri.parse(uri)
-
-    val thumbnail = videoUri.let {
-        val metadata = MediaMetadataRetriever()
-        metadata.setDataSource(LocalContext.current, it)
-        metadata.frameAtTime
-    }
-
-    AsyncImage(model = thumbnail, contentDescription = "")
-}
-
 fun Uri.getVideoThumbnail(context: Context): Bitmap? {
     val metadata = MediaMetadataRetriever()
     try {

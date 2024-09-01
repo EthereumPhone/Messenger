@@ -45,6 +45,7 @@ import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.map
+import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Message
@@ -52,6 +53,7 @@ import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumhpone.domain.model.XMTPConversationDB
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MediaRepository
@@ -85,6 +87,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
     private val permissionManager: PermissionManager,
+    private val xmtpConversationDB: XMTPConversationDB,
+    private val xmtpClientManager: XmtpClientManager,
     private val context: Context
 ): ViewModel() {
 
@@ -123,13 +127,66 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     @OptIn(ExperimentalCoroutinesApi::class)
     val messagesState = conversationState
         .filterNotNull()
-        .flatMapLatest {
-            messageRepository.getMessages(it.id).map(MessagesUiState::Success)
-        }.stateIn(
+        .flatMapLatest { conversation ->
+            conversation.recipients.firstOrNull()?.let { tempRecipient ->
+                if(isAddress(tempRecipient.address)) {
+                    _isXMTP.value = true
+                }
+            }
+            addresses.firstOrNull()?.let { firstAddress ->
+                if (isAddress(firstAddress)) {
+                    _isXMTP.value = true
+                }
+            }
+            if (_isXMTP.value) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val convo = xmtpClientManager.client.conversations.newConversation(conversation.recipients.firstOrNull()?.address ?: "")
+                        convo.messages().forEach {
+                            val message = Message(
+                                id = it.id,
+                                threadId = conversation.id,
+                                address = walletSDK.getAddress(),
+                                body = it.body,
+                                date = it.sent.time,
+                                type = "xmtp", // So that UI shows it as a text message
+                                xmtpDeliveryStatus = it.deliveryStatus,
+                                clientAddress = it.senderAddress,
+                            )
+                            xmtpConversationDB.upsertMessagesXMTP(conversation.id.toString(), listOf(message))
+                        }
+                        convo.streamMessages().collect {
+                            val message = Message(
+                                id = it.id,
+                                threadId = conversation.id,
+                                address = walletSDK.getAddress(),
+                                body = it.body,
+                                type = "xmtp", // So that UI shows it as a text message
+                                date = it.sent.time,
+                                xmtpDeliveryStatus = it.deliveryStatus,
+                                clientAddress = it.senderAddress,
+                            )
+                            xmtpConversationDB.upsertMessagesXMTP(conversation.id.toString(), listOf(message))
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+
+                }
+                // Use the XMTP flow if _isXMTP is true
+                xmtpConversationDB.getMessagesXMTP(conversation.id.toString())
+                    .map { MessagesUiState.Success(it) }
+            } else {
+                // Use the regular message repository flow
+                messageRepository.getMessages(conversation.id).map(MessagesUiState::Success)
+            }
+        }
+        .stateIn(
             scope = viewModelScope,
             initialValue = MessagesUiState.Loading,
             started = SharingStarted.WhileSubscribed(5_000)
         )
+
 
     // contacts state
     val contacts: StateFlow<List<Contact>> = contactRepository.getContacts()
@@ -177,6 +234,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
 
+    fun isAddress(address: String): Boolean {
+        val ethereumAddressRegex = Regex("^0x[a-fA-F0-9]{40}$")
+        return ethereumAddressRegex.matches(address)
+    }
 
 
     fun parseContact(contact: Contact) {
@@ -323,46 +384,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 }
             }
         }
-    }
-
-    fun isAddress(address: String): Boolean {
-        // Check if the address has the basic requirements
-        if (!address.matches(Regex("^(0x)?[0-9a-fA-F]{40}$"))) {
-            return false
-        }
-
-        // Check if it's all lowercase or all uppercase
-        return if (address.matches(Regex("^(0x)?[0-9a-f]{40}$")) || address.matches(Regex("^(0x)?[0-9A-F]{40}$"))) {
-            true
-        } else {
-            // Otherwise, check if it's a checksum address
-            isChecksumAddress(address)
-        }
-    }
-
-    fun isChecksumAddress(address: String): Boolean {
-        // Remove '0x' prefix if it exists
-        val cleanAddress = address.replace("0x", "")
-
-        // Hash the address
-        val addressHash = sha3(cleanAddress.lowercase())
-
-        for (i in 0 until 40) {
-            // Check if the nth character should be uppercase or lowercase
-            val hashChar = addressHash[i].digitToInt(16)
-            val addressChar = cleanAddress[i]
-
-            if ((hashChar > 7 && addressChar != addressChar.uppercaseChar()) || (hashChar <= 7 && addressChar != addressChar.lowercaseChar())) {
-                return false
-            }
-        }
-        return true
-    }
-
-    fun sha3(input: String): String {
-        val digest = MessageDigest.getInstance("SHA3-256")
-        val hashBytes = digest.digest(input.toByteArray(Charsets.UTF_8))
-        return hashBytes.joinToString("") { "%02x".format(it) }
     }
 
     //TODO: Make suspend

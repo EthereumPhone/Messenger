@@ -77,12 +77,13 @@ data class Message(
     fun isXmtp(): Boolean = type == "xmtp"
 
     fun isMe(): Boolean {
+        if (isXmtp()) {
+            return clientAddress == address
+        }
         val isIncomingMms = isMms() && (boxId == Telephony.Mms.MESSAGE_BOX_INBOX || boxId == Telephony.Mms.MESSAGE_BOX_ALL)
         val isIncomingSms = isSms() && (boxId == Telephony.Sms.MESSAGE_TYPE_INBOX || boxId == Telephony.Sms.MESSAGE_TYPE_ALL)
 
-        val isIncomingXmtp = isXmtp() && clientAddress != address
-
-        return !(isIncomingMms || isIncomingSms || isIncomingXmtp)
+        return !(isIncomingMms || isIncomingSms)
     }
 
     fun isOutgoingMessage(): Boolean {
