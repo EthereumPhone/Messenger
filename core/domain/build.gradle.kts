@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.org.jetbrains.kotlin.serialization)
 }
 
 android {
@@ -45,6 +46,13 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    implementation(libs.bundles.roomb) {
+        exclude(group = "com.intellij", module = "annotations")
+    }
+    kapt(libs.bundles.roomb) {
+        exclude(group = "com.intellij", module = "annotations")
+    }
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)

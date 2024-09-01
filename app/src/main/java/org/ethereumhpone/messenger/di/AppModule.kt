@@ -22,6 +22,7 @@ import kotlinx.coroutines.withContext
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.model.LogTimeHandler
+import org.ethereumhpone.domain.model.XMTPConversationDB
 import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.messenger.BuildConfig
 import org.ethereumphone.walletsdk.WalletSDK
@@ -84,6 +85,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideLogTimeHandler(@ApplicationContext context: Context) = LogTimeHandler(context.getSharedPreferences("app", Context.MODE_PRIVATE))
+
+    @Provides
+    @Singleton
+    fun provideXMTPConversationDB(@ApplicationContext context: Context) = XMTPConversationDB(context.getSharedPreferences("app", Context.MODE_PRIVATE))
 
     @Provides
     @Singleton

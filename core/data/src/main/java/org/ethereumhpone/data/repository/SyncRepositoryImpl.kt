@@ -50,6 +50,7 @@ import org.ethereumhpone.domain.mapper.MessageCursor
 import org.ethereumhpone.domain.mapper.PartCursor
 import org.ethereumhpone.domain.mapper.RecipientCursor
 import org.ethereumhpone.domain.model.LogTimeHandler
+import org.ethereumhpone.domain.model.XMTPConversationDB
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.Client
@@ -95,7 +96,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val recipientDao: RecipientDao,
     private val phoneNumberDao: PhoneNumberDao,
     private val syncLogDao: SyncLogDao,
-    private val logTimeHandler: LogTimeHandler
+    private val logTimeHandler: LogTimeHandler,
+    private val xmtpConversationDB: XMTPConversationDB
 ): SyncRepository {
     private val _isSyncing = MutableStateFlow(false)
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
@@ -326,7 +328,7 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
+    override suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
 
         client.conversations.list().forEach { convo ->
             launch {
@@ -451,7 +453,7 @@ class SyncRepositoryImpl @Inject constructor(
                 manageXmtpMessage(threadId, newMessage, client, reply.reference, conversation, context)
             }
 
-            ContentTypeText -> template.copy(body = msg.body).also { messageDao.upsertMessage(it) }
+            ContentTypeText -> template.copy(body = msg.body).also { xmtpConversationDB.upsertMessagesXMTP(conversation.id.toString(), listOf(template)) }
             else -> {  }
         }
 

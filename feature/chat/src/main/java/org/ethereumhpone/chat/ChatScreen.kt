@@ -379,6 +379,10 @@ fun ChatScreen(
                             is MessagesUiState.Success -> {
                                 // Initialize states for the child checkboxes
                                 val size = messagesUiState.messages.size
+
+                                messagesUiState.messages.forEach {
+                                    Log.d("MESSAGES",it.body)
+                                }
                                 val childCheckedStates = remember { MutableList(size) { mutableStateOf(false) } }
 
                                 val listState = rememberLazyListState()
@@ -420,7 +424,7 @@ fun ChatScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = 24.dp)
                                 ) {
-                                    itemsIndexed(items = messagesUiState.messages) { index, message ->
+                                    itemsIndexed(items = messagesUiState.messages.sortedBy { it.date }.reversed()) { index, message ->
 
 
                                         //Log.d("DEBUG", "${message.id} - ${message.body} - ${message.parts.toString()}")

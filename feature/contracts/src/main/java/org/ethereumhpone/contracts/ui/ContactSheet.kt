@@ -143,7 +143,7 @@ fun ContactSheet(
                 contentAlignment = Alignment.TopCenter
             ) {
                 LazyColumn {
-                    if(textState.text.isNotEmpty() && phoneNumberUtils.isPossibleNumber(textState.text)) {
+                    if((textState.text.isNotEmpty() && phoneNumberUtils.isPossibleNumber(textState.text)) || isAddress(textState.text)) {
                         val newAddress = phoneNumberUtils.formatNumber(textState.text)
                         val newContact = Contact(numbers = (listOf(PhoneNumber(address = newAddress))))
 
@@ -186,6 +186,11 @@ fun ContactSheet(
             }
         }
     }
+}
+
+fun isAddress(address: String): Boolean {
+    val ethereumAddressRegex = Regex("^0x[a-fA-F0-9]{40}$")
+    return ethereumAddressRegex.matches(address)
 }
 
 fun String.normalizedString(): String {

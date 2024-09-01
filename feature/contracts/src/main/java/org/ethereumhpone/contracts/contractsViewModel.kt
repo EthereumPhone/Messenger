@@ -16,11 +16,13 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.ethereumhpone.contracts.ui.isAddress
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.PhoneNumber
+import org.ethereumhpone.domain.model.XMTPConversationDB
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
@@ -31,6 +33,7 @@ class ContactViewModel @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val contactRepository: ContactRepository,
     private val xmtpClientManager: XmtpClientManager,
+    private val xmtpConversationDB: XMTPConversationDB,
     private val syncRepository: SyncRepository,
     private val phoneNumberUtils: PhoneNumberUtils,
 ): ViewModel() {
@@ -42,7 +45,7 @@ class ContactViewModel @Inject constructor(
                 println("DEBUGGGGG: ${it.lastMessage?.body}, ${it.unknown}")
             }
             val filteredConversations = conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed() // Filter out conversations with unknown set to true
-            ConversationUIState.Success(filteredConversations)
+            ConversationUIState.Success(checkConversationsForXMTP(filteredConversations))
         }
         .stateIn(
             scope = viewModelScope,
@@ -81,6 +84,21 @@ class ContactViewModel @Inject constructor(
            }
            conversationRepository.markAccepted(conversationId)
        }
+    }
+
+    fun checkConversationsForXMTP(conversations: List<Conversation>): List<Conversation> {
+        return conversations.map { conversation ->
+            var tempConversation = conversation.copy()
+            conversation.recipients.firstOrNull()?.let {
+                if (isAddress(it.address)) {
+                    xmtpConversationDB.setConversationXMTP(conversation.id.toString())
+                    tempConversation = conversation.copy(lastMessage = xmtpConversationDB.getLatestMessage(conversation.id.toString()))
+                } else {
+                    conversation
+                }
+            }
+            tempConversation
+        }
     }
 
 }
