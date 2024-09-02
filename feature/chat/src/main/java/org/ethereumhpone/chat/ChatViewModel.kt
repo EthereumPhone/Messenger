@@ -96,14 +96,21 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val threadId = ThreadIdArgs(savedStateHandle).threadId.toLong()
     private val addresses = AddressesArgs(savedStateHandle).addresses
     // conversation state
-    private val conversationState = merge(
-        conversationRepository.getConversation(threadId), // initial Conversation
-        selectedConversationState(addresses, conversationRepository)
-    ).stateIn(
-        scope = viewModelScope,
-        initialValue = Conversation(),
-        started = SharingStarted.WhileSubscribed(5_000)
-    )
+    private val conversationState = flow {
+        emit(
+            if (xmtpConversationDB.isConversationInXMTP(threadId.toString())) {
+                xmtpConversationDB.getConversationById(threadId.toString())
+            } else {
+                conversationRepository.getConversation(threadId)
+            }
+        )
+    }.flatMapLatest { it }
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = Conversation(),
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
 
     // recipients state
     val recipientState = conversationState
@@ -123,25 +130,22 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
-    // message state
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val messagesState = conversationState
         .filterNotNull()
         .flatMapLatest { conversation ->
-            conversation.recipients.firstOrNull()?.let { tempRecipient ->
-                if(isAddress(tempRecipient.address)) {
-                    _isXMTP.value = true
-                }
-            }
-            addresses.firstOrNull()?.let { firstAddress ->
-                if (isAddress(firstAddress)) {
-                    _isXMTP.value = true
-                }
-            }
-            if (_isXMTP.value) {
+            val isXMTP = xmtpConversationDB.isConversationInXMTP(conversation.id.toString())
+            _isXMTP.value = isXMTP
+
+            if (isXMTP) {
+                val xmtpMessagesFlow = xmtpConversationDB.getMessagesXMTP(conversation)
+                    .map { MessagesUiState.Success(it) }
+
+                // Start a coroutine for fetching and streaming messages from XMTP
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val convo = xmtpClientManager.client.conversations.newConversation(conversation.recipients.firstOrNull()?.address ?: "")
+                        val convo = xmtpConversationDB.getOrCreateXMTPConversation(conversation.recipients.firstOrNull()?.address ?: "", xmtpClientManager.client)
                         convo.messages().forEach {
                             val message = Message(
                                 id = it.id,
@@ -171,13 +175,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-
                 }
-                // Use the XMTP flow if _isXMTP is true
-                xmtpConversationDB.getMessagesXMTP(conversation)
-                    .map { MessagesUiState.Success(it) }
+
+                xmtpMessagesFlow
             } else {
-                // Use the regular message repository flow
                 messageRepository.getMessages(conversation.id).map(MessagesUiState::Success)
             }
         }
@@ -186,6 +187,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             initialValue = MessagesUiState.Loading,
             started = SharingStarted.WhileSubscribed(5_000)
         )
+
 
 
     // contacts state
