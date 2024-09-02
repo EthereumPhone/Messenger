@@ -116,6 +116,8 @@ class MainActivity : ComponentActivity() {
                 XmtpClientManager.ClientState.Ready -> {
                     Log.d("Start service", "IT started")
 
+                    syncRepository.syncXmtp(this@MainActivity, xmtpClientManager.client)
+
                     val intent = Intent(this@MainActivity, MyForegroundService::class.java)
                     // Uncomment the line below to start the foreground service
                     // this@MainActivity.startForegroundService(intent)
