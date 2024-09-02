@@ -153,7 +153,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                                 xmtpDeliveryStatus = it.deliveryStatus,
                                 clientAddress = it.senderAddress,
                             )
-                            xmtpConversationDB.upsertMessagesXMTP(conversation.id.toString(), listOf(message))
+                            xmtpConversationDB.upsertMessagesXMTP(conversation, listOf(message))
                         }
                         convo.streamMessages().collect {
                             val message = Message(
@@ -166,7 +166,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                                 xmtpDeliveryStatus = it.deliveryStatus,
                                 clientAddress = it.senderAddress,
                             )
-                            xmtpConversationDB.upsertMessagesXMTP(conversation.id.toString(), listOf(message))
+                            xmtpConversationDB.upsertMessagesXMTP(conversation, listOf(message))
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -174,7 +174,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
                 }
                 // Use the XMTP flow if _isXMTP is true
-                xmtpConversationDB.getMessagesXMTP(conversation.id.toString())
+                xmtpConversationDB.getMessagesXMTP(conversation)
                     .map { MessagesUiState.Success(it) }
             } else {
                 // Use the regular message repository flow

@@ -364,8 +364,7 @@ class SyncRepositoryImpl @Inject constructor(
                     )
                 }
                 // update convo
-                conversationDao.upsertConversation(savedConversation)
-
+                xmtpConversationDB.upsertConversation(savedConversation)
 
             }
         }
@@ -453,7 +452,7 @@ class SyncRepositoryImpl @Inject constructor(
                 manageXmtpMessage(threadId, newMessage, client, reply.reference, conversation, context)
             }
 
-            ContentTypeText -> template.copy(body = msg.body).also { xmtpConversationDB.upsertMessagesXMTP(conversation.id.toString(), listOf(template)) }
+            ContentTypeText -> template.copy(body = msg.body).also { xmtpConversationDB.upsertMessagesXMTP(conversation, listOf(template)) }
             else -> {  }
         }
 
