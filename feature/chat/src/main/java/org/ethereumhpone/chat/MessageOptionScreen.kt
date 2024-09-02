@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -62,9 +64,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
-import org.ethereumhpone.chat.components.FocusChatItemBubble
+import androidx.media3.common.Player
+import org.ethereumhpone.chat.components.ChatItemBubbleV2
 import org.ethereumhpone.chat.components.FocusClickableMessage
 import org.ethereumhpone.chat.components.FocusMessage
+import org.ethereumhpone.chat.components.message.ChatItemBubble
+import org.ethereumhpone.chat.components.message.ClickableMessage
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.LastUserChatBubbleShape
 import org.ethereumhpone.chat.components.printFormattedDateInfo
@@ -87,7 +92,7 @@ fun MessageOptionsScreen(
     composablePositionState: MutableState<ComposablePosition>,
     focusMode: MutableState<Boolean>,
     onDeleteMessage: (Long) -> Unit = {},
-    onDetailMessage: () -> Unit = {}
+    onDetailMessage: () -> Unit = {},
 ){
     var deleteConfirmation = remember {
         mutableStateOf(false)
@@ -110,7 +115,6 @@ fun MessageOptionsScreen(
                 msg = message,
                 isUserMe = message.isMe(),
                 isFirstMessageByAuthor = true,
-                isLastMessageByAuthor = false,
                 onLongClick = {
                     focusMode.value = false
                 },
@@ -243,8 +247,11 @@ fun MessageDetailView(
     message: Message,
     isUserMe: Boolean,
     onDismissRequest: () -> Unit,
+    player: Player?,
+    name: String,
+    onPrepareVideo: (Uri) -> Unit,
 
-) {
+    ) {
 
     val smsTime: Calendar = Calendar.getInstance()
     smsTime.setTimeInMillis(message.date)
@@ -272,7 +279,7 @@ fun MessageDetailView(
             .zIndex(11f)
             .fillMaxSize()
             .background(Colors.BLACK)
-            .padding(start = 24.dp,end = 24.dp,bottom = 48.dp),
+            .padding(start = 24.dp, end = 24.dp, bottom = 48.dp),
 
     ) {
         // Header
@@ -312,105 +319,18 @@ fun MessageDetailView(
                 verticalArrangement = Arrangement.Center
             ) {
 
-
-
-                val messageBrush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF8C7DF7),
-                        Color(0xFF8C7DF7)
-                    )
+                //TODO: Add replies - ChatItemBubbleV2
+                ChatItemBubble(
+                    message = message,
+                    isUserMe = true,
+                    isFirstMessageByAuthor = true,
+                    videoPlayer = player,
+                    onPlayVideo = { onPrepareVideo(it)},
+                    onLongClick = { },
+                    name = name,
+                    onDoubleClick = {  }
                 )
 
-                Column(
-                    horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box (
-                        modifier = Modifier
-                            .clip(LastUserChatBubbleShape)
-                            .background(
-                                brush = messageBrush
-                            ),
-                        contentAlignment = Alignment.BottomEnd
-                    ){
-                        val uriHandler = LocalUriHandler.current
-                        val messageBody = when (message.isSms()) {
-                            true -> message.body
-                            false -> {
-                                message.parts
-                                    .filter { part -> part.isText() }
-                                    .mapNotNull { part -> part.text }
-                                    .filter { text -> text.isNotBlank() }
-                                    .joinToString { "\n" }
-                            }
-                        }
-                        if (messageBody.isNotBlank()) {
-                            val styledMessage = messageFormatter(
-                                text = messageBody,
-                                primary = isUserMe
-                            )
-
-                            FocusClickableMessage(
-                                message = message,
-                                styledMessage = styledMessage,
-                                style = TextStyle(
-                                    fontSize = 16.sp,
-                                    fontWeight =  FontWeight.Normal,
-                                    color = Colors.WHITE,
-                                    fontFamily = Fonts.INTER,
-                                ),
-                                onLongClick = { },
-                                isUserMe = isUserMe,
-                                onClick = {
-
-                                    styledMessage
-                                        .getStringAnnotations(start = it, end = it)
-                                        .firstOrNull()
-                                        ?.let { annotation ->
-                                            when (annotation.tag) {
-                                                SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
-                                                SymbolAnnotationType.PERSON.name -> {
-
-                                                }
-                                                else -> Unit
-                                            }
-                                        }
-                                },
-                                modifier = Modifier
-                                    .onSizeChanged {
-                                        expandedAvailable  = it.height > 250.dp.value.toInt()
-                                    }
-                                    .animateContentSize()
-                                    .then(
-                                        if (!expanded) {
-                                            reusableModifier
-                                        } else {
-                                            Modifier
-                                        }
-
-                                    )
-
-                            )
-                        }
-                        
-
-
-
-
-                    }
-                    if(expandedAvailable){
-                        TextButton(
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Colors.TRANSPARENT,
-                                contentColor = Colors.WHITE,
-                            ),
-                            onClick = { expanded = !expanded }
-                        ) {
-                            Text(text = if(expanded) "Show less" else "Show more", fontFamily = Fonts.INTER)
-                        }
-                    }
-
-                }
 
 
             }
@@ -434,14 +354,6 @@ fun MessageDetailView(
                 ){
                     Text("Read", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     when {
-//                    message.isFailedMessage() -> Icon(
-//                        imageVector = Icons.Rounded.Error,//Icons.Filled.CheckCircleOutline,
-//                        contentDescription = "Go back",
-//                        tint = Colors.WHITE,
-//                        modifier = Modifier
-//                            .size(16.dp)
-//                            .alpha(0.5f)
-//                    )
 
                         message.isSending() -> Icon(
                             painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,

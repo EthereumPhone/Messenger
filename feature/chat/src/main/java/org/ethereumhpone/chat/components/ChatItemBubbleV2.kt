@@ -1,65 +1,47 @@
 package org.ethereumhpone.chat.components
 
-import android.annotation.SuppressLint
 import android.net.Uri
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
+import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.LastBaseline
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
-import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
-import org.ethereumhpone.chat.components.message.ChatItemBubble
 import org.ethereumhpone.chat.components.message.ClickableMessage
-import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
@@ -71,121 +53,10 @@ import org.ethereumhpone.database.model.isVCard
 import org.ethereumhpone.database.model.isVideo
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
-import kotlin.math.roundToInt
-
-@SuppressLint("CoroutineCreationDuringComposition")
-@Composable
-fun FocusMessage(
-    modifier: Modifier = Modifier,
-    focusMode: MutableState<Boolean>,
-    msg: Message, //Message from core/model
-    isUserMe: Boolean,
-    isFirstMessageByAuthor: Boolean,
-    composablePositionState: MutableState<ComposablePosition>,
-    onLongClick: () -> Unit = {},
-    onDeleteMessage: () -> Unit = {},
-    onDetailMessage: () -> Unit = {}
-
-) {
-
-    //animation
-
-    val configuration = LocalConfiguration.current
-    val screenMidddleHeight = configuration.screenHeightDp/2//mitte des screens
-
-    val extraheight = if ((composablePositionState.value.height/2).dp > 250.dp) {
-        250.dp
-    } else{
-        (composablePositionState.value.height/2).dp
-    }
-    val pxYToMove = with(LocalDensity.current) {
-        val move = (screenMidddleHeight.dp.toPx() - composablePositionState.value.offset.y.roundToInt()) - extraheight.toPx().roundToInt()
-        move.roundToInt()
-    }
-
-    val animatedProgress = remember { Animatable(composablePositionState.value.offset.y) }//position
-
-
-    LaunchedEffect(animatedProgress) {
-        animatedProgress.animateTo(composablePositionState.value.offset.y + pxYToMove.toFloat(),
-            animationSpec = tween(
-                durationMillis = 300,
-                delayMillis = 240
-            )
-        )
-    }
-
-
-    val composableScope = rememberCoroutineScope()
-
-
-    if(!focusMode.value){
-        composableScope.launch {
-            animatedProgress.animateTo(composablePositionState.value.offset.y,
-                animationSpec = tween(
-                    durationMillis = 300,
-                    delayMillis = 0
-                )
-            )
-        }
-    }
-
-    //aligns messsge and positions it
-    val alignmessage =
-        if(isUserMe){
-            Modifier
-                .fillMaxWidth()
-                .offset {
-                    IntOffset(
-                        0,
-                        animatedProgress.value.toInt() - 60.dp
-                            .toPx()
-                            .roundToInt()
-                    )
-                }
-        } else {
-            Modifier.offset {
-                IntOffset(0,animatedProgress.value.toInt()-60.dp.toPx().roundToInt())
-            }
-        }
-
-
-
-
-    Column(
-        modifier = alignmessage,
-        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        //TODO: Add Reaction
-        //MessageReactions()
-
-        FocusChatItemBubble(
-            message = msg,
-            isUserMe = isUserMe,
-            isFirstMessageByAuthor = isFirstMessageByAuthor,
-            //isLastMessageByAuthor=isLastMessageByAuthor,
-            onLongClick = onLongClick,
-            videoPlayer = null,
-            onPlayVideo = {}
-        )
-
-       MessageActionList(isUserMe = isUserMe, message = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
-
-    }
-
-}
-
-private val ChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
-private val UserChatBubbleShape = RoundedCornerShape(32.dp, 32.dp, 32.dp, 32.dp)
-
-private val LastChatBubbleShape = RoundedCornerShape(20.dp, 32.dp, 32.dp, 4.dp)
-private val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.dp)
-
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun FocusChatItemBubble(
+fun ChatItemBubbleV2(
     modifier: Modifier = Modifier,
     message: Message,
     isUserMe: Boolean,
@@ -198,7 +69,6 @@ fun FocusChatItemBubble(
     onDoubleClick: () -> Unit = {},
 ) {
 
-    //TODO: Add replies
 
     val Bubbleshape = if(isUserMe) {
         if (isFirstMessageByAuthor){
@@ -240,12 +110,13 @@ fun FocusChatItemBubble(
 
     Column (
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = modifier.clip(Bubbleshape)
+        modifier = Modifier
+            .clip(Bubbleshape)
             .background(
                 brush = messageBrush
-            ),
-
-        ){
+            )
+            .width(IntrinsicSize.Max)
+    ){
         val media = message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
@@ -276,6 +147,95 @@ fun FocusChatItemBubble(
                 VCardBinder(message)
             }
         }
+
+
+        if (true){
+            Column(
+                modifier = modifier
+                    .padding(vertical = 8.dp, horizontal = 16.dp)
+            ){
+                Row (
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                        .clickable {  }
+                        .drawBehind {
+                            drawRoundRect(
+                                Colors.BLACK,
+                                alpha = 0.3f,
+                                cornerRadius = CornerRadius(12.dp.toPx())
+                            )
+
+                        }
+                ){
+                    Box(
+                        Modifier
+                            .background(if(isUserMe)  Colors.WHITE else Color(0xFF8C7DF7))
+                            .width(6.dp)
+                            .fillMaxHeight()
+                    ){
+
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .padding(top = 12.dp, bottom = 12.dp, end = 18.dp)
+
+                    ) {
+
+
+                        //TODO: Add Name
+
+                            Text(
+                                text = if (isUserMe) name else "You",
+                                style = TextStyle(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if(!isUserMe) Color(0xFF8C7DF7) else Colors.WHITE,
+                                    fontFamily = Fonts.INTER
+                                )
+                            )
+
+
+
+                        BasicText(
+                            text = message.body,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Colors.WHITE,
+                                fontFamily = Fonts.INTER
+                            ),
+                            modifier = Modifier
+                                .alpha(0.8f)
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onLongPress = {
+                                            onLongClick()
+                                        },
+                                        onDoubleTap = {
+                                            onDoubleClick()
+                                        }
+
+                                    )
+                                },
+
+                            )
+                    }
+
+                }
+
+
+            }
+        }
+
+
         FlowRow (
             modifier = Modifier
                 .padding(end = 20.dp, start = 16.dp, top = 8.dp, bottom = 8.dp),
@@ -286,8 +246,15 @@ fun FocusChatItemBubble(
             val uriHandler = LocalUriHandler.current
 
             val messageBody = when (message.isSms()) {
-                true -> message.body
+                true -> {
+                    Log.d("messageBody true",message.body)
+
+                    message.body
+                }
                 false -> {
+                    Log.d("messageBody false",message.body)
+
+
                     message.parts
                         .filter { part -> part.isText() }
                         .mapNotNull { part -> part.text }
@@ -295,14 +262,17 @@ fun FocusChatItemBubble(
                         .joinToString("\n")
                 }
             }
-
+            Log.d("messageBody false after",messageBody)
             if (messageBody.isNotBlank()) {
+
+
                 val styledMessage = messageFormatter(
                     text = messageBody,
                     primary = isUserMe
                 )
 
-                FocusClickableMessage(
+                ClickableMessage(
+                    message = message,
                     styledMessage = styledMessage,
                     style = TextStyle(
                         fontSize = 16.sp,
@@ -311,6 +281,7 @@ fun FocusChatItemBubble(
                         fontFamily = Fonts.INTER
                     ),
                     onLongClick = onLongClick,
+                    isUserMe = isUserMe,
                     onClick = {
 
                         styledMessage
@@ -337,50 +308,45 @@ fun FocusChatItemBubble(
 
         }
     }
+
+//    }
 }
+
+
+
+@Preview
 @Composable
-fun FocusClickableMessage(
-    modifier: Modifier = Modifier,
-    styledMessage: AnnotatedString,
-    style: TextStyle,
-    onTextLayout: (TextLayoutResult) -> Unit = {},
-    onClick: (Int) -> Unit = {},
-    onLongClick: () -> Unit = {},
-    onDoubleClick: () -> Unit = {},
+fun ReplyChatItemBubblePreview() {
+    val initialMessages = listOf(
 
-) {
+        Message(
+            address = "me",
+            body = "Check it out!",
+            subject = "8:07 PM"
+        ),
+//        Message(
+//            address = "me",
+//            body = "Thank you!",
+//            subject = "8:06 PM",
+//            mmsStatus = R.drawable.ethos
+//        ),
+        Message(
+            address = "me",
+            body = "You can use all the same stuff",
+            subject = "8:05 PM"
+        ),
 
-
-    val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
-
-    //SelectionContainer {
-    BasicText(
-        overflow = TextOverflow.Ellipsis,
-        text = styledMessage,
-        style = style,
-        modifier = Modifier
-            .heightIn(max = 300.dp)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = {
-                        onLongClick()
-                    },
-                    onTap = { pos ->
-                        layoutResult.value?.let { layoutResult ->
-                            onClick(layoutResult.getOffsetForPosition(pos))
-                        }
-                    },
-                    onDoubleTap = {
-                        onDoubleClick()
-                    }
-
-                )
-            }
-        ,
-        onTextLayout = {
-            layoutResult.value = it
-            onTextLayout(it)
-        }
     )
-}
 
+    val authorMe = "me"
+
+
+    ChatItemBubbleV2(
+        message = initialMessages[1],
+        isUserMe = true,
+        videoPlayer = null,
+        isFirstMessageByAuthor = true,
+        onPlayVideo = {}
+    )
+
+}

@@ -459,7 +459,10 @@ fun ChatScreen(
 
                                 if(targetMode) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(56.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp)
+                                            .height(56.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ){
@@ -739,7 +742,11 @@ fun ChatScreen(
                 ){
                     if (focusedMessage != null) {
                         MessageOptionsScreen(
-                            Modifier.layoutId("messageoptions"),focusedMessage,composablePositionState, focusMode,onDeleteMessage
+                            modifier = Modifier.layoutId("messageoptions"),
+                            message = focusedMessage,
+                            composablePositionState = composablePositionState,
+                            focusMode = focusMode,
+                            onDeleteMessage = onDeleteMessage
                         ) {
                             detailview = true
                         }
@@ -801,9 +808,13 @@ fun ChatScreen(
                 ){
                     if (focusedMessage != null) {
                         MessageDetailView(
-                            focusedMessage,
-                            focusedMessage.isMe()
-                        ) { detailview = false }
+                            message = focusedMessage,
+                            isUserMe = focusedMessage.isMe(),
+                            player = videoPlayer,
+                            onDismissRequest = { detailview = false },
+                            name = recipient?.getDisplayName() ?: "",
+                            onPrepareVideo = { onPrepareVideo(it) },
+                        )
                     }
 
                 }

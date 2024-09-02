@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.chat.components.ChatItemBubbleV2
 import org.ethereumhpone.chat.components.EthOSCheckbox
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
@@ -188,6 +189,7 @@ fun MessageItem(
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
 
+            //TODO: Add replies - ChatItemBubbleV2
             ChatItemBubble(
                 message = msg,
                 isUserMe = isUserMe,
@@ -461,7 +463,7 @@ fun ChatItemBubble(
 
     Column (
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier.clip(Bubbleshape)
+        modifier = modifier.clip(Bubbleshape)
             .background(
                 brush = messageBrush
             )
@@ -559,8 +561,6 @@ fun ChatItemBubble(
 
         }
     }
-
-//    }
 }
 
 
