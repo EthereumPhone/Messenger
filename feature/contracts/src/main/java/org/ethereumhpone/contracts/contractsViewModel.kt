@@ -44,11 +44,8 @@ class ContactViewModel @Inject constructor(
         xmtpConversationDB.getAllConversations()
     ) { repoConversations, xmtpConversations ->
         // Combine both lists
-        val allConversations = (repoConversations + xmtpConversations).distinctBy { it.id }
-
-        allConversations.forEach {
-            println("DEBUGGGGG: ${it.lastMessage?.body}, ${it.unknown}")
-        }
+        val filteredConvos = repoConversations.filter { !xmtpConversationDB.isConversationInXMTP(it.id.toString()) }
+        val allConversations = (filteredConvos + xmtpConversations).distinctBy { it.id }
 
         // Filter and sort the conversations
         val filteredConversations = allConversations
@@ -65,25 +62,16 @@ class ContactViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
-    val showHiddenButton: StateFlow<Boolean> = combine(
-        conversationRepository.getConversations(),
-        xmtpConversationDB.getAllConversations()
-    ) { conversations, xmtpConversations ->
-        val allConversations = (conversations + xmtpConversations).distinctBy { it.id }
-        allConversations.any { it.unknown } // Check if any conversation has unknown set to true
-    }
-    .stateIn(
-        scope = viewModelScope,
-        initialValue = false, // False by default
-        started = SharingStarted.WhileSubscribed(5_000)
-    )
-
 
     val contacts: Flow<List<Contact>> = contactRepository.getContacts()
 
     fun setConversationAsRead(conversationId: Long) {
-        CoroutineScope(Dispatchers.IO).launch {
-            conversationRepository.markRead(conversationId)
+        if (xmtpConversationDB.isConversationInXMTP(conversationId.toString())) {
+            xmtpConversationDB.updateConversationReadStatus(conversationId.toString(), true)
+        } else {
+            CoroutineScope(Dispatchers.IO).launch {
+                conversationRepository.markRead(conversationId)
+            }
         }
     }
 
@@ -96,7 +84,8 @@ class ContactViewModel @Inject constructor(
            if (clientState == XmtpClientManager.ClientState.Ready) {
                xmtpClientManager.client.contacts.allow(listOf(address))
            }
-           conversationRepository.markAccepted(conversationId)
+
+           xmtpConversationDB.markConversationAccepted(conversationId.toString())
        }
     }
 
