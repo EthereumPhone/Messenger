@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 @Entity("conversation")
+@Serializable
 data class Conversation(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(index = true) val archived: Boolean = false,
