@@ -81,14 +81,12 @@ fun ContactRoute(
     viewModel: ContactViewModel = hiltViewModel()
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
-    val showHiddenButton by viewModel.showHiddenButton.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
 
     ContactScreen(
         modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
-        showHiddenButton = showHiddenButton,
         contactsClicked = { selectedContacts ->
             navigateToChat("0", selectedContacts.map { it.getDefaultNumber()?.address ?: it.numbers[0].address }) },
         markAccepted = { id, address -> viewModel.setConversationAsAccepted(id, address) },
@@ -106,10 +104,14 @@ fun ContactScreen(
     conversationState: ConversationUIState,
     contactsClicked: (List<Contact>) -> Unit,
     conversationClicked: (String) -> Unit,
-    showHiddenButton: Boolean = false,
     markAccepted: (Long, String) -> Unit,
     modifier: Modifier = Modifier
 ){
+
+    var showHiddenButton by remember {
+        mutableStateOf(false)
+    }
+
 
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
@@ -205,6 +207,8 @@ fun ContactScreen(
                     }
                 }
                 is ConversationUIState.Success -> {
+
+                    showHiddenButton = conversationState.conversations.any { it.unknown }
 
                    if(conversationState.conversations.isNotEmpty()){
                        Box(modifier = Modifier.weight(1f)) {
