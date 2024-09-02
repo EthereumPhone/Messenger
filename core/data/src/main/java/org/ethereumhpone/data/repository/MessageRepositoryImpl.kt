@@ -49,6 +49,7 @@ import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.model.ClientWrapper
+import org.ethereumhpone.domain.model.XMTPConversationDB
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.walletsdk.WalletSDK
@@ -71,6 +72,7 @@ class MessageRepositoryImpl @Inject constructor(
     private val activeConversationManager: ActiveConversationManager,
     private val context: Context,
     private val xmtpClientManager: XmtpClientManager,
+    private val xmtpConversationDB: XMTPConversationDB,
     private val walletSDK: WalletSDK
 ): MessageRepository {
     override fun getMessages(threadId: Long, query: String): Flow<List<Message>> =
@@ -222,7 +224,7 @@ class MessageRepositoryImpl @Inject constructor(
 
         try {
             println("Try to open conversation with $address")
-            val newConversation = xmtpClientManager.client.conversations.newConversation(address)
+            val newConversation = xmtpConversationDB.getOrCreateXMTPConversation(address, xmtpClientManager.client)
             newConversation.send(text = message.body)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -259,7 +261,8 @@ class MessageRepositoryImpl @Inject constructor(
                         val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, "sms", System.currentTimeMillis())
                         sendSms(message)
                     } else {
-                        sendXmtpMessage(Message(body = body), addresses.firstOrNull() ?: "")
+                        val message = Message(body = body)
+                        sendXmtpMessage(message, addresses.firstOrNull() ?: "")
                     }
 
                 } catch (e: Exception) {
