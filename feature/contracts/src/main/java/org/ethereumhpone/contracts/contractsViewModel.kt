@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
@@ -38,31 +39,44 @@ class ContactViewModel @Inject constructor(
     private val phoneNumberUtils: PhoneNumberUtils,
 ): ViewModel() {
 
-    val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
-        .flowOn(Dispatchers.IO)
-        .map { conversations ->
-            conversations.forEach {
-                println("DEBUGGGGG: ${it.lastMessage?.body}, ${it.unknown}")
-            }
-            val filteredConversations = conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed() // Filter out conversations with unknown set to true
-            ConversationUIState.Success(checkConversationsForXMTP(filteredConversations))
+    val conversationState: StateFlow<ConversationUIState> = combine(
+        conversationRepository.getConversations(),
+        xmtpConversationDB.getAllConversations()
+    ) { repoConversations, xmtpConversations ->
+        // Combine both lists
+        val allConversations = (repoConversations + xmtpConversations).distinctBy { it.id }
+
+        allConversations.forEach {
+            println("DEBUGGGGG: ${it.lastMessage?.body}, ${it.unknown}")
         }
+
+        // Filter and sort the conversations
+        val filteredConversations = allConversations
+            .filter { it.date > 0 } // Filter out conversations with date <= 0
+            .sortedBy { it.date }   // Sort by date
+            .reversed()             // Reverse to have most recent first
+
+        ConversationUIState.Success(filteredConversations)
+    }
+        .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,
             initialValue = ConversationUIState.Empty,
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
-    val showHiddenButton: StateFlow<Boolean> = conversationRepository.getConversations()
-        .flowOn(Dispatchers.IO)
-        .map { conversations ->
-            conversations.any { it.unknown } // Check if any conversation has unknown set to true
-        }
-        .stateIn(
-            scope = viewModelScope,
-            initialValue = false, // False by default
-            started = SharingStarted.WhileSubscribed(5_000)
-        )
+    val showHiddenButton: StateFlow<Boolean> = combine(
+        conversationRepository.getConversations(),
+        xmtpConversationDB.getAllConversations()
+    ) { conversations, xmtpConversations ->
+        val allConversations = (conversations + xmtpConversations).distinctBy { it.id }
+        allConversations.any { it.unknown } // Check if any conversation has unknown set to true
+    }
+    .stateIn(
+        scope = viewModelScope,
+        initialValue = false, // False by default
+        started = SharingStarted.WhileSubscribed(5_000)
+    )
 
 
     val contacts: Flow<List<Contact>> = contactRepository.getContacts()
@@ -84,21 +98,6 @@ class ContactViewModel @Inject constructor(
            }
            conversationRepository.markAccepted(conversationId)
        }
-    }
-
-    fun checkConversationsForXMTP(conversations: List<Conversation>): List<Conversation> {
-        return conversations.map { conversation ->
-            var tempConversation = conversation.copy()
-            conversation.recipients.firstOrNull()?.let {
-                if (isAddress(it.address)) {
-                    xmtpConversationDB.setConversationXMTP(conversation.id.toString())
-                    tempConversation = conversation.copy(lastMessage = xmtpConversationDB.getLatestMessage(conversation.id.toString()))
-                } else {
-                    conversation
-                }
-            }
-            tempConversation
-        }
     }
 
 }
