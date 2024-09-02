@@ -343,15 +343,29 @@ class SyncRepositoryImpl @Inject constructor(
                         contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
                         inboxId = client.inboxIdFromAddress(address) ?: "-1"// assume xmtp V3
                     )
-                }.also {
-                    recipientDao.upsertRecipients(it)
                 }
+
+
+                val lastMessage = convo.messages(limit = 1).firstOrNull()?.let {
+                    Message(
+                        id = it.id,
+                        threadId = threadId,
+                        address = it.senderAddress,
+                        type = "xmtp", // DO NOT CHANGE
+                        date = it.sent.time, // for historical messages, new ones use System time
+                        dateSent = it.sent.time,
+                        body = it.body,
+                        clientAddress = client.address,
+                        xmtpDeliveryStatus = it.deliveryStatus
+                    )
+                }
+                val savedConsentState = xmtpConversationDB.getAllConversations().value.firstOrNull { it.id == threadId }?.unknown
                 val savedConversation = Conversation(
                     id = threadId,
                     recipients = recipients,
-                    lastMessage = messageDao.getLastConversationMessage(threadId).first(),
+                    lastMessage = lastMessage,
                     blocked = convo.consentState() == ConsentState.DENIED,
-                    unknown = convo.consentState() == ConsentState.UNKNOWN
+                    unknown = savedConsentState ?: (convo.consentState() == ConsentState.UNKNOWN)
                 )
 
                 convo.messages().forEach { message ->
@@ -364,7 +378,7 @@ class SyncRepositoryImpl @Inject constructor(
                     )
                 }
                 // update convo
-                xmtpConversationDB.upsertConversation(savedConversation)
+                xmtpConversationDB.upsertConversationInSync(savedConversation)
 
             }
         }
@@ -452,7 +466,7 @@ class SyncRepositoryImpl @Inject constructor(
                 manageXmtpMessage(threadId, newMessage, client, reply.reference, conversation, context)
             }
 
-            ContentTypeText -> template.copy(body = msg.body).also { xmtpConversationDB.upsertMessagesXMTP(conversation, listOf(template)) }
+            ContentTypeText -> template.copy(body = msg.body).also { xmtpConversationDB.upsertMessagesXMTP(conversation, listOf(it)) }
             else -> {  }
         }
 
