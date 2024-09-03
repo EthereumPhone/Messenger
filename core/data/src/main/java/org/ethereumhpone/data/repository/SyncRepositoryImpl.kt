@@ -55,6 +55,7 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.Client
 import org.xmtp.android.library.ConsentState
+import org.xmtp.android.library.Conversations
 import org.xmtp.android.library.DecodedMessage
 import org.xmtp.android.library.XMTPException
 import org.xmtp.android.library.codecs.Attachment
@@ -331,63 +332,65 @@ class SyncRepositoryImpl @Inject constructor(
     override suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
 
         client.contacts.refreshConsentList()
+        val allNewConversations = arrayListOf<Conversation>()
 
         client.conversations.list().forEach { convo ->
-            launch {
-                // handle messages
-                val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
+            // handle messages
+            val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
 
-                // update recipients
-                val contacts = getContacts()
-                val recipients = convo.peerAddresses.map { address ->
-                    Recipient(
-                        address = address,
-                        contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
-                        inboxId = client.inboxIdFromAddress(address) ?: "-1"// assume xmtp V3
-                    )
-                }
-
-
-                val lastMessage = try {
-                    convo.messages(limit = 1).firstOrNull()?.let {
-                        Message(
-                            id = it.id,
-                            threadId = threadId,
-                            address = it.senderAddress,
-                            type = "xmtp", // DO NOT CHANGE
-                            date = it.sent.time, // for historical messages, new ones use System time
-                            dateSent = it.sent.time,
-                            body = it.body,
-                            clientAddress = client.address,
-                            xmtpDeliveryStatus = it.deliveryStatus
-                        )
-                    }
-                } catch (e: Exception) {
-                    null
-                }
-                val savedConsentState = xmtpConversationDB.getAllConversations().value.firstOrNull { it.id == threadId }?.unknown
-                val savedConversation = Conversation(
-                    id = threadId,
-                    recipients = recipients,
-                    lastMessage = lastMessage,
-                    blocked = convo.consentState() == ConsentState.DENIED,
-                    unknown = savedConsentState ?: (convo.consentState() == ConsentState.UNKNOWN)
+            // update recipients
+            val contacts = getContacts()
+            val recipients = convo.peerAddresses.map { address ->
+                Recipient(
+                    address = address,
+                    contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
+                    inboxId = client.inboxIdFromAddress(address) ?: "-1"// assume xmtp V3
                 )
+            }
 
-                convo.messages().forEach { message ->
-                    manageXmtpMessage(
+            val savedConversationInDb = xmtpConversationDB.getAllConversations().value.firstOrNull { it.id == threadId }
+
+            val lastMessage = try {
+                convo.messages(limit = 1).firstOrNull()?.let {
+                    Message(
+                        id = it.id,
                         threadId = threadId,
-                        msg = message,
-                        client = client,
-                        conversation = savedConversation,
-                        context = context
+                        address = it.senderAddress,
+                        type = "xmtp", // DO NOT CHANGE
+                        date = it.sent.time, // for historical messages, new ones use System time
+                        dateSent = it.sent.time,
+                        body = it.body,
+                        read = savedConversationInDb?.lastMessage?.read ?: false,
+                        clientAddress = client.address,
+                        xmtpDeliveryStatus = it.deliveryStatus
                     )
                 }
-                // update convo
-                xmtpConversationDB.upsertConversationInSync(savedConversation)
-
+            } catch (e: Exception) {
+                null
             }
+            val savedConversation = Conversation(
+                id = threadId,
+                recipients = recipients,
+                lastMessage = savedConversationInDb?.lastMessage ?: lastMessage,
+                blocked = convo.consentState() == ConsentState.DENIED,
+                unknown = savedConversationInDb?.unknown ?: (convo.consentState() == ConsentState.UNKNOWN)
+            )
+
+            convo.messages().forEach { message ->
+                manageXmtpMessage(
+                    threadId = threadId,
+                    msg = message,
+                    client = client,
+                    conversation = savedConversation,
+                    context = context
+                )
+            }
+            // update convo
+            allNewConversations.add(savedConversation)
+
         }
+        println("All conversation list length: ${allNewConversations.size}")
+        xmtpConversationDB.upsertConversationsInSync(allNewConversations)
     }
 
     private suspend fun manageXmtpMessage(
