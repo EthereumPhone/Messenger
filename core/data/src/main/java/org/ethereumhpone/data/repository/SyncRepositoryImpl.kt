@@ -330,6 +330,8 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
 
+        client.contacts.refreshConsentList()
+
         client.conversations.list().forEach { convo ->
             launch {
                 // handle messages
