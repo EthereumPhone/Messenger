@@ -161,27 +161,41 @@ class XMTPConversationDB(
         }
     }
 
-    fun upsertConversationInSync(conversation: Conversation) {
+    fun upsertConversationsInSync(conversations: List<Conversation>) {
+        // Start by making a mutable copy of the current conversations
         val currentConversations = conversationsFlow.value.toMutableList()
-        val index = currentConversations.indexOfFirst { it.id == conversation.id }
-        if (index >= 0) {
-            currentConversations[index] = conversation.copy(unknown = currentConversations[index].unknown) // Update existing
-        } else {
-            currentConversations.add(conversation) // Add new
+        val conversationMap = currentConversations.associateBy { it.id }.toMutableMap()
+
+        // Iterate over each conversation and upsert them
+        conversations.forEach { conversation ->
+            val existingConversation = conversationMap[conversation.id]
+            if (existingConversation != null) {
+                // Update existing conversation, preserving the 'unknown' field
+                conversationMap[conversation.id] = conversation.copy(unknown = existingConversation.unknown)
+            } else {
+                // Add new conversation
+                conversationMap[conversation.id] = conversation
+            }
         }
+
+        // Update the list of current conversations from the map
+        val updatedConversations = conversationMap.values.toList()
+
         // Serialize and save the conversations
-        val serializedConversations = currentConversations.map { Json.encodeToString(it) }.toSet()
+        val serializedConversations = updatedConversations.map { Json.encodeToString(it) }.toSet()
         sharedPreferences.edit()
             .putStringSet("conversations", serializedConversations)
             .apply()
-        conversationsFlow.value = currentConversations // Update StateFlow
+        conversationsFlow.value = updatedConversations // Update StateFlow
 
-        // Update the specific conversation flow
-        val conversationId = conversation.id.toString()
-        if (!conversationFlows.containsKey(conversationId)) {
-            conversationFlows[conversationId] = MutableStateFlow(conversation)
-        } else {
-            conversationFlows[conversationId]?.value = conversation
+        // Update specific conversation flows
+        conversations.forEach { conversation ->
+            val conversationId = conversation.id.toString()
+            if (!conversationFlows.containsKey(conversationId)) {
+                conversationFlows[conversationId] = MutableStateFlow(conversation)
+            } else {
+                conversationFlows[conversationId]?.value = conversation
+            }
         }
     }
 
