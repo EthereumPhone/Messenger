@@ -123,7 +123,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             }
             if (it.recipients.isNotEmpty()) {
                 it.recipients[0]
-            } else { Recipient(address = addresses[0]) }
+            } else { Recipient(address = addresses.firstOrNull() ?: "") }
         }.stateIn(
             scope = viewModelScope,
             initialValue = null,
@@ -137,7 +137,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         .flatMapLatest { conversation ->
             val isXMTP = xmtpConversationDB.isConversationInXMTP(conversation.id.toString())
             _isXMTP.value = isXMTP
-
+            println("isXMTP: $isXMTP")
             if (isXMTP) {
                 val xmtpMessagesFlow = xmtpConversationDB.getMessagesXMTP(conversation)
                     .map { MessagesUiState.Success(it) }
