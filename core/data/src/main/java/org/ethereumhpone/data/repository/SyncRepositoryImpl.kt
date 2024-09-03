@@ -348,18 +348,22 @@ class SyncRepositoryImpl @Inject constructor(
                 }
 
 
-                val lastMessage = convo.messages(limit = 1).firstOrNull()?.let {
-                    Message(
-                        id = it.id,
-                        threadId = threadId,
-                        address = it.senderAddress,
-                        type = "xmtp", // DO NOT CHANGE
-                        date = it.sent.time, // for historical messages, new ones use System time
-                        dateSent = it.sent.time,
-                        body = it.body,
-                        clientAddress = client.address,
-                        xmtpDeliveryStatus = it.deliveryStatus
-                    )
+                val lastMessage = try {
+                    convo.messages(limit = 1).firstOrNull()?.let {
+                        Message(
+                            id = it.id,
+                            threadId = threadId,
+                            address = it.senderAddress,
+                            type = "xmtp", // DO NOT CHANGE
+                            date = it.sent.time, // for historical messages, new ones use System time
+                            dateSent = it.sent.time,
+                            body = it.body,
+                            clientAddress = client.address,
+                            xmtpDeliveryStatus = it.deliveryStatus
+                        )
+                    }
+                } catch (e: Exception) {
+                    null
                 }
                 val savedConsentState = xmtpConversationDB.getAllConversations().value.firstOrNull { it.id == threadId }?.unknown
                 val savedConversation = Conversation(
