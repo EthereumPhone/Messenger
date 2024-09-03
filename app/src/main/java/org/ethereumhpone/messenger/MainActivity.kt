@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
 
         }
 
-        lifecycleScope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
 
             // Inside a coroutine scope
             val clientState = xmtpClientManager.clientState.first {
