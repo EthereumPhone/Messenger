@@ -36,4 +36,6 @@ interface ConversationRepository {
     suspend fun markBlocked(threadIds: List<Long>, blockingClient: Int, blockReason: String?)
     suspend fun markUnblocked(vararg threadIds: Long)
     suspend fun deleteConversations(vararg threadIds: Long)
+    suspend fun markAccepted(threadId: Long)
+
 }

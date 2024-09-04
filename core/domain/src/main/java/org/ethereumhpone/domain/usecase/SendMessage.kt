@@ -23,7 +23,6 @@ class SendMessage @Inject constructor(
         addresses: List<String>,
         body: String,
         attachments: List<Attachment> = listOf(),
-        isXMTP: Boolean = false
     ) {
         if(addresses.isEmpty()) return
 
@@ -32,7 +31,7 @@ class SendMessage @Inject constructor(
             else -> threadId
         }
 
-        messageRepository.sendMessage(subId, newThreadId, addresses, body, attachments, isXMTP)
+        messageRepository.sendMessage(subId, newThreadId, addresses, body, attachments)
 
         val conversationId = when(threadId) {
             0L -> conversationRepository.getOrCreateConversation(addresses).first()?.id

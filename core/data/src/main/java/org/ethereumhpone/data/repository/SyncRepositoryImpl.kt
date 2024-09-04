@@ -323,9 +323,12 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
+    override suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
 
         client.conversations.list().forEach { convo ->
+
+            convo.conversationId
+
             launch {
                 // handle messages
                 val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)

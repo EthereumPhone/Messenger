@@ -301,6 +301,18 @@ class ConversationRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun markAccepted(threadId: Long) {
+        conversationDao.getConversations(listOf(threadId)).firstOrNull()?.let { conversations ->
+            conversations.forEach { conversation ->
+                conversationDao.updateConversation(
+                    conversation.copy(
+                        isUnknown = false
+                    )
+                )
+            }
+        }
+    }
+
     /**
      * Returns a [Conversation] from the system SMS ContentProvider, based on the [threadId]
      *

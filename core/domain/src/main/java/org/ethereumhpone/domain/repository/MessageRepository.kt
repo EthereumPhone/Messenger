@@ -27,29 +27,13 @@ interface MessageRepository {
     suspend fun markSeen(threadId: Long)
     suspend fun markRead(vararg threadIds: Long)
     suspend fun markUnread(vararg threadIds: Long)
-    suspend fun sendMessage(
-        subId: Int,
-        threadId: Long,
-        addresses: List<String>,
-        body: String,
-        attachments: List<Attachment>,
-        isXMTP: Boolean = false
-    )
+    suspend fun sendMessage(subId: Int, threadId: Long, addresses: List<String>, body: String, attachments: List<Attachment>)
     suspend fun sendSms(message: Message)
     suspend fun resendMms(message: Message)
-    suspend fun insertSentSms(
-        subId: Int,
-        threadId: Long,
-        address: String,
-        body: String,
-        date: Long
-    ): Message
-    suspend fun insertReceivedSms(
-        subId: Int,
-        address: String,
-        body: String,
-        sentTime: Long
-    ): Message
+    suspend fun insertSentSms(subId: Int, threadId: Long, address: String, body: String, date: Long): Message
+    suspend fun insertReceivedSms(subId: Int, address: String, body: String, sentTime: Long): Message
+    suspend fun insertSentXmtp(subId: Int, threadId: Long, address: String, body: String, date: Long): Message
+    suspend fun insertReceivedXmtp(subId: Int, addresses: List<String>, body: String, sentTime: Long): Message
     suspend fun markSending(id: String)
     suspend fun markSent(id: String)
     suspend fun markFailed(id: String, resultCode: Int)

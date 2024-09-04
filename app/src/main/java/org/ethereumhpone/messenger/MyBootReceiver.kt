@@ -10,7 +10,7 @@ class MyBootReceiver : BroadcastReceiver() {
         if (intent.action == "org.ethereumhpone.messenger.RUN_RECEIVER") {
             println("MyBootReceiver: onReceive: RUN_RECEIVER")
             val serviceIntent = Intent(context, MyForegroundService::class.java)
-            context.startForegroundService(serviceIntent)
+            //context.startForegroundService(serviceIntent)
         }
     }
 }

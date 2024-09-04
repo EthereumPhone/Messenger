@@ -16,15 +16,14 @@ data class Conversation(
     val draft: String = "",
     val blockingClient: Int? = null,
     val blockReason: String? = null,
-    val title: String = "" // conversation title
+    val title: String = "", // conversation title
+    val isUnknown: Boolean = false // TODO: Remove this, when we a working blocking client
 ) {
     val date: Long get() = lastMessage?.date ?: 0
     val snippet: String? get() = lastMessage?.getSummary()
     val unread: Boolean get() = lastMessage?.read == false
     val me: Boolean get() = lastMessage?.isMe() == true
 
-    fun getConversationTitle(): String {
-        return title.takeIf { it.isNotBlank() }
+    fun getConversationTitle(): String = title.takeIf { it.isNotBlank() }
             ?: recipients.joinToString { recipient -> recipient.getDisplayName() }
-    }
 }

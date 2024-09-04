@@ -24,6 +24,7 @@ import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Transaction
 import dagger.internal.Provider
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
@@ -51,11 +52,15 @@ import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.Client
+import org.xmtp.android.library.SendOptions
+import org.xmtp.android.library.XMTPException
 import timber.log.Timber
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
+import java.text.DateFormat
+import java.util.Date
 import javax.inject.Inject
 import kotlin.math.sqrt
 
@@ -211,9 +216,27 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
     suspend fun sendXmtpMessage(message: Message) {
-        //TODO: Only works for text, fix it
-        val newConversation = xmtpClientManager.client.conversations.newConversation(message.clientAddress)
-        newConversation.send(text = message.body)
+        if (xmtpClientManager.clientState.first() != XmtpClientManager.ClientState.Ready) return
+
+        val convo = try {
+            xmtpClientManager.client.conversations.newConversation(message.address)
+        } catch (e: XMTPException) {
+            e.printStackTrace()
+            return
+        }
+
+        val date = Date(System.currentTimeMillis())
+
+        if (message.parts.isEmpty() || message.replyReference.isEmpty()) { // plain text message
+            try {
+                convo.send(text = message.body, sentAt = date)
+            } catch (e: XMTPException) {
+                e.printStackTrace()
+            }
+        } else {
+            //TODO handle other message types
+        }
+
     }
 
     override suspend fun sendMessage(
@@ -222,7 +245,6 @@ class MessageRepositoryImpl @Inject constructor(
         addresses: List<String>,
         body: String,
         attachments: List<Attachment>,
-        isXMTP: Boolean
     ) {
         messengerPreferences.prefs.firstOrNull()?.let { prefs ->
             val signedBody = when {
@@ -240,14 +262,20 @@ class MessageRepositoryImpl @Inject constructor(
 
             val messageParts = smsManager.divideMessage(strippedBody).orEmpty()
             val forceMms = prefs.longAsMms && messageParts.size > 1
-            if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // SMS
+
+            if(addresses.all { it.startsWith("0x") }) { // XMTP
+                try {
+                    val message = insertSentXmtp(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
+                    sendXmtpMessage(message)
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+            } else if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // SMS
                 try {
                     val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
-                    if (!isXMTP) {
-                        sendSms(message)
-                    } else {
-                        sendXmtpMessage(message)
-                    }
+                    sendSms(message)
 
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -411,6 +439,31 @@ class MessageRepositoryImpl @Inject constructor(
 
     }
 
+    override suspend fun insertSentXmtp(
+        subId: Int,
+        threadId: Long,
+        address: String,
+        body: String,
+        date: Long
+    ): Message {
+        val message = Message(
+            subId = subId,
+            threadId = threadId,
+
+        )
+
+        TODO()
+    }
+
+    override suspend fun insertReceivedXmtp(
+        subId: Int,
+        addresses: List<String>,
+        body: String,
+        sentTime: Long
+    ): Message {
+        TODO()
+    }
+
     override suspend fun insertSentSms(
         subId: Int,
         threadId: Long,
@@ -440,14 +493,11 @@ class MessageRepositoryImpl @Inject constructor(
         )
 
         val id = messageDao.insertMessage(initialMessage)
-        val message = initialMessage.copy(id = id.toString())
-
-        println("Before prefs")
 
         val prefs = messengerPreferences.prefs.firstOrNull()  // This will suspend until the first value is emitted and then return
         prefs?.let {
             if (it.canUseSubId) {
-                values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
+                values.put(Telephony.Sms.SUBSCRIPTION_ID, subId)
             }
         }
 
@@ -456,7 +506,7 @@ class MessageRepositoryImpl @Inject constructor(
         val uri = context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values)
         uri?.lastPathSegment?.toLong()?.let { id ->
             messageDao.upsertMessage(
-                message.copy(contentId = id)
+                initialMessage.copy(contentId = id)
             )
         }
 
@@ -464,7 +514,7 @@ class MessageRepositoryImpl @Inject constructor(
             uri?.let { syncRepository.syncMessage(it) }
         }
 
-        return message.copy()
+        return initialMessage.copy()
     }
 
     override suspend fun insertReceivedSms(
