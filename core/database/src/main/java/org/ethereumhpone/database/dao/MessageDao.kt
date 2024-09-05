@@ -102,4 +102,10 @@ interface MessageDao {
     @Delete
     suspend fun deleteMessage(message: Message)
 
+    @Transaction
+    suspend fun deleteAndInsert(oldMessage: Message, newMessage: Message) {
+        deleteMessage(oldMessage)
+        insertMessages(listOf(newMessage))
+    }
+
 }
