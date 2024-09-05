@@ -357,6 +357,10 @@ fun PreviewImageContainerGrid() {
     MediaGridContainer(media) {}
 }
 
+
+/*
+
+
 @Composable
 @Preview
 fun PreviewExpandedMediaDialog() {
@@ -405,6 +409,9 @@ fun PreviewImageThumbnail() {
 
     AsyncImage(model = thumbnail, contentDescription = "")
 }
+
+
+ */
 
 fun Uri.getVideoThumbnail(context: Context): Bitmap? {
     val metadata = MediaMetadataRetriever()
