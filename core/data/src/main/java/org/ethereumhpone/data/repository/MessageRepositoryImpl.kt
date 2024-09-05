@@ -20,11 +20,15 @@ import com.google.android.mms.pdu_alt.MultimediaMessagePdu
 import com.google.android.mms.pdu_alt.PduPersister
 import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Transaction
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.send_message.SmsManagerFactory
 import org.ethereumhpone.common.util.ImageUtils
@@ -50,7 +54,6 @@ import org.xmtp.android.library.XMTPException
 import org.xmtp.android.library.messages.MessageDeliveryStatus
 import timber.log.Timber
 import java.util.Date
-import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.sqrt
 
@@ -205,8 +208,8 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun sendXmtpMessage(message: Message) {
-        if (xmtpClientManager.clientState.first() != XmtpClientManager.ClientState.Ready) return
+    private suspend fun sendXmtpMessage(message: Message): String? {
+        if (xmtpClientManager.clientState.first() != XmtpClientManager.ClientState.Ready) return null
 
         //TODO: add group send
 
@@ -215,19 +218,23 @@ class MessageRepositoryImpl @Inject constructor(
             xmtpClientManager.client.conversations.newConversation(message.address)
         } catch (e: XMTPException) {
             e.printStackTrace()
-            return
+            return null
         }
 
 
         if (message.parts.isEmpty() || message.replyReference.isEmpty()) { // plain text message
             try {
                 val date = Date(System.currentTimeMillis())
-                convo.send(text = message.body, sentAt = date)
+                return convo.send(text = message.body, sentAt = date)
+
             } catch (e: XMTPException) {
                 e.printStackTrace()
+                return null
             }
         } else {
             //TODO handle other message types
+
+            TODO()
         }
 
     }
@@ -258,8 +265,12 @@ class MessageRepositoryImpl @Inject constructor(
 
             if(addresses.any { it.startsWith("0x") }) { // XMTP
                 try {
+
                     val message = insertSentXmtp(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
-                    sendXmtpMessage(message)
+
+                    sendXmtpMessage(message)?.let { id ->
+                        messageDao.deleteAndInsert(message, message.copy(id = id))
+                    }
 
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -439,18 +450,17 @@ class MessageRepositoryImpl @Inject constructor(
         date: Long
     ): Message {
         return Message(
-            id = UUID.randomUUID().toString(),
             subId = subId,
             threadId = threadId,
             address = address,
             body = body,
+            date = date, // update with xmtp time
             dateSent = date,
             type = "xmtp",
-            clientAddress = "0", // gets updates when messages is streamed from xmtp
+            clientAddress = address, // gets updates when messages is streamed from xmtp
             xmtpDeliveryStatus = MessageDeliveryStatus.UNPUBLISHED
         ).also { messageDao.insertMessage(it) }
     }
-
     override suspend fun insertReceivedXmtp(
         subId: Int,
         addresses: List<String>,

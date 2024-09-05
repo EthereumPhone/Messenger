@@ -440,7 +440,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
             val addresses = convo.recipients.map { it.address }
 
-            viewModelScope.launch {
+            viewModelScope.launch(Dispatchers.IO) {
                 sendMessageUseCase(subId, convo.id, addresses, messageBody, _attachments.value.toList(),
                     //isXMTP.value
                 )
