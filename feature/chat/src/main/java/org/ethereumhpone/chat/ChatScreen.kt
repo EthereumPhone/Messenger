@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -244,11 +245,9 @@ fun ChatScreen(
         mutableStateOf(false)
     }
 
-    var selectAll = remember {
-        mutableStateOf(false)
-    }
+    var selectAll = remember { mutableStateOf(false) }
 
-    var messageSelectedList by remember { mutableStateOf(mutableStateListOf<Message?>()) }
+    val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
 
     val controller = LocalSoftwareKeyboardController.current
 
@@ -377,40 +376,7 @@ fun ChatScreen(
                             }
 
                             is MessagesUiState.Success -> {
-                                // Initialize states for the child checkboxes
-                                val size = messagesUiState.messages.size
-                                val childCheckedStates = remember { MutableList(size) { mutableStateOf(false) } }
-
                                 val listState = rememberLazyListState()
-
-
-                                LaunchedEffect(key1 = messagesUiState) {
-                                    listState.animateScrollToItem(0)
-                                }
-
-                                //selectAll = if(selectAll && (childCheckedStates.all { it.value})) { false }
-
-                                if(selectMode.value) {
-                                    if (selectAll.value) {
-                                        childCheckedStates.forEachIndexed { index, _ ->
-                                            if(!childCheckedStates[index].value){
-                                                childCheckedStates[index].value = true
-                                                //onAddSelectedMessage(messagesUiState.messages[index])
-                                                messageSelectedList.add(messagesUiState.messages[index])
-                                            }
-
-                                        }
-                                    } else {
-                                        childCheckedStates.forEachIndexed { index, _ ->
-                                            childCheckedStates[index].value = false
-                                            messageSelectedList.remove(messagesUiState.messages[index])
-                                        }
-                                    }
-                                }
-
-
-
-
 
                                 LazyColumn(
                                     state = listState,
@@ -420,21 +386,20 @@ fun ChatScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = 24.dp)
                                 ) {
-                                    itemsIndexed(items = messagesUiState.messages) { index, message ->
 
-
-                                        //Log.d("DEBUG", "${message.id} - ${message.body} - ${message.parts.toString()}")
+                                    items(
+                                        items = messagesUiState.messages,
+                                        key = {message -> message.id} // because message can be deleted
+                                    ) { message ->
 
                                         val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
                                         val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
                                         val isFirstMessageByAuthor = prevAuthor != message.address
                                         val isLastMessageByAuthor = nextAuthor != message.address
 
-                                        Log.d("SelectAll","${selectedMessaged.size} - $message")
 
                                         if (isValidTransactionMessage(message.body)) {
-                                            val transactionDetails = extractTransactionDetails(message.body)
-                                            transactionDetails?.let {
+                                            extractTransactionDetails(message.body)?.let {
                                                 TxMessage(
                                                     amount = it.amount.toDouble(),
                                                     txUrl = it.url,
@@ -443,57 +408,11 @@ fun ChatScreen(
                                                     isLastMessageByAuthor = isLastMessageByAuthor,
                                                     networkName = chainIdToReadableName(it.chainId),
                                                 )
-                                            } ?: MessageItem(
-                                                onAuthorClick = { },
-                                                msg = message,
-                                                isUserMe = message.isMe(),
-                                                isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                                isLastMessageByAuthor = isLastMessageByAuthor,
-                                                composablePositionState = composablePositionState,
-                                                onPrepareVideo = { onPrepareVideo(it) },
-                                                onLongClick = {
-                                                    onFocusedMessageUpdate(message)
-                                                    focusMode.value = true
-                                                },
-                                                player = videoPlayer,
-                                                name = recipient?.getDisplayName() ?: "",
-                                                checked = childCheckedStates[index],
-                                                selectMode = selectMode,
-                                                onSelect = { isChecked ->
-
-                                                    childCheckedStates[index].value = isChecked
-                                                    if (isChecked) {
-                                                        //onAddSelectedMessage(message)
-                                                        messageSelectedList.remove(message)
-                                                        Log.d("SelectAll","${selectedMessaged.size} - $message")
-                                                    } else {
-
-                                                        //onRemoveSelectedMessage(message)
-                                                        messageSelectedList.add(message)
-                                                        Log.d("SelectAll flase","${selectedMessaged.size} - $message")
-                                                    }
-
-//                                                    childCheckedStates[index].value = !isChecked
-//
-//                                                    if(!isChecked){
-//                                                        Log.d("SelectAll TEST","$message - $isChecked")
-//                                                        onAddSelectedMessage(message)
-//                                                    } else {
-//                                                        Log.d("SelectAll TEST NP","$message - $isChecked")
-//                                                        onRemoveSelectedMessage(message)
-//                                                    }
-//                                                    Log.d("SelectAll - childCheckedStates","$selectedMessaged - ${childCheckedStates[index].value} - $isChecked")
-
-                                                }
-                                            ) {
-                                                selectMode.value = !selectMode.value
                                             }
                                         } else {
-                                            //Log.d("MESSAGE",message.body)
                                             MessageItem(
                                                 onAuthorClick = { },
                                                 msg = message,
-                                                isUserMe = message.isMe(),
                                                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                                                 isLastMessageByAuthor = isLastMessageByAuthor,
                                                 composablePositionState = composablePositionState,
@@ -504,99 +423,36 @@ fun ChatScreen(
                                                     focusMode.value = true
                                                 },
                                                 name = recipient?.getDisplayName() ?: "",
-                                                checked = childCheckedStates[index],
+                                                isSelected = selectedMessagesMap.contains(message),
                                                 selectMode = selectMode,
-                                                onSelect = { isChecked ->
-
-                                                    childCheckedStates[index].value = isChecked
-                                                    if (isChecked) {
-                                                        //onAddSelectedMessage(message)
-                                                        messageSelectedList.remove(message)
-                                                        Log.d("SelectAll","${selectedMessaged.size} - $message")
-                                                    } else {
-
-                                                        //onRemoveSelectedMessage(message)
-                                                        messageSelectedList.add(message)
-                                                        Log.d("SelectAll flase","${selectedMessaged.size} - $message")
+                                                onSelect = { selectedMessage ->
+                                                    // invert boolean or add
+                                                    selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
+                                                        isChecked?.let { !it } ?: true
                                                     }
-
-//                                                    Log.d("SelectAll - childCheckedStates","$childCheckedStates ${childCheckedStates[index].value}")
-////                                                    Log.d("SelectAll - childCheckedStates","$childCheckedStates")
-//                                                    childCheckedStates[index].value = !isChecked
-//
-//                                                    if(!isChecked){
-//
-//                                                        onAddSelectedMessage(message)
-//                                                        Log.d("SelectAll TESTutfuy","${selectedMessaged.size} - $message")
-//                                                    } else {
-//                                                        Log.d("SelectAll TEST NP","${selectedMessaged.size} - $message")
-//                                                        onRemoveSelectedMessage(message)
-//                                                    }
-
-
-//                                                    Log.d("SelectAll - childCheckedStates","$selectedMessaged - ${childCheckedStates[index].value} - $isChecked")
                                                 }
-                                            ) {
-                                                selectMode.value = !selectMode.value
-                                            }
+                                            ) { selectMode.value = !selectMode.value }
                                         }
+                                    }
+                                }
 
+                                // jump to last Message
+                                LaunchedEffect(key1 = messagesUiState) {
+                                    listState.animateScrollToItem(0)
+                                }
 
-//                                        MessageItem(
-//                                            onAuthorClick = { },
-//                                            msg = message,
-//                                            isUserMe = message.isMe(),
-//                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
-//                                            isLastMessageByAuthor = isLastMessageByAuthor,
-//                                            composablePositionState = composablePositionState,
-//                                            player = videoPlayer,
-//                                            onPrepareVideo = { onPrepareVideo(it) },
-//                                            onLongClick = {
-//                                                onFocusedMessageUpdate(message)
-//                                                focusMode.value = true
-//                                            },
-//                                            name = recipient?.getDisplayName() ?: "",
-//                                            checked = childCheckedStates[index],
-//                                            selectMode = selectMode,
-//                                            onSelect = { isChecked ->
-//
-//                                                childCheckedStates[index].value = isChecked
-//                                                if (isChecked) {
-//                                                    //onAddSelectedMessage(message)
-//                                                    messageSelectedList.remove(message)
-//                                                    Log.d("SelectAll","${selectedMessaged.size} - $message")
-//                                                } else {
-//
-//                                                    //onRemoveSelectedMessage(message)
-//                                                    messageSelectedList.add(message)
-//                                                    Log.d("SelectAll flase","${selectedMessaged.size} - $message")
-//                                                }
-//
-////                                                    Log.d("SelectAll - childCheckedStates","$childCheckedStates ${childCheckedStates[index].value}")
-//////                                                    Log.d("SelectAll - childCheckedStates","$childCheckedStates")
-////                                                    childCheckedStates[index].value = !isChecked
-////
-////                                                    if(!isChecked){
-////
-////                                                        onAddSelectedMessage(message)
-////                                                        Log.d("SelectAll TESTutfuy","${selectedMessaged.size} - $message")
-////                                                    } else {
-////                                                        Log.d("SelectAll TEST NP","${selectedMessaged.size} - $message")
-////                                                        onRemoveSelectedMessage(message)
-////                                                    }
-//
-//
-////                                                    Log.d("SelectAll - childCheckedStates","$selectedMessaged - ${childCheckedStates[index].value} - $isChecked")
-//                                            }
-//                                        ) {
-//                                            selectMode.value = !selectMode.value
-//                                        }
+                                // Handle select all
+                                if(selectMode.value) {
+                                    if (selectAll.value) {
+                                        messagesUiState.messages.forEach { msg ->
+                                            selectedMessagesMap[msg] = true
+                                        }
+                                    } else {
+                                        selectedMessagesMap.replaceAll { _, _ -> false}
                                     }
                                 }
                             }
                         }
-
-
 
 
                         Column(
@@ -625,7 +481,7 @@ fun ChatScreen(
                                             )
                                         }
                                         Text(
-                                            text = "${messageSelectedList.size} Selected Messages",//"${selectedMessaged.size} Selected Messages",
+                                            text = "${selectedMessagesMap.size} Selected Messages",//"${selectedMessaged.size} Selected Messages",
                                             fontSize = 16.sp,
                                             color = Color.White,
                                             fontWeight = FontWeight.Normal,
