@@ -347,7 +347,7 @@ class SyncRepositoryImpl @Inject constructor(
                     Recipient(
                         address = address,
                         contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
-                        inboxId = client.inboxIdFromAddress(address)!! // assume xmtp V3
+                        inboxId = client.inboxIdFromAddress(address) ?: "0" // assume xmtp V3
                     )
                 }.also { recipientDao.upsertRecipients(it) }
 
