@@ -98,6 +98,24 @@ class MainActivity : ComponentActivity() {
 
         xmtpClientManager.createClient(keys!! , this)
 
+        CoroutineScope(Dispatchers.IO).launch {
+            val clientState = xmtpClientManager.clientState.first {
+                it is XmtpClientManager.ClientState.Error || it == XmtpClientManager.ClientState.Ready
+            }
+            when (clientState) {
+                is XmtpClientManager.ClientState.Error -> {
+                    Log.d("ERROR", clientState.message)
+                }
+                XmtpClientManager.ClientState.Ready -> {
+                    // Start stream
+                    syncRepository.startStreamAllMessages(xmtpClientManager.client)
+                }
+                XmtpClientManager.ClientState.Unknown -> {
+                    Log.d("ERROR", "Client state is not ready")
+                }
+            }
+        }
+
         CoroutineScope(Dispatchers.Default).launch {
             val clientState = xmtpClientManager.clientState.first {
                 it is XmtpClientManager.ClientState.Error || it == XmtpClientManager.ClientState.Ready

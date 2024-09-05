@@ -448,6 +448,20 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun startStreamAllMessages(client: Client) {
+        client.conversations.list().forEach { conversation ->
+            conversation.streamMessages().collect {
+                val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.peerAddresses)
+                manageXmtpMessage(
+                    threadId = threadId,
+                    msg = it,
+                    client = client,
+                    context = context
+                )
+            }
+        }
+    }
+
 
     // Copied from XMTP sdk
     private fun <T> encodeContent(content: T, id: Content.ContentTypeId): EncodedContent {
