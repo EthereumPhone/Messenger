@@ -114,6 +114,7 @@ class SyncRepositoryImpl @Inject constructor(
         val recipientsCursor = recipientCursor.getRecipientCursor()
 
 
+
         // sync messages parts
         partsCursor?.use { cursor ->
             cursor.forEach {
@@ -169,7 +170,20 @@ class SyncRepositoryImpl @Inject constructor(
                         messageDao.getLastConversationMessage(conversation.id),
                         recipientDao.getRecipientsByIds(conversation.recipients.map { it.id })
                     ) { lastMessage, recipients ->
-                        conversation.copy(lastMessage = lastMessage, recipients = recipients)
+                        val result = xmtpClientManager.clientState.first {
+                            it == XmtpClientManager.ClientState.Ready
+                        }
+                        val isUnknown = if (result == XmtpClientManager.ClientState.Ready) {
+                             try {
+                                 xmtpClientManager.client.contacts.refreshConsentList()
+                                 xmtpClientManager.client.contacts.consentList.state(recipients.map { it.address }.firstOrNull() ?: "") == ConsentState.UNKNOWN
+                            } catch (e: Exception) {
+                                false
+                            }
+                        } else {
+                            false
+                        }
+                        conversation.copy(lastMessage = lastMessage, recipients = recipients, isUnknown = isUnknown)
                     }.collectLatest {
                         conversationDao.upsertConversation(it)
                     }
@@ -327,8 +341,6 @@ class SyncRepositoryImpl @Inject constructor(
 
         client.conversations.list().forEach { convo ->
 
-            convo.conversationId
-
             launch {
                 // handle messages
                 val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
@@ -357,6 +369,7 @@ class SyncRepositoryImpl @Inject constructor(
                     recipients = recipients,
                     lastMessage = messageDao.getLastConversationMessage(threadId).first(),
                     blocked = convo.consentState() == ConsentState.DENIED,
+                    isUnknown = convo.consentState() == ConsentState.UNKNOWN
                 ).also { conversationDao.upsertConversation(it) }
             }
         }
