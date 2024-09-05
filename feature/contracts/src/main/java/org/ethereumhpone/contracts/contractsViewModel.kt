@@ -38,9 +38,6 @@ class ContactViewModel @Inject constructor(
     val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
         .flowOn(Dispatchers.IO)
         .map { conversations ->
-            conversations.forEach {
-                println("DEBUGGGGG: ${it.lastMessage?.body}, ${it.isUnknown}")
-            }
             val filteredConversations = conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed() // Filter out conversations with unknown set to true
             ConversationUIState.Success(filteredConversations)
         }

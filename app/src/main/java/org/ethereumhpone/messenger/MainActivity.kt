@@ -99,12 +99,6 @@ class MainActivity : ComponentActivity() {
         xmtpClientManager.createClient(keys!! , this)
 
         CoroutineScope(Dispatchers.Default).launch {
-
-        }
-
-        lifecycleScope.launch {
-
-            // Inside a coroutine scope
             val clientState = xmtpClientManager.clientState.first {
                 it is XmtpClientManager.ClientState.Error || it == XmtpClientManager.ClientState.Ready
             }
@@ -129,6 +123,8 @@ class MainActivity : ComponentActivity() {
                     Log.d("ERROR", "Client state is not ready")
                 }
             }
+
+
         }
 
 

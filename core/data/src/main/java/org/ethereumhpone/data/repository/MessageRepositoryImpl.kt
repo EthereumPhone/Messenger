@@ -6,14 +6,12 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.Telephony
 import android.telephony.SmsManager
-import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.content.contentValuesOf
 import com.google.android.mms.ContentType
@@ -22,9 +20,7 @@ import com.google.android.mms.pdu_alt.MultimediaMessagePdu
 import com.google.android.mms.pdu_alt.PduPersister
 import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Transaction
-import dagger.internal.Provider
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
@@ -48,19 +44,13 @@ import org.ethereumhpone.database.model.isVideo
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.model.Attachment
-import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
-import org.xmtp.android.library.Client
-import org.xmtp.android.library.SendOptions
 import org.xmtp.android.library.XMTPException
+import org.xmtp.android.library.messages.MessageDeliveryStatus
 import timber.log.Timber
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
-import java.io.IOException
-import java.text.DateFormat
 import java.util.Date
+import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.sqrt
 
@@ -215,8 +205,11 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
-    suspend fun sendXmtpMessage(message: Message) {
+    private suspend fun sendXmtpMessage(message: Message) {
         if (xmtpClientManager.clientState.first() != XmtpClientManager.ClientState.Ready) return
+
+        //TODO: add group send
+
 
         val convo = try {
             xmtpClientManager.client.conversations.newConversation(message.address)
@@ -225,10 +218,10 @@ class MessageRepositoryImpl @Inject constructor(
             return
         }
 
-        val date = Date(System.currentTimeMillis())
 
         if (message.parts.isEmpty() || message.replyReference.isEmpty()) { // plain text message
             try {
+                val date = Date(System.currentTimeMillis())
                 convo.send(text = message.body, sentAt = date)
             } catch (e: XMTPException) {
                 e.printStackTrace()
@@ -263,7 +256,7 @@ class MessageRepositoryImpl @Inject constructor(
             val messageParts = smsManager.divideMessage(strippedBody).orEmpty()
             val forceMms = prefs.longAsMms && messageParts.size > 1
 
-            if(addresses.all { it.startsWith("0x") }) { // XMTP
+            if(addresses.any { it.startsWith("0x") }) { // XMTP
                 try {
                     val message = insertSentXmtp(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
                     sendXmtpMessage(message)
@@ -271,7 +264,6 @@ class MessageRepositoryImpl @Inject constructor(
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-
             } else if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // SMS
                 try {
                     val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
@@ -446,13 +438,17 @@ class MessageRepositoryImpl @Inject constructor(
         body: String,
         date: Long
     ): Message {
-        val message = Message(
+        return Message(
+            id = UUID.randomUUID().toString(),
             subId = subId,
             threadId = threadId,
-
-        )
-
-        TODO()
+            address = address,
+            body = body,
+            dateSent = date,
+            type = "xmtp",
+            clientAddress = "0", // gets updates when messages is streamed from xmtp
+            xmtpDeliveryStatus = MessageDeliveryStatus.UNPUBLISHED
+        ).also { messageDao.insertMessage(it) }
     }
 
     override suspend fun insertReceivedXmtp(
