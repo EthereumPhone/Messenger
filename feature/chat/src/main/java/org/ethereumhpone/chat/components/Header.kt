@@ -199,7 +199,7 @@ fun ChatHeader(
                                 ){
                                     Text(
                                         textAlign = TextAlign.Center,
-                                        text = name,
+                                        text = if (isEthereumAddress(name)) trimEthereumAddress(name) else name,
                                         fontSize = 18.sp,
                                         color = Color.White,
                                         fontWeight = FontWeight.SemiBold,
@@ -211,7 +211,7 @@ fun ChatHeader(
                                 Column {
                                     Text(
                                         textAlign = TextAlign.Center,
-                                        text = name,
+                                        text = if (isEthereumAddress(name)) trimEthereumAddress(name) else name,
                                         fontSize = 18.sp,
                                         color = Color.White,
                                         fontWeight = FontWeight.SemiBold,
@@ -276,6 +276,13 @@ fun getEnsAddresses(ens: List<String>): String{
     return res
 }
 
+fun trimEthereumAddress(address: String): String {
+    return address.substring(0, 5) + "..." + address.substring(address.length - 3)
+}
+
+fun isEthereumAddress(address: String): Boolean {
+    return address.startsWith("0x") && address.length == 42
+}
 
 fun makePhoneCall(context: Context, phoneNumber: String) {
     val intent = Intent(Intent.ACTION_CALL)

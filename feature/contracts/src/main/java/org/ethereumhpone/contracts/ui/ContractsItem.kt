@@ -248,7 +248,7 @@ fun ChatListInfo(
                     modifier = modifier.weight(1f)
                 ){
                     Text(
-                        text = header,
+                        text = if (isEthereumAddress(header)) trimEthereumAddress(header) else header,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Medium,
                         color = Colors.WHITE,
@@ -323,6 +323,13 @@ fun ChatListInfo(
 
 }
 
+fun trimEthereumAddress(address: String): String {
+    return address.substring(0, 5) + "..." + address.substring(address.length - 3)
+}
+
+fun isEthereumAddress(address: String): Boolean {
+    return address.startsWith("0x") && address.length == 42
+}
 
 fun printFormattedDateInfo(date: Date?): String? {
 

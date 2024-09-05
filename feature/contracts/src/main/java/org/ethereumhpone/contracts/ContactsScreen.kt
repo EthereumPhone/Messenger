@@ -70,6 +70,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.ethereumhpone.chat.components.trimEthereumAddress
 import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.database.model.Message
 
@@ -353,7 +354,7 @@ fun ShowHiddenConversationsPopup(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = conversation.getConversationTitle(), // Assuming Conversation has a 'name' property
+                                text = trimEthereumAddress(conversation.getConversationTitle()) + ": " + conversation.lastMessage?.body, // Assuming Conversation has a 'name' property
                                 modifier = Modifier.weight(1f),
                                 fontFamily = Fonts.INTER,
                                 color = Colors.WHITE,
@@ -378,6 +379,7 @@ fun ShowHiddenConversationsPopup(
         }
     }
 }
+
 
 
 @Composable
