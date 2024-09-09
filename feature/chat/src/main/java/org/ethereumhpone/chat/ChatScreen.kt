@@ -86,6 +86,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
@@ -105,6 +106,7 @@ import org.ethereumhpone.chat.components.DetailSelector
 import org.ethereumhpone.chat.components.GallerySheet
 import org.ethereumhpone.chat.components.MediaSheet
 import org.ethereumhpone.chat.components.MembersSheet
+import org.ethereumhpone.chat.components.SendButton
 import org.ethereumhpone.chat.components.message.TxMessage
 import org.ethereumhpone.chat.components.TXSheet
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
@@ -244,6 +246,17 @@ fun ChatScreen(
     val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
 
     val controller = LocalSoftwareKeyboardController.current
+
+    //TODO: differentiate between xmtp and sms
+    var list = listOf("SMS","XMTP")
+    var index = remember {
+        mutableIntStateOf(0)
+    }
+    var sendbuttonbg = when(index.intValue){
+        0 -> Color(0xFF8C7DF7)
+        1 -> Color(0xFFF83C40)
+        else -> {Color(0xFF8C7DF7)}
+    }
 
 
     Scaffold (
@@ -610,18 +623,16 @@ fun ChatScreen(
                                             )
 
 
+
                                             AnimatedVisibility(
                                                 textState.text.isNotBlank() || attachments.isNotEmpty(),
                                                 enter = expandHorizontally(),
                                                 exit = shrinkHorizontally(),
                                             ) {
-                                                IconButton(
-                                                    modifier = Modifier
-                                                        .padding(top = 8.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(0xFF8C7DF7))
-                                                        .size(42.dp),
-                                                    enabled = true,
+                                                SendButton(
+                                                    background = sendbuttonbg,
+                                                    list = list,
+                                                    selectedTab = index,
                                                     onClick = {
                                                         // Move scroll to bottom
                                                         //resetScroll()
@@ -644,16 +655,7 @@ fun ChatScreen(
                                                         textFieldFocusState = false
                                                         onSendMessageClicked(textState.text)
                                                         textState = TextFieldValue()
-                                                    },
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Rounded.ArrowUpward,
-                                                        modifier = Modifier
-                                                            .size(32.dp),
-                                                        contentDescription = "Send",
-                                                        tint = Color.White
-                                                    )
-                                                }
+                                                    })
                                             }
 
                                         }

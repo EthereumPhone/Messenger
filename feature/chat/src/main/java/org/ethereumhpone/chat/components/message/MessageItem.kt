@@ -444,6 +444,13 @@ fun ChatItemBubble(
         )
     )
 
+    val xmtpgradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFFF83C40),
+            Color(0xFFF83C40)
+        )
+    )
+
     val reciepientcolor = Brush.verticalGradient(
         colors = listOf(
             Colors.DARK_GRAY,
@@ -453,7 +460,15 @@ fun ChatItemBubble(
 
     val messageBrush = when(isUserMe){
         true -> { //message from user
-            nogradient
+
+            //TODO: differentiate between xmtp & sms
+            if(true) {
+                 // no gradient
+                nogradient
+            } else {
+                xmtpgradient
+            }
+
         }
         false -> { //message not from user
             reciepientcolor
@@ -500,7 +515,7 @@ fun ChatItemBubble(
         }
         FlowRow (
             modifier = Modifier
-                .padding(end = 20.dp, start = 16.dp, top = 8.dp, bottom = 8.dp),
+                .padding(end = 20.dp, start = 16.dp, top = 12.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.End,
             verticalArrangement = Arrangement.Bottom
         ) {
@@ -586,7 +601,7 @@ fun ClickableMessage(
             BasicText(
                 text = styledMessage,
                 style = style,
-                modifier = Modifier
+                modifier = modifier
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {
