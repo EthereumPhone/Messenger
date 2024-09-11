@@ -89,9 +89,12 @@ import org.ethosmobile.components.library.walletmanager.ethOSTransferListItem
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
+import java.util.Locale
 
 
 enum class DetailSelector {
@@ -414,6 +417,14 @@ fun TXSheet(
 
                         }
                     }else{
+
+                        val decimalFormat = DecimalFormat("#.######", DecimalFormatSymbols(
+                            Locale.US).apply {
+                                decimalSeparator = '.'
+                            }
+                        )
+
+
                         LazyColumn(
                             modifier = modifier.fillMaxSize()
                         ) {
@@ -425,7 +436,7 @@ fun TXSheet(
                                     if (formatedDate != null) {
                                         ethOSTransferListItem(
                                             asset = "ETH",
-                                            value = "${it.amount.toDouble()}",
+                                            value = decimalFormat.format(it.amount.toDouble()),
                                             timeStamp =  formatedDate,
                                             userSent = message.isMe(),
                                             onCardClick = {

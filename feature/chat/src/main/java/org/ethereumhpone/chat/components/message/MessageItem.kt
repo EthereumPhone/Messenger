@@ -189,6 +189,7 @@ fun MessageItem(
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
 
+            //TODO: Add replies - ChatItemBubbleV2
             ChatItemBubble(
                 message = msg,
                 isUserMe = isUserMe,
@@ -443,6 +444,13 @@ fun ChatItemBubble(
         )
     )
 
+    val xmtpgradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFFF83C40),
+            Color(0xFFF83C40)
+        )
+    )
+
     val reciepientcolor = Brush.verticalGradient(
         colors = listOf(
             Colors.DARK_GRAY,
@@ -452,7 +460,15 @@ fun ChatItemBubble(
 
     val messageBrush = when(isUserMe){
         true -> { //message from user
-            nogradient
+
+            //TODO: differentiate between xmtp & sms
+            if(true) {
+                 // no gradient
+                nogradient
+            } else {
+                xmtpgradient
+            }
+
         }
         false -> { //message not from user
             reciepientcolor
@@ -462,12 +478,12 @@ fun ChatItemBubble(
 
     Column (
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier.clip(Bubbleshape)
+        modifier = modifier.clip(Bubbleshape)
             .background(
                 brush = messageBrush
             )
     ){
-        val media = remember { message.parts.filter { it.isImage() || it.isVideo() } }
+        val media = message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -485,9 +501,8 @@ fun ChatItemBubble(
         }
 
         // vCard
-        val contacts = remember {
-            message.parts.filter { it.isVCard() }
-        }
+        val contacts = message.parts.filter { it.isVCard() }
+
 
         if (contacts.isNotEmpty()) {
             Box(
@@ -500,7 +515,7 @@ fun ChatItemBubble(
         }
         FlowRow (
             modifier = Modifier
-                .padding(end = 20.dp, start = 16.dp, top = 8.dp, bottom = 8.dp),
+                .padding(end = 20.dp, start = 16.dp, top = 12.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.End,
             verticalArrangement = Arrangement.Bottom
         ) {
@@ -561,8 +576,6 @@ fun ChatItemBubble(
 
         }
     }
-
-//    }
 }
 
 
@@ -588,7 +601,7 @@ fun ClickableMessage(
             BasicText(
                 text = styledMessage,
                 style = style,
-                modifier = Modifier
+                modifier = modifier
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {

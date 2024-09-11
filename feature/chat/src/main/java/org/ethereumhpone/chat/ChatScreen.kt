@@ -1,7 +1,6 @@
 package org.ethereumhpone.chat
 
 import android.net.Uri
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -24,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -88,8 +88,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
@@ -97,8 +96,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.state.ToggleableState
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.zIndex
 import org.ethereumhpone.chat.components.WalletSelector
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -111,6 +108,7 @@ import org.ethereumhpone.chat.components.DetailSelector
 import org.ethereumhpone.chat.components.GallerySheet
 import org.ethereumhpone.chat.components.MediaSheet
 import org.ethereumhpone.chat.components.MembersSheet
+import org.ethereumhpone.chat.components.SendButton
 import org.ethereumhpone.chat.components.message.TxMessage
 import org.ethereumhpone.chat.components.TXSheet
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
@@ -251,6 +249,17 @@ fun ChatScreen(
 
     val controller = LocalSoftwareKeyboardController.current
 
+    //TODO: differentiate between xmtp and sms
+    var list = listOf("SMS","XMTP")
+    var index = remember {
+        mutableIntStateOf(0)
+    }
+    var sendbuttonbg = when(index.intValue){
+        0 -> Color(0xFF8C7DF7)
+        1 -> Color(0xFFF83C40)
+        else -> {Color(0xFF8C7DF7)}
+    }
+
 
     Scaffold (
         containerColor = Color.Black,
@@ -376,6 +385,7 @@ fun ChatScreen(
                             }
 
                             is MessagesUiState.Success -> {
+
                                 val listState = rememberLazyListState()
 
                                 LazyColumn(
@@ -465,7 +475,10 @@ fun ChatScreen(
                             ) { targetMode ->
                                 if(targetMode) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(56.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp)
+                                            .height(56.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ){
@@ -613,18 +626,16 @@ fun ChatScreen(
                                             )
 
 
+
                                             AnimatedVisibility(
                                                 textState.text.isNotBlank() || attachments.isNotEmpty(),
                                                 enter = expandHorizontally(),
                                                 exit = shrinkHorizontally(),
                                             ) {
-                                                IconButton(
-                                                    modifier = Modifier
-                                                        .padding(top = 8.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(0xFF8C7DF7))
-                                                        .size(42.dp),
-                                                    enabled = true,
+                                                SendButton(
+                                                    background = sendbuttonbg,
+                                                    list = list,
+                                                    selectedTab = index,
                                                     onClick = {
                                                         // Move scroll to bottom
                                                         //resetScroll()
@@ -641,22 +652,13 @@ fun ChatScreen(
 
 
 
-                                                        //controller?.hide() // Keyboard
+                                                        controller?.hide() // Keyboard
 
                                                         lastFocusState = false
                                                         textFieldFocusState = false
                                                         onSendMessageClicked(textState.text)
                                                         textState = TextFieldValue()
-                                                    },
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Rounded.ArrowUpward,
-                                                        modifier = Modifier
-                                                            .size(32.dp),
-                                                        contentDescription = "Send",
-                                                        tint = Color.White
-                                                    )
-                                                }
+                                                    })
                                             }
 
                                         }
@@ -745,7 +747,11 @@ fun ChatScreen(
                 ){
                     if (focusedMessage != null) {
                         MessageOptionsScreen(
-                            Modifier.layoutId("messageoptions"),focusedMessage,composablePositionState, focusMode,onDeleteMessage
+                            modifier = Modifier.layoutId("messageoptions"),
+                            message = focusedMessage,
+                            composablePositionState = composablePositionState,
+                            focusMode = focusMode,
+                            onDeleteMessage = onDeleteMessage
                         ) {
                             detailview = true
                         }
@@ -761,6 +767,7 @@ fun ChatScreen(
                     containerColor= Colors.BLACK,
                     contentColor= Colors.WHITE,
 
+                    modifier = Modifier.fillMaxHeight(0.95f),
                     onDismissRequest = {
                         scope.launch {
                             modalAssetSheetState.hide()
@@ -806,9 +813,13 @@ fun ChatScreen(
                 ){
                     if (focusedMessage != null) {
                         MessageDetailView(
-                            focusedMessage,
-                            focusedMessage.isMe()
-                        ) { detailview = false }
+                            message = focusedMessage,
+                            isUserMe = focusedMessage.isMe(),
+                            player = videoPlayer,
+                            onDismissRequest = { detailview = false },
+                            name = recipient?.getDisplayName() ?: "",
+                            onPrepareVideo = { onPrepareVideo(it) },
+                        )
                     }
 
                 }
