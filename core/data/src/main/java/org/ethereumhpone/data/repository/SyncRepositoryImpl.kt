@@ -72,6 +72,7 @@ import org.xmtp.android.library.codecs.RemoteAttachment
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.proto.message.contents.Content
 import javax.inject.Inject
+import kotlin.random.Random
 
 
 class SyncRepositoryImpl @Inject constructor(
@@ -170,8 +171,11 @@ class SyncRepositoryImpl @Inject constructor(
                         recipientDao.getRecipientsByIds(conversation.recipients.map { it.id })
                     ) { lastMessage, recipients ->
                         conversation.copy(lastMessage = lastMessage, recipients = recipients)
-                    }.collectLatest {
-                        conversationDao.upsertConversation(it)
+                    }.collect { conversation -> // skip xmtp
+                        //TODO: improve this
+                        if(!conversation.recipients.any { it.address.startsWith("0x") }) {
+                            conversationDao.upsertConversation(conversation)
+                        }
                     }
                 }
             }
@@ -179,7 +183,6 @@ class SyncRepositoryImpl @Inject constructor(
 
 
         // syncXMTP
-
         xmtpClientManager.clientState.collectLatest {
             if (it == XmtpClientManager.ClientState.Ready) {
                 syncXmtp(context = context, xmtpClientManager.client)
@@ -225,7 +228,6 @@ class SyncRepositoryImpl @Inject constructor(
                 )
 
                 messageDao.upsertMessage(message)
-                conversationRepository.getOrCreateConversation(threadId)
             }
         }
     }
@@ -263,10 +265,8 @@ class SyncRepositoryImpl @Inject constructor(
             conversations.forEach { conversation ->
                 recipientDao.getRecipientsByIds(conversation.recipients.map { it.id })
                     .collect {
-                        conversationDao.updateConversation(
-                            conversation.copy(recipients = it)
-                        )
-                }
+                        conversationDao.updateConversation(conversation.copy(recipients = it))
+                    }
             }
         }
     }
@@ -325,9 +325,8 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
 
+        client.contacts.refreshConsentList()
         client.conversations.list().forEach { convo ->
-
-            convo.conversationId
 
             launch {
                 // handle messages
@@ -347,16 +346,19 @@ class SyncRepositoryImpl @Inject constructor(
                     Recipient(
                         address = address,
                         contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
-                        inboxId = client.inboxIdFromAddress(address)!! // assume xmtp V3
+                        inboxId = client.inboxIdFromAddress(address) ?:  ""// assume xmtp V3
                     )
                 }.also { recipientDao.upsertRecipients(it) }
 
+
+                val consent = convo.consentState()
                 // update convo
                 Conversation(
                     id = threadId,
                     recipients = recipients,
                     lastMessage = messageDao.getLastConversationMessage(threadId).first(),
-                    blocked = convo.consentState() == ConsentState.DENIED,
+                    isUnknown = consent == ConsentState.UNKNOWN,
+                    blocked = consent == ConsentState.DENIED,
                 ).also { conversationDao.upsertConversation(it) }
             }
         }
@@ -486,14 +488,4 @@ class SyncRepositoryImpl @Inject constructor(
 
         return encoded
     }
-
-
-    // Assuming you have registered all codecs in the Client's codecRegistry
-
-    /*
-    fun encodeReplyContent(reply: Reply, codecRegistry: CodecRegistry): EncodedContent? {
-        val codec = codecRegistry.find(reply.contentType) as? ContentCodec<Any>
-        return (reply.content as? Any)?.let { codec?.encode(it) }
-    }
-     */
 }

@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.ethereumhpone.data.manager.EthOSSigningKey
@@ -72,7 +73,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
         val keyManager = KeyUtil(this)
         var keys = keyManager.retrieveKey(walletSDK.getAddress())
 
@@ -90,60 +90,8 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        lifecycleScope.launch {
-            networkManager.isOnline.collect {
-
-            }
-        }
-
         xmtpClientManager.createClient(keys!! , this)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            val clientState = xmtpClientManager.clientState.first {
-                it is XmtpClientManager.ClientState.Error || it == XmtpClientManager.ClientState.Ready
-            }
-            when (clientState) {
-                is XmtpClientManager.ClientState.Error -> {
-                    Log.d("ERROR", clientState.message)
-                }
-                XmtpClientManager.ClientState.Ready -> {
-                    // Start stream
-                    syncRepository.startStreamAllMessages(xmtpClientManager.client)
-                }
-                XmtpClientManager.ClientState.Unknown -> {
-                    Log.d("ERROR", "Client state is not ready")
-                }
-            }
-        }
-
-        CoroutineScope(Dispatchers.Default).launch {
-            val clientState = xmtpClientManager.clientState.first {
-                it is XmtpClientManager.ClientState.Error || it == XmtpClientManager.ClientState.Ready
-            }
-
-            when (clientState) {
-                is XmtpClientManager.ClientState.Error -> {
-                    Log.d("ERROR", clientState.message)
-                }
-                XmtpClientManager.ClientState.Ready -> {
-                    Log.d("Start service", "IT started")
-
-                    //TODO: change to stream || remove when system service is implemented
-                    syncRepository.syncXmtp(this@MainActivity, xmtpClientManager.client)
-
-
-
-                    val intent = Intent(this@MainActivity, MyForegroundService::class.java)
-                    // Uncomment the line below to start the foreground service
-                    // this@MainActivity.startForegroundService(intent)
-                }
-                else -> {
-                    Log.d("ERROR", "Client state is not ready")
-                }
-            }
-
-
-        }
 
 
         val threadId = if (intent.getIntExtra("threadId", -1) != -1) {
@@ -175,13 +123,16 @@ class MainActivity : ComponentActivity() {
             val lastSync = logTimeHandler.getLastLog()
             if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
+            }
 
-
+            xmtpClientManager.clientState.collect {
+                if (it == XmtpClientManager.ClientState.Ready) {
+                    syncRepository.startStreamAllMessages(xmtpClientManager.client)
+                }
             }
         }
 
         setContent {
-
             MessengerTheme {
                 MessagingApp(threadId = threadId)
             }

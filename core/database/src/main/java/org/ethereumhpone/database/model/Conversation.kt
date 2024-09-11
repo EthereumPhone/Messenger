@@ -17,7 +17,7 @@ data class Conversation(
     val blockingClient: Int? = null,
     val blockReason: String? = null,
     val title: String = "", // conversation title
-    val isUnknown: Boolean = false // TODO: Remove this, when we a working blocking client
+    val isUnknown: Boolean = false // TODO: Remove this, when we have a working blocking client
 ) {
     val date: Long get() = lastMessage?.date ?: 0
     val snippet: String? get() = lastMessage?.getSummary()

@@ -73,6 +73,7 @@ object XmtpClientManager {
         appContext: Context
     ) {
         if (clientState.value is ClientState.Ready) return
+
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 val v1Bundle = PrivateKeyBundleV1Builder.fromEncodedData(data = encodedPrivateKeyData)
