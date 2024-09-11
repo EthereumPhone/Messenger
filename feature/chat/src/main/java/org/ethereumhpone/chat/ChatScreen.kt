@@ -641,7 +641,7 @@ fun ChatScreen(
 
 
 
-                                                        controller?.hide() // Keyboard
+                                                        //controller?.hide() // Keyboard
 
                                                         lastFocusState = false
                                                         textFieldFocusState = false
