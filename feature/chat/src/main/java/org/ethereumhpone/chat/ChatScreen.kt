@@ -1,6 +1,7 @@
 package org.ethereumhpone.chat
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -404,6 +405,9 @@ fun ChatScreen(
                                         val isFirstMessageByAuthor = prevAuthor != message.address
                                         val isLastMessageByAuthor = nextAuthor != message.address
 
+                                        val isXMTP = message.type == "xmtp" // Boolean for XMTP distinction
+
+
 
                                         if (isValidTransactionMessage(message.body)) {
                                             extractTransactionDetails(message.body)?.let {
@@ -432,6 +436,7 @@ fun ChatScreen(
                                                 name = recipient?.getDisplayName() ?: "",
                                                 isSelected = selectedMessagesMap.contains(message),
                                                 selectMode = selectMode,
+                                                isXMTP = isXMTP,
                                                 onSelect = { selectedMessage ->
 
                                                     // invert boolean or add

@@ -253,6 +253,8 @@ fun MessageDetailView(
 
     ) {
 
+    val isXMTP = message.type == "xmtp"
+
     val smsTime: Calendar = Calendar.getInstance()
     smsTime.setTimeInMillis(message.date)
 
@@ -320,7 +322,7 @@ fun MessageDetailView(
             ) {
 
                 //TODO: Add replies - ChatItemBubbleV2
-                ChatItemBubble(
+                ChatItemBubbleV2(
                     message = message,
                     isUserMe = true,
                     isFirstMessageByAuthor = true,
@@ -328,7 +330,8 @@ fun MessageDetailView(
                     onPlayVideo = { onPrepareVideo(it)},
                     onLongClick = { },
                     name = name,
-                    onDoubleClick = {  }
+                    onDoubleClick = {  },
+                    isXMTP =  isXMTP
                 )
 
 

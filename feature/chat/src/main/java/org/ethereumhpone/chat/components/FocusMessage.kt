@@ -2,7 +2,9 @@ package org.ethereumhpone.chat.components
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -29,12 +31,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
@@ -51,6 +57,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -240,7 +247,8 @@ fun FocusChatItemBubble(
 
     Column (
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = modifier.clip(Bubbleshape)
+        modifier = modifier
+            .clip(Bubbleshape)
             .background(
                 brush = messageBrush
             ),
@@ -353,13 +361,34 @@ fun FocusClickableMessage(
 
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
-    //SelectionContainer {
+    var columnHeightDp: Dp = 0.dp
+    val localDensity = LocalDensity.current
+
+    var tmp = when(columnHeightDp > 300.dp){
+        true -> {
+            Modifier.animateContentSize()
+        }
+        false -> {
+            Modifier
+                .heightIn(max = 300.dp)
+        }
+    }
+    var expanded by remember { mutableStateOf(false) }
+    var textHeight by remember { mutableStateOf(0.dp) }
+
+    val animatedHeight by animateDpAsState(targetValue = if (expanded) textHeight else 300.dp)
+
+    Column {
     BasicText(
         overflow = TextOverflow.Ellipsis,
         text = styledMessage,
         style = style,
         modifier = Modifier
-            .heightIn(max = 300.dp)
+            .heightIn(max = animatedHeight) // Setzt die Höhe dynamisch basierend auf dem expandierten Zustand
+            .onGloballyPositioned { coordinates ->
+                // Holen der tatsächlichen Höhe des Textes
+                textHeight = coordinates.size.height.dp
+            }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = {
@@ -382,5 +411,14 @@ fun FocusClickableMessage(
             onTextLayout(it)
         }
     )
+        // Wenn der Text höher als 300.dp ist, zeige den Button "Read more" oder "Show less" an
+        if (textHeight > 300.dp) {
+            TextButton(onClick = {
+                expanded = !expanded
+            }) {
+                Text(if (expanded) "Show less" else "Read more")
+            }
+        }
+        }
 }
 

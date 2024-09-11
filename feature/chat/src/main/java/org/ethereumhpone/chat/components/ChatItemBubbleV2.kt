@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -60,6 +61,7 @@ fun ChatItemBubbleV2(
     modifier: Modifier = Modifier,
     message: Message,
     isUserMe: Boolean,
+    //isFocusMode: Boolean
     name: String = "",
     isFirstMessageByAuthor: Boolean,
     videoPlayer: Player?,
@@ -67,8 +69,11 @@ fun ChatItemBubbleV2(
     onLongClick: () -> Unit = {},
     authorClicked: (String) -> Unit = {},
     onDoubleClick: () -> Unit = {},
+    isXMTP: Boolean,
 ) {
 
+    //TODO: Distinction between reply message and normal message
+    val hasReply = false
 
     val Bubbleshape = if(isUserMe) {
         if (isFirstMessageByAuthor){
@@ -84,23 +89,21 @@ fun ChatItemBubbleV2(
         }
     }
 
-    val nogradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF8C7DF7)
-        )
-    )
+    val nogradient = Color(0xFF8C7DF7)
+    val xmtpgradient = Color(0xFFF83C40)
 
-    val reciepientcolor = Brush.verticalGradient(
-        colors = listOf(
-            Colors.DARK_GRAY,
-            Colors.DARK_GRAY
-        )
-    )
+    val reciepientcolor = Colors.DARK_GRAY
+
 
     val messageBrush = when(isUserMe){
         true -> { //message from user
-            nogradient
+
+            if(isXMTP) {
+                xmtpgradient
+            } else {
+                nogradient
+            }
+
         }
         false -> { //message not from user
             reciepientcolor
@@ -112,9 +115,7 @@ fun ChatItemBubbleV2(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         modifier = Modifier
             .clip(Bubbleshape)
-            .background(
-                brush = messageBrush
-            )
+            .background(messageBrush)
             .width(IntrinsicSize.Max)
     ){
         val media = message.parts.filter { it.isImage() || it.isVideo() }
@@ -149,7 +150,7 @@ fun ChatItemBubbleV2(
         }
 
 
-        if (true){
+        if (hasReply){
             Column(
                 modifier = modifier
                     .padding(vertical = 8.dp, horizontal = 16.dp)
@@ -271,8 +272,9 @@ fun ChatItemBubbleV2(
                     primary = isUserMe
                 )
 
+
+
                 ClickableMessage(
-                    message = message,
                     styledMessage = styledMessage,
                     style = TextStyle(
                         fontSize = 16.sp,
@@ -281,9 +283,7 @@ fun ChatItemBubbleV2(
                         fontFamily = Fonts.INTER
                     ),
                     onLongClick = onLongClick,
-                    isUserMe = isUserMe,
                     onClick = {
-
                         styledMessage
                             .getStringAnnotations(start = it, end = it)
                             .firstOrNull()
@@ -295,7 +295,8 @@ fun ChatItemBubbleV2(
                                 }
                             }
                     },
-                    onDoubleClick = onDoubleClick
+                    onDoubleClick = onDoubleClick,
+                    messageBrush = messageBrush
                 )
             }
 
@@ -346,7 +347,8 @@ fun ReplyChatItemBubblePreview() {
         isUserMe = true,
         videoPlayer = null,
         isFirstMessageByAuthor = true,
-        onPlayVideo = {}
+        onPlayVideo = {},
+        isXMTP = true
     )
 
 }

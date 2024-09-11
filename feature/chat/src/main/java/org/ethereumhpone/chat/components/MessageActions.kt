@@ -118,9 +118,8 @@ fun MessageAction(
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp)
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 16.dp)
             .clickable {
                 onClick()
             }
