@@ -1,6 +1,8 @@
 package org.ethereumhpone.contracts
 
 import android.Manifest
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -25,12 +27,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -48,6 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -72,6 +82,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.ethereumhpone.chat.components.trimEthereumAddress
 import org.ethereumhpone.contracts.ui.ChatListInfo
+import org.ethereumhpone.contracts.ui.ChatListItem
 import org.ethereumhpone.database.model.Message
 
 
@@ -100,7 +111,9 @@ fun ContactRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class,
+    ExperimentalFoundationApi::class
+)
 @Composable
 fun ContactScreen(
     contacts: List<Contact>,
@@ -111,6 +124,8 @@ fun ContactScreen(
     markAccepted: (Long, String) -> Unit,
     modifier: Modifier = Modifier
 ){
+
+    val context = LocalContext.current
 
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
@@ -186,83 +201,220 @@ fun ContactScreen(
 
             when(conversationState){
                 is ConversationUIState.Loading ->{
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(contentAlignment = Alignment.Center,modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Loading",
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
                             fontFamily = Fonts.INTER,
+                            fontWeight = FontWeight.SemiBold,
                             color = Colors.WHITE,
                         )
                     }
                 }
                 is ConversationUIState.Empty ->{
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
                         Text(
                             text = "No conversations",
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
                             fontFamily = Fonts.INTER,
+                            fontWeight = FontWeight.SemiBold,
                             color = Colors.WHITE,
                         )
                     }
                 }
                 is ConversationUIState.Success -> {
 
-                    if(conversationState.conversations.isNotEmpty()){
-                        Box(modifier = Modifier.weight(1f)) {
-                            LazyColumn(
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            ){
-                                conversationState.conversations.filter { !it.isUnknown }.forEach { conversation ->
-                                    item {
+                    val coroutineScope = rememberCoroutineScope()
+                    val tabs = listOf("Inbox","Unaccepted")
+                    // Display 10 items
+                    val pagerState = rememberPagerState(pageCount = {
+                        tabs.size
+                    })
 
-                                        val dates = conversation.lastMessage?.date?.let { Date(it) }
-                                        ChatListInfo(
-                                            image = {
-                                                if (conversation.recipients.get(0).contact?.photoUri != null) {
-                                                    Image(
-                                                        painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
-                                                        contentDescription = "Contact Image",
-                                                        contentScale = ContentScale.Crop,
-                                                        modifier = Modifier
-                                                            .size(62.dp) // Set the size of the image
-                                                            .clip(CircleShape) // Apply a circular shape
-                                                    )
-                                                } else {
-                                                    Image(
-                                                        painter = painterResource(id = R.drawable.nouns),
-                                                        contentDescription = "Contact Image",
-                                                        modifier = Modifier
-                                                            .size(62.dp) // Set the size of the image
-                                                            .clip(CircleShape) // Apply a circular shape
+                    TabRow(
+                        containerColor = Colors.TRANSPARENT,
+                        contentColor = Colors.WHITE,
+                        modifier = Modifier.fillMaxWidth().padding(start = 12.dp,end = 12.dp),
+                        selectedTabIndex = pagerState.currentPage,
+                        divider = { Divider(color = Colors.TRANSPARENT) },
+                        indicator = { tabPositions ->
+                            if (pagerState.currentPage < tabPositions.size) {
+                                TabRowDefaults.Indicator(
+                                    color = Colors.WHITE,
+                                    modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
+                                )
+                            }
+                        }
+                    ){
+                        tabs.forEachIndexed { index, s ->
+                            Tab(
+                                selectedContentColor = Colors.WHITE,
+                                unselectedContentColor = Colors.GRAY,
+                                selected = pagerState.currentPage == index,
+                                onClick = {
+                                    //tabIndex = index
+                                    coroutineScope.launch {
+                                        // Call scroll to on pagerState
+                                        pagerState.animateScrollToPage(index)
+                                    }
+                                },
+                                text = {
+                                    Text(
+                                        text = s,
+                                        color = if(pagerState.currentPage == index) Colors.WHITE else Colors.GRAY,
+                                        fontSize = 14.sp,
+                                        fontFamily = Fonts.INTER,
+                                        fontWeight = FontWeight.SemiBold,
+
+                                        )
+                                },
+
+                                )
+                        }
+                    }
+                    HorizontalPager(state = pagerState) { page ->
+
+                        when (page) {
+                            //TODO: Add logic
+                            0 -> {
+                                if(conversationState.conversations.isNotEmpty()){
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        LazyColumn(
+                                            modifier = Modifier.padding(horizontal = 12.dp)
+                                        ){
+                                            conversationState.conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                                item {
+
+                                                    val dates = conversation.lastMessage?.date?.let { Date(it) }
+                                                    ChatListItem(
+                                                        image = {
+                                                            if (conversation.recipients.get(0).contact?.photoUri != null) {
+                                                                Image(
+                                                                    painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                                    contentDescription = "Contact Image",
+                                                                    contentScale = ContentScale.Crop,
+                                                                    modifier = Modifier
+                                                                        .size(62.dp) // Set the size of the image
+                                                                        .clip(CircleShape) // Apply a circular shape
+                                                                )
+                                                            } else {
+                                                                Image(
+                                                                    painter = painterResource(id = R.drawable.nouns),
+                                                                    contentDescription = "Contact Image",
+                                                                    modifier = Modifier
+                                                                        .size(62.dp) // Set the size of the image
+                                                                        .clip(CircleShape) // Apply a circular shape
+                                                                )
+                                                            }
+                                                        },
+                                                        header = conversation.recipients.get(0).getDisplayName(),
+                                                        subheader = conversation.lastMessage?.getSummary() ?: "",
+                                                        time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
+                                                        unreadConversation = conversation.unread,
+                                                        onClick = {
+                                                            conversationClicked(conversation.id.toString())
+                                                        },
+                                                        onClickLeft = {
+                                                            //TODO: Add logic (archive)
+                                                            Toast.makeText(context, "Left", Toast. LENGTH_SHORT).show()
+                                                        },
+                                                        onClickRight = {
+                                                            //TODO: Add logic (delete)
+                                                            Toast.makeText(context, "Right", Toast. LENGTH_SHORT).show()
+                                                        }
                                                     )
                                                 }
-                                            },
-                                            header = conversation.getConversationTitle(),
-                                            subheader = conversation.lastMessage?.getSummary() ?: "",
-                                            time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
-                                            unreadConversation = conversation.unread,
-                                            onClick = {
-                                                conversationClicked(conversation.id.toString())
-                                            },
+                                            }
+                                        }
+                                    }
+                                }
+                                else{
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "No conversations",
+                                            fontSize = 20.sp,
+                                            fontFamily = Fonts.INTER,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Colors.GRAY,
+                                        )
+                                    }
+                                }
+                            }
+                            1 -> {
+                                //TODO: Add logic (unaccepted messages)
+                                if(conversationState.conversations.isNotEmpty()){
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        LazyColumn(
+                                            modifier = Modifier.padding(horizontal = 12.dp)
+                                        ){
+                                            conversationState.conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                                item {
+
+                                                    val dates = conversation.lastMessage?.date?.let { Date(it) }
+                                                    ChatListItem(
+                                                        image = {
+                                                            if (conversation.recipients.get(0).contact?.photoUri != null) {
+                                                                Image(
+                                                                    painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                                    contentDescription = "Contact Image",
+                                                                    contentScale = ContentScale.Crop,
+                                                                    modifier = Modifier
+                                                                        .size(62.dp) // Set the size of the image
+                                                                        .clip(CircleShape) // Apply a circular shape
+                                                                )
+                                                            } else {
+                                                                Image(
+                                                                    painter = painterResource(id = R.drawable.nouns),
+                                                                    contentDescription = "Contact Image",
+                                                                    modifier = Modifier
+                                                                        .size(62.dp) // Set the size of the image
+                                                                        .clip(CircleShape) // Apply a circular shape
+                                                                )
+                                                            }
+                                                        },
+                                                        header = conversation.recipients.get(0).getDisplayName(),
+                                                        subheader = conversation.lastMessage?.getSummary() ?: "",
+                                                        time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
+                                                        unreadConversation = conversation.unread,
+                                                        onClick = {
+                                                            conversationClicked(conversation.id.toString())
+                                                        },
+                                                        onClickLeft = {
+                                                            //TODO: Add logic (archive)
+                                                            Toast.makeText(context, "Left", Toast. LENGTH_SHORT).show()
+                                                        },
+                                                        onClickRight = {
+                                                            //TODO: Add logic (delete)
+                                                            Toast.makeText(context, "Right", Toast. LENGTH_SHORT).show()
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else{
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "No conversations",
+                                            fontSize = 20.sp,
+                                            fontFamily = Fonts.INTER,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Colors.GRAY,
                                         )
                                     }
                                 }
                             }
                         }
-                    }else{
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No conversations",
-                                fontSize = 20.sp,
-                                fontFamily = Fonts.INTER,
-                                fontWeight = FontWeight.Medium,
-                                color = Colors.GRAY,
-                            )
-                        }
                     }
+
+
 
                 }
             }

@@ -121,7 +121,7 @@ fun SendButton(
                                 .run { IntSize(width.roundToInt(), height.roundToInt()) }
                         }
                         .combinedClickable(
-                            onClick = {  },
+                            onClick = { onClick() },
                             onLongClick = {
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 showTooltip = true

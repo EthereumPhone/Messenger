@@ -1,6 +1,7 @@
 package org.ethereumhpone.contracts.ui
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -23,8 +24,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeMute
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.MarkChatUnread
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -54,107 +59,81 @@ enum class ChatListItemState{
     OPENLEFT
 }
 
-//@OptIn(ExperimentalFoundationApi::class)
-//@Composable
-//fun ChatListItem(
-//){
-//    Box{
-//
-//        val unreadWidth = -72.dp
-//        val optionWidth = 128.dp
-//
-//        val anchors = DraggableAnchors {
-//            ChatListItemState.OPENLEFT at unreadWidth.value
-//            ChatListItemState.CLOSED at 0f
-//            ChatListItemState.OPENRIGHT at optionWidth.value
-//
-//        }
-//
-//
-//
-//        val density = LocalDensity.current
-//        val state = remember {
-//            AnchoredDraggableState (
-//                initialValue = ChatListItemState.CLOSED,
-//                anchors = anchors,
-//                positionalThreshold = { distance: Float -> distance * 0.5f },
-//                animationSpec = spring(),
-//                velocityThreshold = { with(density) { 186.dp. toPx() } },
-//            )
-//        }
-//
-//
-//
-//
-//        ChatListUnreadSection({})
-//        ChatListOptions({})
-//        Row (
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .graphicsLayer {
-//                    this.translationX = state.requireOffset()
-//                }
-//                .anchoredDraggable(state, Orientation.Horizontal)
-//        ){
-//            ChatListInfo(
-//                header = "Mark Katakowskihashvili",
-//                subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
-//            )
-//        }
-//
-//
-//    }
-//
-//}
-
-@Preview
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PreviewChatListUnreadSection(){
-    ChatListUnreadSection({})
-}
-@Composable
-fun ChatListUnreadSection(
-    onClick: () -> Unit = {}
+fun ChatListItem(
+    image: @Composable () -> Unit = {},
+    header: String = "Header",
+    subheader: String = "Subheader",
+    time: Date? = Date(),
+    unreadConversation: Boolean = true,
+    onClick: () -> Unit = {},
+    onClickLeft: () -> Unit = {},
+    onClickRight: () -> Unit = {},
+    isInbox: Boolean = true,
+    modifier: Modifier = Modifier
 ){
-    Row (
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier
-            .clickable { onClick() }
-            .fillMaxWidth()
-            .height(86.dp)
-            .background(Colors.LIGHT_BLUE)
-        ,
-    ) {
-        Column (
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .clickable { onClick() }
-                .fillMaxHeight()
-                .width(72.dp)
-                .background(Colors.LIGHT_BLUE)
-        ){
-            Icon(
-                imageVector = Icons.Filled.MarkChatUnread,
-                contentDescription = "Overlay Icon",
-                tint = Colors.WHITE,
-            )
-        }
 
+    val leftWidth = (-120*2).dp //-400.dp
+    val rightWidth = (120*2).dp
 
+    val anchors = DraggableAnchors {
+        ChatListItemState.OPENLEFT at leftWidth.value
+        ChatListItemState.CLOSED at 0.dp.value
+        ChatListItemState.OPENRIGHT at rightWidth.value
 
     }
+
+
+
+    val density = LocalDensity.current
+    val state = remember {
+        AnchoredDraggableState (
+            initialValue = ChatListItemState.CLOSED,
+            anchors = anchors,
+            positionalThreshold = { distance: Float -> distance * 0.5f },
+            animationSpec = spring(),
+            velocityThreshold = { with(density) { 50.dp.toPx() } },
+        )
+    }
+    Box{
+        ChatListOptions(
+            isInbox = isInbox,
+            onClickLeft = onClickLeft,
+            onClickRight = onClickRight
+        )
+        Row (
+            modifier = modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    this.translationX = state.requireOffset()
+                }
+                .anchoredDraggable(state, Orientation.Horizontal)
+        ){
+            ChatListInfo(
+                image = image,
+                header = header,
+                subheader = subheader,
+                time = time,
+                unreadConversation = unreadConversation,
+                modifier = modifier,
+                onClick = onClick
+            )
+        }
+    }
 }
+
 
 @Preview
 @Composable
 fun PreviewChatListOptions(){
-    ChatListOptions({})
+    ChatListOptions()
 }
 @Composable
 fun ChatListOptions(
-    onClick: () -> Unit = {}
+    isInbox: Boolean = true,
+    onClickLeft: () -> Unit = {},
+    onClickRight: () -> Unit = {},
 ){
     Row (
         verticalAlignment = Alignment.CenterVertically,
@@ -167,37 +146,52 @@ fun ChatListOptions(
         ,
     ) {
 
-        Column (
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
-                .clickable { onClick() }
+                .clickable { onClickLeft() }
                 .fillMaxHeight()
-                .width(72.dp)
+                .weight(0.4f)
                 .background(Colors.LIGHT_BLUE)
         ){
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.VolumeMute,
-                contentDescription = "VolumeMute",
+                imageVector = if(isInbox) Icons.Filled.Archive else Icons.Filled.Unarchive,
+                contentDescription = "Archive",
                 tint = Colors.WHITE,
             )
         }
 
-        Column (
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+
+        Row(
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically,
+
             modifier = Modifier
-                .clickable { onClick() }
+
                 .fillMaxHeight()
-                .width(72.dp)
+                .weight(1f)
+                .background(Colors.BLACK)
+                .padding(start = 28.dp)
+        ){
+
+        }
+
+
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .clickable { onClickRight() }
+                .fillMaxHeight()
+                .weight(0.4f)
                 .background(Colors.ERROR)
         ){
             Icon(
                 imageVector = Icons.Filled.DeleteForever,
-                contentDescription = "DeleteForever",
+                contentDescription = "Delete",
                 tint = Colors.WHITE,
             )
         }
+
 
 
     }
@@ -219,9 +213,10 @@ fun ChatListInfo(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
+            .background(Colors.BLACK)
             .clickable { onClick() }
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .padding(vertical = 12.dp, horizontal = 8.dp)
         ,
     ){
         Box(
@@ -248,7 +243,7 @@ fun ChatListInfo(
                     modifier = modifier.weight(1f)
                 ){
                     Text(
-                        text = if (isEthereumAddress(header)) trimEthereumAddress(header) else header,
+                        text = header,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Medium,
                         color = Colors.WHITE,
@@ -323,13 +318,6 @@ fun ChatListInfo(
 
 }
 
-fun trimEthereumAddress(address: String): String {
-    return address.substring(0, 5) + "..." + address.substring(address.length - 3)
-}
-
-fun isEthereumAddress(address: String): Boolean {
-    return address.startsWith("0x") && address.length == 42
-}
 
 fun printFormattedDateInfo(date: Date?): String? {
 
@@ -353,11 +341,11 @@ fun printFormattedDateInfo(date: Date?): String? {
             return weekday
         }
         date?.let { isBeforeLast7Days(it) } == true -> {
-            //println("The date $formattedDate is before the last 7 days.")
+            println("The date $formattedDate is before the last 7 days.")
             return formattedDate
         }
         else -> {
-            //println("The date $formattedDate is not within the last 7 days and not before the last 7 days (i.e., it's in the future).")
+            println("The date $formattedDate is not within the last 7 days and not before the last 7 days (i.e., it's in the future).")
             return formattedDate
         }
     }
@@ -425,8 +413,10 @@ fun getWeekday(date: Date): String {
 @Preview
 @Composable
 fun PreviewContactItem(){
-//    ChatListInfo(
-//        header = "Mark Katakowskihashvili",
-//        subheader = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd ",
-//    )
+    val context = LocalContext.current
+    ChatListItem(
+        onClick = { Toast.makeText(context, "onClick", Toast. LENGTH_SHORT). show() },
+        onClickLeft = { Toast.makeText(context, "Left", Toast. LENGTH_SHORT). show() },
+        onClickRight = { Toast.makeText(context, "Right", Toast. LENGTH_SHORT). show() }
+    )
 }
