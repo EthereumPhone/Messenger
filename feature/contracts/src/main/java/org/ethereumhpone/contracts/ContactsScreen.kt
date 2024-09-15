@@ -177,13 +177,7 @@ fun ContactScreen(
                     Box(
                         contentAlignment = Alignment.Center
                     ){
-                        if (showHiddenButton) {
-                            Icon(imageVector = Icons.Rounded.Bookmarks, contentDescription = "Show message requests", tint = Colors.WHITE, modifier = Modifier
-                                .size(32.dp)
-                                .clickable {
-                                    showHiddenConversations = true
-                                })
-                        }
+                        // Nothing
                     }
                 }
             )
@@ -282,7 +276,7 @@ fun ContactScreen(
                                         LazyColumn(
                                             modifier = Modifier.padding(horizontal = 12.dp)
                                         ){
-                                            conversationState.conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                            conversationState.conversations.filter { !it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
                                                 item {
 
                                                     val dates = conversation.lastMessage?.date?.let { Date(it) }
@@ -350,7 +344,7 @@ fun ContactScreen(
                                         LazyColumn(
                                             modifier = Modifier.padding(horizontal = 12.dp)
                                         ){
-                                            conversationState.conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                            conversationState.conversations.filter { it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
                                                 item {
 
                                                     val dates = conversation.lastMessage?.date?.let { Date(it) }
