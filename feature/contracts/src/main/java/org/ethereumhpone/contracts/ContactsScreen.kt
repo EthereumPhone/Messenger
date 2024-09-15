@@ -93,17 +93,18 @@ fun ContactRoute(
     viewModel: ContactViewModel = hiltViewModel()
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
-    val showHiddenButton by viewModel.showHiddenButton.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
 
     ContactScreen(
         modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
-        showHiddenButton = showHiddenButton,
         contactsClicked = { selectedContacts ->
             navigateToChat("0", selectedContacts.map { it.getDefaultNumber()?.address ?: it.numbers[0].address }) },
         markAccepted = { id, address -> viewModel.setConversationAsAccepted(id, address) },
+        deleteConversation = { id -> viewModel.deleteConversation(id) },
+        deleteXMTPConversation = { address -> viewModel.deleteXMTPConversation(address) },
+        markArchived = { id -> viewModel.setConversationArchived(id) },
         conversationClicked = { id ->
             viewModel.setConversationAsRead(id.toLong())
             navigateToChat(id, emptyList())
@@ -120,8 +121,10 @@ fun ContactScreen(
     conversationState: ConversationUIState,
     contactsClicked: (List<Contact>) -> Unit,
     conversationClicked: (String) -> Unit,
-    showHiddenButton: Boolean = false,
+    deleteConversation: (Long) -> Unit,
+    deleteXMTPConversation: (String) -> Unit,
     markAccepted: (Long, String) -> Unit,
+    markArchived: (Long) -> Unit,
     modifier: Modifier = Modifier
 ){
 
@@ -309,12 +312,10 @@ fun ContactScreen(
                                                             conversationClicked(conversation.id.toString())
                                                         },
                                                         onClickLeft = {
-                                                            //TODO: Add logic (archive)
-                                                            Toast.makeText(context, "Left", Toast. LENGTH_SHORT).show()
+                                                            markArchived(conversation.id)
                                                         },
                                                         onClickRight = {
-                                                            //TODO: Add logic (delete)
-                                                            Toast.makeText(context, "Right", Toast. LENGTH_SHORT).show()
+                                                            markArchived(conversation.id)
                                                         }
                                                     )
                                                 }
@@ -375,14 +376,14 @@ fun ContactScreen(
                                                         unreadConversation = conversation.unread,
                                                         onClick = {
                                                             conversationClicked(conversation.id.toString())
+                                                            markAccepted(conversation.id, conversation.getConversationTitle())
                                                         },
                                                         onClickLeft = {
-                                                            //TODO: Add logic (archive)
-                                                            Toast.makeText(context, "Left", Toast. LENGTH_SHORT).show()
+                                                            markArchived(conversation.id)
                                                         },
                                                         onClickRight = {
-                                                            //TODO: Add logic (delete)
-                                                            Toast.makeText(context, "Right", Toast. LENGTH_SHORT).show()
+                                                            markArchived(conversation.id)
+                                                            deleteXMTPConversation(conversation.getConversationTitle())
                                                         }
                                                     )
                                                 }
@@ -566,6 +567,9 @@ fun PreviewContactScreen(){
         ),
         {},
         {},
-        markAccepted = {_,_ ->}
+        {},
+        {},
+        {_,_ ->},
+        {},
     )
 }
