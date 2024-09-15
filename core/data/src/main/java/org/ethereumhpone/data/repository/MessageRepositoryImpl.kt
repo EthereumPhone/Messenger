@@ -48,6 +48,7 @@ import org.ethereumhpone.database.model.isVideo
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumhpone.domain.model.XMTPConversationHandler
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.XMTPException
@@ -65,7 +66,8 @@ class MessageRepositoryImpl @Inject constructor(
     private val syncRepository: SyncRepository,
     private val activeConversationManager: ActiveConversationManager,
     private val context: Context,
-    private val xmtpClientManager: XmtpClientManager
+    private val xmtpClientManager: XmtpClientManager,
+    private val xmtpConversationHandler: XMTPConversationHandler
 ): MessageRepository {
     override fun getMessages(threadId: Long, query: String): Flow<List<Message>> =
         messageDao.getMessages(threadId, query)
@@ -215,7 +217,7 @@ class MessageRepositoryImpl @Inject constructor(
 
 
         val convo = try {
-            xmtpClientManager.client.conversations.newConversation(message.address)
+            xmtpConversationHandler.getOrCreateConversation(xmtpClientManager.client, message.address)
         } catch (e: XMTPException) {
             e.printStackTrace()
             return null
