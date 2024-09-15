@@ -16,12 +16,14 @@ import dagger.internal.Provider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.domain.model.ClientWrapper
 import org.ethereumhpone.domain.model.LogTimeHandler
+import org.ethereumhpone.domain.model.XMTPConversationHandler
 import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.messenger.BuildConfig
 import org.ethereumphone.walletsdk.WalletSDK
@@ -123,6 +125,13 @@ object AppModule {
     @Singleton
     @Provides
     fun provideXmtpClientManger(): XmtpClientManager = XmtpClientManager
+
+    @Singleton
+    @Provides
+    fun provideXmtpConversationHandler(
+    ): XMTPConversationHandler {
+        return XMTPConversationHandler()
+    }
 
 
 
