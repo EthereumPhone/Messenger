@@ -131,6 +131,8 @@ class MainActivity : ComponentActivity() {
 
             // Now clientState is Ready, proceed to call syncXmtp
             syncRepository.syncXmtp(context = this@MainActivity, xmtpClientManager.client)
+
+            syncRepository.startStreamAllMessages(xmtpClientManager.client)
         }
 
         setContent {
