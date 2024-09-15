@@ -121,15 +121,16 @@ class MainActivity : ComponentActivity() {
         // check if it has permissions and never never ran a message sync
         CoroutineScope(Dispatchers.IO).launch {
             val lastSync = logTimeHandler.getLastLog()
+            println("LASTSYNC: $lastSync")
             if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
             }
 
-            xmtpClientManager.clientState.collect {
-                if (it == XmtpClientManager.ClientState.Ready) {
-                    syncRepository.startStreamAllMessages(xmtpClientManager.client)
-                }
-            }
+            // Suspend until clientState is Ready
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+
+            // Now clientState is Ready, proceed to call syncXmtp
+            syncRepository.syncXmtp(context = this@MainActivity, xmtpClientManager.client)
         }
 
         setContent {
