@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import org.ethereumhpone.chat.components.InputSelector
+import org.ethereumhpone.chat.components.isEthereumAddress
+import org.ethereumhpone.chat.components.trimEthereumAddress
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.PhoneNumber
@@ -143,13 +145,13 @@ fun ContactSheet(
                 contentAlignment = Alignment.TopCenter
             ) {
                 LazyColumn {
-                    if(textState.text.isNotEmpty() && phoneNumberUtils.isPossibleNumber(textState.text)) {
+                    if(textState.text.isNotEmpty() && (phoneNumberUtils.isPossibleNumber(textState.text) || isEthereumAddress(textState.text))) {
                         val newAddress = phoneNumberUtils.formatNumber(textState.text)
                         val newContact = Contact(numbers = (listOf(PhoneNumber(address = newAddress))))
 
                         item {
                             ethOSContactListItem(
-                                header = "write to $newAddress",
+                                header = if (isEthereumAddress(newAddress)) "write to ${trimEthereumAddress(newAddress)}" else "write to $newAddress",
                                 onClick = {
                                     onContactsSelected(listOf(newContact))
                                 }
