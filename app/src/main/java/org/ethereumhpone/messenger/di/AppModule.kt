@@ -25,6 +25,8 @@ import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.messenger.BuildConfig
 import org.ethereumphone.walletsdk.WalletSDK
+import org.kethereum.ens.ENS
+import org.kethereum.rpc.HttpEthereumRPC
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
 import org.xmtp.android.library.Client
@@ -112,6 +114,11 @@ object AppModule {
         return walletSDK
     }
 
+    @Provides
+    @Singleton
+    fun provideENSResolver(): ENS {
+        return ENS(HttpEthereumRPC(chainIdToRPC(1)))
+    }
 
     @Singleton
     @Provides
