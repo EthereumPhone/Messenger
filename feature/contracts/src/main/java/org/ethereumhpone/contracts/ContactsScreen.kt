@@ -1,10 +1,8 @@
 package org.ethereumhpone.contracts
 
 import android.Manifest
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,8 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Bookmarks
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ModalBottomSheet
@@ -78,12 +73,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import org.ethereumhpone.chat.components.trimEthereumAddress
-import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.contracts.ui.ChatListItem
 import org.ethereumhpone.database.model.Message
+import kotlin.reflect.KSuspendFunction1
 
 
 @Composable
@@ -105,6 +98,7 @@ fun ContactRoute(
         deleteConversation = { id -> viewModel.deleteConversation(id) },
         deleteXMTPConversation = { address -> viewModel.deleteXMTPConversation(address) },
         markArchived = { id -> viewModel.setConversationArchived(id) },
+        resolveENS = viewModel::resolveENS,
         conversationClicked = { id ->
             viewModel.setConversationAsRead(id.toLong())
             navigateToChat(id, emptyList())
@@ -125,6 +119,7 @@ fun ContactScreen(
     deleteXMTPConversation: (String) -> Unit,
     markAccepted: (Long, String) -> Unit,
     markArchived: (Long) -> Unit,
+    resolveENS: KSuspendFunction1<String, String>,
     modifier: Modifier = Modifier
 ){
 
@@ -460,7 +455,8 @@ fun ContactScreen(
                     onContactsSelected = {
                         showContactSheet = false
                         contactsClicked(it)
-                    }
+                    },
+                    resolveENS = resolveENS
                 )
             }
         }
@@ -548,6 +544,7 @@ fun PreviewShowHiddenConversationsPopup(){
     )
 }
 
+/*
 @Composable
 @Preview
 fun PreviewContactScreen(){
@@ -571,5 +568,8 @@ fun PreviewContactScreen(){
         {},
         {_,_ ->},
         {},
+        {}
     )
 }
+
+ */

@@ -1,5 +1,6 @@
 package org.ethereumhpone.contracts.ui
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -52,6 +53,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.chat.components.isEthereumAddress
 import org.ethereumhpone.chat.components.trimEthereumAddress
@@ -60,11 +65,13 @@ import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import kotlin.reflect.KSuspendFunction1
 
 @Composable
 fun ContactSheet(
     contacts: List<Contact> = emptyList(),
     onContactsSelected: (List<Contact>) -> Unit,
+    resolveENS: KSuspendFunction1<String, String>
 ) {
     val multiSelectMode by remember { mutableStateOf(false) }
     val phoneNumberUtils = PhoneNumberUtils(LocalContext.current)
@@ -126,17 +133,25 @@ fun ContactSheet(
             Spacer(modifier = Modifier.height(24.dp))
             SearchTextField(
                 textFieldValue = textState,
-                onTextChanged = { textState = it},
+                onTextChanged = { newTextFieldValue ->
+                    // Process the text to remove spaces after periods
+                    val processedText = newTextFieldValue.text.replace(Regex("\\.\\s+"), ".")
+
+                    // Create a new TextFieldValue with the processed text and updated selection
+                    val newProcessedTextFieldValue = newTextFieldValue.copy(text = processedText)
+
+                    // Update the state
+                    textState = newProcessedTextFieldValue
+                },
                 onTextFieldFocused = { focused ->
                     if (focused) {
                         currentInputSelector = InputSelector.NONE
                     }
                     textFieldFocusState = focused
                 },
-                focusState = textFieldFocusState,
-
-                )
-
+                focusState = textFieldFocusState
+            )
+            val context = LocalContext.current
             Spacer(modifier = Modifier.height(24.dp))
             Box(
                 modifier = Modifier
@@ -145,7 +160,7 @@ fun ContactSheet(
                 contentAlignment = Alignment.TopCenter
             ) {
                 LazyColumn {
-                    if(textState.text.isNotEmpty() && (phoneNumberUtils.isPossibleNumber(textState.text) || isEthereumAddress(textState.text))) {
+                    if(textState.text.isNotEmpty() && (phoneNumberUtils.isPossibleNumber(textState.text) || isEthereumAddress(textState.text) || textState.text.endsWith(".eth"))){
                         val newAddress = phoneNumberUtils.formatNumber(textState.text)
                         val newContact = Contact(numbers = (listOf(PhoneNumber(address = newAddress))))
 
@@ -153,7 +168,20 @@ fun ContactSheet(
                             ethOSContactListItem(
                                 header = if (isEthereumAddress(newAddress)) "write to ${trimEthereumAddress(newAddress)}" else "write to $newAddress",
                                 onClick = {
-                                    onContactsSelected(listOf(newContact))
+                                    if (textState.text.endsWith(".eth")) {
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            val resolvedAddr = resolveENS(textState.text.lowercase())
+                                            withContext(Dispatchers.Main) {
+                                                if (resolvedAddr.isNotEmpty()) {
+                                                    onContactsSelected(listOf(newContact.copy(numbers = listOf(PhoneNumber(address = resolvedAddr)))))
+                                                } else {
+                                                    Toast.makeText(context, "Could not resolve ENS name", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        onContactsSelected(listOf(newContact))
+                                    }
                                 }
                             )
                         }
@@ -342,7 +370,7 @@ fun ethOSContactListItem(
 
 }
 
-
+/*
 @Composable
 @Preview
 fun ContactSheetPreview(){
@@ -378,3 +406,5 @@ fun ContactSheetPreview(){
 //        1
     ) {}
 }
+
+ */

@@ -24,6 +24,9 @@ import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
+import org.kethereum.eip137.model.ENSName
+import org.kethereum.ens.ENS
+import org.kethereum.ens.isPotentialENSDomain
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,6 +34,7 @@ class ContactViewModel @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val contactRepository: ContactRepository,
     private val xmtpClientManager: XmtpClientManager,
+    private val ensResolver: ENS,
     private val syncRepository: SyncRepository,
     private val phoneNumberUtils: PhoneNumberUtils,
 ): ViewModel() {
@@ -96,6 +100,15 @@ class ContactViewModel @Inject constructor(
                 xmtpClientManager.client.contacts.allow(listOf(address))
             }
             conversationRepository.markAccepted(conversationId)
+        }
+    }
+
+    suspend fun resolveENS(ensName: String): String {
+        if (ENSName(ensName).isPotentialENSDomain()) {
+            val address = ensResolver.getAddress(ENSName(ensName))
+            return address?.toString() ?: ""
+        } else {
+            return ""
         }
     }
 
