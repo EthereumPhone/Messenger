@@ -42,6 +42,7 @@ media3 = "1.3.1"
 
 
 [libraries]
+ens = { module = "com.github.komputing.kethereum:ens", version.ref = "rpc" }
 xmtp = { module = "org.xmtp:android", version.ref = "android-xmtp" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }

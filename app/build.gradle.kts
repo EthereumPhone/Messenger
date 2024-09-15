@@ -131,6 +131,10 @@ dependencies {
 
     implementation(libs.xmtp)
 
+    implementation(libs.ens)
+    implementation(libs.rpc)
+    implementation(libs.model)
+
 
 }
 
