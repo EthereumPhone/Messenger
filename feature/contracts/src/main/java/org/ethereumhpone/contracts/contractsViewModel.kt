@@ -68,6 +68,24 @@ class ContactViewModel @Inject constructor(
         }
     }
 
+    fun deleteConversation(conversationId: Long) {
+        CoroutineScope(Dispatchers.IO).launch {
+            conversationRepository.deleteConversations(conversationId)
+        }
+    }
+
+    fun deleteXMTPConversation(address: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val clientState = xmtpClientManager.clientState.first {
+                it == XmtpClientManager.ClientState.Ready
+            }
+
+            if (clientState == XmtpClientManager.ClientState.Ready) {
+                xmtpClientManager.client.contacts.deny(listOf(address))
+            }
+        }
+    }
+
     fun setConversationAsAccepted(conversationId: Long, address: String) {
         CoroutineScope(Dispatchers.IO).launch {
             val clientState = xmtpClientManager.clientState.first {
@@ -78,6 +96,12 @@ class ContactViewModel @Inject constructor(
                 xmtpClientManager.client.contacts.allow(listOf(address))
             }
             conversationRepository.markAccepted(conversationId)
+        }
+    }
+
+    fun setConversationArchived(conversationId: Long) {
+        CoroutineScope(Dispatchers.IO).launch {
+            conversationRepository.markArchived(conversationId)
         }
     }
 
