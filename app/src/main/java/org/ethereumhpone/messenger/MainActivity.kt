@@ -135,9 +135,29 @@ class MainActivity : ComponentActivity() {
             syncRepository.startStreamAllMessages(xmtpClientManager.client)
         }
 
+        var inputAddress: String? = null
+
+        val data = intent?.data
+
+        if (data != null) {
+            val scheme = data.scheme
+            if (scheme == "sms" || scheme == "smsto" || scheme == "mms" || scheme == "mmsto") {
+                inputAddress = data.schemeSpecificPart
+                // Remove any query parameters if present
+                inputAddress = inputAddress?.substringBefore('?')
+            }
+        }
+
+        inputAddress?.let {
+            println("inputAddress: $it")
+        }
+
         setContent {
             MessengerTheme {
-                MessagingApp(threadId = threadId)
+                MessagingApp(
+                    threadId = threadId,
+                    inputAddress = inputAddress
+                )
             }
         }
     }
