@@ -73,6 +73,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import org.ethereumhpone.chat.components.isEthereumAddress
 import org.ethereumhpone.chat.components.trimEthereumAddress
 import org.ethereumhpone.contracts.ui.ChatListItem
 import org.ethereumhpone.database.model.Message
@@ -308,9 +309,15 @@ fun ContactScreen(
                                                         },
                                                         onClickLeft = {
                                                             markArchived(conversation.id)
+                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
+                                                                deleteXMTPConversation(conversation.getConversationTitle())
+                                                            }
                                                         },
                                                         onClickRight = {
                                                             markArchived(conversation.id)
+                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
+                                                                deleteXMTPConversation(conversation.getConversationTitle())
+                                                            }
                                                         }
                                                     )
                                                 }
