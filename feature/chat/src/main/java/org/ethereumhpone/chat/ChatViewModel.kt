@@ -417,6 +417,21 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
+    fun onOpenContact() {
+        recipientState.value?.contact?.lookupKey?.let {
+            println("Opening contact with lookup key: $it")
+            val lookupUri = Uri.withAppendedPath(
+                ContactsContract.Contacts.CONTENT_LOOKUP_URI,
+                it
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = lookupUri
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        }
+    }
+
 
 
     @SuppressLint("Range")
