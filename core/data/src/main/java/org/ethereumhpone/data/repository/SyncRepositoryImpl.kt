@@ -416,12 +416,13 @@ class SyncRepositoryImpl @Inject constructor(
                     } else {
                         context.openFileOutput(name, Context.MODE_PRIVATE).use {
                             it.write(attachment.data.toByteArray())
+                            it.close()
                         }
                         ""
                     }
 
                     val mmsPart = MmsPart(
-                        id = attachment.filename,
+                        id = context.getFileStreamPath(name).absolutePath,
                         type = attachment.mimeType,
                         text = text
                     ).also { messageDao.upsertMessagePart(it) }

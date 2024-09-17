@@ -66,6 +66,7 @@ import org.ethereumhpone.database.model.isText
 import org.ethereumhpone.database.model.isVideo
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import java.io.File
 import java.util.Random
 
 
@@ -84,12 +85,12 @@ fun MediaBinder(
 
     // grouping logic
     if (media.size <= 3) {
-        MediaListContainer(media) {
+        MediaListContainer(media, message.type) {
             offset = it
             showExpandedMedia = true
         }
     } else {
-        MediaGridContainer(media) {
+        MediaGridContainer(media, message.type) {
             offset = it
             showExpandedMedia = true
         }
@@ -111,6 +112,7 @@ fun MediaBinder(
 @Composable
 private fun MediaListContainer(
     media: List<MmsPart>,
+    messageType: String = "mms",
     imageClickedIndex: (Int) -> Unit // index
 ) {
     Column(
@@ -118,8 +120,9 @@ private fun MediaListContainer(
     ) {
         media.forEachIndexed { index, item ->
             Box(Modifier.clickable { imageClickedIndex(index) }) {
+
                 AsyncImage(
-                    model = if (item.isVideo()) item.getUri().getVideoThumbnail(LocalContext.current) else item.getUri(),
+                    model = if (item.isVideo()) item.getUri(messageType).getVideoThumbnail(LocalContext.current) else item.getUri(messageType),
                     contentDescription = "",
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(id = R.drawable.ethos_placeholder),
@@ -150,6 +153,7 @@ private fun MediaListContainer(
 @Composable
 private fun MediaGridContainer(
     media: List<MmsPart>,
+    messageType: String = "mms",
     imageClickedIndex: (Int) -> Unit // index
 ) {
     var index = 0
@@ -168,7 +172,7 @@ private fun MediaGridContainer(
                             .clickable { imageClickedIndex(currentIndex) }
                     ) {
                         AsyncImage(
-                            model = if (media[index].isVideo()) media[index].getUri().getVideoThumbnail(LocalContext.current) else media[index].getUri(),
+                            model = if (media[index].isVideo()) media[index].getUri(messageType).getVideoThumbnail(LocalContext.current) else media[index].getUri(messageType),
                             contentDescription = "",
                             contentScale = ContentScale.Crop,
                             placeholder = painterResource(id = R.drawable.ethos_placeholder),
