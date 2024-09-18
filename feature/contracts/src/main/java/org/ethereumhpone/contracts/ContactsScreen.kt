@@ -218,7 +218,7 @@ fun ContactScreen(
                 is ConversationUIState.Success -> {
 
                     val coroutineScope = rememberCoroutineScope()
-                    val tabs = listOf("Inbox","Unaccepted")
+                    val tabs = listOf("Inbox","Requests")
                     // Display 10 items
                     val pagerState = rememberPagerState(pageCount = {
                         tabs.size
