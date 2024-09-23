@@ -25,13 +25,15 @@ fun OnboardingRoute() {
 fun OnboardingScreen() {
 
 
+    val pageContent = OnboardingPageContent.entries
+
     val pagerState = rememberPagerState(
         pageCount = { OnboardingPageContent.entries.size},
     )
 
 
 
-    Column() {
+    Column {
         HorizontalPager(
             state = pagerState,
             userScrollEnabled = false
@@ -70,12 +72,19 @@ fun OnboardingScreen() {
     }
 }
 
+private fun OnboardingPage(
+
+) {
+
+}
+
 enum class OnboardingPageContent(
     title: String,
     description: String
 ) {
-    WELCOME("", ""),
-    XMTP("", ""),
+    WELCOME("Welcome to ethOS Messenger", ""),
+    XMTP("Enable XMTP", ""),
+    FINISH("All set up", "")
 }
 
 
