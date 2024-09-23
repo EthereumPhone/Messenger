@@ -1,8 +1,10 @@
 package org.ethereumhpone.contracts
 
 import android.Manifest
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Bookmarks
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ModalBottomSheet
@@ -73,11 +78,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import org.ethereumhpone.chat.components.isEthereumAddress
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import org.ethereumhpone.chat.components.trimEthereumAddress
+import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.contracts.ui.ChatListItem
 import org.ethereumhpone.database.model.Message
-import kotlin.reflect.KSuspendFunction1
 
 
 @Composable
@@ -87,19 +93,17 @@ fun ContactRoute(
     viewModel: ContactViewModel = hiltViewModel()
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
+    val showHiddenButton by viewModel.showHiddenButton.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
 
     ContactScreen(
         modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
+        showHiddenButton = showHiddenButton,
         contactsClicked = { selectedContacts ->
             navigateToChat("0", selectedContacts.map { it.getDefaultNumber()?.address ?: it.numbers[0].address }) },
         markAccepted = { id, address -> viewModel.setConversationAsAccepted(id, address) },
-        deleteConversation = { id -> viewModel.deleteConversation(id) },
-        deleteXMTPConversation = { address -> viewModel.deleteXMTPConversation(address) },
-        markArchived = { id -> viewModel.setConversationArchived(id) },
-        resolveENS = viewModel::resolveENS,
         conversationClicked = { id ->
             viewModel.setConversationAsRead(id.toLong())
             navigateToChat(id, emptyList())
@@ -116,11 +120,8 @@ fun ContactScreen(
     conversationState: ConversationUIState,
     contactsClicked: (List<Contact>) -> Unit,
     conversationClicked: (String) -> Unit,
-    deleteConversation: (Long) -> Unit,
-    deleteXMTPConversation: (String) -> Unit,
+    showHiddenButton: Boolean = false,
     markAccepted: (Long, String) -> Unit,
-    markArchived: (Long) -> Unit,
-    resolveENS: KSuspendFunction1<String, String>,
     modifier: Modifier = Modifier
 ){
 
@@ -176,7 +177,13 @@ fun ContactScreen(
                     Box(
                         contentAlignment = Alignment.Center
                     ){
-                        // Nothing
+                        if (showHiddenButton) {
+                            Icon(imageVector = Icons.Rounded.Bookmarks, contentDescription = "Show message requests", tint = Colors.WHITE, modifier = Modifier
+                                .size(32.dp)
+                                .clickable {
+                                    showHiddenConversations = true
+                                })
+                        }
                     }
                 }
             )
@@ -218,7 +225,7 @@ fun ContactScreen(
                 is ConversationUIState.Success -> {
 
                     val coroutineScope = rememberCoroutineScope()
-                    val tabs = listOf("Inbox","Requests")
+                    val tabs = listOf("Inbox","Unaccepted")
                     // Display 10 items
                     val pagerState = rememberPagerState(pageCount = {
                         tabs.size
@@ -275,7 +282,7 @@ fun ContactScreen(
                                         LazyColumn(
                                             modifier = Modifier.padding(horizontal = 12.dp)
                                         ){
-                                            conversationState.conversations.filter { !it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                            conversationState.conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
                                                 item {
 
                                                     val dates = conversation.lastMessage?.date?.let { Date(it) }
@@ -308,16 +315,12 @@ fun ContactScreen(
                                                             conversationClicked(conversation.id.toString())
                                                         },
                                                         onClickLeft = {
-                                                            markArchived(conversation.id)
-                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
-                                                                deleteXMTPConversation(conversation.getConversationTitle())
-                                                            }
+                                                            //TODO: Add logic (archive)
+                                                            Toast.makeText(context, "Left", Toast. LENGTH_SHORT).show()
                                                         },
                                                         onClickRight = {
-                                                            markArchived(conversation.id)
-                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
-                                                                deleteXMTPConversation(conversation.getConversationTitle())
-                                                            }
+                                                            //TODO: Add logic (delete)
+                                                            Toast.makeText(context, "Right", Toast. LENGTH_SHORT).show()
                                                         }
                                                     )
                                                 }
@@ -347,7 +350,7 @@ fun ContactScreen(
                                         LazyColumn(
                                             modifier = Modifier.padding(horizontal = 12.dp)
                                         ){
-                                            conversationState.conversations.filter { it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                            conversationState.conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
                                                 item {
 
                                                     val dates = conversation.lastMessage?.date?.let { Date(it) }
@@ -378,14 +381,14 @@ fun ContactScreen(
                                                         unreadConversation = conversation.unread,
                                                         onClick = {
                                                             conversationClicked(conversation.id.toString())
-                                                            markAccepted(conversation.id, conversation.getConversationTitle())
                                                         },
                                                         onClickLeft = {
-                                                            markArchived(conversation.id)
+                                                            //TODO: Add logic (archive)
+                                                            Toast.makeText(context, "Left", Toast. LENGTH_SHORT).show()
                                                         },
                                                         onClickRight = {
-                                                            markArchived(conversation.id)
-                                                            deleteXMTPConversation(conversation.getConversationTitle())
+                                                            //TODO: Add logic (delete)
+                                                            Toast.makeText(context, "Right", Toast. LENGTH_SHORT).show()
                                                         }
                                                     )
                                                 }
@@ -462,8 +465,7 @@ fun ContactScreen(
                     onContactsSelected = {
                         showContactSheet = false
                         contactsClicked(it)
-                    },
-                    resolveENS = resolveENS
+                    }
                 )
             }
         }
@@ -551,7 +553,6 @@ fun PreviewShowHiddenConversationsPopup(){
     )
 }
 
-/*
 @Composable
 @Preview
 fun PreviewContactScreen(){
@@ -571,12 +572,6 @@ fun PreviewContactScreen(){
         ),
         {},
         {},
-        {},
-        {},
-        {_,_ ->},
-        {},
-        {}
+        markAccepted = {_,_ ->}
     )
 }
-
- */

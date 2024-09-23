@@ -10,7 +10,6 @@ import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
-import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,16 +46,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import kotlin.coroutines.coroutineContext
 
 
 enum class ChatListItemState{
@@ -94,8 +87,6 @@ fun ChatListItem(
 
 
     val density = LocalDensity.current
-    val coroutineScope = rememberCoroutineScope()
-
     val state = remember {
         AnchoredDraggableState (
             initialValue = ChatListItemState.CLOSED,
@@ -108,18 +99,8 @@ fun ChatListItem(
     Box{
         ChatListOptions(
             isInbox = isInbox,
-            onClickLeft = {
-                onClickLeft()
-                coroutineScope.launch {
-                    state.animateTo(ChatListItemState.CLOSED)
-                }
-            },
-            onClickRight = {
-                onClickRight()
-                coroutineScope.launch {
-                    state.animateTo(ChatListItemState.CLOSED)
-                }
-            }
+            onClickLeft = onClickLeft,
+            onClickRight = onClickRight
         )
         Row (
             modifier = modifier
@@ -360,9 +341,11 @@ fun printFormattedDateInfo(date: Date?): String? {
             return weekday
         }
         date?.let { isBeforeLast7Days(it) } == true -> {
+            println("The date $formattedDate is before the last 7 days.")
             return formattedDate
         }
         else -> {
+            println("The date $formattedDate is not within the last 7 days and not before the last 7 days (i.e., it's in the future).")
             return formattedDate
         }
     }

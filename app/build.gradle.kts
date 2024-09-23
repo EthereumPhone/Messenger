@@ -23,7 +23,7 @@ android {
         applicationId = "org.ethereumhpone.messenger"
         minSdk = 34
         targetSdk = 34
-        versionCode = 275
+        versionCode = 221
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -130,10 +130,6 @@ dependencies {
     implementation(libs.core)
 
     implementation(libs.xmtp)
-
-    implementation(libs.ens)
-    implementation(libs.rpc)
-    implementation(libs.model)
 
 
 }

@@ -30,7 +30,6 @@ import org.ethereumhpone.contracts.navigation.navigateToConversations
 fun MessagingNavHost(
     modifier: Modifier = Modifier,
     threadId: Int? = null,
-    inputAddress: String? = null,
     startDestination: String = conversationsGraphRoutePattern
 ){
     val navController = rememberNavController()
@@ -39,12 +38,6 @@ fun MessagingNavHost(
     threadId?.let {
         LaunchedEffect(it) {
             navController.navigateToChat(threadId = it.toString())
-        }
-    }
-
-    inputAddress?.let {
-        LaunchedEffect(inputAddress) {
-            navController.navigateToChat("0", listOf(inputAddress))
         }
     }
 

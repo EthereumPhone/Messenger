@@ -35,8 +35,7 @@ class MessengerPreferences @Inject constructor(
                         DarkThemeConfig.DARK
                 },
                 threadNotificationsId = it.threadNotificationsIdsMap,
-                ringTone = it.ringTone,
-                useXmtp = it.useXmtp
+                ringTone = it.ringTone
             )
         }
 
@@ -45,14 +44,6 @@ class MessengerPreferences @Inject constructor(
         userPreferences.updateData {
             it.copy {
                 this.canUseSubId = canUseSubId
-            }
-        }
-    }
-
-    suspend fun setUseXmtp(useXmtp : Boolean) {
-        userPreferences.updateData {
-            it.copy {
-                this.useXmtp = useXmtp
             }
         }
     }

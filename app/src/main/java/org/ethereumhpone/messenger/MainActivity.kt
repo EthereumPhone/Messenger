@@ -121,43 +121,20 @@ class MainActivity : ComponentActivity() {
         // check if it has permissions and never never ran a message sync
         CoroutineScope(Dispatchers.IO).launch {
             val lastSync = logTimeHandler.getLastLog()
-            println("LASTSYNC: $lastSync")
             if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
             }
 
-            // Suspend until clientState is Ready
-            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
-
-            // Now clientState is Ready, proceed to call syncXmtp
-            syncRepository.syncXmtp(context = this@MainActivity, xmtpClientManager.client)
-
-            syncRepository.startStreamAllMessages(xmtpClientManager.client)
-        }
-
-        var inputAddress: String? = null
-
-        val data = intent?.data
-
-        if (data != null) {
-            val scheme = data.scheme
-            if (scheme == "sms" || scheme == "smsto" || scheme == "mms" || scheme == "mmsto") {
-                inputAddress = data.schemeSpecificPart
-                // Remove any query parameters if present
-                inputAddress = inputAddress?.substringBefore('?')
+            xmtpClientManager.clientState.collect {
+                if (it == XmtpClientManager.ClientState.Ready) {
+                    syncRepository.startStreamAllMessages(xmtpClientManager.client)
+                }
             }
-        }
-
-        inputAddress?.let {
-            println("inputAddress: $it")
         }
 
         setContent {
             MessengerTheme {
-                MessagingApp(
-                    threadId = threadId,
-                    inputAddress = inputAddress
-                )
+                MessagingApp(threadId = threadId)
             }
         }
     }
