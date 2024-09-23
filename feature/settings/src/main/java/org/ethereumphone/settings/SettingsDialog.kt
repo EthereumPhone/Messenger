@@ -95,7 +95,7 @@ private fun SettingsPanel(
     SettingsSectionTitle("Messaging protocols")
     OptionItem(
         "Use XMTP",
-        "XMTP enables secure, sms-free messaging between blockchain accounts",
+        "XMTP enables secure, sms-free messaging between eth accounts",
         selected = settings.useXmtp,
         onToggle = { onChangeUseXmtp(!settings.useXmtp) }
 
