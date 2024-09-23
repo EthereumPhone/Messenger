@@ -11,19 +11,26 @@ import android.util.Base64.NO_WRAP
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -70,14 +77,29 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    private val viewModel: MainActivityViewModel by viewModels()
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val keyManager = KeyUtil(this)
+        var uiState: MainActivityUiState by mutableStateOf(MainActivityUiState.Loading)
+
+        //update ui state
+
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState
+                    .onEach { uiState = it }
+                    .collect()
+            }
+        }
+
+        val keyManager = KeyUtil(this@MainActivity)
         var keys = keyManager.retrieveKey(walletSDK.getAddress())
 
         if (keys == null) {
-            val context = this
+            val context = this@MainActivity
             runBlocking {
                 Client().create(
                     EthOSSigningKey(walletSDK),
@@ -90,8 +112,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        xmtpClientManager.createClient(keys!! , this)
-
+        xmtpClientManager.createClient(keys!! , this@MainActivity)
 
 
         val threadId = if (intent.getIntExtra("threadId", -1) != -1) {
@@ -121,7 +142,6 @@ class MainActivity : ComponentActivity() {
         // check if it has permissions and never never ran a message sync
         CoroutineScope(Dispatchers.IO).launch {
             val lastSync = logTimeHandler.getLastLog()
-            println("LASTSYNC: $lastSync")
             if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
             }
@@ -148,11 +168,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        inputAddress?.let {
-            println("inputAddress: $it")
-        }
 
         setContent {
+            //TODO: Move all the sync code to workers
+            val useXmtp = shouldUseXmtp(uiState)
+
+
+
             MessengerTheme {
                 MessagingApp(
                     threadId = threadId,
@@ -170,17 +192,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MessengerTheme {
-        Greeting("Android")
+private fun shouldUseXmtp(
+    uiState: MainActivityUiState
+): Boolean = when(uiState) {
+    MainActivityUiState.Loading -> false
+    is MainActivityUiState.Success -> {
+        uiState.userData.useXmtp
     }
 }
