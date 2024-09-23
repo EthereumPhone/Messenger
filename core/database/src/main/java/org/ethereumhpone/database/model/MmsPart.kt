@@ -1,12 +1,15 @@
 package org.ethereumhpone.database.model
 
 import android.net.Uri
+import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.android.mms.ContentType
 import kotlinx.serialization.Serializable
+import java.io.File
 
 @Entity("mms_part")
 @Serializable
@@ -23,7 +26,7 @@ data class MmsPart(
     fun getUri(partType: String = "mms"): Uri {
         return when(partType) {
             "mms" -> "content://mms/part/$id".toUri()
-            else -> id.toUri()
+            else -> Uri.fromFile(File(id))
         }
     }
 

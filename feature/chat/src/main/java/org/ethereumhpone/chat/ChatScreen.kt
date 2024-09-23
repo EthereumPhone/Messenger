@@ -160,6 +160,7 @@ fun ChatRoute(
         onContactSelected = chatViewModel::parseContact,
         onToggleAttachment = chatViewModel::toggleAttachment,
         onRemoveSelectedMessage = chatViewModel::removeSelectedMessage,
+        onOpenContact = chatViewModel::onOpenContact,
         onAddSelectedMessage = chatViewModel::addSelectedMessage,
     )
 }
@@ -178,6 +179,7 @@ fun ChatScreen(
     tokenBalance: Double = 0.0,
     chainName: String = "?",
     videoPlayer: Player,
+    onOpenContact: () -> Unit,
     selectedMessaged: List<Message?>,
     onContactSelected: (Contact) -> Unit,
     onToggleAttachment: (Attachment) -> Unit,
@@ -306,8 +308,7 @@ fun ChatScreen(
                         showModalSheet = true
                     },
                     onContactClick = {
-                        currentModalSelector = DetailSelector.CONTACT
-                        showModalSheet = true
+                        onOpenContact()
                     }
                 )
             }
@@ -656,8 +657,6 @@ fun ChatScreen(
                                                         }
 
 
-
-                                                        controller?.hide() // Keyboard
 
                                                         lastFocusState = false
                                                         textFieldFocusState = false

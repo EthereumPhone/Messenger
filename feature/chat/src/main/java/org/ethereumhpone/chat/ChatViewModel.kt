@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.ethereumhpone.chat.components.attachments.getDisplayName
+import org.ethereumhpone.chat.components.isEthereumAddress
 import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.common.compat.TelephonyCompat
@@ -333,44 +334,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
     fun isAddress(address: String): Boolean {
-        // Check if the address has the basic requirements
-        if (!address.matches(Regex("^(0x)?[0-9a-fA-F]{40}$"))) {
-            return false
-        }
-
-        // Check if it's all lowercase or all uppercase
-        return if (address.matches(Regex("^(0x)?[0-9a-f]{40}$")) || address.matches(Regex("^(0x)?[0-9A-F]{40}$"))) {
-            true
-        } else {
-            // Otherwise, check if it's a checksum address
-            isChecksumAddress(address)
-        }
+        return isEthereumAddress(address)
     }
 
-    fun isChecksumAddress(address: String): Boolean {
-        // Remove '0x' prefix if it exists
-        val cleanAddress = address.replace("0x", "")
-
-        // Hash the address
-        val addressHash = sha3(cleanAddress.lowercase())
-
-        for (i in 0 until 40) {
-            // Check if the nth character should be uppercase or lowercase
-            val hashChar = addressHash[i].digitToInt(16)
-            val addressChar = cleanAddress[i]
-
-            if ((hashChar > 7 && addressChar != addressChar.uppercaseChar()) || (hashChar <= 7 && addressChar != addressChar.lowercaseChar())) {
-                return false
-            }
-        }
-        return true
-    }
-
-    fun sha3(input: String): String {
-        val digest = MessageDigest.getInstance("SHA3-256")
-        val hashBytes = digest.digest(input.toByteArray(Charsets.UTF_8))
-        return hashBytes.joinToString("") { "%02x".format(it) }
-    }
 
     //TODO: Make suspend
     fun chainToApiKey(networkName: String): String = when(networkName) {
@@ -448,6 +414,21 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 // remove attached items
                 _attachments.value = emptySet()
             }
+        }
+    }
+
+    fun onOpenContact() {
+        recipientState.value?.contact?.lookupKey?.let {
+            println("Opening contact with lookup key: $it")
+            val lookupUri = Uri.withAppendedPath(
+                ContactsContract.Contacts.CONTENT_LOOKUP_URI,
+                it
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = lookupUri
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
         }
     }
 
