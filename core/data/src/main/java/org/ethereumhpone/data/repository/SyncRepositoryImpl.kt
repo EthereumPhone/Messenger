@@ -181,15 +181,6 @@ class SyncRepositoryImpl @Inject constructor(
             }
         }
 
-
-        // syncXMTP
-        xmtpClientManager.clientState.collectLatest {
-            if (it == XmtpClientManager.ClientState.Ready) {
-                syncXmtp(context = context, xmtpClientManager.client)
-            }
-        }
-
-
         logTimeHandler.setLastLog(SyncLog().date)
         _isSyncing.value = false
     }
@@ -352,14 +343,15 @@ class SyncRepositoryImpl @Inject constructor(
 
 
                 val consent = convo.consentState()
-                // update convo
-                Conversation(
-                    id = threadId,
-                    recipients = recipients,
-                    lastMessage = messageDao.getLastConversationMessage(threadId).first(),
-                    isUnknown = consent == ConsentState.UNKNOWN,
-                    blocked = consent == ConsentState.DENIED,
-                ).also { conversationDao.upsertConversation(it) }
+                if (consent != ConsentState.DENIED) {
+                    // update convo
+                    Conversation(
+                        id = threadId,
+                        recipients = recipients,
+                        lastMessage = messageDao.getLastConversationMessage(threadId).first(),
+                        isUnknown = consent == ConsentState.UNKNOWN,
+                    ).also { conversationDao.upsertConversation(it) }
+                }
             }
         }
     }
@@ -424,12 +416,13 @@ class SyncRepositoryImpl @Inject constructor(
                     } else {
                         context.openFileOutput(name, Context.MODE_PRIVATE).use {
                             it.write(attachment.data.toByteArray())
+                            it.close()
                         }
                         ""
                     }
 
                     val mmsPart = MmsPart(
-                        id = attachment.filename,
+                        id = context.getFileStreamPath(name).absolutePath,
                         type = attachment.mimeType,
                         text = text
                     ).also { messageDao.upsertMessagePart(it) }

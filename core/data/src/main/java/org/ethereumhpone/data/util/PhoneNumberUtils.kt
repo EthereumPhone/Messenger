@@ -50,8 +50,6 @@ class PhoneNumberUtils @Inject constructor(context: Context) {
         return try {
             phoneNumberUtil.parse(number, countryCode)
         } catch (e: Exception) {
-            e.printStackTrace()
-
             null
         }
     }

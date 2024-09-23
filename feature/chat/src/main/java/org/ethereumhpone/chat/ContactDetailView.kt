@@ -1,10 +1,13 @@
 package org.ethereumhpone.chat
 
+import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,8 +43,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +61,7 @@ import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContactDetailView(
     modifier: Modifier = Modifier,
@@ -133,7 +140,15 @@ fun ContactDetailView(
                                 Image(painter = painterResource(id = R.drawable.nouns_placeholder), contentDescription = "contact Profile Pic" )
                             }
                         }
+                        val clipboardManager: ClipboardManager = LocalClipboardManager.current
                         Text(
+                            modifier = modifier.combinedClickable(
+                                onLongClick = {
+                                    // Copy name to clipboard
+                                    clipboardManager.setText(AnnotatedString(name))
+                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                }
+                            ) {},
                             textAlign = TextAlign.Center,
                             text = name,
                             fontSize = 24.sp,

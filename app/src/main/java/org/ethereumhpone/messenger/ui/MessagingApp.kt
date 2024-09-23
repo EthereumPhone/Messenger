@@ -6,7 +6,11 @@ import org.ethereumhpone.messenger.navigation.MessagingNavHost
 
 @Composable
 fun MessagingApp(
-    threadId: Int? = null
+    threadId: Int? = null,
+    inputAddress: String? = null
 ){
-    MessagingNavHost(threadId = threadId)
+    MessagingNavHost(
+        threadId = threadId,
+        inputAddress = inputAddress
+    )
 }
