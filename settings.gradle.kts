@@ -30,3 +30,5 @@ include(":core:datastore")
 include(":core:common")
 include(":android-smsmms")
 
+include(":feature:settings")
+include(":feature:onboarding")
