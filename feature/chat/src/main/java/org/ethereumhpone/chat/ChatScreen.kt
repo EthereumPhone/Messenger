@@ -408,6 +408,9 @@ fun ChatScreen(
                                         val isFirstMessageByAuthor = prevAuthor != message.address
                                         val isLastMessageByAuthor = nextAuthor != message.address
 
+                                        val isXMTP = message.type == "xmtp" // Boolean for XMTP distinction
+
+
 
                                         if (isValidTransactionMessage(message.body)) {
                                             extractTransactionDetails(message.body)?.let {
@@ -421,6 +424,7 @@ fun ChatScreen(
                                                 )
                                             }
                                         } else {
+                                            //TODO: Add Reply logic
                                             MessageItem(
                                                 onAuthorClick = { },
                                                 msg = message,
@@ -436,6 +440,7 @@ fun ChatScreen(
                                                 name = recipient?.getDisplayName() ?: "",
                                                 isSelected = selectedMessagesMap.contains(message),
                                                 selectMode = selectMode,
+                                                isXMTP = isXMTP,
                                                 onSelect = { selectedMessage ->
                                                     // invert boolean or add
                                                     selectedMessagesMap.compute(selectedMessage) { _, isChecked ->

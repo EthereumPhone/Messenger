@@ -2,6 +2,7 @@ package org.ethereumhpone.chat.components.message
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -43,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -62,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.chat.components.ChatItemBubbleV2
 import org.ethereumhpone.chat.components.EthOSCheckbox
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
@@ -138,6 +142,7 @@ fun MessageItem(
     composablePositionState: MutableState<ComposablePosition>,
     player: Player?,
     name: String,
+    isXMTP: Boolean,
     selectMode: MutableState<Boolean>,
     onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
@@ -189,12 +194,12 @@ fun MessageItem(
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
 
-            //TODO: Add replies - ChatItemBubbleV2
-            ChatItemBubble(
+            ChatItemBubbleV2(
                 message = msg,
                 isUserMe = isUserMe,
                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                 videoPlayer = player,
+                isXMTP = isXMTP,
                 onPlayVideo = { onPrepareVideo(it) },
                 onLongClick = {
                     composablePositionState.value.height = compSize
@@ -436,27 +441,11 @@ fun ChatItemBubble(
             ChatBubbleShape
         }
     }
-    
-    val nogradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF8C7DF7)
-        )
-    )
 
-    val xmtpgradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFFF83C40),
-            Color(0xFFF83C40)
-        )
-    )
+    val nogradient = Color(0xFF8C7DF7)
+    val xmtpgradient = Color(0xFFF83C40)
 
-    val reciepientcolor = Brush.verticalGradient(
-        colors = listOf(
-            Colors.DARK_GRAY,
-            Colors.DARK_GRAY
-        )
-    )
+    val reciepientcolor = Colors.DARK_GRAY
 
     val messageBrush = when(isUserMe){
         true -> { //message from user
@@ -479,9 +468,7 @@ fun ChatItemBubble(
     Column (
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier.clip(Bubbleshape)
-            .background(
-                brush = messageBrush
-            )
+            .background(messageBrush)
     ){
         val media = message.parts.filter { it.isImage() || it.isVideo() }
 
@@ -540,7 +527,6 @@ fun ChatItemBubble(
                     )
 
                     ClickableMessage(
-                        message = message,
                         styledMessage = styledMessage,
                         style = TextStyle(
                             fontSize = 16.sp,
@@ -549,7 +535,6 @@ fun ChatItemBubble(
                             fontFamily = Fonts.INTER
                         ),
                         onLongClick = onLongClick,
-                        isUserMe = isUserMe,
                         onClick = {
 
                             styledMessage
@@ -563,7 +548,8 @@ fun ChatItemBubble(
                                     }
                                 }
                         },
-                        onDoubleClick = onDoubleClick
+                        onDoubleClick = onDoubleClick,
+                        messageBrush = messageBrush
                     )
                 }
 
@@ -582,9 +568,8 @@ fun ChatItemBubble(
 
 @Composable
 fun ClickableMessage(
+    messageBrush: Color,
     modifier: Modifier = Modifier,
-    message: Message,
-    isUserMe: Boolean,
     styledMessage: AnnotatedString,
     style: TextStyle,
     onTextLayout: (TextLayoutResult) -> Unit = {},
@@ -592,39 +577,101 @@ fun ClickableMessage(
     onLongClick: () -> Unit = {},
     onDoubleClick: () -> Unit = {},
 
-) {
+    ) {
 
+    val maxHeight = 500.dp
+
+
+    var expanded by remember { mutableStateOf(false) }
+    var textHeight by remember { mutableStateOf(0.dp) }
+
+    val animatedHeight by animateDpAsState(targetValue = if (expanded) textHeight else 300.dp)
 
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
-            //SelectionContainer {
-            BasicText(
-                text = styledMessage,
-                style = style,
-                modifier = modifier
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onLongPress = {
-                                onLongClick()
-                            },
-                            onTap = { pos ->
-                                layoutResult.value?.let { layoutResult ->
-                                    onClick(layoutResult.getOffsetForPosition(pos))
-                                }
-                            },
-                            onDoubleTap = {
-                                onDoubleClick()
+    val fadeModifier = when(textHeight>maxHeight){
+        true -> {
+            Modifier.drawWithContent {
+                drawContent() // Draw the original content first
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, messageBrush),
+                        startY = size.height - 80f, // Start the gradient close to the bottom edge
+                        endY = size.height // End exactly at the bottom edge
+                    )
+                )
+            }
+        }
+        false -> {
+            Modifier
+        }
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ){
+        BasicText(
+            text = styledMessage,
+            style = style,
+            modifier = modifier
+                .heightIn(max = animatedHeight) // Setzt die Höhe dynamisch basierend auf dem expandierten Zustand
+                .onGloballyPositioned { coordinates ->
+                    // Holen der tatsächlichen Höhe des Textes
+                    textHeight = coordinates.size.height.dp
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = {
+                            onLongClick()
+                        },
+                        onTap = { pos ->
+                            layoutResult.value?.let { layoutResult ->
+                                onClick(layoutResult.getOffsetForPosition(pos))
                             }
+                        },
+                        onDoubleTap = {
+                            onDoubleClick()
+                        }
+
+                    )
+                }
+                .then(
+                    if(expanded) {
+                        Modifier
+                    } else {
+                        fadeModifier
+                    }
+
+                ),
+            onTextLayout = {
+                layoutResult.value = it
+                onTextLayout(it)
+            }
+        )
+
+        if (textHeight > maxHeight) {
+
+            Text(
+                if (expanded) "Show less" else "Read more...",
+                fontSize = 14.sp,
+                fontWeight =  FontWeight.SemiBold,
+                color = Colors.WHITE,
+                fontFamily = Fonts.INTER,
+                modifier = Modifier.pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { pos ->
+                            expanded = !expanded
+                        },
+
 
                         )
-                    }
-                ,
-                onTextLayout = {
-                    layoutResult.value = it
-                    onTextLayout(it)
                 }
             )
+        }
+    }
 }
+
+
 @Preview
 @Composable
 fun previewTxClickableMessage() {
