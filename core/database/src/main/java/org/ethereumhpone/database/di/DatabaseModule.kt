@@ -23,5 +23,7 @@ object DatabaseModule {
         context,
         MessengerDatabase::class.java,
         "messenger-database"
-    ).build()
+    )
+        .fallbackToDestructiveMigration()
+        .build()
 }

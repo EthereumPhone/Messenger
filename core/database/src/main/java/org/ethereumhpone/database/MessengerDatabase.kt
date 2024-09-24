@@ -3,8 +3,6 @@ package org.ethereumhpone.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import org.ethereumhpone.database.dao.BlockingDao
 import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.dao.ConversationDao
@@ -38,7 +36,7 @@ import org.ethereumhpone.database.util.Converters
         BlockedNumber::class,
         SyncLog::class
     ],
-    version = 1
+    version = 2,
 )
 
 @TypeConverters(Converters::class)
@@ -52,10 +50,4 @@ abstract class MessengerDatabase: RoomDatabase() {
     abstract val syncLogDao: SyncLogDao
     abstract val reactionDao: ReactionDao
 
-}
-
-val MIGRATION_1_2: Migration = object : Migration(1, 2) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("CREATE TABLE IF NOT EXISTS `contact_group` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, ...)")
-    }
 }
