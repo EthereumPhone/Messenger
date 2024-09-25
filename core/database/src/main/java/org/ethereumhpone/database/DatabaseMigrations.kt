@@ -11,6 +11,9 @@ internal object DatabaseMigrations {
     @DeleteTable.Entries(
         DeleteTable(
             tableName = "synclog"
+        ),
+        DeleteTable(
+            tableName = "conversation"
         )
     )
     class Schema1to2: AutoMigrationSpec
