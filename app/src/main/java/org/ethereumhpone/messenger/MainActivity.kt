@@ -142,6 +142,7 @@ class MainActivity : ComponentActivity() {
         // check if it has permissions and never never ran a message sync
         CoroutineScope(Dispatchers.IO).launch {
             val lastSync = logTimeHandler.getLastLog()
+            Log.d("Last sync", lastSync.toString())
             if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
             }
