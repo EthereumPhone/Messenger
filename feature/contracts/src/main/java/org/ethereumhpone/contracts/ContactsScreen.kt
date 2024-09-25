@@ -197,8 +197,6 @@ fun ContactScreen(
                 }
                 is ConversationUIState.Success -> {
 
-                    ontentColor = Colors.GRAY,
-                    )
 
                     val coroutineScope = rememberCoroutineScope()
                     val tabs = listOf("Accepted","Unaccepted")
