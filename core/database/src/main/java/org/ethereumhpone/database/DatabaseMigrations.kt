@@ -18,7 +18,8 @@ internal object DatabaseMigrations {
 
         override fun onPostMigrate(db: SupportSQLiteDatabase) {
             super.onPostMigrate(db)
-            db.execSQL("UPDATE conversation SET isUnknown = 0 WHERE isUnknown IS NULL")        }
+            db.execSQL("UPDATE conversation SET isUnknown = 0 WHERE isUnknown IS NULL")
+        }
     }
 
 }
