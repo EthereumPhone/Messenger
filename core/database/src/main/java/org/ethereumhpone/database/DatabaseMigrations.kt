@@ -24,6 +24,9 @@ internal object DatabaseMigrations {
 
 val migration1To2 = object: Migration(1,2) {
     override fun migrate(database: SupportSQLiteDatabase) {
+        //clear synclog
+        database.execSQL("DELETE * FROM SyncLog")
+
         //migrate convo
         database.execSQL("ALTER TABLE conversation ADD COLUMN isUnknown INTEGER NOT NULL DEFAULT 0")
 
