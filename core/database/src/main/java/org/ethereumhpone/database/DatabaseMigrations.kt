@@ -33,8 +33,8 @@ val migration1To2 = object: Migration(1,2) {
         //migrate message:
         database.execSQL("DROP TABLE IF EXISTS message")
         database.execSQL("""
-            CREATE TABLE message (
-                id TEXT NOT NULL PRIMARY KEY,
+            CREATE TABLE IF NOT EXISTS message (
+                id TEXT NOT NULL,
                 threadId INTEGER NOT NULL,
                 contentId INTEGER NOT NULL,
                 address TEXT NOT NULL,
@@ -59,7 +59,12 @@ val migration1To2 = object: Migration(1,2) {
                 mmsStatus INTEGER NOT NULL,
                 subject TEXT NOT NULL,
                 textContentType TEXT NOT NULL,
-                parts TEXT NOT NULL
+                parts TEXT NOT NULL,
+                clientAddress TEXT NOT NULL,
+                replyReference TEXT NOT NULL,
+                seenDate INTEGER NOT NULL,
+                xmtpDeliveryStatus TEXT NOT NULL,
+                PRIMARY KEY(id)
             )
         """.trimIndent())
 
