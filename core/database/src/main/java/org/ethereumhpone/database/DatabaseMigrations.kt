@@ -30,10 +30,41 @@ val migration1To2 = object: Migration(1,2) {
         //migrate convo
         database.execSQL("ALTER TABLE conversation ADD COLUMN isUnknown INTEGER NOT NULL DEFAULT 0")
 
-        //drop message:
+        //migrate message:
         database.execSQL("DROP TABLE IF EXISTS message")
+        database.execSQL("""
+            CREATE TABLE message (
+                id TEXT NOT NULL PRIMARY KEY,
+                threadId INTEGER NOT NULL,
+                contentId INTEGER NOT NULL,
+                address TEXT NOT NULL,
+                boxId INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                date INTEGER NOT NULL,
+                dateSent INTEGER NOT NULL,
+                seen INTEGER NOT NULL,
+                read INTEGER NOT NULL,
+                locked INTEGER NOT NULL,
+                subId INTEGER NOT NULL,
+                body TEXT NOT NULL,
+                errorCode INTEGER NOT NULL,
+                deliveryStatus INTEGER NOT NULL,
+                attachmentTypeString TEXT NOT NULL,
+                attachmentType TEXT NOT NULL,
+                mmsDeliveryStatusString TEXT NOT NULL,
+                readReportString TEXT NOT NULL,
+                errorType INTEGER NOT NULL,
+                messageSize INTEGER NOT NULL,
+                messageType INTEGER NOT NULL,
+                mmsStatus INTEGER NOT NULL,
+                subject TEXT NOT NULL,
+                textContentType TEXT NOT NULL,
+                parts TEXT NOT NULL
+            )
+        """.trimIndent())
 
-        database.execSQL("DROP TABLE IF EXISTS mms_part")
+
+        //database.execSQL("DROP TABLE IF EXISTS mms_part")
 
 
         // migrate mmsPart
