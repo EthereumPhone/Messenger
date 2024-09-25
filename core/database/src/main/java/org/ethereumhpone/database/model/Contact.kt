@@ -13,7 +13,7 @@ data class Contact(
     val photoUri: String? = null,
     val favourite: Boolean = false,
     val lastUpdate: Long = 0,
-    val ethAddress: String? = null
+    val ethAddress: String? = null,
 ) {
     fun getDefaultNumber(): PhoneNumber? = numbers.find { number -> number.isDefault }
 }
