@@ -27,14 +27,11 @@ val migration1To2 = object: Migration(1,2) {
 
         //message
         database.execSQL("DELETE FROM message")
-        database.execSQL("""
-            ALTER TABLE message
-            ADD COLUMN clientAddress TEXT NOT NULL DEFAULT ''
-            ADD COLUMN replyReference TEXT NOT NULL DEFAULT ''
-            ADD COLUMN seenDate INTEGER NOT NULL DEFAULT 0 
-            ADD COLUMN xmtpDeliveryStatus INTEGER NOT NULL DEFAULT 1
-        """.trimIndent()
-        )
+        // Add columns to the message table
+        database.execSQL("ALTER TABLE message ADD COLUMN clientAddress TEXT NOT NULL DEFAULT ''")
+        database.execSQL("ALTER TABLE message ADD COLUMN replyReference TEXT NOT NULL DEFAULT ''")
+        database.execSQL("ALTER TABLE message ADD COLUMN seenDate INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE message ADD COLUMN xmtpDeliveryStatus INTEGER NOT NULL DEFAULT 1")
 
     }
 }
