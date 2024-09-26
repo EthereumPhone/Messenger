@@ -17,7 +17,6 @@ data class Conversation(
     val blockingClient: Int? = null,
     val blockReason: String? = null,
     val title: String = "", // conversation title
-    @ColumnInfo(defaultValue = "0")
     val isUnknown: Boolean = false // TODO: Remove this, when we have a working blocking client
 ) {
     val date: Long get() = lastMessage?.date ?: 0

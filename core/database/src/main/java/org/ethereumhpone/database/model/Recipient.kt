@@ -15,9 +15,6 @@ data class Recipient(
     val address: String = "",
     val contact: Contact? = null,
     val lastUpdate: Long = 0,
-
-    // XMTP only
-    @ColumnInfo(defaultValue = "")
     val inboxId: String = ""
 ) {
     fun getDisplayName(): String = contact?.name?.takeIf { it.isNotBlank() }

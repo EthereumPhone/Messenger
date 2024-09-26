@@ -38,7 +38,7 @@ import org.ethereumhpone.database.util.Converters
         SyncLog::class
     ],
     version = 2,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    //autoMigrations = [AutoMigration(from = 1, to = 2)],
     exportSchema = true,
 )
 
