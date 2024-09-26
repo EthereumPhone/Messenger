@@ -50,9 +50,13 @@ data class Message(
     val parts: List<MmsPart> = emptyList(),
 
     //XMTP only
+    @ColumnInfo(defaultValue = "")
     val clientAddress: String = "", // the address of the user
+    @ColumnInfo(defaultValue = "")
     val replyReference: String = "", // empty means not a reply
+    @ColumnInfo(defaultValue = "0")
     val seenDate: Long = 0,
+    @ColumnInfo(defaultValue = "PUBLISHED")
     val xmtpDeliveryStatus: MessageDeliveryStatus = MessageDeliveryStatus.PUBLISHED,
 
     ) {

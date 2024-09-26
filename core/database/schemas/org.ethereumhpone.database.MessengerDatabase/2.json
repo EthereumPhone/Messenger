@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "c55fcd81e7d9f548503a5ca66f91f263",
+    "identityHash": "b49f03d549a4f25f8aa324d8d453f8e1",
     "entities": [
       {
         "tableName": "contact",
@@ -62,7 +62,7 @@
       },
       {
         "tableName": "conversation",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `archived` INTEGER NOT NULL, `blocked` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `recipients` TEXT NOT NULL, `lastMessage` TEXT, `draft` TEXT NOT NULL, `blockingClient` INTEGER, `blockReason` TEXT, `title` TEXT NOT NULL, `isUnknown` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `archived` INTEGER NOT NULL, `blocked` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `recipients` TEXT NOT NULL, `lastMessage` TEXT, `draft` TEXT NOT NULL, `blockingClient` INTEGER, `blockReason` TEXT, `title` TEXT NOT NULL, `isUnknown` INTEGER NOT NULL DEFAULT 0)",
         "fields": [
           {
             "fieldPath": "id",
@@ -128,7 +128,8 @@
             "fieldPath": "isUnknown",
             "columnName": "isUnknown",
             "affinity": "INTEGER",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -170,7 +171,7 @@
       },
       {
         "tableName": "message",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `threadId` INTEGER NOT NULL, `contentId` INTEGER NOT NULL, `address` TEXT NOT NULL, `boxId` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` INTEGER NOT NULL, `dateSent` INTEGER NOT NULL, `seen` INTEGER NOT NULL, `read` INTEGER NOT NULL, `locked` INTEGER NOT NULL, `subId` INTEGER NOT NULL, `body` TEXT NOT NULL, `errorCode` INTEGER NOT NULL, `deliveryStatus` INTEGER NOT NULL, `attachmentTypeString` TEXT NOT NULL, `attachmentType` TEXT NOT NULL, `mmsDeliveryStatusString` TEXT NOT NULL, `readReportString` TEXT NOT NULL, `errorType` INTEGER NOT NULL, `messageSize` INTEGER NOT NULL, `messageType` INTEGER NOT NULL, `mmsStatus` INTEGER NOT NULL, `subject` TEXT NOT NULL, `textContentType` TEXT NOT NULL, `parts` TEXT NOT NULL, `clientAddress` TEXT NOT NULL, `replyReference` TEXT NOT NULL, `seenDate` INTEGER NOT NULL, `xmtpDeliveryStatus` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `threadId` INTEGER NOT NULL, `contentId` INTEGER NOT NULL, `address` TEXT NOT NULL, `boxId` INTEGER NOT NULL, `type` TEXT NOT NULL, `date` INTEGER NOT NULL, `dateSent` INTEGER NOT NULL, `seen` INTEGER NOT NULL, `read` INTEGER NOT NULL, `locked` INTEGER NOT NULL, `subId` INTEGER NOT NULL, `body` TEXT NOT NULL, `errorCode` INTEGER NOT NULL, `deliveryStatus` INTEGER NOT NULL, `attachmentTypeString` TEXT NOT NULL, `attachmentType` TEXT NOT NULL, `mmsDeliveryStatusString` TEXT NOT NULL, `readReportString` TEXT NOT NULL, `errorType` INTEGER NOT NULL, `messageSize` INTEGER NOT NULL, `messageType` INTEGER NOT NULL, `mmsStatus` INTEGER NOT NULL, `subject` TEXT NOT NULL, `textContentType` TEXT NOT NULL, `parts` TEXT NOT NULL, `clientAddress` TEXT NOT NULL DEFAULT '', `replyReference` TEXT NOT NULL DEFAULT '', `seenDate` INTEGER NOT NULL DEFAULT 0, `xmtpDeliveryStatus` TEXT NOT NULL DEFAULT 'PUBLISHED', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -332,25 +333,29 @@
             "fieldPath": "clientAddress",
             "columnName": "clientAddress",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "replyReference",
             "columnName": "replyReference",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "seenDate",
             "columnName": "seenDate",
             "affinity": "INTEGER",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "0"
           },
           {
             "fieldPath": "xmtpDeliveryStatus",
             "columnName": "xmtpDeliveryStatus",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "'PUBLISHED'"
           }
         ],
         "primaryKey": {
@@ -516,7 +521,7 @@
       },
       {
         "tableName": "recipient",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `address` TEXT NOT NULL, `contact` TEXT, `lastUpdate` INTEGER NOT NULL, `inboxId` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `address` TEXT NOT NULL, `contact` TEXT, `lastUpdate` INTEGER NOT NULL, `inboxId` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -546,7 +551,8 @@
             "fieldPath": "inboxId",
             "columnName": "inboxId",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "''"
           }
         ],
         "primaryKey": {
@@ -646,7 +652,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c55fcd81e7d9f548503a5ca66f91f263')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b49f03d549a4f25f8aa324d8d453f8e1')"
     ]
   }
 }

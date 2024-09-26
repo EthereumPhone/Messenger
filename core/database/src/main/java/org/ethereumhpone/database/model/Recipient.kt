@@ -2,6 +2,7 @@ package org.ethereumhpone.database.model
 
 import android.provider.Telephony
 import android.telephony.PhoneNumberUtils
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
@@ -16,6 +17,7 @@ data class Recipient(
     val lastUpdate: Long = 0,
 
     // XMTP only
+    @ColumnInfo(defaultValue = "")
     val inboxId: String = ""
 ) {
     fun getDisplayName(): String = contact?.name?.takeIf { it.isNotBlank() }
