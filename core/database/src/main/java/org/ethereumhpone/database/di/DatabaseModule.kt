@@ -25,7 +25,7 @@ object DatabaseModule {
         MessengerDatabase::class.java,
         "messenger-database"
     )
-        //.addMigrations(migration1To2)
+        .addMigrations(migration1To2)
         .fallbackToDestructiveMigration()
         .build()
 }
