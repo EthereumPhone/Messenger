@@ -2,6 +2,8 @@ package org.ethereumhpone.database.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,7 +27,16 @@ object DatabaseModule {
         MessengerDatabase::class.java,
         "messenger-database"
     )
-        .addMigrations(migration1To2)
         .fallbackToDestructiveMigration()
+        .addCallback(clearSyncLogCallback) // Add the callback here
         .build()
+}
+
+
+val clearSyncLogCallback = object : RoomDatabase.Callback() {
+    override fun onCreate(db: SupportSQLiteDatabase) {
+        super.onCreate(db)
+        // This will run after the database is recreated
+        db.execSQL("DELETE FROM SyncLog")
+    }
 }
