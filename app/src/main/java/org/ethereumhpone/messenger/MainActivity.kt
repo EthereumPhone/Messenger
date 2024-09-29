@@ -95,24 +95,30 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val keyManager = KeyUtil(this@MainActivity)
-        var keys = keyManager.retrieveKey(walletSDK.getAddress())
+        val useXmtp = false
+        //TODO: Remove when XMTP implementation is ready
+        if (useXmtp) {
+            val keyManager = KeyUtil(this@MainActivity)
+            var keys = keyManager.retrieveKey(walletSDK.getAddress())
 
-        if (keys == null) {
-            val context = this@MainActivity
-            runBlocking {
-                Client().create(
-                    EthOSSigningKey(walletSDK),
-                    XmtpClientManager.clientOptions(context, walletSDK.getAddress())
-                ).apply {
-                    keyManager.storeKey(walletSDK.getAddress(), PrivateKeyBundleV1Builder.encodeData(privateKeyBundleV1))
-                    keys = PrivateKeyBundleV1Builder.encodeData(privateKeyBundleV1)
+            if (keys == null) {
+                val context = this@MainActivity
+                runBlocking {
+                    Client().create(
+                        EthOSSigningKey(walletSDK),
+                        XmtpClientManager.clientOptions(context, walletSDK.getAddress())
+                    ).apply {
+                        keyManager.storeKey(walletSDK.getAddress(), PrivateKeyBundleV1Builder.encodeData(privateKeyBundleV1))
+                        keys = PrivateKeyBundleV1Builder.encodeData(privateKeyBundleV1)
+                    }
+
                 }
-
             }
+            xmtpClientManager.createClient(keys!! , this@MainActivity)
         }
 
-        xmtpClientManager.createClient(keys!! , this@MainActivity)
+
+
 
 
         val threadId = if (intent.getIntExtra("threadId", -1) != -1) {
@@ -143,17 +149,23 @@ class MainActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             val lastSync = logTimeHandler.getLastLog()
             Log.d("Last sync", lastSync.toString())
-            if(lastSync == 0L && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
+            //TODO: Remove when everyone is on the new messenger version
+            if((lastSync == 0L || lastSync <= 1727630355723) && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
             }
 
-            // Suspend until clientState is Ready
-            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            //TODO: Remove when XMTP implementation is ready
+            if(useXmtp) {
+                // Suspend until clientState is Ready
+                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
 
-            // Now clientState is Ready, proceed to call syncXmtp
-            syncRepository.syncXmtp(context = this@MainActivity, xmtpClientManager.client)
+                // Now clientState is Ready, proceed to call syncXmtp
+                //syncRepository.syncXmtp(context = this@MainActivity, xmtpClientManager.client)
 
-            syncRepository.startStreamAllMessages(xmtpClientManager.client)
+                syncRepository.startStreamAllMessages(xmtpClientManager.client)
+            }
+
+
         }
 
         var inputAddress: String? = null
