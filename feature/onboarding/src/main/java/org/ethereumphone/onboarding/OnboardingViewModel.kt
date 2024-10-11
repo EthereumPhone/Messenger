@@ -55,7 +55,7 @@ class OnboardingViewModel @Inject constructor(
     fun startFirstSync() {
         viewModelScope.launch {
             xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
-            syncRepository.startStreamAllMessages(xmtpClientManager.client)
+            syncRepository.startStreamAllMessages()
 
         }
     }
