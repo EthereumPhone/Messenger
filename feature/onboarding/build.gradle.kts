@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.androidx.constraintlayout)
     implementation(project(":core:data"))
+    implementation(project(":core:domain"))
     testImplementation(libs.junit)
     androidTestImplementation("junit:junit:4.12")
     debugImplementation("androidx.compose.ui:ui-tooling")
@@ -88,4 +89,5 @@ dependencies {
     implementation(libs.walletsdk)
 
     implementation(libs.xmtp)
+
 }

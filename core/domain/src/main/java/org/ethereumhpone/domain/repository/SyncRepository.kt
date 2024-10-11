@@ -13,6 +13,6 @@ interface SyncRepository {
     suspend fun syncMessages()
     suspend fun syncMessage(uri: Uri): Message?
     suspend fun syncContacts()
-    suspend fun syncXmtp(context: Context, client: Client)
-    suspend fun startStreamAllMessages(client: Client)
+    suspend fun syncXmtp()
+    suspend fun startStreamAllMessages()
 }

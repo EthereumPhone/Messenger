@@ -19,6 +19,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Text
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +48,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnboardingRoute() {
 
+
     OnboardingScreen()
 }
 
@@ -69,13 +72,18 @@ fun OnboardingScreen() {
         ) {
             when(pagerState.currentPage) {
                 0 -> {
+
                     Button(
+                        colors =  ButtonDefaults.buttonColors(containerColor = Color(0xFF8C7DF7)),
                         onClick = {
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(pagerState.currentPage + 1)
                             } }
                     ) {
-                        Text("Enable XMTP")
+                        Text(
+                            text = "Enable XMTP",
+                            color = Color.White
+                        )
                     }
 
                     Text(
@@ -86,8 +94,20 @@ fun OnboardingScreen() {
                         }
                     )
                 }
-                1 -> {
-                    DegenLoadingCircle()
+                1 -> DegenLoadingCircle()
+                2 -> {
+                    Button(
+                        colors =  ButtonDefaults.buttonColors(containerColor = Color(0xFF8C7DF7)),
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            } }
+                    ) {
+                        Text(
+                            text = "Enable XMTP",
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -147,7 +167,7 @@ private fun DegenLoadingCircle() {
         Alignment.BottomStart
     )
 
-    Box(Modifier.size(100.dp)) {
+    Box(Modifier.size(60.dp)) {
         Box(Modifier.align(Alignment.Center).size(15.dp).background(Color.DarkGray))
         alignments.forEachIndexed { index, alignment ->
 
@@ -177,7 +197,8 @@ enum class OnboardingPageContent(
         "XMTP is a secure messaging protocol that allows you to communicate via eth addresses"
     ),
     SYNC("Settings things up", "Please, sign the next two prompts"),
-    FINISH("All set up", "")
+    FINISH("All set up :)", "You can change XMTP behaviours via the messenger's options"),
+    ERROR("Something went wrong","Retry now or via the option menu")
 }
 
 
@@ -186,15 +207,6 @@ enum class OnboardingPageContent(
 fun previewOnboarding() {
     Column(Modifier.background(Color.Black)) {
         OnboardingScreen()
-
-    }
-}
-
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun previewLoadingCircle() {
-    Column(Modifier.background(Color.Black)) {
-        DegenLoadingCircle()
 
     }
 }

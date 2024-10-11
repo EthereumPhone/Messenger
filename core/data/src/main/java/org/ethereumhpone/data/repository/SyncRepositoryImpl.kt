@@ -101,6 +101,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val _isSyncing = MutableStateFlow(false)
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
 
+    private val canUseXmtp = messengerPreferences.prefs.map { it.useXmtp }
+
     override suspend fun syncMessages() {
         // once sync at the time
         if(_isSyncing.value) return
@@ -314,46 +316,58 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun syncXmtp(context: Context, client: Client) = coroutineScope {
+    override suspend fun syncXmtp() = coroutineScope {
 
-        client.contacts.refreshConsentList()
-        client.conversations.list().forEach { convo ->
+        //TODO: check if it works via options
 
-            launch {
-                // handle messages
-                val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
-                convo.messages().forEach { message ->
-                    manageXmtpMessage(
-                        threadId = threadId,
-                        msg = message,
-                        client = client,
-                        context = context
-                    )
-                }
+        canUseXmtp.collect { canUseXmtp ->
+            if (canUseXmtp) {
+                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
+                    val client = xmtpClientManager.client
 
-                // update recipients
-                val contacts = getContacts()
-                val recipients = convo.peerAddresses.map { address ->
-                    Recipient(
-                        address = address,
-                        contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
-                        inboxId = client.inboxIdFromAddress(address) ?:  ""// assume xmtp V3
-                    )
-                }.also { recipientDao.upsertRecipients(it) }
+                    client.contacts.refreshConsentList()
+                    client.conversations.list().forEach { convo ->
+
+                        launch {
+                            // handle messages
+                            val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
+                            convo.messages().forEach { message ->
+                                manageXmtpMessage(
+                                    threadId = threadId,
+                                    msg = message,
+                                    client = client,
+                                    context = context
+                                )
+                            }
+
+                            // update recipients
+                            val contacts = getContacts()
+                            val recipients = convo.peerAddresses.map { address ->
+                                Recipient(
+                                    address = address,
+                                    contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
+                                    inboxId = client.inboxIdFromAddress(address) ?:  ""// assume xmtp V3
+                                )
+                            }.also { recipientDao.upsertRecipients(it) }
 
 
-                val consent = convo.consentState()
-                if (consent != ConsentState.DENIED) {
-                    // update convo
-                    Conversation(
-                        id = threadId,
-                        recipients = recipients,
-                        lastMessage = messageDao.getLastConversationMessage(threadId).first(),
-                        isUnknown = consent == ConsentState.UNKNOWN,
-                    ).also { conversationDao.upsertConversation(it) }
+                            val consent = convo.consentState()
+                            if (consent != ConsentState.DENIED) {
+                                // update convo
+                                Conversation(
+                                    id = threadId,
+                                    recipients = recipients,
+                                    lastMessage = messageDao.getLastConversationMessage(threadId).first(),
+                                    isUnknown = consent == ConsentState.UNKNOWN,
+                                ).also { conversationDao.upsertConversation(it) }
+                            }
+                        }
+                    }
                 }
             }
         }
+
+
     }
 
     private suspend fun manageXmtpMessage(
@@ -443,16 +457,30 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun startStreamAllMessages(client: Client) {
-        client.conversations.list().forEach { conversation ->
-            conversation.streamMessages().collect {
-                val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.peerAddresses)
-                manageXmtpMessage(
-                    threadId = threadId,
-                    msg = it,
-                    client = client,
-                    context = context
-                )
+    override suspend fun startStreamAllMessages() {
+        xmtpClientManager.clientState.collectLatest { clientState ->
+            when(clientState) {
+                is XmtpClientManager.ClientState.Ready -> {
+                    val client = xmtpClientManager.client
+                    client.conversations.list().forEach { conversation ->
+                        conversation.streamMessages().collect {
+                            val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.peerAddresses)
+                            manageXmtpMessage(
+                                threadId = threadId,
+                                msg = it,
+                                client = client,
+                                context = context
+                            )
+                        }
+                    }
+                }
+                is XmtpClientManager.ClientState.Error -> {
+
+                }
+
+                is XmtpClientManager.ClientState.Unknown -> {
+
+                }
             }
         }
     }
