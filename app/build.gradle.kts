@@ -11,6 +11,7 @@ plugins {
 
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.kotlin.compose)
 
 
 }
@@ -92,6 +93,7 @@ dependencies {
     implementation(libs.room.ktx)
     implementation(project(":core:datastore"))
     implementation(libs.androidx.datastore.core)
+    implementation(project(":feature:onboarding"))
     testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

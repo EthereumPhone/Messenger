@@ -7,20 +7,13 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.provider.Telephony
-import android.util.Base64.NO_WRAP
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -28,28 +21,22 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import org.ethereumhpone.data.manager.EthOSSigningKey
 import org.ethereumhpone.data.manager.KeyUtil
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.database.dao.SyncLogDao
+import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.NetworkManager
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.messenger.ui.MessagingApp
+import org.ethereumhpone.messenger.ui.rememberMessengerAppState
 import org.ethereumhpone.messenger.ui.theme.MessengerTheme
 import org.ethereumphone.walletsdk.WalletSDK
-import org.xmtp.android.library.Client
-import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
 import javax.inject.Inject
-import kotlin.io.encoding.Base64.Default.encode
 
 
 private val contactsURI = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
@@ -65,6 +52,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var walletSDK: WalletSDK
     @Inject lateinit var xmtpClientManager: XmtpClientManager
     @Inject lateinit var networkManager: NetworkManager
+    @Inject lateinit var messengerPreferences: MessengerPreferences
 
 
     private val contentObserver = object : ContentObserver(null) {
@@ -95,17 +83,9 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val useXmtp = false
         //TODO: Remove when XMTP implementation is ready
 
-        if (useXmtp) {
-            val keyManager = KeyUtil(this@MainActivity)
-            val keys = keyManager.retrieveKey(walletSDK.getAddress())
 
-            if (keys != null) {
-                xmtpClientManager.createClient(keys , this@MainActivity)
-            }
-        }
 
 
         val threadId = if (intent.getIntExtra("threadId", -1) != -1) {
@@ -136,12 +116,23 @@ class MainActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             val lastSync = logTimeHandler.getLastLog()
             Log.d("Last sync", lastSync.toString())
+
+
+            val keyManager = KeyUtil(this@MainActivity)
+            val keys = keyManager.retrieveKey(walletSDK.getAddress())
+
+            if (keys != null) {
+                xmtpClientManager.createClient(keys , this@MainActivity)
+            }
+
+
             //TODO: Remove when everyone is on the new messenger version
             if((lastSync == 0L || lastSync <= 1727630355723) && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages()
+                syncRepository.syncXmtp()
             }
 
-            syncRepository.startStreamAllMessages()
+            //syncRepository.startStreamAllMessages()
         }
 
         var inputAddress: String? = null
@@ -160,12 +151,14 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             //TODO: Move all the sync code to workers
-            val useXmtp = shouldUseXmtp(uiState)
-
+            val appState = rememberMessengerAppState(
+                messengerPreferences = messengerPreferences,
+            )
 
 
             MessengerTheme {
                 MessagingApp(
+                    messengerAppState = appState,
                     threadId = threadId,
                     inputAddress = inputAddress
                 )
@@ -177,15 +170,5 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         contentResolver.unregisterContentObserver(contentObserver)
 
-    }
-}
-
-@Composable
-private fun shouldUseXmtp(
-    uiState: MainActivityUiState
-): Boolean = when(uiState) {
-    MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> {
-        uiState.userData.useXmtp
     }
 }

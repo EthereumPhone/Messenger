@@ -2,12 +2,19 @@ package org.ethereumhpone.data.manager
 
 import android.content.Context
 import com.google.protobuf.ByteString
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumphone.walletsdk.WalletSDK
 import org.xmtp.android.library.Client
 import org.xmtp.android.library.ClientOptions
@@ -29,8 +36,6 @@ import javax.inject.Singleton
 
 @Singleton
 object XmtpClientManager {
-
-    //@Inject private lateinit var networkManagerImpl: NetworkManagerImpl
 
     fun clientOptions(appContext: Context, address: String): ClientOptions {
         val keyUtil = KeyUtil(appContext)

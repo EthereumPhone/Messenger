@@ -11,6 +11,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.NavHost
@@ -25,21 +27,32 @@ import org.ethereumhpone.contracts.navigation.conversationsGraph
 import org.ethereumhpone.contracts.navigation.conversationsGraphRoutePattern
 import org.ethereumhpone.contracts.navigation.conversationsRoute
 import org.ethereumhpone.contracts.navigation.navigateToConversations
+import org.ethereumhpone.messenger.ui.MessengerAppState
+import org.ethereumphone.onboarding.navigation.navigateToOnboarding
+import org.ethereumphone.onboarding.navigation.onboardingScreen
 
 @Composable
 fun MessagingNavHost(
+    messengerAppState: MessengerAppState,
     modifier: Modifier = Modifier,
     threadId: Int? = null,
     inputAddress: String? = null,
     startDestination: String = conversationsGraphRoutePattern
 ){
-    val navController = rememberNavController()
+    val navController = messengerAppState.navController
+    val shouldShowOnboarding by messengerAppState.shouldShowOnboarding.collectAsState()
+
 
     // If threadId is not null, navigate to the chat
     threadId?.let {
         LaunchedEffect(it) {
             navController.navigateToChat(threadId = it.toString())
         }
+    }
+
+
+    if (shouldShowOnboarding) {
+        navController.navigateToOnboarding()
     }
 
     inputAddress?.let {
@@ -85,5 +98,8 @@ fun MessagingNavHost(
                 )
             }
         )
+
+        onboardingScreen(navController::navigateToConversations)
+
     }
 }

@@ -4,6 +4,7 @@ plugins {
 
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -64,6 +65,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
+    implementation(project(":core:datastore"))
     testImplementation(libs.junit)
     androidTestImplementation("junit:junit:4.12")
     debugImplementation("androidx.compose.ui:ui-tooling")

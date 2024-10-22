@@ -969,6 +969,9 @@ fun SelectorExpanded(
 
 @Composable
 @Preview
-fun PreviewChatScreen(){
-    //ChatScreen(navigateBackToConversations={},chatUIState=ChatUIState.Success(listOf()))
+private fun PreviewChatScreen() {
+    val messageUiState
+    ChatScreen(
+        navigateBackToConversations={}
+    )
 }
