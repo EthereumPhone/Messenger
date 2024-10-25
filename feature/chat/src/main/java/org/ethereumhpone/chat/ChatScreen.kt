@@ -1,6 +1,7 @@
 package org.ethereumhpone.chat
 
 import android.net.Uri
+import android.provider.Telephony
 import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -178,9 +179,9 @@ fun ChatScreen(
     onSendEthClicked: (amount: Double) -> Unit,
     tokenBalance: Double = 0.0,
     chainName: String = "?",
-    videoPlayer: Player,
+    videoPlayer: Player? = null,
     onOpenContact: () -> Unit,
-    selectedMessaged: List<Message?>,
+    selectedMessaged: List<Message?> = emptyList(),
     onContactSelected: (Contact) -> Unit,
     onToggleAttachment: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
@@ -970,8 +971,68 @@ fun SelectorExpanded(
 @Composable
 @Preview
 private fun PreviewChatScreen() {
-    val messageUiState
+    val messages = listOf(
+        Message(
+            boxId = Telephony.Mms.MESSAGE_BOX_INBOX,
+            type = "sms",
+            body = "Thanks, just got them :)",
+            dateSent = 1729852610,
+            date = 1732552610
+        ),
+        Message(
+            boxId = 2,
+            type = "sms",
+            body = "Sent 0.01 ETH: https://etherscan.io/tx/0x4e3b4ef5e7bcce14cf2f8fa65d2d2ec4483aef7fa3e47324f3bc76d1e7d0f8cd",
+
+        ),
+
+        Message(
+            type = "sms",
+            body = " A wait, could you borrow me some eth before I go?",
+            dateSent = 1729852610,
+            date = 1729852610
+        ),
+        Message(
+            type = "sms",
+            body = "Will do, see you soon :)",
+            dateSent = 1729459260,
+            date = 1729459260
+        ),
+        Message(
+            boxId = 2,
+            type = "sms",
+            body = "Ok, have a great flight :) Tell me when you land, so I can pick you up",
+            dateSent = 1729241255,
+            date = 1729248355
+
+        ),
+        Message(
+            type = "sms",
+            body = "Hey, my flight will at 2pm. Just wanted to let you know",
+            dateSent = 1729247355,
+            date = 1729248355
+        )
+
+
+    )
+
+    val messageUiState = MessagesUiState.Success(messages)
     ChatScreen(
-        navigateBackToConversations={}
+        messagesUiState = messageUiState,
+        recipient = Recipient(address = "nceornea.eth"),
+        navigateBackToConversations={},
+        onPhoneClicked = {},
+        onSendEthClicked = {},
+        onOpenContact = {},
+        onContactSelected = {},
+        onToggleAttachment = {},
+        onSendMessageClicked = {},
+        onDeleteMessage = {},
+        focusedMessage = null,
+        onFocusedMessageUpdate = {},
+        onPrepareVideo = {},
+        onRemoveSelectedMessage = {},
+        onAddSelectedMessage = {},
+        videoPlayer = null
     )
 }
