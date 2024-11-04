@@ -17,11 +17,11 @@ fun NavController.navigateToOnboarding(navOptions: NavOptions? = null) {
 
 
 fun NavGraphBuilder.onboardingScreen(
-    onSkipOnboarding: () -> Unit
+    onFinishOnboarding: () -> Unit
 ) {
     composable(
         route = onboardingRoute
     ) {
-        OnboardingRoute(onSkipOnboarding = onSkipOnboarding)
+        OnboardingRoute(onFinishOnboarding = onFinishOnboarding)
     }
 }

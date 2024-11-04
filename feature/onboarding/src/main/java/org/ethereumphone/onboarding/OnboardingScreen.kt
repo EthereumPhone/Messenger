@@ -38,24 +38,25 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun OnboardingRoute(
-    onSkipOnboarding: () -> Unit,
+    onFinishOnboarding: () -> Unit,
     onboardingViewModel: OnboardingViewModel = hiltViewModel()
 ) {
 
-    val isSyncing by onboardingViewModel.syncState.collectAsState()
+    val syncState by onboardingViewModel.syncState.collectAsState()
 
     OnboardingScreen(
-        isSyncing = isSyncing,
+        syncState = syncState,
         onStartXmtp = onboardingViewModel::generateXMTP,
         onStartSync = onboardingViewModel::startFirstSync,
-        onSkipOnboarding = {
-            onboardingViewModel.hideOnboarding()
-            onSkipOnboarding()
+        onFinishOnboarding = {
+            onboardingViewModel.hideOnboarding(it)
+            onFinishOnboarding()
         }
 
     )
@@ -64,10 +65,10 @@ fun OnboardingRoute(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(
-    isSyncing: Boolean = false,
+    syncState: SyncState,
     onStartXmtp: () -> Unit,
     onStartSync: () -> Unit,
-    onSkipOnboarding: () -> Unit,
+    onFinishOnboarding: (useXmtp: Boolean) -> Unit,
 ) {
 
     val coroutineScope = rememberCoroutineScope()
@@ -77,17 +78,24 @@ fun OnboardingScreen(
         pageCount = { OnboardingPageContent.entries.size},
     )
 
-    var runOnce by remember { mutableStateOf(false) }
 
-
-    LaunchedEffect(runOnce) {
-        Log.d("launched ", "side effect")
-        onStartSync()
-        delay(1000)
-        pagerState.animateScrollToPage(pagerState.currentPage + 1)
+    when(syncState) {
+        is SyncState.Success -> {
+            LaunchedEffect(Unit) {
+                val job = coroutineScope.async { onStartSync() }
+                job.await()
+                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+            }
+        }
+        is SyncState.Error -> {
+            LaunchedEffect(Unit) {
+                coroutineScope.launch {
+                    pagerState.scrollToPage(pageContent.size - 1) // error page
+                }
+            }
+        }
+        else -> {}
     }
-
-
 
 
     HorizontalPager(
@@ -97,8 +105,7 @@ fun OnboardingScreen(
         state = pagerState,
         userScrollEnabled = false
     ) {
-        PagerContent(
-            pageContent[pagerState.currentPage]
+        PagerContent(pageContent[pagerState.currentPage]
         ) {
             when(pagerState.currentPage) {
                 0 -> {
@@ -107,9 +114,10 @@ fun OnboardingScreen(
                         onClick = {
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                delay(200)
                                 onStartXmtp()
-                            } }
+                                delay(500)
+                            }
+                        }
                     ) {
                         Text(
                             text = "Enable XMTP",
@@ -120,21 +128,25 @@ fun OnboardingScreen(
                     Text(
                         text = "Skip",
                         color = Color.White,
-                        modifier = Modifier.clickable { onSkipOnboarding() }
+                        modifier = Modifier.clickable { onFinishOnboarding(false) }
                     )
-                }
-                1 -> {
-                    DegenLoadingCircle()
-                    runOnce = true
-                }
 
-                2 -> {
+                }
+                1 -> DegenLoadingCircle()
+
+                2,3 -> {
                     Button(
                         colors =  ButtonDefaults.buttonColors(containerColor = Color(0xFF8C7DF7)),
-                        onClick = {  }
+                        onClick = {
+                            if (syncState is SyncState.Success) {
+                                onFinishOnboarding(true)
+                            } else {
+                                onFinishOnboarding(false)
+                            }
+                        }
                     ) {
                         Text(
-                            text = "Enable XMTP",
+                            text = "Finish Setup",
                             color = Color.White
                         )
                     }
@@ -232,7 +244,7 @@ enum class OnboardingPageContent(
     ),
     SYNC("Settings things up", "Please, sign the next two prompts"),
     FINISH("All set up :)", "You can change XMTP behaviours via the messenger's options"),
-    ERROR("Something went wrong","Retry now or via the option menu")
+    ERROR("Something went wrong","You can retry via the option menu")
 }
 
 
@@ -240,6 +252,6 @@ enum class OnboardingPageContent(
 @Composable
 fun previewOnboarding() {
     Column(Modifier.background(Color.Black)) {
-        OnboardingScreen(false, {}, {}, {})
+        OnboardingScreen(SyncState.Loading, {}, {}, {})
     }
 }
