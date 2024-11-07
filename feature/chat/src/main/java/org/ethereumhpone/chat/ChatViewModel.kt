@@ -295,7 +295,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
     fun deleteMessage(id: String){
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             messageRepository.deleteMessage(id)
         }
     }
