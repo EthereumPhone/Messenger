@@ -36,12 +36,12 @@ import org.ethosmobile.components.library.theme.Fonts
 
 // Regex containing the syntax tokens
 val symbolPattern by lazy {
-    Regex("""(https?://[^\s\t\n]+)|(`[^`]+`)|(@\w+)|(\*[\w]+\*)|(_[\w]+_)|(~[\w]+~)""")
+    Regex("""(https?://[^\s\t\n]+)|(`[^`]+`)|(@\w+)|(\*[\w]+\*)|(_[\w]+_)|(~[\w]+~)|(\$\bBOOP\b)""")
 }
 
 // Accepted annotations for the ClickableTextWrapper
 enum class SymbolAnnotationType {
-    PERSON, LINK
+    PERSON, LINK, TOKEN
 }
 typealias StringAnnotation = AnnotatedString.Range<String>
 // Pair returning styled content and annotation for ClickableText when matching syntax token
@@ -51,6 +51,7 @@ typealias SymbolAnnotation = Pair<AnnotatedString, StringAnnotation?>
  * Format a message following Markdown-lite syntax
  * | @username -> bold, primary color and clickable element
  * | http(s)://... -> clickable link, opening it into the browser
+ * | $s ->
  * | *bold* -> bold
  * | _italic_ -> italic
  * | ~strikethrough~ -> strikethrough
@@ -182,6 +183,23 @@ private fun getSymbolAnnotation(
                 start = matchResult.range.first,
                 end = matchResult.range.last,
                 tag = SymbolAnnotationType.LINK.name
+            )
+        )
+        '$' -> SymbolAnnotation(
+            AnnotatedString(
+                text = matchResult.value,
+                spanStyle = SpanStyle(
+                    fontFamily = Fonts.INTER,
+                    fontWeight = FontWeight.Medium,
+                    color = if (primary) colorScheme.inversePrimary else Color(0xFF8C7DF7),
+                    textDecoration = TextDecoration.Underline
+                )
+            ),
+            StringAnnotation(
+                item = matchResult.value,
+                start = matchResult.range.first,
+                end = matchResult.range.last,
+                tag = SymbolAnnotationType.TOKEN.name
             )
         )
         else -> SymbolAnnotation(AnnotatedString(matchResult.value), null)

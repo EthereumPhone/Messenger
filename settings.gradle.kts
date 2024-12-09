@@ -22,7 +22,7 @@ dependencyResolutionManagement {
 rootProject.name = "Messenger"
 include(":app")
 include(":feature:chat")
-include(":feature:contracts")
+include(":feature:inbox")
 include(":core:data")
 include(":core:domain")
 include(":core:database")
@@ -32,3 +32,4 @@ include(":android-smsmms")
 
 include(":feature:settings")
 include(":feature:onboarding")
+include(":feature:contacts")

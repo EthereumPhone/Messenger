@@ -76,7 +76,7 @@ android {
 dependencies {
 
     implementation(project(":feature:chat"))
-    implementation(project(":feature:contracts"))
+    implementation(project(":feature:inbox"))
 
     implementation("androidx.navigation:navigation-compose:2.7.6")
 
