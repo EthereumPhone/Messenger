@@ -260,10 +260,8 @@ fun ChatItemBubbleV2(
                         .joinToString("\n")
                 }
             }
-            Log.d("messageBody false after",messageBody)
+
             if (messageBody.isNotBlank()) {
-
-
                 val styledMessage = messageFormatter(
                     text = messageBody,
                     primary = isUserMe
@@ -280,7 +278,6 @@ fun ChatItemBubbleV2(
                     onLongClick = onLongClick,
 
                     onClick = {
-
                         styledMessage
                             .getStringAnnotations(start = it, end = it)
                             .firstOrNull()
@@ -288,6 +285,7 @@ fun ChatItemBubbleV2(
                                 when (annotation.tag) {
                                     SymbolAnnotationType.LINK.name -> uriHandler.openUri(annotation.item)
                                     SymbolAnnotationType.PERSON.name -> authorClicked(annotation.item)
+                                    SymbolAnnotationType.TOKEN.name -> uriHandler.openUri("https://www.coingecko.com/en/coins/boop-2")
                                     else -> Unit
                                 }
                             }
