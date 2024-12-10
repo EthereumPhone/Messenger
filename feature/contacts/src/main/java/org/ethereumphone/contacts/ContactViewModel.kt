@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.model.Conversation
+import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.domain.repository.ContactRepository
 import javax.inject.Inject
 
@@ -29,13 +30,16 @@ class ContactViewModel @Inject constructor(
             contacts,
             searchQuery
         ) { contacts, query ->
-            if (query.isEmpty()) {
-                QueryResultUiState.Success(contacts)
+            if (query.isEmpty()) { QueryResultUiState.Success(contacts) }
+
+            // here we add the first element of the list, aka "write to <address>"
+            val manualContact: Contact? = when {
+                phoneNumberUtils.isPossibleNumber(query) -> Contact(numbers = listOf(PhoneNumber(address = query)))
+                query.isValidEns() || query.isValidEthAddress() -> Contact(ethAddress = query)
+                else -> null
             }
 
-            //TODO add first list element to initiate chat via direct number insertion
             QueryResultUiState.Success(contacts)
-
 
 
         }.stateIn(
@@ -52,11 +56,14 @@ class ContactViewModel @Inject constructor(
     }
 
 
-    fun isPossibleQuery(query: String): Boolean {
-        //phoneNumberUtils.isPossibleNumber(query)
-        TODO()
-    }
+    fun isPossibleContact(query: String): Boolean =
+        query.isNotEmpty() && phoneNumberUtils.isPossibleNumber(query)
 }
+
+private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))
+
+
+private fun String.isValidEns(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_$]{3,}\\.eth$"))
 
 
 sealed interface QueryResultUiState {
