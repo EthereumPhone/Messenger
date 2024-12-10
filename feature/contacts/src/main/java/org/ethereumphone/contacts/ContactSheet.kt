@@ -71,7 +71,7 @@ import kotlin.reflect.KSuspendFunction1
 fun ContactSheet(
     contacts: List<Contact> = emptyList(),
     onContactsSelected: (List<Contact>) -> Unit,
-    resolveENS: KSuspendFunction1<String, String>
+    resolveENS: (String) -> Unit
 ) {
     val multiSelectMode by remember { mutableStateOf(false) }
     val phoneNumberUtils = PhoneNumberUtils(LocalContext.current)
@@ -367,44 +367,23 @@ fun ethOSContactListItem(
         )
 
     }
-
 }
 
-/*
-@Composable
+
 @Preview
-fun ContactSheetPreview(){
+@Composable
+fun previewContactSheet() {
+
+    val contacts = listOf(
+        Contact(),
+        Contact()
+    )
+
     ContactSheet(
+        contacts,
+        {},
 
-//        AssetUiState.Success(
-//            listOf(
-//                TokenAsset(
-//                    chainId = 10,
-//                    name = "Optimism",
-//                    symbol = "ETH",
-//                    balance = 0.23,
-//                    address = "0xf2nd73b8gg74d880bds9fh042ybcdjn47bs92"
-//                ),
-//                TokenAsset(
-//                    chainId = 1,
-//                    name = "Mainnet",
-//                    symbol = "ETH",
-//                    balance = 1.43,
-//                    address = "0xf2nd73b8gg74d880bds9fh042ybcdjn47bs92"
-//                ),
-//                TokenAsset(
-//                    chainId = 1,
-//                    name = "DAI",
-//                    symbol = "ETH",
-//                    balance = 123.0,
-//                    address = "0xf2nd73b8gg74d880bds9fh042ybcdjn47bs92"
-//                ),
-//            )
-//        )
-//        ,
-//        {},
-//        1
-    ) {}
+
+    )
+
 }
-
- */
