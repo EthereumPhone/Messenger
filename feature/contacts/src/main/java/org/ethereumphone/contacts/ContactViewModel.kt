@@ -25,50 +25,59 @@ class ContactViewModel @Inject constructor(
     val searchQuery = savedStateHandle.getStateFlow(key = SEARCH_QUERY, initialValue = "")
     private val contacts: Flow<List<Contact>> = contactRepository.getContacts()
 
-    val contactsUiState: StateFlow<QueryResultUiState> =
+    val queryResultUiState: StateFlow<QueryResultUiState> =
         combine(
             contacts,
             searchQuery
         ) { contacts, query ->
-            if (query.isEmpty()) { QueryResultUiState.Success(contacts) }
 
-            // here we add the first element of the list, aka "write to <address>"
-            val manualContact: Contact? = when {
-                phoneNumberUtils.isPossibleNumber(query) -> Contact(numbers = listOf(PhoneNumber(address = query)))
-                query.isValidEns() || query.isValidEthAddress() -> Contact(ethAddress = query)
-                else -> null
+            if (query.isEmpty()) {
+                QueryResultUiState.Success(contacts)
+            } else {
+                // Generate a manual contact based on the query
+                val manualContact: Contact? = when {
+                    phoneNumberUtils.isPossibleNumber(query) -> Contact(numbers = listOf(PhoneNumber(address = query)))
+                    query.isValidEns() || query.isValidEthAddress() -> Contact(ethAddress = query)
+                    else -> null
+                }
+
+                // Filter contacts based on the query and add manual contact if present
+                val filteredContacts = contacts.filter { filterContact(it, query) }
+                val resultContacts = manualContact?.let { listOf(it) + filteredContacts } ?: filteredContacts
+
+                // Return appropriate UI state
+                QueryResultUiState.Success(resultContacts)
             }
-
-            QueryResultUiState.Success(contacts)
-
-
         }.stateIn(
             scope = viewModelScope,
             initialValue = QueryResultUiState.Loading,
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
-
-
-
     fun onSearchQueryChanged(query: String) {
         savedStateHandle[SEARCH_QUERY] = query
     }
-
-
-    fun isPossibleContact(query: String): Boolean =
-        query.isNotEmpty() && phoneNumberUtils.isPossibleNumber(query)
 }
 
-private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))
+private fun filterContact(contact: Contact, query: String): Boolean {
+    val normalizedQuery = query.normalizedString()
 
+    return contact.name.contains(query) || // Check name
+            contact.lookupKey.contains(query) || // Check lookupKey
+            contact.numbers.any { it.address.contains(normalizedQuery) } || // Check normalized numbers
+            (contact.ethAddress?.contains(query) ?: false) // Check ethAddress
+}
+
+
+private fun String.normalizedString(): String = this.replace(" ", "").lowercase()
+
+private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))
 
 private fun String.isValidEns(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_$]{3,}\\.eth$"))
 
 
 sealed interface QueryResultUiState {
     object Loading : QueryResultUiState
-    object Empty : QueryResultUiState
     data class Success(val contacts: List<Contact> = emptyList()): QueryResultUiState {
         fun isEmpty(): Boolean = contacts.isEmpty()
     }

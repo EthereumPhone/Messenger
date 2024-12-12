@@ -1,6 +1,5 @@
 package org.ethereumphone.contacts
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -52,29 +51,37 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.ethereumhpone.chat.components.InputSelector
-import org.ethereumhpone.chat.components.isEthereumAddress
-import org.ethereumhpone.chat.components.trimEthereumAddress
-import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.model.Contact
-import org.ethereumhpone.database.model.PhoneNumber
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
-import kotlin.reflect.KSuspendFunction1
+
 
 @Composable
 fun ContactSheet(
-    contacts: List<Contact> = emptyList(),
+    onDismiss: () -> Unit,
+    onContactsSelected: (List<Contact>) -> Unit,
+    viewModel: ContactViewModel = hiltViewModel()
+) {
+    val queryResultUiState by viewModel.queryResultUiState.collectAsStateWithLifecycle()
+
+    ContactSheet(
+        queryResultUiState = queryResultUiState,
+        onContactsSelected,
+        {}
+    )
+}
+
+@Composable
+internal fun ContactSheet(
+    queryResultUiState: QueryResultUiState,
     onContactsSelected: (List<Contact>) -> Unit,
     resolveENS: (String) -> Unit
 ) {
     val multiSelectMode by remember { mutableStateOf(false) }
-    val phoneNumberUtils = PhoneNumberUtils(LocalContext.current)
 
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
@@ -113,6 +120,10 @@ fun ContactSheet(
                 fontWeight = FontWeight.SemiBold
             )
         }
+
+
+
+
 
         if (contacts.isEmpty()){
             Box(
@@ -160,57 +171,33 @@ fun ContactSheet(
                 contentAlignment = Alignment.TopCenter
             ) {
                 LazyColumn {
-                    if(textState.text.isNotEmpty() && (phoneNumberUtils.isPossibleNumber(textState.text) || isEthereumAddress(textState.text) || textState.text.endsWith(".eth"))){
-                        val newAddress = phoneNumberUtils.formatNumber(textState.text)
-                        val newContact = Contact(numbers = (listOf(PhoneNumber(address = newAddress))))
-
-                        item {
-                            ethOSContactListItem(
-                                header = if (isEthereumAddress(newAddress)) "write to ${trimEthereumAddress(newAddress)}" else "write to $newAddress",
-                                onClick = {
-                                    if (textState.text.endsWith(".eth")) {
-                                        CoroutineScope(Dispatchers.IO).launch {
-                                            val resolvedAddr = resolveENS(textState.text.lowercase())
-                                            withContext(Dispatchers.Main) {
-                                                if (resolvedAddr.isNotEmpty()) {
-                                                    onContactsSelected(listOf(newContact.copy(numbers = listOf(PhoneNumber(address = resolvedAddr)))))
-                                                } else {
-                                                    Toast.makeText(context, "Could not resolve ENS name", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        onContactsSelected(listOf(newContact))
-                                    }
-                                }
-                            )
-                        }
-                    }
-
-                    contacts.filter { contact -> contact.name.contains(textState.text, true) ||
-                            contact.numbers.any { it.address.normalizedString().contains(textState.text.normalizedString(), true) }
-                    }.filter { it.getDefaultNumber() == null && !it.numbers.firstOrNull()?.address.isNullOrEmpty() }.forEach {
-                        item {
-                            ethOSContactListItem(
-                                withImage = it.photoUri != null,
-                                image = {
-                                    Image(
-                                        painter = rememberAsyncImagePainter(it.photoUri),
-                                        contentDescription = "Contact profile pic",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                },
-                                header = it.name,
-                                withSubheader = true,// ens in future ?
-                                subheader = it.numbers.firstOrNull()?.address ?: "",
-                                onClick = {
-                                    onContactsSelected(listOf(it))
-                                }
-                            )
+                    // first item
+                    item {  }
 
 
-                        }
+
+
+
+                    item {
+                        ethOSContactListItem(
+                            withImage = it.photoUri != null,
+                            image = {
+                                Image(
+                                    painter = rememberAsyncImagePainter(it.photoUri),
+                                    contentDescription = "Contact profile pic",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            },
+                            header = it.name,
+                            withSubheader = true,// ens in future ?
+                            subheader = it.numbers.firstOrNull()?.address ?: "",
+                            onClick = {
+                                onContactsSelected(listOf(it))
+                            }
+                        )
+
+
                     }
                 }
             }
@@ -218,9 +205,6 @@ fun ContactSheet(
     }
 }
 
-fun String.normalizedString(): String {
-    return this.replace(" ", "").lowercase()
-}
 
 
 @Composable
