@@ -64,65 +64,6 @@ fun SettingsDialog(
     )
 }
 
-//@Composable
-//private fun SettingsDialog(
-//    settingsUiState: SettingsUiState,
-//    onDismiss: () -> Unit,
-//    onChangeUseXmtp: (Boolean) -> Unit
-//) {
-//
-//    AlertDialog(
-//        onDismissRequest = { onDismiss() },
-//        title = {
-//            Column(
-//                modifier = Modifier,
-//                verticalArrangement = Arrangement.spacedBy(8.dp)
-//            ) {
-//                Text(
-//                    fontFamily = Fonts.INTER,
-//                    fontWeight = FontWeight.SemiBold,
-//                    text = "Settings",
-//                    fontSize = 24.sp
-//                )
-//                //Divider()
-//            }
-//
-//
-//        },
-//        backgroundColor = Colors.BLACK,
-//        contentColor = Colors.WHITE,
-//
-//
-//    text = {
-//
-//            Column(
-//                Modifier
-//                    .verticalScroll(rememberScrollState())
-//                    .padding(top = 8.dp)) {
-//                when(settingsUiState) {
-//                    SettingsUiState.Loading -> {
-//                        Text("Loading...")
-//                    }
-//
-//                    is SettingsUiState.Success -> {
-//                        SettingsPanel(
-//                            settingsUiState.settings,
-//                            onChangeUseXmtp = onChangeUseXmtp,
-//                        )
-//                    }
-//                }
-//            }
-//        },
-//
-//        confirmButton = {
-//            Text(
-//                text = "OK",
-//                modifier = Modifier.clickable { onDismiss() }
-//            )
-//        }
-//    )
-//}
-
 @Composable
 private fun SettingsDialog(
     settingsUiState: SettingsUiState,

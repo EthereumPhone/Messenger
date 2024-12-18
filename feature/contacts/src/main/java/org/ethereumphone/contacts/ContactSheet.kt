@@ -1,5 +1,6 @@
 package org.ethereumphone.contacts
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,18 +18,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -81,7 +89,8 @@ internal fun ContactSheet(
     onContactsSelected: (List<Contact>) -> Unit,
     resolveENS: (String) -> Unit
 ) {
-    val multiSelectMode by remember { mutableStateOf(false) }
+    var multiSelectMode by remember { mutableStateOf(false) }
+    val selectedItems = remember { mutableStateListOf<Int>() }
 
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
@@ -97,50 +106,32 @@ internal fun ContactSheet(
         mutableStateOf(TextFieldValue())
     }
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(
-                RoundedCornerShape(
-                    topStart = 12.dp,
-                    topEnd = 12.dp
+
+    Box {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 12.dp,
+                        topEnd = 12.dp
+                    )
                 )
-            )
-            .padding(start = 12.dp, end = 12.dp, bottom = 48.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(start = 12.dp, end = 12.dp, bottom = 64.dp) // fab size 64.dp
         ) {
-
-            Text(
-                text = "Contacts",
-                fontSize = 24.sp,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
-
-
-
-
-        if (contacts.isEmpty()){
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight(0.5f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+
                 Text(
-                    text = "No contacts available",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = Fonts.INTER,
-                    color = Colors.GRAY,
+                    text = "Contacts",
+                    fontSize = 24.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
-        }else{
+
             Spacer(modifier = Modifier.height(24.dp))
             SearchTextField(
                 textFieldValue = textState,
@@ -150,8 +141,6 @@ internal fun ContactSheet(
 
                     // Create a new TextFieldValue with the processed text and updated selection
                     val newProcessedTextFieldValue = newTextFieldValue.copy(text = processedText)
-
-                    // Update the state
                     textState = newProcessedTextFieldValue
                 },
                 onTextFieldFocused = { focused ->
@@ -162,46 +151,77 @@ internal fun ContactSheet(
                 },
                 focusState = textFieldFocusState
             )
-            val context = LocalContext.current
-            Spacer(modifier = Modifier.height(24.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight(0.5f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                LazyColumn {
-                    // first item
-                    item {  }
 
+            LazyColumn {
+                when(queryResultUiState) {
+                    is QueryResultUiState.Loading -> {}
+                    is QueryResultUiState.Success -> {
 
-
-
-
-                    item {
-                        ethOSContactListItem(
-                            withImage = it.photoUri != null,
-                            image = {
-                                Image(
-                                    painter = rememberAsyncImagePainter(it.photoUri),
-                                    contentDescription = "Contact profile pic",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
+                        queryResultUiState.manualContact?.let {
+                            item {
+                                ethOSContactListItem(
+                                    header = "write to ${it.name}"
                                 )
-                            },
-                            header = it.name,
-                            withSubheader = true,// ens in future ?
-                            subheader = it.numbers.firstOrNull()?.address ?: "",
-                            onClick = {
-                                onContactsSelected(listOf(it))
                             }
-                        )
+                        }
 
 
+                        if (queryResultUiState.isEmpty()) {
+                            item {
+                                Box(modifier = Modifier
+                                    .fillParentMaxHeight(0.5f)
+                                    .fillParentMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No contacts available",
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        fontFamily = Fonts.INTER,
+                                        color = Colors.GRAY,
+                                    )
+                                }
+                            }
+                        } else {
+                            itemsIndexed(queryResultUiState.contacts) { index, contact  ->
+                                ethOSContactListItem(
+                                    withImage = contact.photoUri != null,
+                                    image = {
+                                        Image(
+                                            painter = rememberAsyncImagePainter(contact.photoUri),
+                                            contentDescription = "Contact profile pic",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    },
+                                    isMultiSelectMode = multiSelectMode,
+                                    isSelected = selectedItems.contains(index),
+                                    header = contact.name,
+                                    withSubheader = true,// ens in future ?
+                                    subheader = contact.numbers.firstOrNull()?.address ?: "",
+                                    onClick = {
+                                        if(multiSelectMode) {
+                                            Log.d("TESt", index.toString())
+                                            if (index in selectedItems) selectedItems.remove(index) else selectedItems.add(index)
+                                        } else {
+                                            onContactsSelected(listOf(contact))
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
+
+
+        FloatingActionButton(
+            onClick = { multiSelectMode = !multiSelectMode },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) { Icon(Icons.Default.Group, "") }
     }
 }
 
@@ -265,7 +285,7 @@ private fun SearchTextField(
                 if (textFieldValue.text.isEmpty() && !focusState) {
                     Text(
                         modifier = Modifier,
-                        text = "Enter address or name",
+                        text = "Search name or address",
                         textAlign = TextAlign.Start,
                         fontWeight = FontWeight.Medium,
                         fontFamily = Fonts.INTER,
@@ -295,6 +315,8 @@ fun ethOSContactListItem(
     backgroundColor: Color = Colors.TRANSPARENT,
     colorOnBackground: Color = Colors.WHITE,
     subheaderColorOnBackground: Color = Colors.WHITE,
+    isMultiSelectMode: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 
@@ -341,7 +363,16 @@ fun ethOSContactListItem(
                 }
 
             },
-            trailingContent = trailingContent,
+            trailingContent = {
+                if (isMultiSelectMode) {
+
+                    Checkbox(
+                        isSelected,
+                        {}
+                    )
+                }
+            },
+
 
             colors = ListItemDefaults.colors(
                 headlineColor = colorOnBackground,
@@ -359,15 +390,56 @@ fun ethOSContactListItem(
 fun previewContactSheet() {
 
     val contacts = listOf(
-        Contact(),
-        Contact()
+        Contact(name = "Nicola"),
+        Contact(name = "Also Nicola"),
+        Contact(name = "Mar... Sike, Nicola again")
     )
+
+    val queryResultUiState = QueryResultUiState.Success(Contact(name = "Nicola"), contacts)
 
     ContactSheet(
-        contacts,
-        {},
+        queryResultUiState,
+        {}
+    ) { }
+}
 
+@Preview
+@Composable
+fun previewNoQueryContactSheet() {
 
+    val contacts = listOf(
+        Contact(name = "Nicola"),
+        Contact(name = "Also Nicola"),
+        Contact(name = "Mar... Sike, Nicola again"),
+        Contact(name = "Nicola"),
+        Contact(name = "Also Nicola"),
+        Contact(name = "Mar... Sike, Nicola again"),Contact(name = "Nicola"),
+        Contact(name = "Also Nicola"),
+        Contact(name = "Mar... Sike, Nicola again"),Contact(name = "Nicola"),
+        Contact(name = "Also Nicola"),
+        Contact(name = "Mar... Sike, Nicola again"),Contact(name = "Nicola"),
+        Contact(name = "Also Nicola"),
+        Contact(name = "Mar... Sike, Nicola again"),
     )
 
+    val queryResultUiState = QueryResultUiState.Success(null, contacts)
+
+    ContactSheet(
+        queryResultUiState,
+        {}
+    ) { }
+}
+
+@Preview
+@Composable
+fun previewNoContactsContactSheet() {
+
+    val contacts = emptyList<Contact>()
+
+    val queryResultUiState = QueryResultUiState.Success(Contact(name = "Nicola"), contacts)
+
+    ContactSheet(
+        queryResultUiState,
+        {}
+    ) { }
 }

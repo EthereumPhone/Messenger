@@ -32,7 +32,7 @@ class ContactViewModel @Inject constructor(
         ) { contacts, query ->
 
             if (query.isEmpty()) {
-                QueryResultUiState.Success(contacts)
+                QueryResultUiState.Success(null, contacts)
             } else {
                 // Generate a manual contact based on the query
                 val manualContact: Contact? = when {
@@ -43,10 +43,12 @@ class ContactViewModel @Inject constructor(
 
                 // Filter contacts based on the query and add manual contact if present
                 val filteredContacts = contacts.filter { filterContact(it, query) }
-                val resultContacts = manualContact?.let { listOf(it) + filteredContacts } ?: filteredContacts
 
                 // Return appropriate UI state
-                QueryResultUiState.Success(resultContacts)
+                QueryResultUiState.Success(
+                    manualContact = manualContact,
+                    contacts = filteredContacts
+                )
             }
         }.stateIn(
             scope = viewModelScope,
@@ -78,7 +80,10 @@ private fun String.isValidEns(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_$]{3
 
 sealed interface QueryResultUiState {
     object Loading : QueryResultUiState
-    data class Success(val contacts: List<Contact> = emptyList()): QueryResultUiState {
+    data class Success(
+        val manualContact: Contact? = null, // for the "write to ..." first list item
+        val contacts: List<Contact> = emptyList()
+    ): QueryResultUiState {
         fun isEmpty(): Boolean = contacts.isEmpty()
     }
 }

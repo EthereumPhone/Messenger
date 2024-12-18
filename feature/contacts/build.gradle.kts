@@ -72,6 +72,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation(libs.compose.material3)
+    implementation(libs.androidx.junit.ktx)
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("junit:junit:4.12")
     debugImplementation("androidx.compose.ui:ui-tooling")
