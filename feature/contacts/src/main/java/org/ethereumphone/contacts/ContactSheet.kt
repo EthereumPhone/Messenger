@@ -222,7 +222,7 @@ internal fun ContactSheet(
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            val icon = if (multiSelectMode) Icons.Default.Group else Icons.Default.GroupOff
+            val icon = if (!multiSelectMode) Icons.Default.Group else Icons.Default.GroupOff
             Icon(icon, "")
         }
 
