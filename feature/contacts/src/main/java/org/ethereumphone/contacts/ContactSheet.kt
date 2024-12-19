@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.GroupOff
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -35,6 +36,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -90,7 +92,7 @@ internal fun ContactSheet(
     resolveENS: (String) -> Unit
 ) {
     var multiSelectMode by remember { mutableStateOf(false) }
-    val selectedItems = remember { mutableStateListOf<Int>() }
+    val selectedItems = remember { mutableStateListOf<Contact>() }
 
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
@@ -183,7 +185,7 @@ internal fun ContactSheet(
                                 }
                             }
                         } else {
-                            itemsIndexed(queryResultUiState.contacts) { index, contact  ->
+                            items(queryResultUiState.contacts) { contact ->
                                 ethOSContactListItem(
                                     withImage = contact.photoUri != null,
                                     image = {
@@ -195,14 +197,13 @@ internal fun ContactSheet(
                                         )
                                     },
                                     isMultiSelectMode = multiSelectMode,
-                                    isSelected = selectedItems.contains(index),
+                                    isSelected = selectedItems.contains(contact),
                                     header = contact.name,
                                     withSubheader = true,// ens in future ?
                                     subheader = contact.numbers.firstOrNull()?.address ?: "",
                                     onClick = {
                                         if(multiSelectMode) {
-                                            Log.d("TESt", index.toString())
-                                            if (index in selectedItems) selectedItems.remove(index) else selectedItems.add(index)
+                                            if (contact in selectedItems) selectedItems.remove(contact) else selectedItems.add(contact)
                                         } else {
                                             onContactsSelected(listOf(contact))
                                         }
@@ -215,13 +216,34 @@ internal fun ContactSheet(
             }
         }
 
-
         FloatingActionButton(
             onClick = { multiSelectMode = !multiSelectMode },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
-        ) { Icon(Icons.Default.Group, "") }
+        ) {
+            val icon = if (multiSelectMode) Icons.Default.Group else Icons.Default.GroupOff
+            Icon(icon, "")
+        }
+
+        if (selectedItems.size != 0) {
+            Button(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(10.dp)
+                ,
+                onClick = { onContactsSelected(selectedItems) }
+            ) {
+                Text("Create group")
+            }
+        }
+    }
+
+    // clear list if user quits multiselect
+    LaunchedEffect(multiSelectMode) {
+        if(!multiSelectMode) {
+            selectedItems.clear()
+        }
     }
 }
 
@@ -367,8 +389,8 @@ fun ethOSContactListItem(
                 if (isMultiSelectMode) {
 
                     Checkbox(
-                        isSelected,
-                        {}
+                        checked = isSelected,
+                        onCheckedChange = { onClick() }
                     )
                 }
             },
