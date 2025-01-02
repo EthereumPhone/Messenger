@@ -141,280 +141,228 @@ fun ContactScreen(
 
     var showHiddenConversations by remember { mutableStateOf(false) }
 
-    Scaffold (
-        containerColor = Color.Black,
-        topBar = {
-            ethOSHeader(
-                title=  "Messaging",
-                titleSize =  24.sp,
-                isTrailContent = true,
-                trailContent = {
-
-                    IconButton(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .size(42.dp)
-                        ,
-                        enabled = true,
-                        onClick = {
-                            showContactSheet = true
-                        },
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center
-                        ){
-                            Icon(imageVector = Icons.Rounded.Add, contentDescription = "Add contact", tint = Colors.WHITE, modifier = Modifier.size(32.dp))
-                        }
-
-                    }
-                },
-                isBeginContent = true,
-                beginContent = {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ){
-                        // Nothing
-                    }
+    Column(Modifier.fillMaxSize()) {
+        when(conversationState) {
+            is ConversationUIState.Loading ->{
+                Box(contentAlignment = Alignment.Center,modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Loading",
+                        fontSize = 14.sp,
+                        fontFamily = Fonts.INTER,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Colors.WHITE,
+                    )
                 }
-            )
-        },
-        contentWindowInsets = ScaffoldDefaults
-            .contentWindowInsets
-            .exclude(WindowInsets.navigationBars)
-            .exclude(WindowInsets.ime),
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-    ){ paddingValues ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(paddingValues)) {
-
-            when(conversationState){
-                is ConversationUIState.Loading ->{
-                    Box(contentAlignment = Alignment.Center,modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Loading",
-                            fontSize = 14.sp,
-                            fontFamily = Fonts.INTER,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Colors.WHITE,
-                        )
-                    }
-                }
-                is ConversationUIState.Empty ->{
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "No conversations",
-                            fontSize = 14.sp,
-                            fontFamily = Fonts.INTER,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Colors.WHITE,
-                        )
-                    }
-                }
-                is ConversationUIState.Success -> {
-
-                    val coroutineScope = rememberCoroutineScope()
-                    val tabs = listOf("Inbox","Requests")
-                    // Display 10 items
-                    val pagerState = rememberPagerState(pageCount = {
-                        tabs.size
-                    })
-
-                    TabRow(
-                        containerColor = Colors.TRANSPARENT,
-                        contentColor = Colors.WHITE,
-                        modifier = Modifier.fillMaxWidth().padding(start = 12.dp,end = 12.dp),
-                        selectedTabIndex = pagerState.currentPage,
-                        divider = { Divider(color = Colors.TRANSPARENT) },
-                        indicator = { tabPositions ->
-                            if (pagerState.currentPage < tabPositions.size) {
-                                TabRowDefaults.Indicator(
-                                    color = Colors.WHITE,
-                                    modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
-                                )
-                            }
-                        }
-                    ){
-                        tabs.forEachIndexed { index, s ->
-                            Tab(
-                                selectedContentColor = Colors.WHITE,
-                                unselectedContentColor = Colors.GRAY,
-                                selected = pagerState.currentPage == index,
-                                onClick = {
-                                    //tabIndex = index
-                                    coroutineScope.launch {
-                                        // Call scroll to on pagerState
-                                        pagerState.animateScrollToPage(index)
-                                    }
-                                },
-                                text = {
-                                    Text(
-                                        text = s,
-                                        color = if(pagerState.currentPage == index) Colors.WHITE else Colors.GRAY,
-                                        fontSize = 14.sp,
-                                        fontFamily = Fonts.INTER,
-                                        fontWeight = FontWeight.SemiBold,
-
-                                        )
-                                },
-
-                                )
-                        }
-                    }
-                    HorizontalPager(state = pagerState) { page ->
-
-                        when (page) {
-                            //TODO: Add logic
-                            0 -> {
-                                if(conversationState.conversations.isNotEmpty()){
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        LazyColumn(
-                                            modifier = Modifier.padding(horizontal = 12.dp)
-                                        ){
-                                            conversationState.conversations.filter { !it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
-                                                item {
-
-                                                    val dates = conversation.lastMessage?.date?.let { Date(it) }
-                                                    ChatListItem(
-                                                        image = {
-                                                            if (conversation.recipients.get(0).contact?.photoUri != null) {
-                                                                Image(
-                                                                    painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
-                                                                    contentDescription = "Contact Image",
-                                                                    contentScale = ContentScale.Crop,
-                                                                    modifier = Modifier
-                                                                        .size(62.dp) // Set the size of the image
-                                                                        .clip(CircleShape) // Apply a circular shape
-                                                                )
-                                                            } else {
-                                                                Image(
-                                                                    painter = painterResource(id = R.drawable.nouns),
-                                                                    contentDescription = "Contact Image",
-                                                                    modifier = Modifier
-                                                                        .size(62.dp) // Set the size of the image
-                                                                        .clip(CircleShape) // Apply a circular shape
-                                                                )
-                                                            }
-                                                        },
-                                                        header = conversation.recipients.get(0).getDisplayName(),
-                                                        subheader = conversation.lastMessage?.getSummary() ?: "",
-                                                        time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
-                                                        unreadConversation = conversation.unread,
-                                                        onClick = {
-                                                            conversationClicked(conversation.id.toString())
-                                                        },
-                                                        onClickLeft = {
-                                                            markArchived(conversation.id)
-                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
-                                                                deleteXMTPConversation(conversation.getConversationTitle())
-                                                            }
-                                                        },
-                                                        onClickRight = {
-                                                            markArchived(conversation.id)
-                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
-                                                                deleteXMTPConversation(conversation.getConversationTitle())
-                                                            }
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                else{
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "No conversations",
-                                            fontSize = 20.sp,
-                                            fontFamily = Fonts.INTER,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Colors.GRAY,
-                                        )
-                                    }
-                                }
-                            }
-                            1 -> {
-                                //TODO: Add logic (unaccepted messages)
-                                if(conversationState.conversations.isNotEmpty()){
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        LazyColumn(
-                                            modifier = Modifier.padding(horizontal = 12.dp)
-                                        ){
-                                            conversationState.conversations.filter { it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
-                                                item {
-
-                                                    val dates = conversation.lastMessage?.date?.let { Date(it) }
-                                                    ChatListItem(
-                                                        image = {
-                                                            if (conversation.recipients.get(0).contact?.photoUri != null) {
-                                                                Image(
-                                                                    painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
-                                                                    contentDescription = "Contact Image",
-                                                                    contentScale = ContentScale.Crop,
-                                                                    modifier = Modifier
-                                                                        .size(62.dp) // Set the size of the image
-                                                                        .clip(CircleShape) // Apply a circular shape
-                                                                )
-                                                            } else {
-                                                                Image(
-                                                                    painter = painterResource(id = R.drawable.nouns),
-                                                                    contentDescription = "Contact Image",
-                                                                    modifier = Modifier
-                                                                        .size(62.dp) // Set the size of the image
-                                                                        .clip(CircleShape) // Apply a circular shape
-                                                                )
-                                                            }
-                                                        },
-                                                        header = conversation.recipients.get(0).getDisplayName(),
-                                                        subheader = conversation.lastMessage?.getSummary() ?: "",
-                                                        time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
-                                                        unreadConversation = conversation.unread,
-                                                        onClick = {
-                                                            conversationClicked(conversation.id.toString())
-                                                            markAccepted(conversation.id, conversation.getConversationTitle())
-                                                        },
-                                                        onClickLeft = {
-                                                            markArchived(conversation.id)
-                                                        },
-                                                        onClickRight = {
-                                                            markArchived(conversation.id)
-                                                            deleteXMTPConversation(conversation.getConversationTitle())
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                else{
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "No conversations",
-                                            fontSize = 20.sp,
-                                            fontFamily = Fonts.INTER,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Colors.GRAY,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-
-
+            }
+            is ConversationUIState.Empty ->{
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "No conversations",
+                        fontSize = 14.sp,
+                        fontFamily = Fonts.INTER,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Colors.WHITE,
+                    )
                 }
             }
 
-        }
+            is ConversationUIState.Success -> {
 
+                val coroutineScope = rememberCoroutineScope()
+                val tabs = listOf("Inbox","Requests")
+                // Display 10 items
+                val pagerState = rememberPagerState(pageCount = {
+                    tabs.size
+                })
+
+                TabRow(
+                    containerColor = Colors.TRANSPARENT,
+                    contentColor = Colors.WHITE,
+                    modifier = Modifier.fillMaxWidth().padding(start = 12.dp,end = 12.dp),
+                    selectedTabIndex = pagerState.currentPage,
+                    divider = { Divider(color = Colors.TRANSPARENT) },
+                    indicator = { tabPositions ->
+                        if (pagerState.currentPage < tabPositions.size) {
+                            TabRowDefaults.Indicator(
+                                color = Colors.WHITE,
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
+                            )
+                        }
+                    }
+                ){
+                    tabs.forEachIndexed { index, s ->
+                        Tab(
+                            selectedContentColor = Colors.WHITE,
+                            unselectedContentColor = Colors.GRAY,
+                            selected = pagerState.currentPage == index,
+                            onClick = {
+                                //tabIndex = index
+                                coroutineScope.launch {
+                                    // Call scroll to on pagerState
+                                    pagerState.animateScrollToPage(index)
+                                }
+                            },
+                            text = {
+                                Text(
+                                    text = s,
+                                    color = if(pagerState.currentPage == index) Colors.WHITE else Colors.GRAY,
+                                    fontSize = 14.sp,
+                                    fontFamily = Fonts.INTER,
+                                    fontWeight = FontWeight.SemiBold,
+
+                                    )
+                            },
+
+                            )
+                    }
+                }
+                HorizontalPager(state = pagerState) { page ->
+
+                    when (page) {
+                        //TODO: Add logic
+                        0 -> {
+                            if(conversationState.conversations.isNotEmpty()){
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LazyColumn(
+                                        modifier = Modifier.padding(horizontal = 12.dp)
+                                    ){
+                                        conversationState.conversations.filter { !it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                            item {
+
+                                                val dates = conversation.lastMessage?.date?.let { Date(it) }
+                                                ChatListItem(
+                                                    image = {
+                                                        if (conversation.recipients.get(0).contact?.photoUri != null) {
+                                                            Image(
+                                                                painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                                contentDescription = "Contact Image",
+                                                                contentScale = ContentScale.Crop,
+                                                                modifier = Modifier
+                                                                    .size(62.dp) // Set the size of the image
+                                                                    .clip(CircleShape) // Apply a circular shape
+                                                            )
+                                                        } else {
+                                                            Image(
+                                                                painter = painterResource(id = R.drawable.nouns),
+                                                                contentDescription = "Contact Image",
+                                                                modifier = Modifier
+                                                                    .size(62.dp) // Set the size of the image
+                                                                    .clip(CircleShape) // Apply a circular shape
+                                                            )
+                                                        }
+                                                    },
+                                                    header = conversation.recipients.get(0).getDisplayName(),
+                                                    subheader = conversation.lastMessage?.getSummary() ?: "",
+                                                    time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
+                                                    unreadConversation = conversation.unread,
+                                                    onClick = {
+                                                        conversationClicked(conversation.id.toString())
+                                                    },
+                                                    onClickLeft = {
+                                                        markArchived(conversation.id)
+                                                        if(isEthereumAddress(conversation.getConversationTitle())) {
+                                                            deleteXMTPConversation(conversation.getConversationTitle())
+                                                        }
+                                                    },
+                                                    onClickRight = {
+                                                        markArchived(conversation.id)
+                                                        if(isEthereumAddress(conversation.getConversationTitle())) {
+                                                            deleteXMTPConversation(conversation.getConversationTitle())
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else{
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No conversations",
+                                        fontSize = 20.sp,
+                                        fontFamily = Fonts.INTER,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Colors.GRAY,
+                                    )
+                                }
+                            }
+                        }
+                        1 -> {
+                            //TODO: Add logic (unaccepted messages)
+                            if(conversationState.conversations.isNotEmpty()){
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LazyColumn(
+                                        modifier = Modifier.padding(horizontal = 12.dp)
+                                    ){
+                                        conversationState.conversations.filter { it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                            item {
+
+                                                val dates = conversation.lastMessage?.date?.let { Date(it) }
+                                                ChatListItem(
+                                                    image = {
+                                                        if (conversation.recipients.get(0).contact?.photoUri != null) {
+                                                            Image(
+                                                                painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                                contentDescription = "Contact Image",
+                                                                contentScale = ContentScale.Crop,
+                                                                modifier = Modifier
+                                                                    .size(62.dp) // Set the size of the image
+                                                                    .clip(CircleShape) // Apply a circular shape
+                                                            )
+                                                        } else {
+                                                            Image(
+                                                                painter = painterResource(id = R.drawable.nouns),
+                                                                contentDescription = "Contact Image",
+                                                                modifier = Modifier
+                                                                    .size(62.dp) // Set the size of the image
+                                                                    .clip(CircleShape) // Apply a circular shape
+                                                            )
+                                                        }
+                                                    },
+                                                    header = conversation.recipients.get(0).getDisplayName(),
+                                                    subheader = conversation.lastMessage?.getSummary() ?: "",
+                                                    time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
+                                                    unreadConversation = conversation.unread,
+                                                    onClick = {
+                                                        conversationClicked(conversation.id.toString())
+                                                        markAccepted(conversation.id, conversation.getConversationTitle())
+                                                    },
+                                                    onClickLeft = {
+                                                        markArchived(conversation.id)
+                                                    },
+                                                    onClickRight = {
+                                                        markArchived(conversation.id)
+                                                        deleteXMTPConversation(conversation.getConversationTitle())
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else{
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No conversations",
+                                        fontSize = 20.sp,
+                                        fontFamily = Fonts.INTER,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Colors.GRAY,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if(showHiddenConversations){
