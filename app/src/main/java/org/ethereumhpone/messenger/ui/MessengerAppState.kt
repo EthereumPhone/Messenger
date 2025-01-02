@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import org.ethereumhpone.contracts.navigation.navigateToConversations
 import org.ethereumhpone.datastore.MessengerPreferences
 
 @Composable
@@ -46,5 +47,8 @@ class MessengerAppState(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = false
         )
+
+
+    fun navigateToConversation() = navController.navigateToConversations()
 
 }

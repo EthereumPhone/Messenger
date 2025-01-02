@@ -82,8 +82,8 @@ import kotlin.reflect.KSuspendFunction1
 
 @Composable
 fun ContactRoute(
+    onConversationClick: (String) -> Unit,
     modifier: Modifier = Modifier,
-    navigateToChat: (String, List<String>) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
@@ -93,8 +93,6 @@ fun ContactRoute(
         modifier = modifier,
         contacts = contacts,
         conversationState = conversationState,
-        contactsClicked = { selectedContacts ->
-            navigateToChat("0", selectedContacts.map { it.getDefaultNumber()?.address ?: it.numbers[0].address }) },
         markAccepted = { id, address -> viewModel.setConversationAsAccepted(id, address) },
         deleteConversation = { id -> viewModel.deleteConversation(id) },
         deleteXMTPConversation = { address -> viewModel.deleteXMTPConversation(address) },
@@ -102,7 +100,7 @@ fun ContactRoute(
         resolveENS = viewModel::resolveENS,
         conversationClicked = { id ->
             viewModel.setConversationAsRead(id.toLong())
-            navigateToChat(id, emptyList())
+            onConversationClick(id)
         }
     )
 }
@@ -114,7 +112,6 @@ fun ContactRoute(
 fun ContactScreen(
     contacts: List<Contact>,
     conversationState: ConversationUIState,
-    contactsClicked: (List<Contact>) -> Unit,
     conversationClicked: (String) -> Unit,
     deleteConversation: (Long) -> Unit,
     deleteXMTPConversation: (String) -> Unit,
@@ -461,7 +458,6 @@ fun ContactScreen(
                     contacts = contacts,
                     onContactsSelected = {
                         showContactSheet = false
-                        contactsClicked(it)
                     },
                     resolveENS = resolveENS
                 )

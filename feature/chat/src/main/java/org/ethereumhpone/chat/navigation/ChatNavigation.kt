@@ -42,15 +42,20 @@ internal class AddressesArgs(val addresses: List<String>) {
     constructor(savedStateHandle: SavedStateHandle) :
             this(Converters().toStringList(Uri.decode(checkNotNull(savedStateHandle[addressesArg]))))}
 
-fun NavController.navigateToChat(
-    threadId: String = "0L",
-    addresses: List<String> = emptyList()
+fun NavController.navigateToChatByThreadId(
+    threadId: String = "0L"
 ) {
     val encodedThreadId = URLEncoder.encode(threadId, URL_CHARACTER_ENCODING)
-    //val encodedAddresses = URLEncoder.encode(Converters().fromStringList(addresses), URL_CHARACTER_ENCODING)
-    val encodedAddresses = Uri.encode(Converters().fromStringList(addresses))
+    this.navigate("$chatRoute/thread/$encodedThreadId") {
+        launchSingleTop = true
+    }
+}
 
-    this.navigate("$chatRoute/$encodedThreadId/$encodedAddresses") {
+fun NavController.navigateToChatByAddresses(
+    addresses: List<String> = emptyList()
+) {
+    val encodedAddresses = Uri.encode(Converters().fromStringList(addresses))
+    this.navigate("$chatRoute/addresses/$encodedAddresses") {
         launchSingleTop = true
     }
 }

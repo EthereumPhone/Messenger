@@ -91,8 +91,8 @@ fun MessagingNavHost(
         }
     ) {
         conversationsGraph (
-            navigateToChat = navController::navigateToChat,
-            nestedGraphs = {
+            onConversationClick = navController::navigateToChat,
+            conversationDestination = {
                 chatScreen (
                     onBackClick = navController::popBackStack,
                 )

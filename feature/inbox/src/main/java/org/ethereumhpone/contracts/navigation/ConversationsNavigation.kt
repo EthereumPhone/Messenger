@@ -19,21 +19,17 @@ fun NavController.navigateToConversations(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.conversationsGraph(
-    navigateToChat: (String, List<String>) -> Unit, //threadId Long -> String
-    nestedGraphs: NavGraphBuilder.() -> Unit,
+    onConversationClick: (String) -> Unit,
+    conversationDestination: NavGraphBuilder.() -> Unit,
 ) {
     navigation(
         route = conversationsGraphRoutePattern,
         startDestination = conversationsRoute
     ) {
-        composable(
-            route = conversationsRoute
-        ) {
-            ContactRoute(
-                navigateToChat = navigateToChat,
-            )
+        composable(route = conversationsRoute) {
+            ContactRoute(onConversationClick)
         }
-        nestedGraphs()
+        conversationDestination()
     }
 }
 
