@@ -14,7 +14,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -36,11 +35,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.TextField
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -81,8 +78,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.InsertPhoto
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Shortcut
-import androidx.compose.material.icons.rounded.ArrowBackIosNew
-import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -123,7 +118,7 @@ import org.ethereumhpone.domain.model.Attachment
 
 @Composable
 fun ChatRoute(
-    navigateBackToConversations: () -> Unit,
+    onBackClick: () -> Unit,
     chatViewModel: ChatViewModel = hiltViewModel(),
     mediaViewModel: MediaViewModel = hiltViewModel()
 ){
@@ -147,7 +142,7 @@ fun ChatRoute(
         contacts = contacts,
         media = media,
         attachments = attachments,
-        navigateBackToConversations = navigateBackToConversations,
+        navigateBackToConversations = onBackClick,
         tokenBalance = tokenBalance,
         chainName = chainName,
         videoPlayer = videoPlayer,

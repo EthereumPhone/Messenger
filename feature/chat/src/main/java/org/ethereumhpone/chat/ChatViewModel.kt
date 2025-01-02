@@ -90,7 +90,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 ): ViewModel() {
 
     // nav arguments
-    private val threadId = ThreadIdArgs(savedStateHandle).threadId.toLong()
+    private val threadId = ThreadIdArgs(savedStateHandle).threadId?.toLong() ?: 0L
     private val addresses = AddressesArgs(savedStateHandle).addresses
     // conversation state
     private val conversationState = merge(

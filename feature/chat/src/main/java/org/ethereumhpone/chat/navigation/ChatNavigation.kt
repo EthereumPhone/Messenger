@@ -5,13 +5,10 @@ import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavOptions
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.navigation.navigation
 import org.ethereumhpone.chat.ChatRoute
-import org.ethereumhpone.database.model.Contact
 import org.ethereumhpone.database.util.Converters
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -33,18 +30,16 @@ const val chatGraphRoutePattern = "chat_graph"
 const val chatRoute = "chat_route"
 
 
-internal class ThreadIdArgs(val threadId: String) {
+internal class ThreadIdArgs(val threadId: String?) {
     constructor(savedStateHandle: SavedStateHandle) :
-            this(URLDecoder.decode(checkNotNull(savedStateHandle[threadIdArg]), URL_CHARACTER_ENCODING))
+            this(savedStateHandle.get<String>(threadIdArg)?.let { URLDecoder.decode(it, URL_CHARACTER_ENCODING) })
 }
 
 internal class AddressesArgs(val addresses: List<String>) {
     constructor(savedStateHandle: SavedStateHandle) :
             this(Converters().toStringList(Uri.decode(checkNotNull(savedStateHandle[addressesArg]))))}
 
-fun NavController.navigateToChatByThreadId(
-    threadId: String = "0L"
-) {
+fun NavController.navigateToChatByThreadId(threadId: String = "0L") {
     val encodedThreadId = URLEncoder.encode(threadId, URL_CHARACTER_ENCODING)
     this.navigate("$chatRoute/thread/$encodedThreadId") {
         launchSingleTop = true
@@ -64,14 +59,16 @@ fun NavGraphBuilder.chatScreen(
     onBackClick: () -> Unit,
 ) {
     composable(
-        route = "$chatRoute/{$threadIdArg}/{$addressesArg}",
+        route = "$chatRoute/thread/{$threadIdArg}",
         arguments = listOf(
-            navArgument("threadId") { type = NavType.StringType },
-            navArgument("addresses") { type = NavType.StringType },
+            navArgument(threadIdArg) { type = NavType.StringType }
         ),
-    ) {
-        ChatRoute(
-            navigateBackToConversations = onBackClick,
-        )
-    }
+    ) { ChatRoute(onBackClick = onBackClick) }
+
+    composable(
+        route = "$chatRoute/addresses/{$addressesArg}",
+        arguments = listOf(
+            navArgument(addressesArg) { type = NavType.StringType }
+        ),
+    ) { ChatRoute(onBackClick = onBackClick) }
 }

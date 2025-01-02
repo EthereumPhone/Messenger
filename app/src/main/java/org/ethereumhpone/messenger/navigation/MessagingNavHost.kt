@@ -1,12 +1,6 @@
 package org.ethereumhpone.messenger.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
@@ -14,18 +8,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-
-import androidx.navigation.compose.rememberNavController
-
 import org.ethereumhpone.chat.navigation.chatScreen
-import org.ethereumhpone.chat.navigation.navigateToChat
-import org.ethereumhpone.contracts.ContactScreen
+import org.ethereumhpone.chat.navigation.navigateToChatByAddresses
+import org.ethereumhpone.chat.navigation.navigateToChatByThreadId
 import org.ethereumhpone.contracts.navigation.conversationsGraph
 import org.ethereumhpone.contracts.navigation.conversationsGraphRoutePattern
-import org.ethereumhpone.contracts.navigation.conversationsRoute
 import org.ethereumhpone.contracts.navigation.navigateToConversations
 import org.ethereumhpone.messenger.ui.MessengerAppState
 import org.ethereumphone.onboarding.navigation.navigateToOnboarding
@@ -46,7 +34,7 @@ fun MessagingNavHost(
     // If threadId is not null, navigate to the chat
     threadId?.let {
         LaunchedEffect(it) {
-            navController.navigateToChat(threadId = it.toString())
+            navController.navigateToChatByThreadId(threadId = it.toString())
         }
     }
 
@@ -57,7 +45,7 @@ fun MessagingNavHost(
 
     inputAddress?.let {
         LaunchedEffect(inputAddress) {
-            navController.navigateToChat("0", listOf(inputAddress))
+            navController.navigateToChatByAddresses(listOf(inputAddress))
         }
     }
 
@@ -91,7 +79,7 @@ fun MessagingNavHost(
         }
     ) {
         conversationsGraph (
-            onConversationClick = navController::navigateToChat,
+            onConversationClick = navController::navigateToChatByThreadId,
             conversationDestination = {
                 chatScreen (
                     onBackClick = navController::popBackStack,

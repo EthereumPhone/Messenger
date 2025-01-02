@@ -47,10 +47,6 @@ internal fun MessagingApp(
     onTopAppBarActionClick: () -> Unit
 ) {
 
-
-
-
-
     Scaffold(
         containerColor = Color.Transparent,
         contentWindowInsets =  ScaffoldDefaults
@@ -65,14 +61,11 @@ internal fun MessagingApp(
                 .consumeWindowInsets(padding)
 
         ) {
+            val destination = messengerAppState.currentDestination
 
-            //val destination =
-
-            //TODO: add top domain check to hide/show topbar
-            if(true) {
+            if(destination != null) {
                 CenterAlignedTopAppBar(
                     title = { Text("Messenger", fontSize = 24.sp) }
-
                 )
             }
 
@@ -81,11 +74,6 @@ internal fun MessagingApp(
                 threadId = threadId,
                 inputAddress = inputAddress
             )
-
         }
-
     }
-
-
-
 }
