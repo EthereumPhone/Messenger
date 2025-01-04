@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,9 +31,12 @@ fun MessagingApp(
     inputAddress: String? = null
 ) {
 
-
-
-
+    MessagingApp(
+        messengerAppState = messengerAppState,
+        showSettingsDialog = false,
+        threadId = threadId,
+        inputAddress = inputAddress
+    ) { }
 
 }
 
@@ -48,7 +52,7 @@ internal fun MessagingApp(
 ) {
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = Color.Black,
         contentWindowInsets =  ScaffoldDefaults
             .contentWindowInsets
             .exclude(WindowInsets.navigationBars)
@@ -65,7 +69,11 @@ internal fun MessagingApp(
 
             if(destination != null) {
                 CenterAlignedTopAppBar(
-                    title = { Text("Messenger", fontSize = 24.sp) }
+                    title = { Text("Messenger", fontSize = 24.sp) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Black,
+                        titleContentColor = Color.White
+                    )
                 )
             }
 

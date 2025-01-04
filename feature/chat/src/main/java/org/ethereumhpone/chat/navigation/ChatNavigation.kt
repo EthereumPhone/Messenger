@@ -35,9 +35,13 @@ internal class ThreadIdArgs(val threadId: String?) {
             this(savedStateHandle.get<String>(threadIdArg)?.let { URLDecoder.decode(it, URL_CHARACTER_ENCODING) })
 }
 
-internal class AddressesArgs(val addresses: List<String>) {
-    constructor(savedStateHandle: SavedStateHandle) :
-            this(Converters().toStringList(Uri.decode(checkNotNull(savedStateHandle[addressesArg]))))}
+internal class AddressesArgs(val addresses: List<String>?) {
+    constructor(savedStateHandle: SavedStateHandle) : this(
+        savedStateHandle.get<String>(addressesArg)?.let {
+            Converters().toStringList(Uri.decode(it))
+        } ?: emptyList()
+    )
+}
 
 fun NavController.navigateToChatByThreadId(threadId: String = "0L") {
     val encodedThreadId = URLEncoder.encode(threadId, URL_CHARACTER_ENCODING)

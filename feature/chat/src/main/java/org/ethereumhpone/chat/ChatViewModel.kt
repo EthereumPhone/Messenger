@@ -91,7 +91,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     // nav arguments
     private val threadId = ThreadIdArgs(savedStateHandle).threadId?.toLong() ?: 0L
-    private val addresses = AddressesArgs(savedStateHandle).addresses
+    private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
     // conversation state
     private val conversationState = merge(
         conversationRepository.getConversation(threadId), // initial Conversation
