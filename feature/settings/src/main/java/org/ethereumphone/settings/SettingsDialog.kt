@@ -71,8 +71,8 @@ private fun SettingsDialog(
 ) {
 
     Dialog(
-        onDismissRequest = { onDismiss() },
-    ){
+        onDismissRequest = { onDismiss() }
+    ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = Colors.BLACK,
@@ -91,18 +91,16 @@ private fun SettingsDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
 
                 ) {
+                    Text(
+                        text = "Settings",
+                        style = TextStyle(
+                            fontFamily = Fonts.INTER,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 24.sp,
+                            color = Colors.WHITE
+                        ),
 
-                        Text(
-                            text = "Settings",
-                            style = TextStyle(
-                                fontFamily = Fonts.INTER,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 24.sp,
-                                color = Colors.WHITE
-                            ),
-
-                        )
-
+                    )
 
                     Column(
                         Modifier
@@ -130,8 +128,6 @@ private fun SettingsDialog(
                         }
                     }
 
-
-
                     Text(
                         text = "OK",
                         style = TextStyle(
@@ -145,8 +141,6 @@ private fun SettingsDialog(
                             .width(48.dp)
                             .clickable { onDismiss() }
                     )
-
-
                 }
             }
         }

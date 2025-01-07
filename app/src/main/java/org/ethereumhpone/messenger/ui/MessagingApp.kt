@@ -82,12 +82,13 @@ internal fun MessagingApp(
         SettingsDialog(onDismissSettingsDialog)
     }
 
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(true)
 
     if (showContactSheet) {
         ModalBottomSheet(
             onDismissRequest = onDismissContactSheet,
-            sheetState = sheetState
+            sheetState = sheetState,
+            containerColor = Color.Black
         ) {
             ContactSheet(
                 onDismiss = onDismissContactSheet,
