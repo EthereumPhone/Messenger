@@ -83,8 +83,12 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        //TODO: Remove when XMTP implementation is ready
+        // Sync contacts
+        CoroutineScope(Dispatchers.IO).launch {
+            syncRepository.syncContacts()
+        }
 
+        //TODO: Remove when XMTP implementation is ready
 
 
 
