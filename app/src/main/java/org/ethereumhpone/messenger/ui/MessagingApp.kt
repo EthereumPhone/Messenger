@@ -96,6 +96,7 @@ internal fun MessagingApp(
             ContactSheet(
                 onDismiss = onDismissContactSheet,
                 onContactsSelected = { contacts ->
+                    onDismissContactSheet()
                     //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!
                     messengerAppState.navigateToConversation(contacts.map { it.getDefaultNumber()?.address ?: it.numbers[0].address }) }
             )
