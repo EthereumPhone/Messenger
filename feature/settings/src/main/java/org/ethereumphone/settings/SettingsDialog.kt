@@ -46,7 +46,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.test.services.storage.file.PropertyFile.Column
-import org.ethereumhpone.messenger.ui.theme.MessengerTheme
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
@@ -285,32 +284,27 @@ private fun SettingsSectionTitle(title: String) {
 @Preview
 @Composable
 private fun PreviewSettingsDialog() {
-    MessengerTheme {
-        SettingsDialog(
-            onDismiss = {},
-            settingsUiState = SettingsUiState.Success(
-                UserEditableSettings(
-                    ringtone = "",
-                    useXmtp = false
-                )
-            ),
-            onChangeUseXmtp = {}
-        )
-    }
-
+    SettingsDialog(
+        onDismiss = {},
+        settingsUiState = SettingsUiState.Success(
+            UserEditableSettings(
+                ringtone = "",
+                useXmtp = false
+            )
+        ),
+        onChangeUseXmtp = {}
+    )
 }
 
 
 @Preview
 @Composable
 private fun PreviewSettingsLoadingDialog() {
-    MessengerTheme {
-        SettingsDialog(
-            onDismiss = {},
-            settingsUiState = SettingsUiState.Loading,
-            onChangeUseXmtp = {}
-        )
-    }
+    SettingsDialog(
+        onDismiss = {},
+        settingsUiState = SettingsUiState.Loading,
+        onChangeUseXmtp = {}
+    )
 }
 
 

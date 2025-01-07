@@ -63,7 +63,6 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(project(":core:datastore"))
     implementation(libs.androidx.junit.ktx)
-    implementation(project(":app"))
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("junit:junit:4.12")
     debugImplementation("androidx.compose.ui:ui-tooling")

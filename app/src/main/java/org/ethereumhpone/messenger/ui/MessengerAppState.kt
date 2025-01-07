@@ -11,9 +11,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import org.ethereumhpone.chat.navigation.navigateToChatByAddresses
+import org.ethereumhpone.contracts.navigation.conversationsRoute
 import org.ethereumhpone.contracts.navigation.navigateToConversations
 import org.ethereumhpone.datastore.MessengerPreferences
 
@@ -59,6 +61,17 @@ class MessengerAppState(
                 }
             } ?: previousDestination.value
         }
+
+
+    val isInboxScreen: StateFlow<Boolean> = navController.currentBackStackEntryFlow
+        .map { backStackEntry ->
+            backStackEntry.destination.route == conversationsRoute
+        }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,
+            initialValue = false
+        )
 
     val shouldShowOnboarding = messengerPreferences.prefs
         .map { !it.shouldHideOnboarding }

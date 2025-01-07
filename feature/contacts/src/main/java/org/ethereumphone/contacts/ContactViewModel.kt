@@ -3,6 +3,7 @@ package org.ethereumphone.contacts
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,6 +17,7 @@ import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.domain.repository.ContactRepository
 import javax.inject.Inject
 
+@HiltViewModel
 class ContactViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val contactRepository: ContactRepository,
