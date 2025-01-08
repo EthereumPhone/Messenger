@@ -125,17 +125,19 @@ internal fun MessagingApp(
                 )
             }
         },
-        contentWindowInsets =  ScaffoldDefaults
-            .contentWindowInsets
-            .exclude(WindowInsets.navigationBars)
-            .exclude(WindowInsets.ime)
-    ) { padding ->
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+
+        ) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .consumeWindowInsets(padding)
-
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Horizontal,
+                    ),
+                ),
         ) {
 
 

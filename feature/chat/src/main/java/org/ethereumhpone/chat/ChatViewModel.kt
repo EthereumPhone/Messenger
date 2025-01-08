@@ -102,28 +102,20 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
+
     // recipients state
     val recipientState = conversationState
         .filterNotNull()
-        .map {
-            addresses.firstOrNull()?.let { firstAddress ->
-                if (isAddress(firstAddress)) {
-                    _isXMTP.value = true
-                }
+        .map { conversation ->
+            when {
+                conversation.recipients.isNotEmpty() -> conversation.recipients
+                addresses.isNotEmpty() -> addresses.map { address -> Recipient(address = address) }
+                else -> emptyList()
             }
-            if (it.recipients.isNotEmpty()) {
-                it.recipients[0]
-            } else {
-                val state = addresses.isNotEmpty()
-                if (state) {
-                    Recipient(address = addresses[0])
-                } else {
-                    null
-                }
-            }
-        }.stateIn(
+        }
+        .stateIn(
             scope = viewModelScope,
-            initialValue = null,
+            initialValue = emptyList(),
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
@@ -160,20 +152,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val attachments: StateFlow<Set<Attachment>> = _attachments
 
 
-
-    // Write a piece of code that gets the eth balance of address "0x0" and saves it to a state variable
-    private val _focusedMessage = MutableStateFlow<Message?>(null)
-    val focusedMessage: StateFlow<Message?> = _focusedMessage
-
-
-
-
     private val _selectedMessages = MutableStateFlow<MutableList<Message?>>(mutableListOf())
     val selectedMessages: StateFlow<MutableList<Message?>> = _selectedMessages
 
-
-    private val _isXMTP = MutableStateFlow<Boolean>(false)
-    val isXMTP: StateFlow<Boolean> = _isXMTP
 
 
 
@@ -245,7 +226,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
 
 
-
+    /*
     fun callPhone() {
         recipientState.value?.contact?.numbers?.firstOrNull()?.let {
             val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${it.address}")).apply {
@@ -254,6 +235,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             context.startActivity(intent)
         }
     }
+     */
+
 
 
 
@@ -290,9 +273,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         return value.multiply(multiplier).divide(divisor)
     }
 
-    fun updatefocusedMessage(newMessage: Message) {
-        _focusedMessage.value = newMessage
-    }
+
 
     fun deleteMessage(id: String){
         viewModelScope.launch(Dispatchers.IO) {
@@ -303,6 +284,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
 
     //TODO: Make suspend
+
+    /*
     fun sendEth(amount: Double) {
         val chainIdLocked = currentChainId.value
         val decimalFormat = DecimalFormat("#.###########", DecimalFormatSymbols(Locale.US).apply {
@@ -332,6 +315,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             }
         }
     }
+     */
+
 
     fun isAddress(address: String): Boolean {
         return isEthereumAddress(address)
@@ -417,7 +402,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
+    //TODO: add specific contact selection
     fun onOpenContact() {
+        /*
         recipientState.value?.contact?.lookupKey?.let {
             println("Opening contact with lookup key: $it")
             val lookupUri = Uri.withAppendedPath(
@@ -430,6 +417,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             }
             context.startActivity(intent)
         }
+         */
+
     }
 
 

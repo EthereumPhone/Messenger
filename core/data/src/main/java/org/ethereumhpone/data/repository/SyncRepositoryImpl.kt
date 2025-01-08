@@ -118,6 +118,7 @@ class SyncRepositoryImpl @Inject constructor(
 
 
         // sync messages parts
+        /*
         partsCursor?.use { cursor ->
             cursor.forEach {
                 val mmsPart = partCursor.map(cursor) // Assuming this method creates a new instance
@@ -126,6 +127,7 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
         }
+         */
 
         // sync recipients
         recipientsCursor?.use {
@@ -145,6 +147,9 @@ class SyncRepositoryImpl @Inject constructor(
         }
 
         // sync messages
+        /*
+
+
         messagesCursor?.use {
             val messageColumns = MessageCursor.MessageColumns(messagesCursor)
             messagesCursor.forEach { cursor ->
@@ -182,6 +187,7 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
         }
+         */
 
         logTimeHandler.setLastLog(SyncLog().date)
         _isSyncing.value = false

@@ -257,27 +257,32 @@ class MessageRepositoryImpl @Inject constructor(
 
             val smsManager = SmsManagerFactory.createSmsManager(context, subId)
 
-            val strippedBody = when(prefs.unicode) {
-                    true -> removeAccents(signedBody)
-                    false -> signedBody
+            val strippedBody = when (prefs.unicode) {
+                true -> removeAccents(signedBody)
+                false -> signedBody
             }
 
             val messageParts = smsManager.divideMessage(strippedBody).orEmpty()
             val forceMms = prefs.longAsMms && messageParts.size > 1
 
-            if(addresses.any { it.startsWith("0x") }) { // XMTP
-                try {
+            // XMTP
+            try {
+                val message = insertSentXmtp(
+                    subId,
+                    threadId,
+                    addresses.first(),
+                    strippedBody,
+                    System.currentTimeMillis()
+                )
 
-                    val message = insertSentXmtp(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
-
-                    sendXmtpMessage(message)?.let { id ->
-                        messageDao.deleteAndInsert(message, message.copy(id = id))
-                    }
-
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                sendXmtpMessage(message)?.let { id ->
+                    messageDao.deleteAndInsert(message, message.copy(id = id))
                 }
-            } else if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // SMS
+
+            } catch (e: Exception) { e.printStackTrace() }
+
+            /*
+            else if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // SMS
                 try {
                     val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
                     sendSms(message)
@@ -382,6 +387,7 @@ class MessageRepositoryImpl @Inject constructor(
                 val transaction = Transaction(context)
                 transaction.sendNewMessage(subId, threadId, recipients, parts,null, null)
             }
+            */
         }
     }
 
