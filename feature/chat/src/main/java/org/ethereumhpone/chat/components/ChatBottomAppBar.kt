@@ -129,11 +129,15 @@ AttachmentRow(
 
                 AnimatedVisibility(
                     textState.text.isNotBlank() || attachments.isNotEmpty(),
-                    enter = expandHorizontally(expandFrom = Alignment.Start, clip = false),
-                    exit = shrinkHorizontally(shrinkTowards = Alignment.Start, clip = true)
+                    enter = expandHorizontally(expandFrom = Alignment.Start),
+                    exit = shrinkHorizontally(shrinkTowards = Alignment.Start)
                 ) {
                     IconButton(
-                        onClick = { onSendClick(textState.text) },
+                        onClick = {
+                            onSendClick(textState.text)
+                            focusManager.clearFocus()
+                            textState = TextFieldValue()
+                                  },
                         colors = IconButtonDefaults.iconButtonColors(
                             Color(0xFF8C7DF7),
                             Color.White
