@@ -376,14 +376,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
 
     fun sendMessage(messageBody: String) {
-        if(!permissionManager.isDefaultSms()) {
-            // TODO: add request permission
-            return
-        }
-        if(!permissionManager.hasSendSms()) {
-            //TODO: add request permission
-            return
-        }
 
         val subId = -1 //TODO: Add sunscroptionId logic
 
@@ -392,9 +384,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             val addresses = convo.recipients.map { it.address }
 
             viewModelScope.launch(Dispatchers.IO) {
-                sendMessageUseCase(subId, convo.id, addresses, messageBody, _attachments.value.toList(),
-                    //isXMTP.value
-                )
+                sendMessageUseCase(subId, convo.id, addresses, messageBody, _attachments.value.toList())
 
                 // remove attached items
                 _attachments.value = emptySet()

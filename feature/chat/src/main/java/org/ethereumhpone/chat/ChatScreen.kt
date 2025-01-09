@@ -209,8 +209,6 @@ fun ChatScreen(
     }
 
 
-
-
     Scaffold (
         topBar = {
             ChatTopAppBar(
@@ -221,12 +219,11 @@ fun ChatScreen(
             )
         },
         bottomBar = {
-
                 ChatBottomAppBar(
-                    enableSending = false,
+                    attachments,
+                    onToggleAttachment = onToggleAttachment,
                     onSendClick = onSendMessageClicked
                 )
-
         },
         containerColor = Color.Black,
         modifier = Modifier.imePadding()
@@ -234,10 +231,19 @@ fun ChatScreen(
     ) { paddingValues ->
 
         LazyColumn(
-            modifier = Modifier
-                .padding(paddingValues)
+            modifier = Modifier.padding(paddingValues)
         ) {
 
+            when(messagesUiState) {
+                is MessagesUiState.Success -> {
+
+                }
+
+
+                is MessagesUiState.Loading -> {
+
+                }
+            }
         }
     }
 }

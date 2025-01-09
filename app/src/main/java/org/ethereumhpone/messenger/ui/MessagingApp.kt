@@ -133,11 +133,7 @@ internal fun MessagingApp(
                 .fillMaxSize()
                 .padding(padding)
                 .consumeWindowInsets(padding)
-                .windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(
-                        WindowInsetsSides.Horizontal,
-                    ),
-                ),
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
         ) {
 
 

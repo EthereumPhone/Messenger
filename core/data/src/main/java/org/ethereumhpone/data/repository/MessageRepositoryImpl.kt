@@ -263,8 +263,6 @@ class MessageRepositoryImpl @Inject constructor(
             }
 
             val messageParts = smsManager.divideMessage(strippedBody).orEmpty()
-            val forceMms = prefs.longAsMms && messageParts.size > 1
-
             // XMTP
             try {
                 val message = insertSentXmtp(
