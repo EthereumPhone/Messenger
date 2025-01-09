@@ -208,6 +208,15 @@ fun ChatScreen(
 
     }
 
+    //gets offset of message composable
+    val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
+
+
+    val selectMode = remember { mutableStateOf(false) }
+    val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
+
+
+
 
     Scaffold (
         topBar = {
@@ -231,11 +240,55 @@ fun ChatScreen(
     ) { paddingValues ->
 
         LazyColumn(
-            modifier = Modifier.padding(paddingValues)
-        ) {
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+            ,
+            reverseLayout = true,
 
+
+        ) {
             when(messagesUiState) {
                 is MessagesUiState.Success -> {
+                    items(
+                        items = messagesUiState.messages,
+                        key = {message -> message.id}
+                    ) { message ->
+
+                        val listState = rememberLazyListState()
+
+
+                        val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
+                        val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
+                        val isFirstMessageByAuthor = prevAuthor != message.address
+                        val isLastMessageByAuthor = nextAuthor != message.address
+
+                        MessageItem(
+                            onAuthorClick = { },
+                            msg = message,
+                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                            isLastMessageByAuthor = isLastMessageByAuthor,
+                            composablePositionState = composablePositionState,
+                            player = videoPlayer,
+                            onPrepareVideo = { onPrepareVideo(it) },
+                            onLongClick = { onFocusedMessageUpdate(message) },
+                            name = recipients.first { it.address == message.address }.getDisplayName(),
+                            isSelected = selectedMessagesMap.contains(message),
+                            selectMode = selectMode,
+                            isXMTP = true,
+                            onSelect = { selectedMessage ->
+                                // invert boolean or add
+                                selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
+                                    isChecked?.let { !it } ?: true
+                                }
+                            },
+                            onDoubleClick = {selectMode.value = !selectMode.value}
+                        )
+
+                        LaunchedEffect(key1 = messagesUiState) { listState.animateScrollToItem(0) }
+
+
+                    }
 
                 }
 
