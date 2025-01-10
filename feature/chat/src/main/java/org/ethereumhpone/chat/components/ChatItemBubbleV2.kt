@@ -243,16 +243,11 @@ fun ChatItemBubbleV2(
 
             val uriHandler = LocalUriHandler.current
 
-            val messageBody = when (message.isSms()) {
+            val messageBody = when (message.isSms() || message.isXmtp() ) {
                 true -> {
-                    Log.d("messageBody true",message.body)
-
                     message.body
                 }
                 false -> {
-                    Log.d("messageBody false",message.body)
-
-
                     message.parts
                         .filter { part -> part.isText() }
                         .mapNotNull { part -> part.text }
