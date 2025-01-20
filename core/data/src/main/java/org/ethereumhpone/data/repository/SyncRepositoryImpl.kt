@@ -54,7 +54,6 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.Client
 import org.xmtp.android.library.ConsentState
-import org.xmtp.android.library.DecodedMessage
 import org.xmtp.android.library.XMTPException
 import org.xmtp.android.library.codecs.Attachment
 import org.xmtp.android.library.codecs.ContentCodec
@@ -71,6 +70,9 @@ import org.xmtp.android.library.codecs.ReactionSchema
 import org.xmtp.android.library.codecs.RemoteAttachment
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.proto.message.contents.Content
+import uniffi.xmtpv3.FfiConversationMessageKind
+import uniffi.xmtpv3.FfiDeliveryStatus
+import uniffi.xmtpv3.FfiMessage
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -324,13 +326,11 @@ class SyncRepositoryImpl @Inject constructor(
             if (canUseXmtp) {
                 xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
                     val client = xmtpClientManager.client
-
-                    client.contacts.refreshConsentList()
                     client.conversations.list().forEach { convo ->
 
                         launch {
                             // handle messages
-                            val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.peerAddresses)
+                            val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.members().first().addresses.first())
                             convo.messages().forEach { message ->
                                 manageXmtpMessage(
                                     threadId = threadId,
@@ -342,11 +342,11 @@ class SyncRepositoryImpl @Inject constructor(
 
                             // update recipients
                             val contacts = getContacts()
-                            val recipients = convo.peerAddresses.map { address ->
+                            val recipients = convo.members().map { member ->
                                 Recipient(
-                                    address = address,
-                                    contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
-                                    inboxId = client.inboxIdFromAddress(address) ?:  ""// assume xmtp V3
+                                    address = member.addresses.firstOrNull() ?: "",
+                                    contact = contacts.firstOrNull { it.ethAddress?.lowercase() == (member.addresses.firstOrNull() ?: "").lowercase() },
+                                    inboxId = client.inboxIdFromAddress(member.addresses.first()) ?:  ""// assume xmtp V3
                                 )
                             }.also { recipientDao.upsertRecipients(it) }
 
@@ -370,9 +370,11 @@ class SyncRepositoryImpl @Inject constructor(
 
     }
 
+
+
     private suspend fun manageXmtpMessage(
         threadId: Long,
-        msg: DecodedMessage,
+        msg: org.xmtp.android.library.libxmtp.Message,
         client: Client,
         replyReference: String = "", // empty if not a reply
         context: Context
@@ -380,10 +382,10 @@ class SyncRepositoryImpl @Inject constructor(
         val template = Message(
             id = msg.id,
             threadId = threadId,
-            address = msg.senderAddress,
+            address = msg.senderInboxId,
             type = "xmtp", // DO NOT CHANGE
-            date = msg.sent.time, // for historical messages, new ones use System time
-            dateSent = msg.sent.time,
+            date = msg.sentAtNs, // for historical messages, new ones use System time
+            dateSent = msg.sentAtNs,
             clientAddress = client.address,
             xmtpDeliveryStatus = msg.deliveryStatus,
             replyReference = replyReference // only for reply
@@ -392,7 +394,7 @@ class SyncRepositoryImpl @Inject constructor(
         //handle content types
         when (msg.encodedContent.type) {
             ContentTypeReadReceipt -> messageDao.getXmtpMessages(threadId)
-                .map { it.copy(seenDate = msg.sent.time) }
+                .map { it.copy(seenDate = msg.sentAtNs) }
                 .also { messageDao.updateMessages(it) }
 
             ContentTypeReaction -> msg.content<Reaction>()?.let { reaction ->
@@ -464,7 +466,7 @@ class SyncRepositoryImpl @Inject constructor(
                     val client = xmtpClientManager.client
                     client.conversations.list().forEach { conversation ->
                         conversation.streamMessages().collect {
-                            val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.peerAddresses)
+                            val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.members().first().addresses.first())
                             manageXmtpMessage(
                                 threadId = threadId,
                                 msg = it,
@@ -509,4 +511,38 @@ class SyncRepositoryImpl @Inject constructor(
 
         return encoded
     }
+}
+
+private fun org.xmtp.android.library.libxmtp.Message.copy(encodedContent: EncodedContent): org.xmtp.android.library.libxmtp.Message {
+    // Create a new FfiMessage with the same data but new content
+    val newFfiMessage = FfiMessage(
+        id = id.hexToByteArray(),         // Convert hex ID back to bytes
+        sentAtNs = sentAtNs,              // Use existing sent timestamp
+        convoId = convoId.hexToByteArray(), // Convert hex convoID back to bytes
+        senderInboxId = senderInboxId,    // Use existing sender inbox ID
+        content = encodedContent.toByteArray(), // New encoded content as bytes
+        kind = FfiConversationMessageKind.APPLICATION, // Assuming default message kind
+        deliveryStatus = when (deliveryStatus) {   // Convert delivery status
+            org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus.UNPUBLISHED -> FfiDeliveryStatus.UNPUBLISHED
+            org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus.PUBLISHED -> FfiDeliveryStatus.PUBLISHED
+            org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus.FAILED -> FfiDeliveryStatus.FAILED
+            else -> FfiDeliveryStatus.UNPUBLISHED
+        }
+    )
+
+    // Use the companion object's create method to construct the new Message
+    return org.xmtp.android.library.libxmtp.Message.create(newFfiMessage)
+        ?: throw XMTPException("Failed to create copy of message")
+}
+
+// Helper extension to convert hex string to ByteArray
+private fun String.hexToByteArray(): ByteArray {
+    val len = length
+    val data = ByteArray(len / 2)
+    var i = 0
+    while (i < len) {
+        data[i / 2] = ((Character.digit(this[i], 16) shl 4) + Character.digit(this[i + 1], 16)).toByte()
+        i += 2
+    }
+    return data
 }

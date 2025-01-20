@@ -33,8 +33,6 @@ import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.domain.manager.NetworkManager
 import org.web3j.abi.datatypes.Bool
-import org.xmtp.android.library.DecodedMessage
-import org.xmtp.android.library.Util.Companion.envelopeFromFFi
 import org.xmtp.android.library.messages.Topic
 import uniffi.xmtpv3.FfiEnvelope
 import uniffi.xmtpv3.FfiV2SubscribeRequest
@@ -100,7 +98,6 @@ class MyForegroundService : HiltService() {
                                 .takeWhile { isOnline }
                                 .collect {
                                     Log.d("Collected", "Collected")
-                                    handleMessage(it)
                                 }
                         }
                     } catch (e: Exception) {
@@ -119,9 +116,7 @@ class MyForegroundService : HiltService() {
         return START_STICKY
     }
 
-    private fun handleMessage(message: DecodedMessage) {
-        println("RUN_RECEIVER: handleMessage: $message")
-    }
+
 
     override fun onBind(intent: Intent?): IBinder? {
         return null

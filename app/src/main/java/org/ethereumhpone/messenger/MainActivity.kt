@@ -122,12 +122,9 @@ class MainActivity : ComponentActivity() {
             Log.d("Last sync", lastSync.toString())
 
 
-            val keyManager = KeyUtil(this@MainActivity)
-            val keys = keyManager.retrieveKey(walletSDK.getAddress())
 
-            if (keys != null) {
-                xmtpClientManager.createClient(keys , this@MainActivity)
-            }
+            xmtpClientManager.createClient(walletSDK , this@MainActivity)
+
 
 
             //TODO: Remove when everyone is on the new messenger version

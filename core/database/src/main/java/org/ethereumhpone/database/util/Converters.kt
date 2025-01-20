@@ -12,7 +12,7 @@ import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.Recipient
-import org.xmtp.android.library.messages.MessageDeliveryStatus
+import org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus
 
 @OptIn(ExperimentalSerializationApi::class)
 class Converters {

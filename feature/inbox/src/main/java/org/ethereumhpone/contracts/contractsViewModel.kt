@@ -27,6 +27,7 @@ import org.ethereumhpone.domain.repository.SyncRepository
 import org.kethereum.eip137.model.ENSName
 import org.kethereum.ens.ENS
 import org.kethereum.ens.isPotentialENSDomain
+import org.xmtp.android.library.ConsentState
 import javax.inject.Inject
 
 @HiltViewModel
@@ -85,7 +86,7 @@ class ContactViewModel @Inject constructor(
             }
 
             if (clientState == XmtpClientManager.ClientState.Ready) {
-                xmtpClientManager.client.contacts.deny(listOf(address))
+                xmtpClientManager.client.conversations.newConversation(address).updateConsentState(ConsentState.DENIED)
             }
         }
     }
@@ -97,7 +98,7 @@ class ContactViewModel @Inject constructor(
             }
 
             if (clientState == XmtpClientManager.ClientState.Ready) {
-                xmtpClientManager.client.contacts.allow(listOf(address))
+                xmtpClientManager.client.conversations.newConversation(address).updateConsentState(ConsentState.ALLOWED)
             }
             conversationRepository.markAccepted(conversationId)
         }

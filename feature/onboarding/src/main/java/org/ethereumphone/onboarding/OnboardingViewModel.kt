@@ -27,7 +27,6 @@ import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.walletsdk.WalletSDK
 import org.xmtp.android.library.Client
-import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
 import uniffi.xmtpv3.GenericException
 import javax.inject.Inject
 
@@ -38,7 +37,7 @@ class OnboardingViewModel @Inject constructor(
     private val messengerPreferences: MessengerPreferences,
     private val xmtpClientManager: XmtpClientManager,
     private val syncRepository: SyncRepository,
-    private val networkManager: NetworkManager
+    private val networkManager: NetworkManager,
 ): ViewModel() {
 
 
@@ -56,19 +55,12 @@ class OnboardingViewModel @Inject constructor(
                 }
 
                 try {
-                    val keyManager = KeyUtil(context)
-                    var keys = keyManager.retrieveKey(walletSDK.getAddress())
 
-                    if(keys == null) {
-                        Client().create(
-                            EthOSSigningKey(walletSDK),
-                            XmtpClientManager.clientOptions(context, walletSDK.getAddress())
-                        ).apply {
-                            keyManager.storeKey(walletSDK.getAddress(), PrivateKeyBundleV1Builder.encodeData(privateKeyBundleV1))
-                            keys = PrivateKeyBundleV1Builder.encodeData(privateKeyBundleV1)
-                        }
-                    }
-                    xmtpClientManager.createClient(keys!! , context)
+                    Client().create(
+                        EthOSSigningKey(walletSDK),
+                        XmtpClientManager.clientOptions(context, walletSDK.getAddress())
+                    )
+                    xmtpClientManager.createClient(walletSDK , context)
                 } catch (exception: GenericException.ApiException) {
                     _syncState.value = SyncState.Error(exception.localizedMessage ?: "Error")
                 }

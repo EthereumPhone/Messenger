@@ -52,7 +52,7 @@ import org.ethereumhpone.domain.model.XMTPConversationHandler
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.XMTPException
-import org.xmtp.android.library.messages.MessageDeliveryStatus
+import org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus
 import timber.log.Timber
 import java.util.Date
 import javax.inject.Inject
@@ -226,9 +226,7 @@ class MessageRepositoryImpl @Inject constructor(
 
         if (message.parts.isEmpty() || message.replyReference.isEmpty()) { // plain text message
             try {
-                val date = Date(System.currentTimeMillis())
-                return convo.send(text = message.body, sentAt = date)
-
+                return convo.send(text = message.body)
             } catch (e: XMTPException) {
                 e.printStackTrace()
                 return null

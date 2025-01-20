@@ -40,7 +40,6 @@ import org.xmtp.android.library.codecs.ReactionCodec
 import org.xmtp.android.library.codecs.ReadReceiptCodec
 import org.xmtp.android.library.codecs.RemoteAttachmentCodec
 import org.xmtp.android.library.codecs.ReplyCodec
-import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
 import org.xmtp.proto.message.contents.SignatureOuterClass
 import javax.inject.Inject
 import javax.inject.Singleton

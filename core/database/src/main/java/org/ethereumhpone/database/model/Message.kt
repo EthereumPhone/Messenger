@@ -8,8 +8,8 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import kotlinx.serialization.Serializable
-import org.xmtp.android.library.messages.MessageDeliveryStatus
 import java.util.UUID
+import org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus
 
 @Entity("message")
 @Serializable

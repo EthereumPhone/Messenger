@@ -26,7 +26,6 @@ import org.xmtp.android.library.codecs.ReactionCodec
 import org.xmtp.android.library.codecs.ReadReceiptCodec
 import org.xmtp.android.library.codecs.RemoteAttachmentCodec
 import org.xmtp.android.library.codecs.ReplyCodec
-import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
 import org.xmtp.android.library.messages.walletAddress
 import org.xmtp.proto.message.contents.SignatureOuterClass
 import java.security.SecureRandom
@@ -52,7 +51,6 @@ object XmtpClientManager {
                 //appVersion = "XMTPAndroidExample/v1.0.0",
                 isSecure = true
             ),
-            enableV3 = true,
             appContext = appContext,
             dbEncryptionKey = Base64.getDecoder().decode(encryptionKey)
         )
@@ -74,16 +72,17 @@ object XmtpClientManager {
 
     @OptIn(DelicateCoroutinesApi::class)
     fun createClient(
-        encodedPrivateKeyData: String,
+        walletSDK: WalletSDK,
         appContext: Context
     ) {
         if (clientState.value is ClientState.Ready) return
 
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                val v1Bundle = PrivateKeyBundleV1Builder.fromEncodedData(data = encodedPrivateKeyData)
-                _client = Client().buildFrom(v1Bundle, clientOptions(appContext, v1Bundle.walletAddress))
-
+                _client = Client().create(
+                    EthOSSigningKey(walletSDK),
+                    clientOptions(appContext, walletSDK.getAddress())
+                )
                 Client.register(codec = GroupUpdatedCodec())
                 Client.register(codec = ReadReceiptCodec())
                 Client.register(codec = ReactionCodec())
