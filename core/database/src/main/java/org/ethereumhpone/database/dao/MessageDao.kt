@@ -67,6 +67,7 @@ interface MessageDao {
     @Query("SELECT * FROM mms_part WHERE messageId = :messageId")
     fun getPartsForConversation(messageId: String): Flow<List<MmsPart>>
 
+    @Transaction
     @Query("SELECT * FROM message WHERE id = :id")
     fun getMessagesWithParts(id: String): Flow<List<MessageWithParts>>
 
