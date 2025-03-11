@@ -31,17 +31,6 @@ import org.kethereum.ens.ENS
 import org.kethereum.rpc.HttpEthereumRPC
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
-import org.xmtp.android.library.Client
-import org.xmtp.android.library.ClientOptions
-import org.xmtp.android.library.SigningKey
-import org.xmtp.android.library.XMTPEnvironment
-import org.xmtp.android.library.codecs.AttachmentCodec
-import org.xmtp.android.library.codecs.ReactionCodec
-import org.xmtp.android.library.codecs.ReadReceiptCodec
-import org.xmtp.android.library.codecs.RemoteAttachmentCodec
-import org.xmtp.android.library.codecs.ReplyCodec
-import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
-import org.xmtp.proto.message.contents.SignatureOuterClass
 import javax.inject.Inject
 import javax.inject.Singleton
 

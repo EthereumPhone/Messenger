@@ -27,7 +27,6 @@ import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.walletsdk.WalletSDK
 import org.xmtp.android.library.Client
-import org.xmtp.android.library.messages.PrivateKeyBundleV1Builder
 import uniffi.xmtpv3.GenericException
 import javax.inject.Inject
 
@@ -60,16 +59,14 @@ class OnboardingViewModel @Inject constructor(
                     var keys = keyManager.retrieveKey(walletSDK.getAddress())
 
                     if(keys == null) {
-                        Client().create(
-                            EthOSSigningKey(walletSDK),
-                            XmtpClientManager.clientOptions(context, walletSDK.getAddress())
-                        ).apply {
-                            keyManager.storeKey(walletSDK.getAddress(), PrivateKeyBundleV1Builder.encodeData(privateKeyBundleV1))
-                            keys = PrivateKeyBundleV1Builder.encodeData(privateKeyBundleV1)
-                        }
+                        Client.create(
+                            account = EthOSSigningKey(walletSDK),
+                            options = XmtpClientManager.clientOptions(context, walletSDK.getAddress())
+                        )
+                        keyManager.storeKey(walletSDK.getAddress(), "set")
                     }
-                    xmtpClientManager.createClient(keys!! , context)
-                } catch (exception: GenericException.ApiException) {
+                    xmtpClientManager.createClient(walletSDK , context)
+                } catch (exception: Exception) {
                     _syncState.value = SyncState.Error(exception.localizedMessage ?: "Error")
                 }
                 _syncState.value = SyncState.Success

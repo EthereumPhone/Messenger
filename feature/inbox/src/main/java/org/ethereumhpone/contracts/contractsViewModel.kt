@@ -85,7 +85,7 @@ class ContactViewModel @Inject constructor(
             }
 
             if (clientState == XmtpClientManager.ClientState.Ready) {
-                xmtpClientManager.client.contacts.deny(listOf(address))
+                //xmtpClientManager.client.contacts.deny(listOf(address))
             }
         }
     }
@@ -97,7 +97,7 @@ class ContactViewModel @Inject constructor(
             }
 
             if (clientState == XmtpClientManager.ClientState.Ready) {
-                xmtpClientManager.client.contacts.allow(listOf(address))
+                //xmtpClientManager.client.contacts.allow(listOf(address))
             }
             conversationRepository.markAccepted(conversationId)
         }

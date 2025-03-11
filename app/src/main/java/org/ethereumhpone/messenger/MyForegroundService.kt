@@ -33,13 +33,8 @@ import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.domain.manager.NetworkManager
 import org.web3j.abi.datatypes.Bool
-import org.xmtp.android.library.DecodedMessage
-import org.xmtp.android.library.Util.Companion.envelopeFromFFi
-import org.xmtp.android.library.messages.Topic
-import uniffi.xmtpv3.FfiEnvelope
-import uniffi.xmtpv3.FfiV2SubscribeRequest
-import uniffi.xmtpv3.FfiV2Subscription
-import uniffi.xmtpv3.FfiV2SubscriptionCallback
+import org.xmtp.android.library.libxmtp.Message
+import org.xmtp.proto.message.contents.MessageOuterClass
 import uniffi.xmtpv3.NoPointer
 import javax.inject.Inject
 
@@ -119,7 +114,7 @@ class MyForegroundService : HiltService() {
         return START_STICKY
     }
 
-    private fun handleMessage(message: DecodedMessage) {
+    private fun handleMessage(message: Message) {
         println("RUN_RECEIVER: handleMessage: $message")
     }
 

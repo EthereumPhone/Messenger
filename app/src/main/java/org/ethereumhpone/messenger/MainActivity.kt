@@ -130,7 +130,7 @@ class MainActivity : ComponentActivity() {
             val keys = keyManager.retrieveKey(walletSDK.getAddress())
 
             if (keys != null) {
-                xmtpClientManager.createClient(keys , this@MainActivity)
+                xmtpClientManager.createClient(walletSDK , this@MainActivity)
             }
 
 

@@ -3,10 +3,9 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.hilt.android)
-    alias(libs.plugins.kotlin.kapt)
-    alias(libs.plugins.org.jetbrains.kotlin.serialization)
-
-
+    alias(libs.plugins.kotlin.kapt) // Put kapt back
+    // alias(libs.plugins.org.jetbrains.kotlin.serialization)
+    kotlin("plugin.serialization") version "2.0.20"
 }
 
 android {
@@ -19,14 +18,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
 
-
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments.put("room.schemaLocation", "$projectDir/schemas")
             }
         }
     }
-
 
     buildTypes {
         release {
@@ -42,13 +39,28 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
+        // Force Kotlin to use version 1.9
+        languageVersion = "1.9"
+        apiVersion = "1.9"
+        // Add freeCompilerArgs to force compatibility
+        freeCompilerArgs = listOf("-Xskip-prerelease-check", "-Xskip-metadata-version-check")
+    }
+}
+
+// Configure kapt to be less strict
+kapt {
+    correctErrorTypes = true
+    useBuildCache = false
+    includeCompileClasspath = false
+    arguments {
+        arg("kapt.incremental.apt", "false")
     }
 }
 
 dependencies {
-
     implementation("com.google.code.gson:gson:2.8.6")
 
     implementation(libs.core.ktx)
@@ -69,6 +81,9 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
 
-    implementation(libs.xmtp)
-
+    // Exclude transitive Kotlin dependencies that might be causing issues
+    implementation(libs.xmtp) {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+    }
 }
