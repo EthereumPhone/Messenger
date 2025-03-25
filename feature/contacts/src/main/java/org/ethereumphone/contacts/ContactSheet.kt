@@ -81,6 +81,7 @@ fun ContactSheet(
     ContactSheet(
         queryResultUiState = queryResultUiState,
         onContactsSelected,
+        onSearchQueryChanged = viewModel::onSearchQueryChanged,
         {}
     )
 }
@@ -89,6 +90,7 @@ fun ContactSheet(
 internal fun ContactSheet(
     queryResultUiState: QueryResultUiState,
     onContactsSelected: (List<Contact>) -> Unit,
+    onSearchQueryChanged: (String) -> Unit,
     resolveENS: (String) -> Unit
 ) {
     var multiSelectMode by remember { mutableStateOf(false) }
@@ -144,6 +146,7 @@ internal fun ContactSheet(
                     // Create a new TextFieldValue with the processed text and updated selection
                     val newProcessedTextFieldValue = newTextFieldValue.copy(text = processedText)
                     textState = newProcessedTextFieldValue
+                    onSearchQueryChanged(newProcessedTextFieldValue.text)
                 },
                 onTextFieldFocused = { focused ->
                     if (focused) {
@@ -162,7 +165,7 @@ internal fun ContactSheet(
                         queryResultUiState.manualContact?.let {
                             item {
                                 ethOSContactListItem(
-                                    header = "write to ${it.name}"
+                                    header = "write to ${it.lookupKey}"
                                 )
                             }
                         }
@@ -421,6 +424,7 @@ fun previewContactSheet() {
 
     ContactSheet(
         queryResultUiState,
+        {},
         {}
     ) { }
 }
@@ -448,6 +452,7 @@ fun previewNoQueryContactSheet() {
 
     ContactSheet(
         queryResultUiState,
+        {},
         {}
     ) { }
 }
@@ -462,6 +467,7 @@ fun previewNoContactsContactSheet() {
 
     ContactSheet(
         queryResultUiState,
+        {},
         {}
     ) { }
 }

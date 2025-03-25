@@ -1,5 +1,6 @@
 package org.ethereumphone.contacts
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -37,11 +38,10 @@ class ContactViewModel @Inject constructor(
                 QueryResultUiState.Success(null, contacts)
             } else {
                 // Generate a manual contact based on the query
-                val manualContact: Contact? = when {
-                    phoneNumberUtils.isPossibleNumber(query) -> Contact(numbers = listOf(PhoneNumber(address = query)))
-                    query.isValidEns() || query.isValidEthAddress() -> Contact(ethAddress = query)
-                    else -> null
-                }
+
+                //TODO: only show if possible ens or ethAddress?
+                //val manualContact = query.takeIf { it.isValidEns() || it.isValidEthAddress() }?.let { Contact(lookupKey = it, ethAddress = it) }
+                val manualContact = Contact(lookupKey = query, ethAddress = query)
 
                 // Filter contacts based on the query and add manual contact if present
                 val filteredContacts = contacts.filter { filterContact(it, query) }
@@ -78,6 +78,8 @@ private fun String.normalizedString(): String = this.replace(" ", "").lowercase(
 private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))
 
 private fun String.isValidEns(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_$]{3,}\\.eth$"))
+
+private fun String.isPossibleENS(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_\$]{3,}$"))
 
 
 sealed interface QueryResultUiState {

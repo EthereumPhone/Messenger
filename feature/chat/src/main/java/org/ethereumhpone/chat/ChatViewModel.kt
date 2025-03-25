@@ -324,16 +324,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
 
     //TODO: Make suspend
-    fun chainToApiKey(networkName: String): String = when(networkName) {
-        "eth-mainnet" -> BuildConfig.ETHEREUM_API
-        "eth-sepolia" -> BuildConfig.SEPOLIA_API
-        "opt-mainnet" -> BuildConfig.OPTIMISM_API
-        "arb-mainnet" -> BuildConfig.ARBITRUM_API
-        "polygon-mainnet" -> BuildConfig.POLYGON_API
-        "base-mainnet" -> BuildConfig.BASE_API
-        "eth-goerli" -> BuildConfig.BASE_API
-        else -> ""
-    }
+    fun chainToApiKey(networkName: String): String = BuildConfig.ALCHEMY_API
 
     //TODO: move all to own helper class
     fun chainIdToEtherscan(chainId: Int): String = when(chainId) {

@@ -38,16 +38,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    fun chainToApiKey(networkName: String): String = when(networkName) {
-        "eth-mainnet" -> BuildConfig.ETHEREUM_API
-        "eth-sepolia" -> BuildConfig.SEPOLIA_API
-        "opt-mainnet" -> BuildConfig.OPTIMISM_API
-        "arb-mainnet" -> BuildConfig.ARBITRUM_API
-        "polygon-mainnet" -> BuildConfig.POLYGON_API
-        "base-mainnet" -> BuildConfig.BASE_API
-        "eth-goerli" -> BuildConfig.BASE_API
-        else -> ""
-    }
+    fun chainToApiKey(networkName: String): String = BuildConfig.ALCHEMY_API
 
     fun chainIdToName(chainId: Int): String = when(chainId) {
         1 -> "eth-mainnet"
