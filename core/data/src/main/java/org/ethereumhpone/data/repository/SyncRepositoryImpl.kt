@@ -72,6 +72,8 @@ import org.xmtp.android.library.codecs.ReactionSchema
 import org.xmtp.android.library.codecs.RemoteAttachment
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.android.library.codecs.id
+import org.xmtp.android.library.libxmtp.DecodedMessage
+import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.proto.message.contents.Content
 import org.xmtp.proto.message.contents.MessageOuterClass
 import java.nio.charset.StandardCharsets
@@ -334,12 +336,17 @@ class SyncRepositoryImpl @Inject constructor(
             if (canUseXmtp) {
                 xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
                     val client = xmtpClientManager.client
+                    client.conversations.syncAllConversations()
 
-                    client.conversations.list().forEach { convo ->
+                    val test = client.conversations.list()
+                    val test2 = client.conversations.listDms()
+                    Log.d("NO DIDDY", test.size.toString())
 
+                    test2.forEach { convo ->
+                        Log.d("CONVO", convo.id)
                         launch {
                             // handle messages
-                            val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.members().get(0).addresses.firstOrNull() ?: "")
+                            val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.id)
                             convo.messages().forEach { message ->
                                 manageXmtpMessage(
                                     threadId = threadId,
@@ -351,13 +358,12 @@ class SyncRepositoryImpl @Inject constructor(
 
                             // update recipients
                             val contacts = getContacts()
-
-                            val address = client.address
                             val recipients = convo.members().map { member ->
+                                val address = member.identities.filter { it.kind == IdentityKind.ETHEREUM }.map { it.identifier }
                                 Recipient(
-                                    address = member.addresses.getOrNull(0) ?: "",
-                                    contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.lowercase() },
-                                    inboxId = client.inboxIdFromAddress(member.addresses.getOrNull(0) ?: "") ?:  ""// assume xmtp V3
+                                    address = address.first(),
+                                    contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.first() },
+                                    inboxId = member.inboxId
                                 )
                             }.also { recipientDao.upsertRecipients(it) }
 
@@ -383,7 +389,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     private suspend fun manageXmtpMessage(
         threadId: Long,
-        msg: org.xmtp.android.library.libxmtp.Message,
+        msg: DecodedMessage,
         client: Client,
         replyReference: String = "", // empty if not a reply
         context: Context
@@ -395,7 +401,7 @@ class SyncRepositoryImpl @Inject constructor(
             type = "xmtp", // DO NOT CHANGE
             date = msg.sentAtNs, // for historical messages, new ones use System time
             dateSent = msg.sentAtNs,
-            clientAddress = client.address,
+            clientAddress = "client.", // TODO: FIX THIS
             xmtpDeliveryStatus = msg.deliveryStatus,
             replyReference = replyReference // only for reply
         )
@@ -451,7 +457,8 @@ class SyncRepositoryImpl @Inject constructor(
                     val client = xmtpClientManager.client
                     client.conversations.list().forEach { conversation ->
                         conversation.streamMessages().collect {
-                            val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.members().first().addresses.firstOrNull() ?: "")
+
+                            val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.id)
                             manageXmtpMessage(
                                 threadId = threadId,
                                 msg = it,
