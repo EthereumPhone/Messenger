@@ -52,11 +52,11 @@ import org.ethereumhpone.domain.model.XMTPConversationHandler
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.XMTPException
+import org.xmtp.android.library.libxmtp.DecodedMessage
 import timber.log.Timber
 import java.util.Date
 import javax.inject.Inject
 import kotlin.math.sqrt
-import org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus
 
 class MessageRepositoryImpl @Inject constructor(
     private val messageDao: MessageDao,
@@ -463,7 +463,7 @@ class MessageRepositoryImpl @Inject constructor(
             dateSent = date,
             type = "xmtp",
             clientAddress = address, // gets updates when messages is streamed from xmtp
-            xmtpDeliveryStatus = MessageDeliveryStatus.UNPUBLISHED
+            xmtpDeliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED
         ).also { messageDao.insertMessage(it) }
     }
     override suspend fun insertReceivedXmtp(

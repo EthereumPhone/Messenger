@@ -137,8 +137,9 @@ class MainActivity : ComponentActivity() {
             //TODO: Remove when everyone is on the new messenger version
             if((lastSync == 0L || lastSync <= 1727630355723) && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages() // Now only sync contacts
-                syncRepository.syncXmtp()
             }
+            syncRepository.syncXmtp()
+
 
             //syncRepository.startStreamAllMessages()
         }

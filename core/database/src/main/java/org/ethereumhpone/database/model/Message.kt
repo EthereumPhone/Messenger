@@ -8,8 +8,8 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import kotlinx.serialization.Serializable
+import org.xmtp.android.library.libxmtp.DecodedMessage
 import java.util.UUID
-import org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus
 
 @Entity("message")
 @Serializable
@@ -53,7 +53,7 @@ data class Message(
     val clientAddress: String = "", // the address of the user
     val replyReference: String = "", // empty means not a reply
     val seenDate: Long = 0,
-    val xmtpDeliveryStatus: MessageDeliveryStatus = MessageDeliveryStatus.PUBLISHED,
+    val xmtpDeliveryStatus: DecodedMessage.MessageDeliveryStatus = DecodedMessage.MessageDeliveryStatus.PUBLISHED,
 
     ) {
     enum class AttachmentType {
@@ -90,7 +90,7 @@ data class Message(
                 || boxId == Telephony.Sms.MESSAGE_TYPE_OUTBOX
                 || boxId == Telephony.Sms.MESSAGE_TYPE_QUEUED)
 
-        val isOutgoingXmtp = isXmtp() && xmtpDeliveryStatus == MessageDeliveryStatus.UNPUBLISHED
+        val isOutgoingXmtp = isXmtp() && xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.UNPUBLISHED
 
         return isOutgoingMms || isOutgoingSms || isOutgoingXmtp
     }
@@ -127,7 +127,7 @@ data class Message(
     fun isFailedMessage(): Boolean {
         val isFailedMms = isMms() && (errorType >= Telephony.MmsSms.ERR_TYPE_GENERIC_PERMANENT || boxId == Telephony.Mms.MESSAGE_BOX_FAILED)
         val isFailedSms = isSms() && boxId == Telephony.Sms.MESSAGE_TYPE_FAILED
-        val isfailedXmtp = isXmtp() && xmtpDeliveryStatus == MessageDeliveryStatus.FAILED
+        val isfailedXmtp = isXmtp() && xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.FAILED
         return isFailedMms || isFailedSms || isfailedXmtp
     }
 
@@ -142,7 +142,7 @@ data class Message(
     fun isDelivered(): Boolean {
         val isDeliveredMms = boxId == Telephony.Mms.MESSAGE_BOX_SENT
         val isDeliveredSms = deliveryStatus == Telephony.Sms.STATUS_COMPLETE
-        val isDeliveredXmtp = xmtpDeliveryStatus == MessageDeliveryStatus.PUBLISHED
+        val isDeliveredXmtp = xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.PUBLISHED
         return isDeliveredMms || isDeliveredSms || isDeliveredXmtp
     }
 

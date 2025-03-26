@@ -2,6 +2,7 @@ package org.ethereumhpone.data.manager
 
 import android.content.Context
 import com.google.protobuf.ByteString
+import com.google.protobuf.kotlin.toByteString
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -18,6 +19,8 @@ import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumphone.walletsdk.WalletSDK
 import org.xmtp.android.library.Client
 import org.xmtp.android.library.ClientOptions
+import org.xmtp.android.library.SignedData
+import org.xmtp.android.library.SignerType
 import org.xmtp.android.library.SigningKey
 import org.xmtp.android.library.XMTPEnvironment
 import org.xmtp.android.library.codecs.AttachmentCodec
@@ -26,6 +29,8 @@ import org.xmtp.android.library.codecs.ReactionCodec
 import org.xmtp.android.library.codecs.ReadReceiptCodec
 import org.xmtp.android.library.codecs.RemoteAttachmentCodec
 import org.xmtp.android.library.codecs.ReplyCodec
+import org.xmtp.android.library.libxmtp.IdentityKind
+import org.xmtp.android.library.libxmtp.PublicIdentity
 import org.xmtp.android.library.messages.walletAddress
 import org.xmtp.proto.message.contents.SignatureOuterClass
 import java.security.SecureRandom
@@ -80,7 +85,7 @@ object XmtpClientManager {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 _client = Client.create(
-                    account = EthOSSigningKey(walletSDK),
+                    account = EOAWallet(walletSDK),
                     options = clientOptions(appContext, walletSDK.getAddress())
                 )
 
@@ -129,34 +134,19 @@ class KeyUtil(val context: Context) {
     }
 }
 
-class EthOSSigningKey(private val walletSDK: WalletSDK) : SigningKey {
-    override val address: String
-        get() = walletSDK.getAddress()
+class EOAWallet(val walletSDK: WalletSDK) : SigningKey {
+    override val publicIdentity: PublicIdentity
+        get() = PublicIdentity(
+            IdentityKind.ETHEREUM,
+            walletSDK.getAddress()
+        )
+    override val type: SignerType
+        get() = SignerType.EOA
 
-    override suspend fun sign(data: ByteArray): SignatureOuterClass.Signature? {
-        return sign(String(data))
-    }
-
-    override suspend fun sign(message: String): SignatureOuterClass.Signature? {
+    override suspend fun sign(message: String): SignedData {
         val signatureString = walletSDK.signMessage(message)
         val signatureBytes = signatureString.removePrefix("0x").chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
-        val r = signatureBytes.sliceArray(0 until 32)
-        val s = signatureBytes.sliceArray(32 until 64)
-        val v = signatureBytes[64].toInt() - 27  // Adjust v value as required
-
-        val ecdsaCompact = SignatureOuterClass.Signature.ECDSACompact.newBuilder()
-            .setBytes((r + s).toByteString())
-            .setRecovery(v)
-            .build()
-
-        return SignatureOuterClass.Signature.newBuilder()
-            .setEcdsaCompact(ecdsaCompact)
-            .build()
-    }
-
-    // Utility extension function to convert ByteArray to ByteString
-    fun ByteArray.toByteString(): ByteString {
-        return ByteString.copyFrom(this)
+        return SignedData(signatureBytes)
     }
 }

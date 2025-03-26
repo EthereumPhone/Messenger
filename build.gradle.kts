@@ -15,5 +15,9 @@ plugins {
 
 }
 
-
+allprojects {
+    tasks.matching { it.name.contains("kapt") }.configureEach {
+        enabled = false
+    }
+}
 

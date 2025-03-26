@@ -12,7 +12,7 @@ import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.Recipient
-import org.xmtp.android.library.libxmtp.Message.MessageDeliveryStatus
+import org.xmtp.android.library.libxmtp.DecodedMessage
 
 @OptIn(ExperimentalSerializationApi::class)
 class Converters {
@@ -103,12 +103,12 @@ class Converters {
     }
 
     @TypeConverter
-    fun fromMessageDeliveryStatus(ordinal: Int): MessageDeliveryStatus {
-        return MessageDeliveryStatus.entries[ordinal]
+    fun fromMessageDeliveryStatus(ordinal: Int): DecodedMessage.MessageDeliveryStatus {
+        return DecodedMessage.MessageDeliveryStatus.entries[ordinal]
     }
 
     @TypeConverter
-    fun toMessageDeliveryStatus(status: MessageDeliveryStatus): Int {
+    fun toMessageDeliveryStatus(status: DecodedMessage.MessageDeliveryStatus): Int {
         return status.ordinal
     }
 }
