@@ -83,10 +83,11 @@ object XmtpClientManager {
         if (clientState.value is ClientState.Ready) return
 
         GlobalScope.launch(Dispatchers.IO) {
+            val address = walletSDK.getAddress()
             try {
                 _client = Client.create(
-                    account = EOAWallet(walletSDK),
-                    options = clientOptions(appContext, walletSDK.getAddress())
+                    account = EOAWallet(walletSDK, address),
+                    options = clientOptions(appContext, address),
                 )
 
                 Client.register(codec = GroupUpdatedCodec())
@@ -134,17 +135,17 @@ class KeyUtil(val context: Context) {
     }
 }
 
-class EOAWallet(val walletSDK: WalletSDK) : SigningKey {
+class EOAWallet(val walletSDK: WalletSDK, val address: String) : SigningKey {
     override val publicIdentity: PublicIdentity
         get() = PublicIdentity(
             IdentityKind.ETHEREUM,
-            walletSDK.getAddress()
+            address
         )
     override val type: SignerType
         get() = SignerType.EOA
 
     override suspend fun sign(message: String): SignedData {
-        val signatureString = walletSDK.signMessage(message)
+        val signatureString = walletSDK.signMessage(message, 1)
         val signatureBytes = signatureString.removePrefix("0x").chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
         return SignedData(signatureBytes)

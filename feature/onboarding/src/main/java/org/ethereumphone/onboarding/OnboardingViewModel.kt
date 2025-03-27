@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.ethereumhpone.data.manager.EthOSSigningKey
+import org.ethereumhpone.data.manager.EOAWallet
 import org.ethereumhpone.data.manager.KeyUtil
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.datastore.MessengerPreferences
@@ -47,7 +47,7 @@ class OnboardingViewModel @Inject constructor(
     fun generateXMTP() {
 
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             networkManager.isOnline.collectLatest { isOnline ->
                 if (!isOnline) {
                     _syncState.value = SyncState.Error("No internet connection found")
@@ -55,16 +55,24 @@ class OnboardingViewModel @Inject constructor(
                 }
 
                 try {
+                    val address = walletSDK.getAddress()
                     val keyManager = KeyUtil(context)
-                    var keys = keyManager.retrieveKey(walletSDK.getAddress())
+                    var keys = keyManager.retrieveKey(address)
 
+                    // generate keys
                     if(keys == null) {
-                        Client.create(
-                            account = EthOSSigningKey(walletSDK),
-                            options = XmtpClientManager.clientOptions(context, walletSDK.getAddress())
-                        )
+                        try {
+                            Client.create(
+                                account = EOAWallet(walletSDK, address),
+                                options = XmtpClientManager.clientOptions(context, address)
+                            )
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+
                         keyManager.storeKey(walletSDK.getAddress(), "set")
                     }
+
                     xmtpClientManager.createClient(walletSDK , context)
                 } catch (exception: Exception) {
                     _syncState.value = SyncState.Error(exception.localizedMessage ?: "Error")

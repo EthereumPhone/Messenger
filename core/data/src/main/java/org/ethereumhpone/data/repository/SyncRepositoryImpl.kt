@@ -332,18 +332,23 @@ class SyncRepositoryImpl @Inject constructor(
 
         //TODO: check if it works via options
 
-        canUseXmtp.collect { canUseXmtp ->
+
+
+        canUseXmtp.collectLatest { canUseXmtp ->
             if (canUseXmtp) {
+                xmtpClientManager.clientState.collectLatest {
+                    Log.d("XMTP STATE", it.toString())
+
+                }
                 xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
                     val client = xmtpClientManager.client
+                    Log.d("INBOX ID", client.inboxId)
                     client.conversations.syncAllConversations()
 
                     val test = client.conversations.list()
                     val test2 = client.conversations.listDms()
-                    Log.d("NO DIDDY", test.size.toString())
 
                     test2.forEach { convo ->
-                        Log.d("CONVO", convo.id)
                         launch {
                             // handle messages
                             val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.id)

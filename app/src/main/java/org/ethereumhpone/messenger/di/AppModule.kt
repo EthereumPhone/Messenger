@@ -38,7 +38,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    fun chainToApiKey(networkName: String): String = BuildConfig.ALCHEMY_API
+    fun chainToApiKey(): String = BuildConfig.ALCHEMY_API
 
     fun chainIdToName(chainId: Int): String = when(chainId) {
         1 -> "eth-mainnet"
@@ -52,7 +52,7 @@ object AppModule {
     }
 
     fun chainIdToRPC(chainId: Int): String {
-        return "https://${chainIdToName(chainId)}.g.alchemy.com/v2/${chainToApiKey(chainIdToName(chainId))}"
+        return "https://${chainIdToName(chainId)}.g.alchemy.com/v2/${chainToApiKey()}"
     }
 
     @Provides
@@ -84,14 +84,11 @@ object AppModule {
     fun bindWalletSDK(
         @ApplicationContext context: Context,
     ): WalletSDK {
-        var walletSDK = WalletSDK(context)
-
-        runBlocking {
-            val currentChainId = withContext(Dispatchers.IO) {
-                walletSDK.getChainId()
-            }
-            walletSDK = WalletSDK(context, Web3j.build(HttpService(chainIdToRPC(currentChainId))))
-        }
+        val walletSDK = WalletSDK(
+            context,
+            bundlerRPCUrl= "https://api.pimlico.io/v2/1/rpc?apikey=pim_7TcvnUhBUJDatSS2ayjK9X",
+            web3jInstance = Web3j.build(HttpService(chainIdToRPC(1)))
+        )
 
         return walletSDK
     }
