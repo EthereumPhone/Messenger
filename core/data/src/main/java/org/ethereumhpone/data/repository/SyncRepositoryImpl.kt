@@ -333,10 +333,7 @@ class SyncRepositoryImpl @Inject constructor(
 
         //TODO: check if it works via options
 
-
-
         canUseXmtp.collect { canUseXmtp ->
-            Log.d("CAN USE XMTP", canUseXmtp.toString())
             if (canUseXmtp) {
                 xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
                     val client = xmtpClientManager.client
@@ -346,15 +343,16 @@ class SyncRepositoryImpl @Inject constructor(
                     client.conversations.list().forEach { convo ->
                         launch {
                             // handle messages
-                            val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.id)
                             convo.messages().forEach { message ->
                                 manageXmtpMessage(
-                                    threadId = threadId,
+                                    threadId = convo.id,
                                     msg = message,
                                     client = client,
                                     context = context
                                 )
                             }
+
+
 
                             // update recipients
                             val contacts = getContacts()
@@ -395,6 +393,7 @@ class SyncRepositoryImpl @Inject constructor(
         replyReference: String = "", // empty if not a reply
         context: Context
     ) {
+
         val template = Message(
             id = msg.id,
             threadId = threadId,

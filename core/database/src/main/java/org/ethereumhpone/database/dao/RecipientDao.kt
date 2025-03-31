@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.relation.RecipientWithContact
 
 
 @Dao
@@ -13,13 +14,13 @@ interface RecipientDao {
     @Query("SELECT * FROM recipient")
     fun getRecipients(): Flow<List<Recipient>>
 
-    @Query("SELECT * FROM recipient WHERE contact IS NOT NULL")
-    fun getUnmanagedRecipients(): Flow<List<Recipient>>
+    @Query("SELECT * FROM recipient")
+    fun getRecipientsWithContact(): List<RecipientWithContact>
 
-    @Query("SELECT * FROM recipient WHERE id = :recipientId")
-    fun getRecipient(recipientId: Long): Flow<Recipient?>
+    @Query("SELECT * FROM recipient WHERE inboxId = :inboxId")
+    fun getRecipient(inboxId: Long): Flow<Recipient?>
 
-    @Query("SELECT * FROM recipient WHERE id in (:recipientIds)")
+    @Query("SELECT * FROM recipient WHERE inboxId in (:recipientIds)")
     fun getRecipientsByIds(recipientIds: List<Long>): Flow<List<Recipient>>
 
     @Upsert

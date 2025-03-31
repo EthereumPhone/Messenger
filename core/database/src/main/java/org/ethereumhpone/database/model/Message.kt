@@ -1,61 +1,43 @@
 package org.ethereumhpone.database.model
 
-import android.content.ContentUris
-import android.net.Uri
-import android.provider.Telephony
+
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
-import androidx.room.Relation
 import kotlinx.serialization.Serializable
 import org.xmtp.android.library.libxmtp.DecodedMessage
-import java.util.UUID
 
-@Entity("message")
+@Entity("message",
+    foreignKeys = [
+        ForeignKey(
+            entity = Conversation::class,
+            parentColumns = ["id"],
+            childColumns = ["threadId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["threadId"])]
+)
 @Serializable
 data class Message(
-
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    @ColumnInfo(index = true) val threadId: Long = 0,
-    // MMS-SMS are stored in separate tables in Android and thus can return the same id.
-    // this contentId should be used if fetching from the content provider is needed.
-    val contentId: Long = 0,
-    val address: String = "",
-    val boxId: Int = 0,
+    @PrimaryKey val id: String,
+    @ColumnInfo(index = true) val threadId: String,
+    val senderAddress: String,
+    val senderInboxId: String,
     val type: String = "",
     val date: Long = 0,
     val dateSent: Long = 0,
     val seen: Boolean = false,
     val read: Boolean = false,
     val locked: Boolean = false,
-    val subId: Int = -1,
-
-    // SMS only
     val body: String = "",
-    val errorCode: Int = 0,
-    val deliveryStatus: Int = Telephony.Sms.STATUS_NONE,
-
-    //MMS ONLY
-    val attachmentTypeString: String = AttachmentType.NOT_LOADED.toString(),
-    val attachmentType: AttachmentType = AttachmentType.NOT_LOADED,
-
-    val mmsDeliveryStatusString: String = "",
-    val readReportString: String = "",
-    val errorType: Int = 0,
-    val messageSize: Int = 0,
-    val messageType: Int = 0,
-    val mmsStatus: Int = 0,
-    val subject: String = "",
-    val textContentType: String = "",
-    val parts: List<MmsPart> = emptyList(),
-
-    //XMTP only
-    val clientAddress: String = "", // the address of the user
     val replyReference: String = "", // empty means not a reply
     val seenDate: Long = 0,
     val xmtpDeliveryStatus: DecodedMessage.MessageDeliveryStatus = DecodedMessage.MessageDeliveryStatus.PUBLISHED,
-
-    ) {
+    val isMe: Boolean = false
+) {
     enum class AttachmentType {
         TEXT,
         IMAGE,
@@ -65,85 +47,10 @@ data class Message(
         NOT_LOADED
     }
 
-    fun getUri(): Uri {
-        val baseUri = if (isMms()) Telephony.Mms.CONTENT_URI else Telephony.Sms.CONTENT_URI
-        return ContentUris.withAppendedId(baseUri, contentId)
-    }
+    fun getSummary(): String = body //TODO: Change this
 
-    fun isMms(): Boolean = type == "mms"
+    fun isFailedMessage(): Boolean = xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.FAILED
 
-    fun isSms(): Boolean = type == "sms"
-
-    fun isXmtp(): Boolean = type == "xmtp"
-
-    fun isMe(): Boolean {
-        val isIncomingMms = isMms() && (boxId == Telephony.Mms.MESSAGE_BOX_INBOX || boxId == Telephony.Mms.MESSAGE_BOX_ALL)
-        val isIncomingSms = isSms() && (boxId == Telephony.Sms.MESSAGE_TYPE_INBOX || boxId == Telephony.Sms.MESSAGE_TYPE_ALL)
-        val isIncomingXmtp = isXmtp() && clientAddress != address
-
-        return !(isIncomingMms || isIncomingSms || isIncomingXmtp)
-    }
-
-    fun isOutgoingMessage(): Boolean {
-        val isOutgoingMms = isMms() && boxId == Telephony.Mms.MESSAGE_BOX_OUTBOX
-        val isOutgoingSms = isSms() && (boxId == Telephony.Sms.MESSAGE_TYPE_FAILED
-                || boxId == Telephony.Sms.MESSAGE_TYPE_OUTBOX
-                || boxId == Telephony.Sms.MESSAGE_TYPE_QUEUED)
-
-        val isOutgoingXmtp = isXmtp() && xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.UNPUBLISHED
-
-        return isOutgoingMms || isOutgoingSms || isOutgoingXmtp
-    }
-
-    fun getText(): String {
-        return when {
-            isSms() || isXmtp() -> body
-
-            else -> parts
-                .filter { it.type == "text/plain" }
-                .mapNotNull { it.text }
-                .joinToString("\n") { text -> text }
-        }
-    }
-
-    fun getSummary(): String = when {
-        isSms() || isXmtp() -> body
-
-        else -> {
-            val sb = StringBuilder()
-
-            getCleansedSubject().takeIf { it.isNotEmpty() }?.run(sb::appendLine)
-            parts.mapNotNull { it.getSummary() }.forEach { summary -> sb.appendLine(summary) }
-
-            sb.toString().trim()
-        }
-    }
-    fun getCleansedSubject(): String {
-        val uselessSubjects = listOf("no subject", "NoSubject", "<not present>")
-
-        return if (uselessSubjects.contains(subject)) "" else subject
-    }
-
-    fun isFailedMessage(): Boolean {
-        val isFailedMms = isMms() && (errorType >= Telephony.MmsSms.ERR_TYPE_GENERIC_PERMANENT || boxId == Telephony.Mms.MESSAGE_BOX_FAILED)
-        val isFailedSms = isSms() && boxId == Telephony.Sms.MESSAGE_TYPE_FAILED
-        val isfailedXmtp = isXmtp() && xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.FAILED
-        return isFailedMms || isFailedSms || isfailedXmtp
-    }
-
-    fun isSending(): Boolean =!isFailedMessage() && isOutgoingMessage()
-
-    fun compareSender(other: Message): Boolean = when {
-        isMe() && other.isMe() -> subId == other.subId
-        !isMe() && !other.isMe() -> subId == other.subId && address == other.address
-        else -> false
-    }
-
-    fun isDelivered(): Boolean {
-        val isDeliveredMms = boxId == Telephony.Mms.MESSAGE_BOX_SENT
-        val isDeliveredSms = deliveryStatus == Telephony.Sms.STATUS_COMPLETE
-        val isDeliveredXmtp = xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.PUBLISHED
-        return isDeliveredMms || isDeliveredSms || isDeliveredXmtp
-    }
+    fun isDelivered(): Boolean = xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.PUBLISHED
 
 }

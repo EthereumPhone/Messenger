@@ -86,7 +86,7 @@ object AppModule {
     ): WalletSDK {
         val walletSDK = WalletSDK(
             context,
-            bundlerRPCUrl= "https://api.pimlico.io/v2/1/rpc?apikey=pim_7TcvnUhBUJDatSS2ayjK9X",
+            bundlerRPCUrl= "https://api.pimlico.io/v2/1/rpc?apikey=${BuildConfig.BUNDLER_API}",
             web3jInstance = Web3j.build(HttpService(chainIdToRPC(1)))
         )
 

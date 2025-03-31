@@ -36,6 +36,7 @@ android {
         properties.load(project.rootProject.file("local.properties").inputStream())
 
         buildConfigField("String", "ALCHEMY_API", "\"${properties.getProperty("ALCHEMY_API")}\"")
+        buildConfigField("String", "BUNDLER_API", "\"${properties.getProperty("BUNDLER_API")}\"")
 
     }
 

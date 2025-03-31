@@ -11,14 +11,9 @@ import java.util.Locale
 @Entity("recipient")
 @Serializable
 data class Recipient(
-    @PrimaryKey val id: Long = 0,
-    val address: String = "",
-    val contact: Contact? = null,
-    val lastUpdate: Long = 0,
-    val inboxId: String = ""
-) {
-    fun getDisplayName(): String = contact?.name?.takeIf { it.isNotBlank() }
-        ?: PhoneNumberUtils.formatNumber(address, Locale.getDefault().country)
-        ?: address
-        ?: inboxId
-}
+    @PrimaryKey
+    val inboxId: String,
+    val address: String,
+    val ens: String?,
+    val contactLookupKey: String?
+)

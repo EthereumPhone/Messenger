@@ -30,7 +30,7 @@ class ContactCursorImpl @Inject constructor(
             ContactsContract.CommonDataKinds.Phone.PHOTO_URI,
             ContactsContract.CommonDataKinds.Phone.STARRED,
             ContactsContract.CommonDataKinds.Phone.CONTACT_LAST_UPDATED_TIMESTAMP,
-            ContactsContract.Data.DATA15
+            ContactsContract.Data.DATA15 // address & ENS
         )
 
         const val COLUMN_ID = 0
