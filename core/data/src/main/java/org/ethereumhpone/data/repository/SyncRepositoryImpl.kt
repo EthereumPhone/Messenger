@@ -15,6 +15,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -334,21 +335,15 @@ class SyncRepositoryImpl @Inject constructor(
 
 
 
-        canUseXmtp.collectLatest { canUseXmtp ->
+        canUseXmtp.collect { canUseXmtp ->
+            Log.d("CAN USE XMTP", canUseXmtp.toString())
             if (canUseXmtp) {
-                xmtpClientManager.clientState.collectLatest {
-                    Log.d("XMTP STATE", it.toString())
-
-                }
                 xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
                     val client = xmtpClientManager.client
-                    Log.d("INBOX ID", client.inboxId)
                     client.conversations.syncAllConversations()
+                    client.preferences.syncConsent()
 
-                    val test = client.conversations.list()
-                    val test2 = client.conversations.listDms()
-
-                    test2.forEach { convo ->
+                    client.conversations.list().forEach { convo ->
                         launch {
                             // handle messages
                             val threadId = TelephonyCompat.getOrCreateThreadId(context, convo.id)
@@ -376,12 +371,13 @@ class SyncRepositoryImpl @Inject constructor(
                             val consent = convo.consentState()
                             if (consent != ConsentState.DENIED) {
                                 // update convo
-                                Conversation(
+                                val conversation = Conversation(
                                     id = threadId,
                                     recipients = recipients,
                                     lastMessage = messageDao.getLastConversationMessage(threadId).first(),
-                                    isUnknown = consent == ConsentState.UNKNOWN,
-                                ).also { conversationDao.upsertConversation(it) }
+                                    isUnknown = consent == ConsentState.ALLOWED,
+                                )
+                                conversationDao.upsertConversation(conversation)
                             }
                         }
                     }

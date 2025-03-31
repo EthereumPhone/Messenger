@@ -261,7 +261,6 @@ class MessageRepositoryImpl @Inject constructor(
                 false -> signedBody
             }
 
-            val messageParts = smsManager.divideMessage(strippedBody).orEmpty()
             // XMTP
             try {
                 val message = insertSentXmtp(
@@ -278,113 +277,6 @@ class MessageRepositoryImpl @Inject constructor(
 
             } catch (e: Exception) { e.printStackTrace() }
 
-            /*
-            else if (addresses.size == 1 && attachments.isEmpty() && !forceMms) { // SMS
-                try {
-                    val message = insertSentSms(subId, threadId, addresses.first(), strippedBody, System.currentTimeMillis())
-                    sendSms(message)
-
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            } else { // MMS
-                val parts = arrayListOf<MMSPart>()
-                val maxWidth = smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_IMAGE_WIDTH)
-                    .takeIf { prefs.mmsSize == -1 } ?: Int.MAX_VALUE
-                val maxHeight = smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_IMAGE_HEIGHT)
-                    .takeIf { prefs.mmsSize == -1 } ?: Int.MAX_VALUE
-
-                var remainingBytes = when (prefs.mmsSize) {
-                    -1 -> smsManager.carrierConfigValues.getInt(SmsManager.MMS_CONFIG_MAX_MESSAGE_SIZE)
-                    0 -> Int.MAX_VALUE
-                    else -> prefs.mmsSize * 1024
-                } * 0.9 // Ugly, but buys us a bit of wiggle room
-
-                signedBody.takeIf { it.isNotEmpty() }?.toByteArray()?.let { bytes ->
-                    remainingBytes -= bytes.size
-                    parts += MMSPart("text", ContentType.TEXT_PLAIN, bytes)
-                }
-
-                // attach contacts
-                parts += attachments
-                    .mapNotNull { attachment -> attachment as? Attachment.Contact }
-                    .map { attachment -> attachment.vCard.toByteArray() }
-                    .map { vCard ->
-                        remainingBytes -= vCard.size
-                        MMSPart("contact", ContentType.TEXT_VCARD, vCard)
-                    }
-
-                val imageBytesByAttachment = attachments
-                    .mapNotNull { attachment -> attachment as? Attachment.Image }
-                    .associateWith { attachment ->
-                        val uri = attachment.getUri() ?: return@associateWith byteArrayOf()
-                        when (attachment.isGif(context)) {
-                            true -> ImageUtils.getScaledGif(context, uri, maxWidth, maxHeight)
-                            false -> ImageUtils.getScaledImage(context, uri, maxWidth, maxHeight)
-                        }
-                    }
-                    .toMutableMap()
-
-                val imageByteCount =
-                    imageBytesByAttachment.values.sumOf { byteArray -> byteArray.size }
-
-                if (imageByteCount > remainingBytes) {
-                    imageBytesByAttachment.forEach { (attachment, originalBytes) ->
-                        val uri = attachment.getUri() ?: return@forEach
-                        val maxBytes =
-                            originalBytes.size / imageByteCount.toFloat() * remainingBytes
-
-                        // Get the image dimensions
-                        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        BitmapFactory.decodeStream(
-                            context.contentResolver.openInputStream(uri),
-                            null,
-                            options
-                        )
-                        val width = options.outWidth
-                        val height = options.outHeight
-                        val aspectRatio = width.toFloat() / height.toFloat()
-
-                        var attempts = 0
-                        var scaledBytes = originalBytes
-
-                        while (scaledBytes.size > maxBytes) {
-                            // Estimate how much we need to scale the image down by. If it's still too big, we'll need to
-                            // try smaller and smaller values
-                            val scale = maxBytes / originalBytes.size * (0.9 - attempts * 0.2)
-                            if (scale <= 0) {
-                                Timber.w("Failed to compress ${originalBytes.size / 1024}Kb to ${maxBytes.toInt() / 1024}Kb")
-                                return@forEach
-                            }
-
-                            val newArea = scale * width * height
-                            val newWidth = sqrt(newArea * aspectRatio).toInt()
-                            val newHeight = (newWidth / aspectRatio).toInt()
-
-                            attempts++
-                            scaledBytes = when (attachment.isGif(context)) {
-                                true -> ImageUtils.getScaledGif(context, uri, newWidth, newHeight, 80)
-                                false -> ImageUtils.getScaledImage(context, uri, newWidth, newHeight, 80)
-                            }
-
-                            Timber.d("Compression attempt $attempts: ${scaledBytes.size / 1024}/${maxBytes.toInt() / 1024}Kb ($width*$height -> $newWidth*$newHeight)")
-                        }
-
-                        imageBytesByAttachment[attachment] = scaledBytes
-                    }
-                }
-                imageBytesByAttachment.forEach { (attachment, bytes) ->
-                    parts += when (attachment.isGif(context)) {
-                        true -> MMSPart("image", ContentType.IMAGE_GIF, bytes)
-                        false -> MMSPart("image", ContentType.IMAGE_JPEG, bytes)
-                    }
-                }
-
-                val recipients = addresses.map(phoneNumberUtils::normalizeNumber)
-                val transaction = Transaction(context)
-                transaction.sendNewMessage(subId, threadId, recipients, parts,null, null)
-            }
-            */
         }
     }
 

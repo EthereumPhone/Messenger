@@ -226,7 +226,7 @@ fun ContactScreen(
                                     LazyColumn(
                                         modifier = Modifier.padding(horizontal = 12.dp)
                                     ){
-                                        conversationState.conversations.filter { !it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
+                                        conversationState.conversations.sortedBy { it.date }.reversed().forEach { conversation ->
                                             item {
 
                                                 val dates = conversation.lastMessage?.date?.let { Date(it) }
@@ -251,7 +251,7 @@ fun ContactScreen(
                                                             )
                                                         }
                                                     },
-                                                    header = conversation.recipients.get(0).getDisplayName(),
+                                                    header = conversation.recipients.first().getDisplayName(),
                                                     subheader = conversation.lastMessage?.getSummary() ?: "",
                                                     time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
                                                     unreadConversation = conversation.unread,

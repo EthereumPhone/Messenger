@@ -226,23 +226,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
 
 
-    /*
-    fun callPhone() {
-        recipientState.value?.contact?.numbers?.firstOrNull()?.let {
-            val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${it.address}")).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            context.startActivity(intent)
-        }
-    }
-     */
-
-
-
-
-
-
-
     suspend fun getBalance(chainId: Int): Double {
         return withContext(Dispatchers.IO) {
             while(walletSDK.getAddress() == "") {
@@ -372,7 +355,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
         conversationState.value?.let { convo ->
 
-            val addresses = convo.recipients.map { it.address }
+            val addresses = convo.recipients.map { it.inboxId }
 
             viewModelScope.launch(Dispatchers.IO) {
                 sendMessageUseCase(subId, convo.id, addresses, messageBody, _attachments.value.toList())

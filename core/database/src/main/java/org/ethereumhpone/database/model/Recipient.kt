@@ -20,4 +20,5 @@ data class Recipient(
     fun getDisplayName(): String = contact?.name?.takeIf { it.isNotBlank() }
         ?: PhoneNumberUtils.formatNumber(address, Locale.getDefault().country)
         ?: address
+        ?: inboxId
 }

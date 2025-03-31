@@ -141,11 +141,16 @@ class EOAWallet(val walletSDK: WalletSDK, val address: String) : SigningKey {
             IdentityKind.ETHEREUM,
             address
         )
+
+
     override val type: SignerType
-        get() = SignerType.EOA
+        get() = SignerType.SCW
+
+    override var chainId: Long? = 8453 // https://chainlist.org/
+
 
     override suspend fun sign(message: String): SignedData {
-        val signatureString = walletSDK.signMessage(message, 1)
+        val signatureString = walletSDK.signMessage(message, 8453)
         val signatureBytes = signatureString.removePrefix("0x").chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
         return SignedData(signatureBytes)

@@ -138,7 +138,11 @@ class MainActivity : ComponentActivity() {
             if((lastSync == 0L || lastSync <= 1727630355723) && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
                 syncRepository.syncMessages() // Now only sync contacts
             }
-            syncRepository.syncXmtp()
+            try {
+                syncRepository.syncXmtp()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
 
 
             //syncRepository.startStreamAllMessages()

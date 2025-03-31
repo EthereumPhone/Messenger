@@ -272,7 +272,7 @@ fun ChatScreen(
                             player = videoPlayer,
                             onPrepareVideo = { onPrepareVideo(it) },
                             onLongClick = { onFocusedMessageUpdate(message) },
-                            name = recipients.first { it.address == message.address }.getDisplayName(),
+                            name = recipients.first().getDisplayName(),
                             isSelected = selectedMessagesMap.contains(message),
                             selectMode = selectMode,
                             isXMTP = true,

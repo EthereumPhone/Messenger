@@ -42,7 +42,7 @@ class ContactViewModel @Inject constructor(
     val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
         .flowOn(Dispatchers.IO)
         .map { conversations ->
-            val filteredConversations = conversations.filter { it.date > 0 }.sortedBy { it.date }.reversed() // Filter out conversations with unknown set to true
+            val filteredConversations = conversations.sortedBy { it.date }.reversed() // Filter out conversations with unknown set to true
             ConversationUIState.Success(filteredConversations)
         }
         .stateIn(
