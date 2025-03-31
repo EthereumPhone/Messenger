@@ -11,6 +11,7 @@ import com.google.common.base.Utf8
 import com.vdurmont.emoji.EmojiParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -108,7 +109,6 @@ class SyncRepositoryImpl @Inject constructor(
     private val _isSyncing = MutableStateFlow(false)
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
 
-    private val canUseXmtp = messengerPreferences.prefs.map { it.useXmtp }
 
     override suspend fun syncMessages() {
         // once sync at the time
@@ -330,60 +330,43 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncXmtp() = coroutineScope {
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
+            val client = xmtpClientManager.client
+            client.conversations.syncAllConversations()
+            client.preferences.syncConsent()
 
-        //TODO: check if it works via options
+            client.conversations.list().forEach { conversation ->
+                launch {
+                    // recipients
+                    launch {
+                        //TODO: Add refs to contacts
+                        val members = conversation.members()
 
-        canUseXmtp.collect { canUseXmtp ->
-            if (canUseXmtp) {
-                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
-                    val client = xmtpClientManager.client
-                    client.conversations.syncAllConversations()
-                    client.preferences.syncConsent()
-
-                    client.conversations.list().forEach { convo ->
-                        launch {
-                            // handle messages
-                            convo.messages().forEach { message ->
-                                manageXmtpMessage(
-                                    threadId = convo.id,
-                                    msg = message,
-                                    client = client,
-                                    context = context
-                                )
-                            }
-
-
-
-                            // update recipients
-                            val contacts = getContacts()
-                            val recipients = convo.members().map { member ->
-                                val address = member.identities.filter { it.kind == IdentityKind.ETHEREUM }.map { it.identifier }
-                                Recipient(
-                                    address = address.first(),
-                                    contact = contacts.firstOrNull { it.ethAddress?.lowercase() == address.first() },
-                                    inboxId = member.inboxId
-                                )
-                            }.also { recipientDao.upsertRecipients(it) }
-
-
-                            val consent = convo.consentState()
-                            if (consent != ConsentState.DENIED) {
-                                // update convo
-                                val conversation = Conversation(
-                                    id = threadId,
-                                    recipients = recipients,
-                                    lastMessage = messageDao.getLastConversationMessage(threadId).first(),
-                                    isUnknown = consent == ConsentState.ALLOWED,
-                                )
-                                conversationDao.upsertConversation(conversation)
-                            }
+                        members.forEach { member ->
+                            val newRecipient = Recipient(
+                                inboxId = member.inboxId,
+                                address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
+                                ens = null,
+                                contactLookupKey = null
+                            )
+                            recipientDao.insertRecipient(newRecipient)
                         }
+                    }
+
+                    // conversation
+                    launch {
+
+                    }
+
+
+                    // messages
+                    launch {
+                        val messages = conversation.messagesWithReactions()
+
                     }
                 }
             }
         }
-
-
     }
 
     private suspend fun manageXmtpMessage(

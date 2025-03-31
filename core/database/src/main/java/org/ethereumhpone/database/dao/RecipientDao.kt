@@ -1,6 +1,8 @@
 package org.ethereumhpone.database.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +27,9 @@ interface RecipientDao {
 
     @Upsert
     suspend fun upsertRecipient(recipient: Recipient)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertRecipient(recipient: Recipient)
 
     @Upsert
     suspend fun upsertRecipients(recipients: List<Recipient>)
