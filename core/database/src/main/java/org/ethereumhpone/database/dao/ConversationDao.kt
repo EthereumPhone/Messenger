@@ -23,7 +23,6 @@ interface ConversationDao {
     @Query("SELECT * FROM conversation WHERE id IN (:threadIds) ")
     fun getConversations(threadIds: List<Long>): Flow<List<Conversation>>
 
-
     @Transaction
     @Query("""
         SELECT c.*, m.* FROM conversation c
