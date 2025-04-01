@@ -23,8 +23,6 @@ interface ConversationRepository {
     fun getRecipient(recipientId: Long): Flow<Recipient?>
     fun getThreadId(recipient: String): Flow<Long?>
     fun getThreadId(recipients: Collection<String>): Flow<Long?>
-    fun getOrCreateConversation(threadId: Long): Flow<Conversation?>
-    fun getOrCreateConversation(address: String): Flow<Conversation?>
     fun getOrCreateConversation(addresses: List<String>): Flow<Conversation?>
     suspend fun saveDraft(threadId: Long, draft: String)
     suspend fun updateConversations(vararg threadIds: Long)

@@ -1,6 +1,7 @@
 package org.ethereumhpone.data.repository
 
 import android.content.Context
+import android.provider.ContactsContract.CommonDataKinds.Identity
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +19,7 @@ import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.common.extensions.removeAccents
 import org.ethereumhpone.common.util.tryOrNull
+import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.dao.ConversationDao
@@ -29,6 +31,8 @@ import org.ethereumhpone.domain.mapper.ConversationCursor
 import org.ethereumhpone.domain.mapper.RecipientCursor
 import org.ethereumhpone.domain.model.SearchResult
 import org.ethereumhpone.domain.repository.ConversationRepository
+import org.xmtp.android.library.libxmtp.IdentityKind
+import org.xmtp.android.library.libxmtp.PublicIdentity
 import javax.inject.Inject
 
 class ConversationRepositoryImpl @Inject constructor(
@@ -37,9 +41,7 @@ class ConversationRepositoryImpl @Inject constructor(
     private val contactDao: ContactDao,
     private val recipientDao: RecipientDao,
     private val messageDao: MessageDao,
-    private val conversationCursor: ConversationCursor,
-    private val recipientCursor: RecipientCursor,
-    private val phoneNumberUtils: PhoneNumberUtils
+    private val xmtpClientManager: XmtpClientManager
 ): ConversationRepository {
     override fun getConversations(archived: Boolean): Flow<List<Conversation>> =
         conversationDao.getConversations(archived)
@@ -85,18 +87,31 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override fun getThreadId(recipients: Collection<String>): Flow<Long?> = TODO()
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    override fun getOrCreateConversation(threadId: Long): Flow<Conversation?> {
-        TODO()
-    }
+    override fun getOrCreateConversation(addresses: List<String>): Flow<Conversation> = flow {
+        //check if conversation already exists
+        val recipients = recipientDao.getRecipientsByAddress(addresses)
 
-    override fun getOrCreateConversation(address: String): Flow<Conversation?> =
-        getOrCreateConversation(listOf(address))
 
-    // I want to throw up
-    @OptIn(ExperimentalCoroutinesApi::class)
-    override fun getOrCreateConversation(addresses: List<String>): Flow<Conversation?> {
-        TODO()
+
+
+
+
+
+
+
+
+        // Assume direct
+        val publicIdentities = addresses.map {
+            PublicIdentity(
+                kind = IdentityKind.ETHEREUM,
+                identifier = it
+            )
+        }
+
+        val inboxIds = publicIdentities.map { xmtpClientManager.client.inboxIdFromIdentity(it) }
+
+        xmtpClientManager.client.inboxIdFromIdentity()
+
     }
 
     override suspend fun saveDraft(threadId: Long, draft: String) {

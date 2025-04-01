@@ -38,7 +38,6 @@ class MessageRepositoryImpl @Inject constructor(
     private val activeConversationManager: ActiveConversationManager,
     private val context: Context,
     private val xmtpClientManager: XmtpClientManager,
-    private val xmtpConversationHandler: XMTPConversationHandler
 ): MessageRepository {
     override fun getMessages(threadId: Long): Flow<List<Message>> =
         messageDao.getMessages(threadId)
@@ -51,8 +50,8 @@ class MessageRepositoryImpl @Inject constructor(
         TODO()
 
 
-    override suspend fun savePart(id: String): Uri? {
-        TODO()
+    override suspend fun canMessage(addresses: List<String>) {
+
     }
 
     override suspend fun getUnreadUnseenMessages(threadId: Long): List<Message> =

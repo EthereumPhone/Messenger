@@ -13,7 +13,7 @@ interface MessageRepository {
     fun getMessages(threadId: Long): Flow<List<Message>>
     fun getMessage(id: String): Flow<Message?>
     fun getUnreadCount(): Flow<Long>
-    suspend fun savePart(id: String): Uri?
+    suspend fun canMessage(addresses: List<String>)
     suspend fun getUnreadUnseenMessages(threadId: Long): List<Message>
     suspend fun markAllSeen()
     suspend fun markSeen(threadId: Long)

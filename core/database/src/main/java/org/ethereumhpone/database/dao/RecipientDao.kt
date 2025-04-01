@@ -16,6 +16,14 @@ interface RecipientDao {
     @Query("SELECT * FROM recipient")
     fun getRecipients(): Flow<List<Recipient>>
 
+    @Query(
+        """
+            SELECT * FROM recipient
+            WHERE address IN (:addresses)
+        """
+    )
+    fun getRecipientsByAddress(addresses: List<String>): Flow<List<Recipient>>
+
     @Query("SELECT * FROM recipient")
     fun getRecipientsWithContact(): List<RecipientWithContact>
 
