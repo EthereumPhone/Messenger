@@ -16,7 +16,6 @@ data class Conversation(
     val draft: String = "",
     val blockingClient: Int? = null,
     val blockReason: String? = null,
-    val isUnknown: Boolean = false // TODO: Remove this, when we have a working blocking client
 ) {
     fun getConversationTitle(): String = title.takeIf { it.isNullOrBlank() }
         ?: members.joinToString(", ")

@@ -9,9 +9,9 @@ import java.util.UUID
 @Entity("reaction")
 @Serializable
 data class MessageReaction(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey val id: String,
     val messageId: String = "",
-    val senderAddress: String = "",
+    val inboxId: String = "",
     val unicode: String = "",
 ) {
 

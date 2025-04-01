@@ -18,25 +18,22 @@ import org.xmtp.android.library.libxmtp.DecodedMessage
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["threadId"])]
 )
 @Serializable
 data class Message(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true) val threadId: String,
-    val senderAddress: String,
     val senderInboxId: String,
-    val type: String = "",
     val date: Long = 0,
     val dateSent: Long = 0,
     val seen: Boolean = false,
     val read: Boolean = false,
     val locked: Boolean = false,
-    val body: String = "",
-    val replyReference: String = "", // empty means not a reply
+    val body: String,
+    val replyReference: String?,
     val seenDate: Long = 0,
     val xmtpDeliveryStatus: DecodedMessage.MessageDeliveryStatus = DecodedMessage.MessageDeliveryStatus.PUBLISHED,
-    val isMe: Boolean = false
+    val isMe: Boolean = false,
 ) {
     enum class AttachmentType {
         TEXT,

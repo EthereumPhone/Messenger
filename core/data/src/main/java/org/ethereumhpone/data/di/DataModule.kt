@@ -10,11 +10,8 @@ import org.ethereumhpone.data.manager.PermissionManagerImpl
 import org.ethereumhpone.data.mapper.ContactCursorImpl
 import org.ethereumhpone.data.mapper.ContactGroupCursorImpl
 import org.ethereumhpone.data.mapper.ContactGroupMemberCursorImpl
-import org.ethereumhpone.data.mapper.ConversationCursorImpl
 import org.ethereumhpone.data.mapper.ImageCursorImpl
-import org.ethereumhpone.data.mapper.MessageCursorImpl
 import org.ethereumhpone.data.mapper.PartCursorImpl
-import org.ethereumhpone.data.mapper.RecipientCursorImpl
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.mapper.ContactCursor
@@ -31,17 +28,11 @@ import org.ethereumhpone.domain.mapper.RecipientCursor
 object DataModule {
 
     @Provides
-    fun provideConversationCursor(mapper: ConversationCursorImpl): ConversationCursor = mapper
-    @Provides
-    fun provideRecipientCursor(mapper: RecipientCursorImpl): RecipientCursor = mapper
-    @Provides
     fun provideContactCursor(mapper: ContactCursorImpl): ContactCursor = mapper
     @Provides
     fun provideContactGroupCursor(mapper: ContactGroupCursorImpl): ContactGroupCursor = mapper
     @Provides
     fun provideContactGroupMemberCursor(mapper: ContactGroupMemberCursorImpl): ContactGroupMemberCursor = mapper
-    @Provides
-    fun provideMessageCursor(mapper: MessageCursorImpl): MessageCursor = mapper
     @Provides
     fun providePartCursor(mapper: PartCursorImpl): PartCursor = mapper
     @Provides

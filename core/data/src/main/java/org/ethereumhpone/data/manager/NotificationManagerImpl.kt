@@ -76,6 +76,7 @@ class NotificationManagerImpl @Inject constructor(
         val conversation = conversationRepository.getConversation(threadId).first() ?: return
 
 
+        /*
         val lastRecipient = conversation.lastMessage?.let { lastMessage ->
             conversation.recipients.find { recipient ->
                 phoneNumberUtils.compare(recipient.address, lastMessage.address)
@@ -107,6 +108,8 @@ class NotificationManagerImpl @Inject constructor(
 
 
         notificationManager.notify(threadId.toInt(), notification.build())
+         */
+
 
     }
 

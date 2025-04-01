@@ -33,17 +33,7 @@ class SendMessage @Inject constructor(
 
         messageRepository.sendMessage(subId, newThreadId, addresses, body, attachments)
 
-        val conversationId = when(threadId) {
-            0L -> conversationRepository.getOrCreateConversation(addresses).first()?.id
-            else -> threadId
-        }
 
-        CoroutineScope(Dispatchers.IO).launch {
-            conversationId?.let {
-                conversationRepository.updateConversations(it)
-                conversationRepository.markUnarchived(it)
-            }
-        }
 
 
     }

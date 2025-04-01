@@ -60,6 +60,9 @@ interface ConversationDao {
     @Upsert
     fun upsertConversation(conversation: Conversation)
 
+    @Upsert
+    fun upsertConversations(conversations: List<Conversation>)
+
     @Delete
     fun deleteConversation(conversations: List<Conversation>)
 

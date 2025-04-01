@@ -6,6 +6,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.Telephony
 import android.util.Log
+import androidx.media3.common.util.SystemClock
 import com.google.android.mms.ContentType
 import com.google.common.base.Utf8
 import com.vdurmont.emoji.EmojiParser
@@ -58,11 +59,13 @@ import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.walletsdk.WalletSDK
 import org.xmtp.android.library.Client
 import org.xmtp.android.library.ConsentState
+import org.xmtp.android.library.Conversation.Type
 import org.xmtp.android.library.XMTPException
 import org.xmtp.android.library.codecs.Attachment
 import org.xmtp.android.library.codecs.ContentCodec
 import org.xmtp.android.library.codecs.ContentTypeAttachment
 import org.xmtp.android.library.codecs.ContentTypeReaction
+import org.xmtp.android.library.codecs.ContentTypeReactionV2
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
 import org.xmtp.android.library.codecs.ContentTypeRemoteAttachment
 import org.xmtp.android.library.codecs.ContentTypeReply
@@ -124,157 +127,17 @@ class SyncRepositoryImpl @Inject constructor(
         val recipientsCursor = recipientCursor.getRecipientCursor()
 
 
-        // sync messages parts
-        /*
-        partsCursor?.use { cursor ->
-            cursor.forEach {
-                val mmsPart = partCursor.map(cursor) // Assuming this method creates a new instance
-                CoroutineScope(Dispatchers.IO).launch {
-                    messageDao.upsertMessagePart(mmsPart)
-                }
-            }
-        }
-         */
-
-        // sync recipients
-        recipientsCursor?.use {
-            val contacts = getContacts()
-            contactDao.upsertContact(contacts)
-            recipientsCursor.forEach { cursor ->
-                val recipient = recipientCursor.map(cursor)
-                val updatedRecipient = recipient.copy(
-                    contact = contacts.firstOrNull { contact ->
-                        contact.numbers.any { phoneNumberUtils.compare(recipient.address, it.address) }
-                    }
-                )
-                CoroutineScope(Dispatchers.IO).launch {
-                    recipientDao.upsertRecipient(updatedRecipient)
-                }
-            }
-        }
-
-        // sync messages
-        /*
-
-
-        messagesCursor?.use {
-            val messageColumns = MessageCursor.MessageColumns(messagesCursor)
-            messagesCursor.forEach { cursor ->
-                val message = messageCursor.map(Pair(cursor, messageColumns))
-                CoroutineScope(Dispatchers.IO).launch {
-                    if (message.isMms()) {
-                        messageDao.getPartsForConversation(message.contentId.toString()).collectLatest { mmsParts ->
-                            val updatedMessage = message.copy(parts = mmsParts) // copy needs to be done here or it will not work correctly
-                            messageDao.upsertMessage(updatedMessage)
-                        }
-                    } else {
-                        messageDao.upsertMessage(message)
-                    }
-                }
-            }
-        }
-
-        // sync conversations
-        conversationsCursor?.use {
-            conversationsCursor.forEach { cursor ->
-                val conversation = conversationCursor.map(cursor)
-
-                CoroutineScope(Dispatchers.IO).launch {
-                    combine(
-                        messageDao.getLastConversationMessage(conversation.id),
-                        recipientDao.getRecipientsByIds(conversation.recipients.map { it.id })
-                    ) { lastMessage, recipients ->
-                        conversation.copy(lastMessage = lastMessage, recipients = recipients)
-                    }.collect { conversation -> // skip xmtp
-                        //TODO: improve this
-                        if(!conversation.recipients.any { it.address.startsWith("0x") }) {
-                            conversationDao.upsertConversation(conversation)
-                        }
-                    }
-                }
-            }
-        }
-         */
-
         logTimeHandler.setLastLog(SyncLog().date)
         _isSyncing.value = false
     }
 
     override suspend fun syncMessage(uri: Uri): Message? {
-
-        val type = when {
-            uri.toString().contains("mms") -> "mms"
-            uri.toString().contains("sms") -> "sms"
-            else -> return null
-        }
-
-        val id = tryOrNull { ContentUris.parseId(uri) } ?: return null
-
-        val existingId = messageDao.getMessageId(id, type)
-
-        val stableUri = when (type) {
-            "mms" -> ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, id)
-            else -> ContentUris.withAppendedId(Telephony.Sms.CONTENT_URI, id)
-        }
-
-
-        return contentResolver.query(stableUri, null, null, null, null)?.use { cursor ->
-
-            // If there are no rows, return null. Otherwise, we've moved to the first row
-            if (!cursor.moveToFirst()) return null
-
-            val columnsMap = MessageCursor.MessageColumns(cursor)
-
-            messageCursor.map(Pair(cursor, columnsMap)).apply {
-                val message = this.copy(
-                    id = existingId ?: this.id,
-                    parts = if (isMms()) {
-                        partCursor.getPartsCursor(contentId)?.map { partCursor.map(it) }.orEmpty()
-                    } else { this.parts }
-                )
-
-                messageDao.upsertMessage(message)
-            }
-        }
+        TODO("Not yet implemented")
     }
 
     override suspend fun syncContacts() {
         val contacts = getContacts()
 
-        contactDao.deleteAllContacts()
-        contactDao.deleteAllContactGroups()
-
-
-        recipientDao.getRecipients().collect { recipientList ->
-            contactDao.upsertContactGroup(getContactGroups(contacts))
-            contactDao.upsertContact(contacts)
-
-            val updatedRecipients = recipientList.map { recipient ->
-                recipient.copy(
-                    contact = contacts.find { contact ->
-                        contact.numbers.any {
-                            phoneNumberUtils.compare(
-                                recipient.address,
-                                it.address
-                            )
-                        }
-                    }
-                )
-            }
-            updatedRecipients.forEach { recipient ->
-                recipientDao.upsertRecipient(recipient)
-            }
-        }
-
-
-        conversationDao.getConversations().collect { conversations ->
-            conversations.forEach { conversation ->
-                recipientDao.getRecipientsByIds(conversation.recipients.map { it.id })
-                    .collect {
-                        conversationDao.updateConversation(conversation.copy(recipients = it))
-                    }
-            }
-        }
     }
 
     private suspend fun getContacts(): List<Contact> {
@@ -332,104 +195,109 @@ class SyncRepositoryImpl @Inject constructor(
     override suspend fun syncXmtp() = coroutineScope {
         xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
             val client = xmtpClientManager.client
-            client.conversations.syncAllConversations()
-            client.preferences.syncConsent()
+
+            val syncJob = launch {
+                client.preferences.syncConsent()
+                client.conversations.syncAllConversations()
+            }
+            syncJob.join()
+
 
             client.conversations.list().forEach { conversation ->
+                // recipients
                 launch {
-                    // recipients
-                    launch {
-                        //TODO: Add refs to contacts
-                        val members = conversation.members()
+                    //TODO: Add refs to contacts
+                    val members = conversation.members()
 
-                        members.forEach { member ->
-                            val newRecipient = Recipient(
-                                inboxId = member.inboxId,
-                                address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
-                                ens = null,
-                                contactLookupKey = null
-                            )
-                            recipientDao.insertRecipient(newRecipient)
+                    val recipients = members.map { member ->
+                        Recipient(
+                            inboxId = member.inboxId,
+                            address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
+                            ens = null,
+                            contactLookupKey = null
+                        )
+                    }
+                    recipientDao.insertRecipients(recipients)
+                }
+
+                // conversation
+                launch {
+                    val members = conversation.members().map { it.inboxId }
+                    //val consent = conversation.consentState()
+
+                    val parsedConversation = Conversation(
+                        id = conversation.id,
+                        title = null, // change
+                        members = members,
+                    )
+                    conversationDao.upsertConversation(parsedConversation)
+                }
+
+
+                // messages
+                launch {
+                    val messages = conversation.messagesWithReactions()
+
+                    messages.chunked(10) { messageChunk ->
+                        launch {
+                            val parsedMessages = messageChunk.map { msg ->
+                                val template = Message(
+                                    id = msg.id,
+                                    threadId = msg.conversationId,
+                                    senderInboxId = msg.senderInboxId,
+                                    date = System.currentTimeMillis(),
+                                    seenDate = msg.sentAtNs,
+                                    xmtpDeliveryStatus = msg.deliveryStatus,
+                                    isMe = msg.senderInboxId == client.inboxId,
+                                    replyReference = null,
+                                    body = msg.body
+                                )
+                                processContent(template, msg.encodedContent.type, msg.content())
+                            }
+                            messageDao.insertMessages(parsedMessages.filterNotNull())
                         }
                     }
 
-                    // conversation
-                    launch {
-
-                    }
-
-
-                    // messages
-                    launch {
-                        val messages = conversation.messagesWithReactions()
-
-                    }
                 }
             }
         }
     }
 
-    private suspend fun manageXmtpMessage(
-        threadId: Long,
-        msg: DecodedMessage,
-        client: Client,
-        replyReference: String = "", // empty if not a reply
-        context: Context
-    ) {
+    private suspend fun processContent(message: Message, contentType: Content.ContentTypeId, content: Any?): Message? {
+        return when(contentType) {
+            // Handle reactions
+            ContentTypeReactionV2 -> {
+                val xmtpReaction = content as Reaction
 
-        val template = Message(
-            id = msg.id,
-            threadId = threadId,
-            address = msg.senderInboxId,
-            type = "xmtp", // DO NOT CHANGE
-            date = msg.sentAtNs, // for historical messages, new ones use System time
-            dateSent = msg.sentAtNs,
-            clientAddress = "client.", // TODO: FIX THIS
-            xmtpDeliveryStatus = msg.deliveryStatus,
-            replyReference = replyReference // only for reply
-        )
-
-        //handle content types
-        when (msg.topic) {
-            ContentTypeReadReceipt.id -> messageDao.getXmtpMessages(threadId)
-                .map { it.copy(seenDate = msg.sentAtNs) }
-                .also { messageDao.updateMessages(it) }
-
-            /**
-            ContentTypeAttachment.id, ContentTypeRemoteAttachment.id -> {
-                //TODO: This needs to be updated after MmsPart Message decoupling
-
-                val content = msg. as? RemoteAttachment
-                val attachment = if (content != null ) content.load<Attachment>() else msg.content<Attachment>()
-
-                attachment?.let {
-                    val name = attachment.filename
-
-                    // don't save if plain text
-                    val text = if (attachment.mimeType == ContentType.TEXT_PLAIN) {
-                        attachment.data.toByteArray().toString(Charsets.UTF_8)
-                    } else {
-                        context.openFileOutput(name, Context.MODE_PRIVATE).use {
-                            it.write(attachment.data.toByteArray())
-                            it.close()
-                        }
-                        ""
-                    }
-
-                    val mmsPart = MmsPart(
-                        id = context.getFileStreamPath(name).absolutePath,
-                        type = attachment.mimeType,
-                        text = text
-                    ).also { messageDao.upsertMessagePart(it) }
-
-                    template.copy(parts = listOf(mmsPart)).also { messageDao.upsertMessage(it) }
-
+                if (xmtpReaction.action == ReactionAction.Removed) {
+                    reactionDao.deleteReaction(message.id)
                 }
+                if(xmtpReaction.action == ReactionAction.Added) {
+                    val reaction = MessageReaction(
+                        id = message.id,
+                        inboxId = message.senderInboxId,
+                        unicode = xmtpReaction.content
+                    )
+                    reactionDao.upsertReaction(reaction)
+                }
+                null
             }
-            */
+            // Handle read receipts
+            ContentTypeReadReceipt -> {
+                null
+            }
+            // Handle replies
+            ContentTypeReply -> {
+                val reply = content as Reply
 
-            ContentTypeText.id -> template.copy(body = msg.body).also { messageDao.upsertMessage(it) }
-            else -> {  }
+                val updatedMessage = message.copy(replyReference = reply.reference)
+                processContent(updatedMessage, reply.contentType, reply.content)
+            }
+
+            ContentTypeAttachment, ContentTypeRemoteAttachment -> {
+                null
+            }
+            else -> message // assume plain text
         }
     }
 
@@ -442,12 +310,7 @@ class SyncRepositoryImpl @Inject constructor(
                         conversation.streamMessages().collect {
 
                             val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.id)
-                            manageXmtpMessage(
-                                threadId = threadId,
-                                msg = it,
-                                client = client,
-                                context = context
-                            )
+
                         }
                     }
                 }
@@ -460,30 +323,5 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
         }
-    }
-
-
-    // Copied from XMTP sdk
-    private fun <T> encodeContent(content: T, id: Content.ContentTypeId): EncodedContent {
-        val codec = Client.codecRegistry.find(id)
-
-        fun <Codec : ContentCodec<T>> encode(codec: Codec, content: Any?): EncodedContent {
-            val contentType = content as? T
-            if (contentType != null) {
-                return codec.encode(contentType)
-            } else {
-                throw XMTPException("Codec type is not registered")
-            }
-        }
-
-        var encoded = encode(codec = codec as ContentCodec<T>, content = content)
-        val fallback = codec.fallback(content)
-        if (!fallback.isNullOrBlank()) {
-            encoded = encoded.toBuilder().also {
-                it.fallback = fallback
-            }.build()
-        }
-
-        return encoded
     }
 }

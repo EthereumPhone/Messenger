@@ -28,7 +28,7 @@ class BlockThreadReceiver @Inject constructor(
             val conversation = conversationRepository.getConversation(threadId).first()!!
 
             try {
-                blockingClient.block(conversation.recipients.map { it.address })
+                //blockingClient.block(conversation.recipients.map { it.address })
                 conversationRepository.markBlocked(listOf(threadId), 0, null)
                 messageRepository.markRead(threadId)
                 notificationManager.update(threadId)
