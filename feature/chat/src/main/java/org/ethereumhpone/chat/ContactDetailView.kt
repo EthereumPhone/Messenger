@@ -174,9 +174,6 @@ fun ContactDetailView(
                                 .padding(end = 12.dp)) {
                                 ethOSIconButton(
                                     onClick = {
-                                        if (recipient?.contact?.numbers?.get(0)  != null) {
-                                            makePhoneCall(context, recipient.contact?.numbers?.get(0)!!.address)
-                                        }
                                     },
                                     icon = Icons.Outlined.Call,
                                     contentDescription="Call"
@@ -208,7 +205,7 @@ fun ContactDetailView(
                             title = "Media",
                             icon = Icons.Outlined.PermMedia,
                             onClick = onMediaClick,
-                            amount = messagesUiState.messages.filter { it.parts.isNotEmpty() }.size
+                            amount =  0//messagesUiState.messages.filter { it.parts.isNotEmpty() }.size //TODO: FIX
                         )
 
                         ProfileDetailItem(
@@ -226,7 +223,8 @@ fun ContactDetailView(
 //                )
                     }
 
-
+                    //TODO FIX THIS
+                    /*
                     recipient?.contact?.numbers?.get(0).let {
                         if (it != null) {
                             ContactItem(
@@ -246,6 +244,8 @@ fun ContactDetailView(
                             )
                         }
                     }
+                     */
+
 
                 }
             }

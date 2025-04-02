@@ -152,7 +152,7 @@ fun MessageItem(
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
     var compSize by remember { mutableIntStateOf(0) }
-    val isUserMe = msg.isMe()
+    val isUserMe = msg.isMe
 
 
     val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
@@ -210,12 +210,17 @@ fun MessageItem(
                 onDoubleClick = onDoubleClick
             )
 
-
+            //TODO: FIX these
+            /*
             val messageText = when {
                 msg.isSending() -> ""
                 msg.isFailedMessage() -> "Tap to resend"
                 else -> ""
             }
+             */
+
+            val messageText = ""
+
 
             if (messageText.isNotEmpty()) {
                 Text(
@@ -283,6 +288,7 @@ fun AuthorNameTimestamp(
                         .alpha(0.5f)
             )
 
+            /*
             message.isSending() -> Icon(
                     painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
@@ -291,6 +297,8 @@ fun AuthorNameTimestamp(
                         .size(16.dp)
                         .alpha(0.5f)
             )
+             */
+
 
             message.isDelivered() -> Icon(
                     painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
@@ -470,7 +478,7 @@ fun ChatItemBubble(
         modifier = modifier.clip(Bubbleshape)
             .background(messageBrush)
     ){
-        val media = message.parts.filter { it.isImage() || it.isVideo() }
+        val media = emptyList<Message>() // message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -488,7 +496,7 @@ fun ChatItemBubble(
         }
 
         // vCard
-        val contacts = message.parts.filter { it.isVCard() }
+        val contacts = emptyList<Message>() // message.parts.filter { it.isVCard() }
 
 
         if (contacts.isNotEmpty()) {
@@ -509,16 +517,7 @@ fun ChatItemBubble(
 
                 val uriHandler = LocalUriHandler.current
 
-                val messageBody = when (message.isSms() || message.isXmtp()) {
-                    true -> message.body
-                    false -> {
-                        message.parts
-                            .filter { part -> part.isText() }
-                            .mapNotNull { part -> part.text }
-                            .filter { text -> text.isNotBlank() }
-                            .joinToString("\n")
-                    }
-                }
+                val messageBody = message.body
 
                 if (messageBody.isNotBlank()) {
                     val styledMessage = messageFormatter(
@@ -725,6 +724,7 @@ fun TxClickableMessage(
 @Preview
 @Composable
 fun previewTChatItemBubble() {
+    /*
     ChatItemBubble(
         message = Message(
             address = "me",
@@ -739,12 +739,16 @@ fun previewTChatItemBubble() {
         onPlayVideo = {}
 
     )
+     */
+
 
 }
 
 @Preview
 @Composable
 fun ConversationPreview() {
+
+    /*
     val initialMessages = listOf(
         Message(
             address = "me",
@@ -789,6 +793,8 @@ fun ConversationPreview() {
         )
 
     )
+
+
 
     val authorMe = "me"
 
@@ -843,7 +849,7 @@ fun ConversationPreview() {
 //        }
 //    }
 
-
+     */
 }
 
 

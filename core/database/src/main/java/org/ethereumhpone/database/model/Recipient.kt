@@ -14,6 +14,6 @@ data class Recipient(
     @PrimaryKey
     val inboxId: String,
     val address: String,
-    val ens: String?,
-    val contactLookupKey: String?
+    val ens: String? = "",
+    val contactLookupKey: String? = ""
 )

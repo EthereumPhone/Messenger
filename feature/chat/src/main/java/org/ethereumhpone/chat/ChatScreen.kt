@@ -187,10 +187,10 @@ fun ChatScreen(
                         val listState = rememberLazyListState()
 
 
-                        val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.address
-                        val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.address
-                        val isFirstMessageByAuthor = prevAuthor != message.address
-                        val isLastMessageByAuthor = nextAuthor != message.address
+                        val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.senderInboxId
+                        val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.senderInboxId
+                        val isFirstMessageByAuthor = prevAuthor != message.senderInboxId
+                        val isLastMessageByAuthor = nextAuthor != message.senderInboxId
 
                         MessageItem(
                             onAuthorClick = { },
@@ -201,7 +201,7 @@ fun ChatScreen(
                             player = videoPlayer,
                             onPrepareVideo = { onPrepareVideo(it) },
                             onLongClick = { onFocusedMessageUpdate(message) },
-                            name = recipients.first().getDisplayName(),
+                            name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
                             isSelected = selectedMessagesMap.contains(message),
                             selectMode = selectMode,
                             isXMTP = true,
@@ -312,6 +312,7 @@ fun SelectorExpanded(
             }
 
         }
+        /*
         recipients[0].contact?.ethAddress?.let {
             if (it == "") return@let
             Spacer(modifier = Modifier.width(12.dp))
@@ -341,6 +342,8 @@ fun SelectorExpanded(
 
             }
         }
+         */
+
         Spacer(modifier = Modifier.width(12.dp))
         IconButton(
             modifier = Modifier
@@ -370,6 +373,7 @@ fun SelectorExpanded(
 @Composable
 @Preview
 private fun PreviewChatScreen() {
+    /*
     val messages = listOf(
         Message(
             boxId = Telephony.Mms.MESSAGE_BOX_INBOX,
@@ -433,4 +437,6 @@ private fun PreviewChatScreen() {
         onAddSelectedMessage = {},
         videoPlayer = null
     )
+     */
+
 }

@@ -226,15 +226,18 @@ fun ContactScreen(
                                     LazyColumn(
                                         modifier = Modifier.padding(horizontal = 12.dp)
                                     ){
-                                        conversationState.conversations.sortedBy { it.date }.reversed().forEach { conversation ->
+                                        conversationState.conversations
+                                            //.sortedBy { it. }
+                                            .reversed().forEach { conversation ->
                                             item {
 
-                                                val dates = conversation.lastMessage?.date?.let { Date(it) }
+                                                //val dates = conversation.lastMessage?.date?.let { Date(it) }
                                                 ChatListItem(
                                                     image = {
+                                                        /*
                                                         if (conversation.recipients.get(0).contact?.photoUri != null) {
                                                             Image(
-                                                                painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                                painter = rememberAsyncImagePainter(model = "conversation.recipients.get(0).contact?.photoUri"), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
                                                                 contentDescription = "Contact Image",
                                                                 contentScale = ContentScale.Crop,
                                                                 modifier = Modifier
@@ -250,25 +253,33 @@ fun ContactScreen(
                                                                     .clip(CircleShape) // Apply a circular shape
                                                             )
                                                         }
+                                                         */
+
                                                     },
-                                                    header = conversation.recipients.first().getDisplayName(),
-                                                    subheader = conversation.lastMessage?.getSummary() ?: "",
-                                                    time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
-                                                    unreadConversation = conversation.unread,
+                                                    header = "", //conversation.recipients.first().getDisplayName(),
+                                                    subheader = "", // conversation.lastMessage?.getSummary() ?: "",
+                                                    time = Date(), //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
+                                                    unreadConversation = true ,//conversation.unread,
                                                     onClick = {
                                                         conversationClicked(conversation.id.toString())
                                                     },
                                                     onClickLeft = {
+                                                        /*
                                                         markArchived(conversation.id)
                                                         if(isEthereumAddress(conversation.getConversationTitle())) {
                                                             deleteXMTPConversation(conversation.getConversationTitle())
                                                         }
+                                                         */
+
                                                     },
                                                     onClickRight = {
+                                                        /*
                                                         markArchived(conversation.id)
                                                         if(isEthereumAddress(conversation.getConversationTitle())) {
                                                             deleteXMTPConversation(conversation.getConversationTitle())
                                                         }
+                                                         */
+
                                                     }
                                                 )
                                             }
@@ -292,7 +303,7 @@ fun ContactScreen(
                             }
                         }
                         1 -> {
-                            //TODO: Add logic (unaccepted messages)
+                            /*
                             if(conversationState.conversations.isNotEmpty()){
                                 Box(modifier = Modifier.weight(1f)) {
                                     LazyColumn(
@@ -358,6 +369,23 @@ fun ContactScreen(
                                     )
                                 }
                             }
+                             */
+                            //TODO: Add logic (unaccepted messages)
+
+
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No conversations",
+                                    fontSize = 20.sp,
+                                    fontFamily = Fonts.INTER,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Colors.GRAY,
+                                )
+                            }
+
                         }
                     }
                 }
@@ -367,6 +395,7 @@ fun ContactScreen(
 
     if(showHiddenConversations){
         // Popup that lists conversations names that have unknown set to true
+        /*
         if (conversationState is ConversationUIState.Success) {
             val allConvos = conversationState.conversations
             ShowHiddenConversationsPopup(
@@ -378,6 +407,8 @@ fun ContactScreen(
                 onDismiss = { showHiddenConversations = false }
             )
         }
+         */
+
     }
 
     if(showContactSheet){
@@ -426,6 +457,7 @@ fun ShowHiddenConversationsPopup(
     onApprove: (Long, String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    /*
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
             shape = MaterialTheme.shapes.medium,
@@ -472,6 +504,8 @@ fun ShowHiddenConversationsPopup(
             }
         }
     }
+     */
+
 }
 
 
@@ -479,6 +513,8 @@ fun ShowHiddenConversationsPopup(
 @Composable
 @Preview
 fun PreviewShowHiddenConversationsPopup(){
+
+    /*
     ShowHiddenConversationsPopup(
         listOf(
             Conversation(
@@ -493,6 +529,8 @@ fun PreviewShowHiddenConversationsPopup(){
         {_,_ ->},
         {}
     )
+     */
+
 }
 
 /*

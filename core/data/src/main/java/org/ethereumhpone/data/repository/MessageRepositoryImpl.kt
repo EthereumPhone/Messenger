@@ -112,19 +112,7 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
     private suspend fun sendXmtpMessage(message: Message): String? {
-        if (xmtpClientManager.clientState.first() != XmtpClientManager.ClientState.Ready) return null
-
-        //TODO: add group send
-
-
-        val convo = try {
-            xmtpConversationHandler.getOrCreateConversation(xmtpClientManager.client, message.senderInboxId)
-        } catch (e: XMTPException) {
-            e.printStackTrace()
-            return null
-        }
-
-        return convo.send(text = message.body)
+        TODO()
     }
 
     override suspend fun sendMessage(

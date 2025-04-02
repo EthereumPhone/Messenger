@@ -98,7 +98,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         selectedConversationState(addresses, conversationRepository)
     ).stateIn(
         scope = viewModelScope,
-        initialValue = Conversation(),
+        initialValue = Conversation("0", title = "", ),
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
@@ -107,11 +107,15 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val recipientState = conversationState
         .filterNotNull()
         .map { conversation ->
+            /*
             when {
                 conversation.recipients.isNotEmpty() -> conversation.recipients
                 addresses.isNotEmpty() -> addresses.map { address -> Recipient(address = address) }
                 else -> emptyList()
             }
+             */
+            emptyList<Recipient>()
+
         }
         .stateIn(
             scope = viewModelScope,
@@ -124,7 +128,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val messagesState = conversationState
         .filterNotNull()
         .flatMapLatest {
-            messageRepository.getMessages(it.id).map(MessagesUiState::Success)
+            messageRepository.getMessages(0L).map(MessagesUiState::Success) //TODO: FIX THIS
         }.stateIn(
             scope = viewModelScope,
             initialValue = MessagesUiState.Loading,
@@ -351,9 +355,12 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     fun sendMessage(messageBody: String) {
 
-        val subId = -1 //TODO: Add sunscroptionId logic
+
+        /*
+            val subId = -1 //TODO: Add sunscroptionId logic
 
         conversationState.value?.let { convo ->
+
 
             val addresses = convo.recipients.map { it.inboxId }
 
@@ -364,6 +371,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 _attachments.value = emptySet()
             }
         }
+             */
+
     }
 
     //TODO: add specific contact selection
@@ -423,7 +432,9 @@ private fun selectedConversationState(
     conversationRepository: ConversationRepository
 ): Flow<Conversation?> {
     if (addresses.isEmpty()) return flowOf(null)
+    return flowOf(null)
 
+    /*
     return conversationRepository.getOrCreateConversation(addresses).flatMapLatest { convo ->
         val threadId = convo?.id ?: 0
 
@@ -443,6 +454,8 @@ private fun selectedConversationState(
             }
         }
     }
+     */
+
 }
 
 sealed interface MessagesUiState {

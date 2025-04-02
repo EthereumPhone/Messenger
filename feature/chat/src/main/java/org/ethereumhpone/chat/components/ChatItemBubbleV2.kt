@@ -117,7 +117,8 @@ fun ChatItemBubbleV2(
             .background(messageBrush)
             .width(IntrinsicSize.Max)
     ){
-        val media = message.parts.filter { it.isImage() || it.isVideo() }
+        //TODO FIX THIS
+        val media =  emptyList<Message>() //message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -135,7 +136,7 @@ fun ChatItemBubbleV2(
         }
 
         // vCard
-        val contacts = message.parts.filter { it.isVCard() }
+        val contacts = emptyList<Message>() //message.parts.filter { it.isVCard() }
 
 
         if (contacts.isNotEmpty()) {
@@ -243,18 +244,7 @@ fun ChatItemBubbleV2(
 
             val uriHandler = LocalUriHandler.current
 
-            val messageBody = when (message.isSms() || message.isXmtp() ) {
-                true -> {
-                    message.body
-                }
-                false -> {
-                    message.parts
-                        .filter { part -> part.isText() }
-                        .mapNotNull { part -> part.text }
-                        .filter { text -> text.isNotBlank() }
-                        .joinToString("\n")
-                }
-            }
+            val messageBody = message.body
 
             if (messageBody.isNotBlank()) {
                 val styledMessage = messageFormatter(
@@ -308,6 +298,9 @@ fun ChatItemBubbleV2(
 @Preview
 @Composable
 fun ReplyChatItemBubblePreview() {
+    /*
+
+
     val initialMessages = listOf(
 
         Message(
@@ -339,5 +332,5 @@ fun ReplyChatItemBubblePreview() {
         isFirstMessageByAuthor = true,
         onPlayVideo = {}
     )
-
+    */
 }

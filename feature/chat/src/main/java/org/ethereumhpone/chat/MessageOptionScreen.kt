@@ -108,12 +108,12 @@ fun MessageOptionsScreen(
    ) {
        Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment =  if (message.address != "me") Alignment.Start else Alignment.End ,
+            horizontalAlignment =  if (message.senderInboxId != "me") Alignment.Start else Alignment.End , // TODO: Probably broken
             modifier = Modifier.padding(horizontal = 12.dp)
         ) {
             FocusMessage(
                 msg = message,
-                isUserMe = message.isMe(),
+                isUserMe = message.isMe,
                 isFirstMessageByAuthor = true,
                 onLongClick = {
                     focusMode.value = false
@@ -354,7 +354,8 @@ fun MessageDetailView(
                 ){
                     Text("Read", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     when {
-
+                        //TODO: Fix this
+                        /*
                         message.isSending() -> Icon(
                             painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
                             contentDescription = "Go back",
@@ -363,6 +364,8 @@ fun MessageDetailView(
                                 .size(32.dp)
                                 .alpha(0.9f)
                         )
+                         */
+
 
                         message.isDelivered() -> Icon(
                             painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,

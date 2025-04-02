@@ -14,10 +14,15 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.common.extensions.removeAccents
+import org.ethereumhpone.common.util.Result
 import org.ethereumhpone.common.util.tryOrNull
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.util.PhoneNumberUtils
@@ -31,6 +36,7 @@ import org.ethereumhpone.domain.mapper.ConversationCursor
 import org.ethereumhpone.domain.mapper.RecipientCursor
 import org.ethereumhpone.domain.model.SearchResult
 import org.ethereumhpone.domain.repository.ConversationRepository
+import org.xmtp.android.library.Client
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.android.library.libxmtp.PublicIdentity
 import javax.inject.Inject
@@ -41,7 +47,7 @@ class ConversationRepositoryImpl @Inject constructor(
     private val contactDao: ContactDao,
     private val recipientDao: RecipientDao,
     private val messageDao: MessageDao,
-    private val xmtpClientManager: XmtpClientManager
+    private val xmtpClientManager: XmtpClientManager,
 ): ConversationRepository {
     override fun getConversations(archived: Boolean): Flow<List<Conversation>> =
         conversationDao.getConversations(archived)
@@ -87,31 +93,59 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override fun getThreadId(recipients: Collection<String>): Flow<Long?> = TODO()
 
-    override fun getOrCreateConversation(addresses: List<String>): Flow<Conversation> = flow {
+    @OptIn(ExperimentalSerializationApi::class)
+    override fun getOrCreateConversation(addresses: List<String>): Flow<Result<Conversation>> = flow {
         //check if conversation already exists
         val recipients = recipientDao.getRecipientsByAddress(addresses)
+            .first()
+            .map { it.inboxId }
 
 
+        // recipients not found
+        if (recipients.size != addresses.size) {
+            val identities = addresses.map {
+                PublicIdentity(
+                    kind = IdentityKind.ETHEREUM,
+                    identifier = it
+                )
+            }
 
+           // check if you user is allowed to message
+            val consentMap = xmtpClientManager.client.canMessage(identities)
+            if (!consentMap.values.all { it }) {
+                emit(Result.Error("Could not create a conversation with " + consentMap.filter { !it.value }.toList().joinToString(",")))
+            } else {
+                //dm
+                if (addresses.size == 1) {
+                    try {
+                        val dm = xmtpClientManager.client.conversations.findOrCreateDmWithIdentity(identities.first())
 
+                        val conversation = Conversation(
+                            id = dm.id,
+                            title = null,
+                            members = listOf(dm.peerInboxId)
+                        )
 
-
-
-
-
-
-        // Assume direct
-        val publicIdentities = addresses.map {
-            PublicIdentity(
-                kind = IdentityKind.ETHEREUM,
-                identifier = it
-            )
+                        val recipient = Recipient(
+                            inboxId = dm.peerInboxId,
+                            address = identities.first().identifier
+                        )
+                        recipientDao.insertRecipients(listOf(recipient))
+                        conversationDao.insertConversation(conversation)
+                        emit(Result.Success(conversation))
+                    } catch (e: Exception) {
+                        emit(Result.Error(e.message?: "could not create dm conversation"))
+                    }
+                } else { // group
+                    //TODO: Handle groups
+                }
+            }
+        } else {
+            // recipients were found
+            val json = Json.encodeToString(recipients)
+            val conversation = conversationDao.getConversationByExactMembers(recipients.size, json)
+            emit(Result.Success(conversation!!)) // TODO CHANGE
         }
-
-        val inboxIds = publicIdentities.map { xmtpClientManager.client.inboxIdFromIdentity(it) }
-
-        xmtpClientManager.client.inboxIdFromIdentity()
-
     }
 
     override suspend fun saveDraft(threadId: Long, draft: String) {

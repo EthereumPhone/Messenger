@@ -27,7 +27,7 @@ fun ChatTopAppBar(
     onBackClicked: () -> Unit
 ) {
     val header = title.ifBlank {
-        val displayNames = recipients.map { it.getDisplayName() }
+        val displayNames = recipients.map { "it.getDisplayName()" } //TODO FIX display name
         displayNames.joinToString(", ")
     }
 
@@ -73,7 +73,8 @@ fun PreviewChatTopAppBar() {
 @Preview
 @Composable
 fun PreviewChatTopAppBarNoTitle() {
-    ChatTopAppBar(
+    /*
+ChatTopAppBar(
         "",
         listOf(
             Recipient(address = "nicola"),
@@ -87,5 +88,7 @@ fun PreviewChatTopAppBarNoTitle() {
         {},
         {}
     )
+     */
+
 }
 

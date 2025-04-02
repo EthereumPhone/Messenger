@@ -32,6 +32,7 @@ import org.ethereumhpone.database.model.isVCard
 fun VCardBinder(
     message: Message
 ) {
+    /*
     val vCards = remember { message.parts.filter(MmsPart::isVCard) }
 
     Column(
@@ -43,6 +44,8 @@ fun VCardBinder(
             VCard(vCard.getDisplayName() ?: "" ,  message.isMe())
         }
     }
+     */
+
 
     //TODO: Add ActionClick for vCard
 }

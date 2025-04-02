@@ -42,7 +42,9 @@ class ContactViewModel @Inject constructor(
     val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
         .flowOn(Dispatchers.IO)
         .map { conversations ->
-            val filteredConversations = conversations.sortedBy { it.date }.reversed() // Filter out conversations with unknown set to true
+            val filteredConversations = conversations
+                //.sortedBy { it.date }
+                .reversed() // Filter out conversations with unknown set to true
             ConversationUIState.Success(filteredConversations)
         }
         .stateIn(
@@ -55,7 +57,8 @@ class ContactViewModel @Inject constructor(
     val showHiddenButton: StateFlow<Boolean> = conversationRepository.getConversations()
         .flowOn(Dispatchers.IO)
         .map { conversations ->
-            conversations.any { it.isUnknown } // Check if any conversation has unknown set to true
+            //conversations.any { it.isUnknown } // Check if any conversation has unknown set to true
+            conversations == conversations //TODO: CHANGE THIS
         }
         .stateIn(
             scope = viewModelScope,

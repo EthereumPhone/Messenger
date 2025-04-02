@@ -65,6 +65,7 @@ dependencies {
 
     implementation(libs.xmtp)
     implementation(libs.walletsdk)
+    implementation(libs.kotlin.serialization)
 
 
     implementation("com.vdurmont:emoji-java:5.1.1") // emoji parser

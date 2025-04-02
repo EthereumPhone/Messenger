@@ -246,7 +246,7 @@ fun FocusChatItemBubble(
             ),
 
         ){
-        val media = message.parts.filter { it.isImage() || it.isVideo() }
+        val media = emptyList<Message>()//message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -264,7 +264,7 @@ fun FocusChatItemBubble(
         }
 
         // vCard
-        val contacts = message.parts.filter { it.isVCard() }
+        val contacts = emptyList<Message>()// message.parts.filter { it.isVCard() }
 
 
         if (contacts.isNotEmpty()) {
@@ -285,16 +285,7 @@ fun FocusChatItemBubble(
 
             val uriHandler = LocalUriHandler.current
 
-            val messageBody = when (message.isSms()) {
-                true -> message.body
-                false -> {
-                    message.parts
-                        .filter { part -> part.isText() }
-                        .mapNotNull { part -> part.text }
-                        .filter { text -> text.isNotBlank() }
-                        .joinToString("\n")
-                }
-            }
+            val messageBody = message.body
 
             if (messageBody.isNotBlank()) {
                 val styledMessage = messageFormatter(

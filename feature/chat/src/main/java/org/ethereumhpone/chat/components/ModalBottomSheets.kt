@@ -76,6 +76,7 @@ import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.extractTransactionDetails
 import org.ethereumhpone.chat.isValidTransactionMessage
 import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.Message
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.database.model.isSmil
 import org.ethereumhpone.database.model.isText
@@ -171,14 +172,17 @@ fun ContactSheet(
 
 
                 ContactInfo(title = name, icon = Icons.Outlined.Person)
-                recipient?.contact?.numbers?.get(0)?.let { ContactInfo(title = it.address, icon = Icons.Outlined.LocalPhone) }
+                //recipient?.contact?.numbers?.get(0)?.let { ContactInfo(title = it.address, icon = Icons.Outlined.LocalPhone) }
 
-
+                /*
                 recipient?.contact?.ethAddress.let {
                     if (it != null && it.isNotBlank()) {
                         ContactInfo(title = it, icon = ImageVector.vectorResource(id = R.drawable.ethereum_logo))
                     }
                 }
+                 */
+
+
                 if(getEnsAddresses(ens).isNotEmpty() || getEnsAddresses(ens).isNotBlank()){
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -253,7 +257,7 @@ fun MediaSheet(
                 }
 
                 is MessagesUiState.Success -> {
-                    val allmedia = messagesUiState.messages.filter { it.parts.isNotEmpty() }
+                    val allmedia = emptyList<Message>()//messagesUiState.messages.filter { it.parts.isNotEmpty() }
 
                     if (allmedia.isEmpty()){
                         Column(
@@ -278,12 +282,12 @@ fun MediaSheet(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             content = {
                                 items(items = allmedia){
-                                    val media = remember { it.parts.filter { !it.isText() && !it.isSmil() } }
+                                    val media = emptyList<Message>() // remember { it.parts.filter { !it.isText() && !it.isSmil() } }
 
                                     media.forEachIndexed { index, item ->
                                         Box(Modifier.clip(RoundedCornerShape(15.dp))) {
                                             AsyncImage(
-                                                model = if (item.isVideo()) Attachment.Video(uri = item.getUri()).getThumbnail(LocalContext.current) else item.getUri(),
+                                                model = "", //if (item.isVideo()) Attachment.Video(uri = item.getUri()).getThumbnail(LocalContext.current) else item.getUri(),
                                                 contentDescription = "",
                                                 contentScale = ContentScale.Crop,
                                                 placeholder = painterResource(id = R.drawable.ethos_placeholder),
@@ -300,6 +304,7 @@ fun MediaSheet(
                                                     )
                                             )
 
+                                            /*
                                             if(item.isVideo()) {
                                                 androidx.compose.material.Icon(
                                                     imageVector = Icons.Rounded.PlayArrow,
@@ -312,6 +317,8 @@ fun MediaSheet(
                                                         .background(Color.Black.copy(alpha = 0.5f))
                                                 )
                                             }
+                                             */
+
                                         }
                                     }
                                 }
@@ -438,7 +445,7 @@ fun TXSheet(
                                             asset = "ETH",
                                             value = decimalFormat.format(it.amount.toDouble()),
                                             timeStamp =  formatedDate,
-                                            userSent = message.isMe(),
+                                            userSent = message.isMe,
                                             onCardClick = {
                                                 //Go to link
                                                 // Open link in browser

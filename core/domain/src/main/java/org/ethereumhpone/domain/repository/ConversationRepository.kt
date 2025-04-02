@@ -1,6 +1,7 @@
 package org.ethereumhpone.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import org.ethereumhpone.common.util.Result
 import org.ethereumhpone.database.model.Conversation
 import org.ethereumhpone.database.model.Recipient
 import org.ethereumhpone.domain.model.SearchResult
@@ -23,7 +24,7 @@ interface ConversationRepository {
     fun getRecipient(recipientId: Long): Flow<Recipient?>
     fun getThreadId(recipient: String): Flow<Long?>
     fun getThreadId(recipients: Collection<String>): Flow<Long?>
-    fun getOrCreateConversation(addresses: List<String>): Flow<Conversation?>
+    fun getOrCreateConversation(addresses: List<String>): Flow<Result<Conversation>>
     suspend fun saveDraft(threadId: Long, draft: String)
     suspend fun updateConversations(vararg threadIds: Long)
     suspend fun markArchived(vararg threadIds: Long)

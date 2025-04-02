@@ -78,7 +78,8 @@ fun MediaBinder(
     name: String
 ) {
 
-    val media = remember { message.parts.filter { it.isImage() || it.isVideo() } }
+    /*
+val media = remember { message.parts.filter { it.isImage() || it.isVideo() } }
     var showExpandedMedia by remember { mutableStateOf(false) }
 
     var offset by remember { mutableIntStateOf(0) }
@@ -107,6 +108,8 @@ fun MediaBinder(
             contactname = name
         )
     }
+     */
+
 }
 
 @Composable

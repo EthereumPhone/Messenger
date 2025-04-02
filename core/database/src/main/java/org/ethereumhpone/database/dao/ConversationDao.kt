@@ -2,6 +2,8 @@ package org.ethereumhpone.database.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
@@ -22,6 +24,13 @@ interface ConversationDao {
 
     @Query("SELECT * FROM conversation WHERE id IN (:threadIds) ")
     fun getConversations(threadIds: List<Long>): Flow<List<Conversation>>
+
+    @Query("""
+        SELECT * FROM conversation 
+        WHERE json_array_length(members) = :memberCount 
+        AND members = :membersJson
+    """)
+    suspend fun getConversationByExactMembers(memberCount: Int, membersJson: String): Conversation?
 
     @Transaction
     @Query("""
@@ -59,11 +68,13 @@ interface ConversationDao {
     @Upsert
     fun upsertConversation(conversation: Conversation)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertConversation(conversation: Conversation)
+
     @Upsert
     fun upsertConversations(conversations: List<Conversation>)
 
     @Delete
     fun deleteConversation(conversations: List<Conversation>)
-
 
 }

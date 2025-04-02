@@ -91,10 +91,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val xmtpClientManager: XmtpClientManager,
     private val contentResolver: ContentResolver,
     private val conversationRepository: ConversationRepository,
-    private val conversationCursor: ConversationCursor,
-    private val messageCursor: MessageCursor,
     private val partCursor: PartCursor,
-    private val recipientCursor: RecipientCursor,
     private val contactCursor: ContactCursor,
     private val contactGroupCursor: ContactGroupCursor,
     private val contactGroupMemberCursor: ContactGroupMemberCursor,
@@ -122,9 +119,6 @@ class SyncRepositoryImpl @Inject constructor(
 
 
         val partsCursor = partCursor.getPartsCursor()
-        val messagesCursor = messageCursor.getMessagesCursor()
-        val conversationsCursor = conversationCursor.getConversationsCursor()
-        val recipientsCursor = recipientCursor.getRecipientCursor()
 
 
         logTimeHandler.setLastLog(SyncLog().date)
@@ -201,6 +195,8 @@ class SyncRepositoryImpl @Inject constructor(
                 client.conversations.syncAllConversations()
             }
             syncJob.join()
+
+            Log.d("CURRENT ADDREss", client.publicIdentity.identifier)
 
 
             client.conversations.list().forEach { conversation ->
