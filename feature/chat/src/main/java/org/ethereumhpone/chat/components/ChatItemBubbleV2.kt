@@ -1,7 +1,6 @@
 package org.ethereumhpone.chat.components
 
 import android.net.Uri
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -29,7 +28,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
@@ -46,11 +44,7 @@ import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
-import org.ethereumhpone.database.model.Message
-import org.ethereumhpone.database.model.isImage
-import org.ethereumhpone.database.model.isText
-import org.ethereumhpone.database.model.isVCard
-import org.ethereumhpone.database.model.isVideo
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
@@ -58,7 +52,7 @@ import org.ethosmobile.components.library.theme.Fonts
 @Composable
 fun ChatItemBubbleV2(
     modifier: Modifier = Modifier,
-    message: Message,
+    messageEntity: MessageEntity,
     isUserMe: Boolean,
     name: String = "",
     isFirstMessageByAuthor: Boolean,
@@ -118,7 +112,7 @@ fun ChatItemBubbleV2(
             .width(IntrinsicSize.Max)
     ){
         //TODO FIX THIS
-        val media =  emptyList<Message>() //message.parts.filter { it.isImage() || it.isVideo() }
+        val media =  emptyList<MessageEntity>() //message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -129,14 +123,14 @@ fun ChatItemBubbleV2(
                 MediaBinder(
                     name= name,
                     videoPlayer = videoPlayer,
-                    message = message,
+                    messageEntity = messageEntity,
                     onPrepareVideo = { onPlayVideo(it) }
                 )
             }
         }
 
         // vCard
-        val contacts = emptyList<Message>() //message.parts.filter { it.isVCard() }
+        val contacts = emptyList<MessageEntity>() //message.parts.filter { it.isVCard() }
 
 
         if (contacts.isNotEmpty()) {
@@ -145,7 +139,7 @@ fun ChatItemBubbleV2(
                     .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
                     .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
             {
-                VCardBinder(message)
+                VCardBinder(messageEntity)
             }
         }
 
@@ -202,7 +196,7 @@ fun ChatItemBubbleV2(
 
 
                         BasicText(
-                            text = message.body,
+                            text = messageEntity.body,
                             maxLines = 4,
                             overflow = TextOverflow.Ellipsis,
                             style = TextStyle(
@@ -244,7 +238,7 @@ fun ChatItemBubbleV2(
 
             val uriHandler = LocalUriHandler.current
 
-            val messageBody = message.body
+            val messageBody = messageEntity.body
 
             if (messageBody.isNotBlank()) {
                 val styledMessage = messageFormatter(
@@ -283,7 +277,7 @@ fun ChatItemBubbleV2(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(message)
+            AuthorNameTimestamp(messageEntity)
 
 
 

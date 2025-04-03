@@ -7,11 +7,11 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.ethereumhpone.database.model.Contact
-import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.PhoneNumber
-import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.RecipientEntity
 import org.xmtp.android.library.libxmtp.DecodedMessage
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -20,14 +20,14 @@ class Converters {
     private val gson = Gson()
 
     @TypeConverter
-    fun fromContactsList(contacts: List<Contact>?): String? {
-        return gson.toJson(contacts)
+    fun fromContactsList(contactEntities: List<ContactEntity>?): String? {
+        return gson.toJson(contactEntities)
     }
 
     @TypeConverter
-    fun toContactsList(contactsString: String?): List<Contact>? {
+    fun toContactsList(contactsString: String?): List<ContactEntity>? {
         if (contactsString == null) return null
-        val type = object : TypeToken<List<Contact>>() {}.type
+        val type = object : TypeToken<List<ContactEntity>>() {}.type
         return gson.fromJson(contactsString, type)
     }
     @TypeConverter
@@ -44,7 +44,7 @@ class Converters {
     }
 
     @TypeConverter
-    fun fromRecipientList(json: String?): List<Recipient> {
+    fun fromRecipientList(json: String?): List<RecipientEntity> {
         if (json == null) {
             return emptyList()
         }
@@ -52,18 +52,18 @@ class Converters {
     }
 
     @TypeConverter
-    fun toRecipientList(numbers: List<Recipient>): String {
+    fun toRecipientList(numbers: List<RecipientEntity>): String {
         return Json.encodeToString(numbers)
     }
 
     @TypeConverter
-    fun fromMessage(json: String?): Message? {
+    fun fromMessage(json: String?): MessageEntity? {
         return json?.let { Json.decodeFromString(it) }
     }
 
     @TypeConverter
-    fun toMessage(message: Message?): String? {
-        return message?.let { Json.encodeToString(it) }
+    fun toMessage(messageEntity: MessageEntity?): String? {
+        return messageEntity?.let { Json.encodeToString(it) }
     }
 
     @TypeConverter
@@ -80,12 +80,12 @@ class Converters {
     }
 
     @TypeConverter
-    fun fromContact(json: String?): Contact? {
+    fun fromContact(json: String?): ContactEntity? {
         return json?.let { Json.decodeFromString(it) }
     }
 
     @TypeConverter
-    fun toContact(message: Contact?): String? {
+    fun toContact(message: ContactEntity?): String? {
         return message?.let { Json.encodeToString(it) }
     }
 

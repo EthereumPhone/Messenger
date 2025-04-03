@@ -6,7 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
-import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.relation.RecipientWithContact
 
 
@@ -14,7 +14,7 @@ import org.ethereumhpone.database.model.relation.RecipientWithContact
 interface RecipientDao {
 
     @Query("SELECT * FROM recipient")
-    fun getRecipients(): Flow<List<Recipient>>
+    fun getRecipients(): Flow<List<RecipientEntity>>
 
     @Query(
         """
@@ -22,25 +22,25 @@ interface RecipientDao {
             WHERE address IN (:addresses)
         """
     )
-    fun getRecipientsByAddress(addresses: List<String>): Flow<List<Recipient>>
+    fun getRecipientsByAddress(addresses: List<String>): Flow<List<RecipientEntity>>
 
     @Query("SELECT * FROM recipient")
     fun getRecipientsWithContact(): List<RecipientWithContact>
 
     @Query("SELECT * FROM recipient WHERE inboxId = :inboxId")
-    fun getRecipient(inboxId: Long): Flow<Recipient?>
+    fun getRecipient(inboxId: Long): Flow<RecipientEntity?>
 
     @Query("SELECT * FROM recipient WHERE inboxId in (:recipientIds)")
-    fun getRecipientsByIds(recipientIds: List<Long>): Flow<List<Recipient>>
+    fun getRecipientsByIds(recipientIds: List<Long>): Flow<List<RecipientEntity>>
 
     @Upsert
-    suspend fun upsertRecipient(recipient: Recipient)
+    suspend fun upsertRecipient(recipientEntity: RecipientEntity)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertRecipients(recipients: List<Recipient>)
+    suspend fun insertRecipients(recipientEntities: List<RecipientEntity>)
 
     @Upsert
-    suspend fun upsertRecipients(recipients: List<Recipient>)
+    suspend fun upsertRecipients(recipientEntities: List<RecipientEntity>)
 
 
 }

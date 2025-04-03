@@ -21,12 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccessAlarm
 import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.PermMedia
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.ArrowForwardIos
 import androidx.compose.material3.Divider
@@ -54,9 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import org.ethereumhpone.chat.components.ContactItem
-import org.ethereumhpone.chat.components.makePhoneCall
-import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.RecipientEntity
 import org.ethosmobile.components.library.core.ethOSIconButton
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -70,7 +66,7 @@ fun ContactDetailView(
     name: String,
     ens: List<String>,
     image: String,
-    recipient: Recipient?,
+    recipientEntity: RecipientEntity?,
     onMembersClick: () -> Unit = {},
     onMediaClick: () -> Unit = {},
     onTxClick: () -> Unit = {},
@@ -212,7 +208,7 @@ fun ContactDetailView(
                             title = "Transaction",
                             icon = Icons.Outlined.AttachMoney,
                             onClick = onTxClick,
-                            amount = messagesUiState.messages.filter { isValidTransactionMessage(it.body) }.size
+                            amount = messagesUiState.messageEntities.filter { isValidTransactionMessage(it.body) }.size
                         )
 
                         //TODO: Members

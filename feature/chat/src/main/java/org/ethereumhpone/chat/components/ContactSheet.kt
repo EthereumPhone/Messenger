@@ -1,10 +1,5 @@
 package org.ethereumhpone.chat.components
 
-import android.annotation.SuppressLint
-import android.content.ContentResolver
-import android.net.Uri
-import android.provider.ContactsContract
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,7 +41,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -57,8 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import ezvcard.Ezvcard
-import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.model.Attachment
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -70,9 +63,9 @@ import org.ethosmobile.components.library.theme.Fonts
  */
 @Composable
 fun ContactSheet(
-    contacts: List<Contact> = emptyList(),
+    contactEntities: List<ContactEntity> = emptyList(),
     attachments: Set<Attachment> = emptySet(),
-    onContactClicked: (Contact) -> Unit
+    onContactClicked: (ContactEntity) -> Unit
 ) {
 
     val currentAttachments = attachments.filterIsInstance<Attachment.Contact>()
@@ -96,7 +89,7 @@ fun ContactSheet(
             )
             .padding(start = 12.dp, end = 12.dp)
     ) {
-        if (contacts.isEmpty()) {
+        if (contactEntities.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight(0.5f)
@@ -130,7 +123,7 @@ fun ContactSheet(
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    contacts.filter { contact -> contact.name.contains(textState.text, true) ||
+                    contactEntities.filter { contact -> contact.name.contains(textState.text, true) ||
                             contact.numbers.any { it.address.normalizedString().contains(textState.text.normalizedString(), true) }
                     }.filter { it.getDefaultNumber() == null && !it.numbers.firstOrNull()?.address.isNullOrEmpty() }.forEachIndexed { index, contact ->
                         item {

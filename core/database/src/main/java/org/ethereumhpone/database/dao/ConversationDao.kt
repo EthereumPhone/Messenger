@@ -9,28 +9,27 @@ import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
-import org.ethereumhpone.database.model.Conversation
+import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.relation.ConversationWithLastMessage
-import java.util.concurrent.TimeUnit
 
 @Dao
 interface ConversationDao {
 
     @Query("SELECT * FROM conversation WHERE id = :id")
-    fun getConversation(id: Long): Flow<Conversation?>
+    fun getConversation(id: Long): Flow<ConversationEntity?>
 
     @Query("SELECT * FROM conversation WHERE (:archived IS NULL or archived = :archived)")
-    fun getConversations(archived: Boolean? = null): Flow<List<Conversation>>
+    fun getConversations(archived: Boolean? = null): Flow<List<ConversationEntity>>
 
     @Query("SELECT * FROM conversation WHERE id IN (:threadIds) ")
-    fun getConversations(threadIds: List<Long>): Flow<List<Conversation>>
+    fun getConversations(threadIds: List<Long>): Flow<List<ConversationEntity>>
 
     @Query("""
         SELECT * FROM conversation 
         WHERE json_array_length(members) = :memberCount 
         AND members = :membersJson
     """)
-    suspend fun getConversationByExactMembers(memberCount: Int, membersJson: String): Conversation?
+    suspend fun getConversationByExactMembers(memberCount: Int, membersJson: String): ConversationEntity?
 
     @Transaction
     @Query("""
@@ -42,7 +41,7 @@ interface ConversationDao {
             WHERE threadId = c.id
         ) OR m.id IS NULL
     """)
-    suspend fun getAllConversationsWithLatestMessage(): List<ConversationWithLastMessage>
+    fun getAllConversationsWithLatestMessage(): Flow<List<ConversationWithLastMessage>>
 
     @Transaction
     @Query("""
@@ -55,26 +54,26 @@ interface ConversationDao {
     fun getConversationWithLastMessage(id: String): ConversationWithLastMessage
 
     @Query("SELECT * FROM conversation WHERE blocked = true")
-    fun getBlockedConversations(): Flow<List<Conversation>>
+    fun getBlockedConversations(): Flow<List<ConversationEntity>>
 
     @Query("SELECT * FROM conversation WHERE " +
         "archived == true OR blocked == true OR pinned == true OR title != ''" +
         "OR blockingClient IS NOT NULL OR blockReason != ''")
-    fun getPersistedData(): Flow<List<Conversation>>
+    fun getPersistedData(): Flow<List<ConversationEntity>>
 
     @Update
-    fun updateConversation(conversation: Conversation)
+    fun updateConversation(conversationEntity: ConversationEntity)
 
     @Upsert
-    fun upsertConversation(conversation: Conversation)
+    fun upsertConversation(conversationEntity: ConversationEntity)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertConversation(conversation: Conversation)
+    suspend fun insertConversation(conversationEntity: ConversationEntity)
 
     @Upsert
-    fun upsertConversations(conversations: List<Conversation>)
+    fun upsertConversations(conversationEntities: List<ConversationEntity>)
 
     @Delete
-    fun deleteConversation(conversations: List<Conversation>)
+    fun deleteConversation(conversationEntities: List<ConversationEntity>)
 
 }

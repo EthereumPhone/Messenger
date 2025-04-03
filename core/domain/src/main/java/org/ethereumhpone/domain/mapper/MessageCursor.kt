@@ -2,10 +2,9 @@ package org.ethereumhpone.domain.mapper
 
 import android.database.Cursor
 import android.provider.Telephony
-import org.ethereumhpone.database.model.Message
-import java.util.Arrays
+import org.ethereumhpone.database.model.MessageEntity
 
-interface MessageCursor : Mapper<Pair<Cursor, MessageCursor.MessageColumns>, Message> {
+interface MessageCursor : Mapper<Pair<Cursor, MessageCursor.MessageColumns>, MessageEntity> {
 
     fun getMessagesCursor(): Cursor?
 

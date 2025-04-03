@@ -5,7 +5,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
 import android.provider.ContactsContract
-import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.mapper.ContactCursor
@@ -68,8 +68,8 @@ class ContactCursorImpl @Inject constructor(
         }    }
 
     @SuppressLint("Range")
-    override fun map(from: Cursor): Contact {
-        return Contact(
+    override fun map(from: Cursor): ContactEntity {
+        return ContactEntity(
             lookupKey = from.getString(COLUMN_LOOKUP_KEY),
             name = from.getString(COLUMN_DISPLAY_NAME) ?: "",
             photoUri = from.getString(COLUMN_PHOTO_URI),

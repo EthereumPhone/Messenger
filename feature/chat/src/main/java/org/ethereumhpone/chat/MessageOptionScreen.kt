@@ -3,7 +3,6 @@ package org.ethereumhpone.chat
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,7 +10,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +21,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,12 +28,10 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -46,15 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -65,21 +53,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.media3.common.Player
-import org.ethereumhpone.chat.components.ChatItemBubbleV2
-import org.ethereumhpone.chat.components.FocusClickableMessage
 import org.ethereumhpone.chat.components.FocusMessage
 import org.ethereumhpone.chat.components.message.ChatItemBubble
-import org.ethereumhpone.chat.components.message.ClickableMessage
 import org.ethereumhpone.chat.components.message.ComposablePosition
-import org.ethereumhpone.chat.components.message.LastUserChatBubbleShape
 import org.ethereumhpone.chat.components.printFormattedDateInfo
-import org.ethereumhpone.chat.model.SymbolAnnotationType
-import org.ethereumhpone.chat.model.messageFormatter
-import org.ethereumhpone.database.model.Message
-import org.ethereumhpone.database.model.isText
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethosmobile.components.library.core.ethOSButton
 import org.ethosmobile.components.library.theme.Colors
-import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -88,7 +68,7 @@ import java.util.Locale
 @Composable
 fun MessageOptionsScreen(
     modifier: Modifier = Modifier,
-    message: Message,
+    messageEntity: MessageEntity,
     composablePositionState: MutableState<ComposablePosition>,
     focusMode: MutableState<Boolean>,
     onDeleteMessage: (String) -> Unit = {},
@@ -108,12 +88,12 @@ fun MessageOptionsScreen(
    ) {
        Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment =  if (message.senderInboxId != "me") Alignment.Start else Alignment.End , // TODO: Probably broken
+            horizontalAlignment =  if (messageEntity.senderInboxId != "me") Alignment.Start else Alignment.End , // TODO: Probably broken
             modifier = Modifier.padding(horizontal = 12.dp)
         ) {
             FocusMessage(
-                msg = message,
-                isUserMe = message.isMe,
+                msg = messageEntity,
+                isUserMe = messageEntity.isMe,
                 isFirstMessageByAuthor = true,
                 onLongClick = {
                     focusMode.value = false
@@ -138,9 +118,9 @@ fun MessageOptionsScreen(
        ){
            DeleteMessage(
                deleteConfirmation,
-               message,
+               messageEntity,
                {
-                   onDeleteMessage(message.id)
+                   onDeleteMessage(messageEntity.id)
                    Toast.makeText(context,"Message deleted",Toast.LENGTH_SHORT).show()
                },
                focusMode
@@ -157,7 +137,7 @@ fun MessageOptionsScreen(
 @Composable
 fun DeleteMessage(
     deleteConfirmation: MutableState<Boolean>,
-    message: Message,
+    messageEntity: MessageEntity,
     onDeleteMessage: (String) -> Unit = {},
     focusMode: MutableState<Boolean>,
 ){
@@ -230,7 +210,7 @@ fun DeleteMessage(
                     )
 
                     ethOSButton(text = "Delete", enabled = true, onClick = {
-                        onDeleteMessage(message.id)
+                        onDeleteMessage(messageEntity.id)
                         focusMode.value = false
 
                     })
@@ -244,7 +224,7 @@ fun DeleteMessage(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageDetailView(
-    message: Message,
+    messageEntity: MessageEntity,
     isUserMe: Boolean,
     onDismissRequest: () -> Unit,
     player: Player?,
@@ -254,19 +234,19 @@ fun MessageDetailView(
     ) {
 
     val smsTime: Calendar = Calendar.getInstance()
-    smsTime.setTimeInMillis(message.date)
+    smsTime.setTimeInMillis(messageEntity.date)
 
     val now: Calendar = Calendar.getInstance()
     //Date formating
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val time = sdf.format(Date(message.date))
+    val time = sdf.format(Date(messageEntity.date))
 
     val day = if (now.get(Calendar.DATE) == smsTime.get(Calendar.DATE) ) {
         "Today"
     } else if (now.get(Calendar.DATE) - smsTime.get(Calendar.DATE) == 1  ){
         "Yesterday"
     } else {
-        printFormattedDateInfo(Date(message.date))
+        printFormattedDateInfo(Date(messageEntity.date))
     }
 
     var expandedAvailable by remember { mutableStateOf(false) }
@@ -321,7 +301,7 @@ fun MessageDetailView(
 
                 //TODO: Add replies - ChatItemBubbleV2
                 ChatItemBubble(
-                    message = message,
+                    messageEntity = messageEntity,
                     isUserMe = true,
                     isFirstMessageByAuthor = true,
                     videoPlayer = player,
@@ -367,7 +347,7 @@ fun MessageDetailView(
                          */
 
 
-                        message.isDelivered() -> Icon(
+                        messageEntity.isDelivered() -> Icon(
                             painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
                             contentDescription = "Go back",
                             tint = Colors.WHITE,
@@ -385,7 +365,7 @@ fun MessageDetailView(
                         .padding(vertical = 16.dp)
                 ){
                     Text("Delivered", color = Colors.WHITE, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    when (message.isDelivered()){
+                    when (messageEntity.isDelivered()){
                         true -> {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),

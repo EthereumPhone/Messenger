@@ -1,9 +1,9 @@
 package org.ethereumhpone.domain.model
 
-import org.ethereumhpone.database.model.Conversation
+import org.ethereumhpone.database.model.ConversationEntity
 
 data class SearchResult(
     val query: String,
-    val conversation: Conversation,
+    val conversationEntity: ConversationEntity,
     val messages: Int
 )

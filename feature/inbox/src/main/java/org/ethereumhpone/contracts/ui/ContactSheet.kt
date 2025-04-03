@@ -49,7 +49,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
@@ -61,7 +60,7 @@ import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.chat.components.isEthereumAddress
 import org.ethereumhpone.chat.components.trimEthereumAddress
 import org.ethereumhpone.data.util.PhoneNumberUtils
-import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -69,8 +68,8 @@ import kotlin.reflect.KSuspendFunction1
 
 @Composable
 fun ContactSheet(
-    contacts: List<Contact> = emptyList(),
-    onContactsSelected: (List<Contact>) -> Unit,
+    contactEntities: List<ContactEntity> = emptyList(),
+    onContactsSelected: (List<ContactEntity>) -> Unit,
     resolveENS: KSuspendFunction1<String, String>
 ) {
     val multiSelectMode by remember { mutableStateOf(false) }
@@ -114,7 +113,7 @@ fun ContactSheet(
             )
         }
 
-        if (contacts.isEmpty()){
+        if (contactEntities.isEmpty()){
             Box(
                 modifier = Modifier
                     .fillMaxHeight(0.5f)
@@ -162,7 +161,7 @@ fun ContactSheet(
                 LazyColumn {
                     if(textState.text.isNotEmpty() && (phoneNumberUtils.isPossibleNumber(textState.text) || isEthereumAddress(textState.text) || textState.text.endsWith(".eth"))){
                         val newAddress = phoneNumberUtils.formatNumber(textState.text)
-                        val newContact = Contact(numbers = (listOf(PhoneNumber(address = newAddress))))
+                        val newContactEntity = ContactEntity(numbers = (listOf(PhoneNumber(address = newAddress))))
 
                         item {
                             ethOSContactListItem(
@@ -173,21 +172,21 @@ fun ContactSheet(
                                             val resolvedAddr = resolveENS(textState.text.lowercase())
                                             withContext(Dispatchers.Main) {
                                                 if (resolvedAddr.isNotEmpty()) {
-                                                    onContactsSelected(listOf(newContact.copy(numbers = listOf(PhoneNumber(address = resolvedAddr)))))
+                                                    onContactsSelected(listOf(newContactEntity.copy(numbers = listOf(PhoneNumber(address = resolvedAddr)))))
                                                 } else {
                                                     Toast.makeText(context, "Could not resolve ENS name", Toast.LENGTH_SHORT).show()
                                                 }
                                             }
                                         }
                                     } else {
-                                        onContactsSelected(listOf(newContact))
+                                        onContactsSelected(listOf(newContactEntity))
                                     }
                                 }
                             )
                         }
                     }
 
-                    contacts.filter { contact -> contact.name.contains(textState.text, true) ||
+                    contactEntities.filter { contact -> contact.name.contains(textState.text, true) ||
                             contact.numbers.any { it.address.normalizedString().contains(textState.text.normalizedString(), true) }
                     }.filter { it.getDefaultNumber() == null && !it.numbers.firstOrNull()?.address.isNullOrEmpty() }.forEach {
                         item {

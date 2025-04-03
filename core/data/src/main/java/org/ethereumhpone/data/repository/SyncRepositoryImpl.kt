@@ -1,32 +1,19 @@
 package org.ethereumhpone.data.repository
 
 import android.content.ContentResolver
-import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
-import android.provider.Telephony
 import android.util.Log
-import androidx.media3.common.util.SystemClock
-import com.google.android.mms.ContentType
-import com.google.common.base.Utf8
-import com.vdurmont.emoji.EmojiParser
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.ethereumhpone.common.compat.TelephonyCompat
-import org.ethereumhpone.common.extensions.forEach
 import org.ethereumhpone.common.extensions.map
-import org.ethereumhpone.common.util.tryOrNull
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ContactDao
@@ -36,54 +23,33 @@ import org.ethereumhpone.database.dao.PhoneNumberDao
 import org.ethereumhpone.database.dao.ReactionDao
 import org.ethereumhpone.database.dao.RecipientDao
 import org.ethereumhpone.database.dao.SyncLogDao
-import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.ContactGroup
-import org.ethereumhpone.database.model.Conversation
-import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.ConversationEntity
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.MessageReaction
-import org.ethereumhpone.database.model.MmsPart
-import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
 import org.ethereumhpone.domain.mapper.ContactGroupMemberCursor
-import org.ethereumhpone.domain.mapper.ConversationCursor
-import org.ethereumhpone.domain.mapper.MessageCursor
 import org.ethereumhpone.domain.mapper.PartCursor
-import org.ethereumhpone.domain.mapper.RecipientCursor
 import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
-import org.ethereumphone.walletsdk.WalletSDK
-import org.xmtp.android.library.Client
-import org.xmtp.android.library.ConsentState
-import org.xmtp.android.library.Conversation.Type
-import org.xmtp.android.library.XMTPException
-import org.xmtp.android.library.codecs.Attachment
-import org.xmtp.android.library.codecs.ContentCodec
 import org.xmtp.android.library.codecs.ContentTypeAttachment
-import org.xmtp.android.library.codecs.ContentTypeReaction
 import org.xmtp.android.library.codecs.ContentTypeReactionV2
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
 import org.xmtp.android.library.codecs.ContentTypeRemoteAttachment
 import org.xmtp.android.library.codecs.ContentTypeReply
-import org.xmtp.android.library.codecs.ContentTypeText
-import org.xmtp.android.library.codecs.EncodedContent
 import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
-import org.xmtp.android.library.codecs.ReactionSchema
-import org.xmtp.android.library.codecs.RemoteAttachment
 import org.xmtp.android.library.codecs.Reply
-import org.xmtp.android.library.codecs.id
-import org.xmtp.android.library.libxmtp.DecodedMessage
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.proto.message.contents.Content
-import org.xmtp.proto.message.contents.MessageOuterClass
-import java.nio.charset.StandardCharsets
 import javax.inject.Inject
-import kotlin.random.Random
 
 
 class SyncRepositoryImpl @Inject constructor(
@@ -125,7 +91,7 @@ class SyncRepositoryImpl @Inject constructor(
         _isSyncing.value = false
     }
 
-    override suspend fun syncMessage(uri: Uri): Message? {
+    override suspend fun syncMessage(uri: Uri): MessageEntity? {
         TODO("Not yet implemented")
     }
 
@@ -134,7 +100,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     }
 
-    private suspend fun getContacts(): List<Contact> {
+    private suspend fun getContacts(): List<ContactEntity> {
         val defaultNumberIds = phoneNumberDao.getDefaultNunmberIds().map { numbers ->
             numbers.map { it.id }
         }.first()
@@ -168,7 +134,7 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
 
-    private fun getContactGroups(contacts: List<Contact>): List<ContactGroup> {
+    private fun getContactGroups(contactEntities: List<ContactEntity>): List<ContactGroup> {
         val groupMembers = contactGroupMemberCursor.getGroupMembersCursor()?.use { cursor ->
             cursor.map(contactGroupMemberCursor::map).toList()
         }.orEmpty()
@@ -179,9 +145,9 @@ class SyncRepositoryImpl @Inject constructor(
 
         return groups.map { group ->
             group.copy(
-                contacts = groupMembers
+                contactEntities = groupMembers
                     .filter { member -> member.groupId == group.id }
-                    .mapNotNull { member -> contacts.find { contact -> contact.lookupKey == member.lookupKey } }
+                    .mapNotNull { member -> contactEntities.find { contact -> contact.lookupKey == member.lookupKey } }
             )
         }
     }
@@ -205,15 +171,15 @@ class SyncRepositoryImpl @Inject constructor(
                     //TODO: Add refs to contacts
                     val members = conversation.members()
 
-                    val recipients = members.map { member ->
-                        Recipient(
+                    val recipientEntities = members.map { member ->
+                        RecipientEntity(
                             inboxId = member.inboxId,
                             address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
                             ens = null,
                             contactLookupKey = null
                         )
                     }
-                    recipientDao.insertRecipients(recipients)
+                    recipientDao.insertRecipients(recipientEntities)
                 }
 
                 // conversation
@@ -221,12 +187,12 @@ class SyncRepositoryImpl @Inject constructor(
                     val members = conversation.members().map { it.inboxId }
                     //val consent = conversation.consentState()
 
-                    val parsedConversation = Conversation(
+                    val parsedConversationEntity = ConversationEntity(
                         id = conversation.id,
                         title = null, // change
                         members = members,
                     )
-                    conversationDao.upsertConversation(parsedConversation)
+                    conversationDao.upsertConversation(parsedConversationEntity)
                 }
 
 
@@ -237,7 +203,7 @@ class SyncRepositoryImpl @Inject constructor(
                     messages.chunked(10) { messageChunk ->
                         launch {
                             val parsedMessages = messageChunk.map { msg ->
-                                val template = Message(
+                                val template = MessageEntity(
                                     id = msg.id,
                                     threadId = msg.conversationId,
                                     senderInboxId = msg.senderInboxId,
@@ -259,19 +225,19 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun processContent(message: Message, contentType: Content.ContentTypeId, content: Any?): Message? {
+    private suspend fun processContent(messageEntity: MessageEntity, contentType: Content.ContentTypeId, content: Any?): MessageEntity? {
         return when(contentType) {
             // Handle reactions
             ContentTypeReactionV2 -> {
                 val xmtpReaction = content as Reaction
 
                 if (xmtpReaction.action == ReactionAction.Removed) {
-                    reactionDao.deleteReaction(message.id)
+                    reactionDao.deleteReaction(messageEntity.id)
                 }
                 if(xmtpReaction.action == ReactionAction.Added) {
                     val reaction = MessageReaction(
-                        id = message.id,
-                        inboxId = message.senderInboxId,
+                        id = messageEntity.id,
+                        inboxId = messageEntity.senderInboxId,
                         unicode = xmtpReaction.content
                     )
                     reactionDao.upsertReaction(reaction)
@@ -286,14 +252,14 @@ class SyncRepositoryImpl @Inject constructor(
             ContentTypeReply -> {
                 val reply = content as Reply
 
-                val updatedMessage = message.copy(replyReference = reply.reference)
+                val updatedMessage = messageEntity.copy(replyReference = reply.reference)
                 processContent(updatedMessage, reply.contentType, reply.content)
             }
 
             ContentTypeAttachment, ContentTypeRemoteAttachment -> {
                 null
             }
-            else -> message // assume plain text
+            else -> messageEntity // assume plain text
         }
     }
 

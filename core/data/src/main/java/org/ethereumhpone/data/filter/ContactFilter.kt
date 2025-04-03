@@ -19,12 +19,12 @@
 package com.moez.QKSMS.filter
 
 import org.ethereumhpone.common.extensions.removeAccents
-import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.ContactEntity
 import javax.inject.Inject
 
-class ContactFilter @Inject constructor(private val phoneNumberFilter: PhoneNumberFilter) : Filter<Contact>() {
+class ContactFilter @Inject constructor(private val phoneNumberFilter: PhoneNumberFilter) : Filter<ContactEntity>() {
 
-    override fun filter(item: Contact, query: CharSequence): Boolean {
+    override fun filter(item: ContactEntity, query: CharSequence): Boolean {
         return item.name.removeAccents().contains(query, true) || // Name
                 item.numbers.map { it.address }.any { address -> phoneNumberFilter.filter(address, query) } // Number
     }

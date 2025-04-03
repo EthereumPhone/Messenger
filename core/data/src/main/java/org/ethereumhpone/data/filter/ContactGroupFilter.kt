@@ -26,7 +26,7 @@ class ContactGroupFilter @Inject constructor(private val contactFilter: ContactF
 
     override fun filter(item: ContactGroup, query: CharSequence): Boolean {
         return item.title.removeAccents().contains(query, true) || // Name
-                item.contacts.any { contact -> contactFilter.filter(contact, query) } // Contacts
+                item.contactEntities.any { contact -> contactFilter.filter(contact, query) } // Contacts
     }
 
 }

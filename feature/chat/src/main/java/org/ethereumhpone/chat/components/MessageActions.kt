@@ -3,7 +3,6 @@ package org.ethereumhpone.chat.components
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,7 +42,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -52,7 +50,7 @@ import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.message.parts.VideoPlayer
-import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.isVideo
 import org.ethosmobile.components.library.theme.Colors
@@ -60,7 +58,7 @@ import org.ethosmobile.components.library.theme.Fonts
 
 @Composable
 fun MessageActionList(
-    message: Message,
+    messageEntity: MessageEntity,
     focusMode: MutableState<Boolean>,
     onDeleteMessage: () -> Unit = {},
     onDetailMessage: () -> Unit = {},
@@ -82,7 +80,7 @@ fun MessageActionList(
                 text = "Copy",
                 imageVector = Icons.Outlined.ContentCopy,
                 onClick = {
-                    copyTextToClipboard(context,message.body)
+                    copyTextToClipboard(context,messageEntity.body)
                     focusMode.value = false
                 }
             )

@@ -1,6 +1,5 @@
 package org.ethereumhpone.contracts.navigation
 
-import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -8,7 +7,6 @@ import androidx.navigation.navigation
 import org.ethereumhpone.contracts.ContactRoute
 
 import androidx.navigation.compose.*
-import org.ethereumhpone.database.model.Contact
 
 
 const val conversationsGraphRoutePattern = "conversations_graph"

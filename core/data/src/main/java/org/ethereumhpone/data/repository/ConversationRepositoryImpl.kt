@@ -1,42 +1,25 @@
 package org.ethereumhpone.data.repository
 
 import android.content.Context
-import android.provider.ContactsContract.CommonDataKinds.Identity
-import android.util.Log
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flatMapConcat
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.ethereumhpone.common.compat.TelephonyCompat
-import org.ethereumhpone.common.extensions.map
-import org.ethereumhpone.common.extensions.removeAccents
 import org.ethereumhpone.common.util.Result
-import org.ethereumhpone.common.util.tryOrNull
 import org.ethereumhpone.data.manager.XmtpClientManager
-import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ContactDao
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.dao.RecipientDao
-import org.ethereumhpone.database.model.Conversation
-import org.ethereumhpone.database.model.Recipient
-import org.ethereumhpone.domain.mapper.ConversationCursor
-import org.ethereumhpone.domain.mapper.RecipientCursor
+import org.ethereumhpone.database.model.ConversationEntity
+import org.ethereumhpone.database.model.RecipientEntity
+import org.ethereumhpone.database.model.relation.ConversationWithLastMessage
 import org.ethereumhpone.domain.model.SearchResult
 import org.ethereumhpone.domain.repository.ConversationRepository
-import org.xmtp.android.library.Client
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.android.library.libxmtp.PublicIdentity
 import javax.inject.Inject
@@ -49,17 +32,17 @@ class ConversationRepositoryImpl @Inject constructor(
     private val messageDao: MessageDao,
     private val xmtpClientManager: XmtpClientManager,
 ): ConversationRepository {
-    override fun getConversations(archived: Boolean): Flow<List<Conversation>> =
+    override fun getConversations(archived: Boolean): Flow<List<ConversationEntity>> =
         conversationDao.getConversations(archived)
 
-    override fun getConversations(vararg threadIds: Long): Flow<List<Conversation>> =
+    override fun getConversations(vararg threadIds: Long): Flow<List<ConversationEntity>> =
         conversationDao.getConversations(threadIds.asList())
 
-    override fun getConversationsSnapShot(): Flow<List<Conversation>> = TODO()
+    override fun getConversationsSnapShot(): Flow<List<ConversationEntity>> = TODO()
         //conversationDao.getConversationsSnapshot()
 
-    override fun getTopConversations(): Flow<List<Conversation>> = TODO()
-        //conversationDao.getTopConversations()
+    override fun getTopConversations(): Flow<List<ConversationEntity>> = TODO()
+    override fun getCompleteConversations(): Flow<List<ConversationWithLastMessage>> = conversationDao.getAllConversationsWithLatestMessage()
 
     override suspend fun setConversationName(id: Long, name: String) {
         conversationDao.getConversation(id).firstOrNull().let { conversation ->
@@ -73,20 +56,20 @@ class ConversationRepositoryImpl @Inject constructor(
     override fun searchConversations(query: CharSequence): Flow<List<SearchResult>> = TODO()
 
 
-    override fun getBlockedConversations(): Flow<List<Conversation>> =
+    override fun getBlockedConversations(): Flow<List<ConversationEntity>> =
         conversationDao.getBlockedConversations()
 
-    override fun getConversation(threadId: Long): Flow<Conversation?> =
+    override fun getConversation(threadId: Long): Flow<ConversationEntity?> =
         conversationDao.getConversation(threadId)
 
-    override fun getUnmanagedConversations(): Flow<List<Conversation>> = TODO()
+    override fun getUnmanagedConversations(): Flow<List<ConversationEntity>> = TODO()
 
-    override fun getRecipients(): Flow<List<Recipient>> =
+    override fun getRecipients(): Flow<List<RecipientEntity>> =
         recipientDao.getRecipients()
 
-    override fun getUnmanagedRecipients(): Flow<List<Recipient>> = TODO()
+    override fun getUnmanagedRecipients(): Flow<List<RecipientEntity>> = TODO()
 
-    override fun getRecipient(recipientId: Long): Flow<Recipient?> =
+    override fun getRecipient(recipientId: Long): Flow<RecipientEntity?> =
         recipientDao.getRecipient(recipientId)
 
     override fun getThreadId(recipient: String): Flow<Long?> = getThreadId(listOf(recipient))
@@ -94,7 +77,7 @@ class ConversationRepositoryImpl @Inject constructor(
     override fun getThreadId(recipients: Collection<String>): Flow<Long?> = TODO()
 
     @OptIn(ExperimentalSerializationApi::class)
-    override fun getOrCreateConversation(addresses: List<String>): Flow<Result<Conversation>> = flow {
+    override fun getOrCreateConversation(addresses: List<String>): Flow<Result<ConversationEntity>> = flow {
         //check if conversation already exists
         val recipients = recipientDao.getRecipientsByAddress(addresses)
             .first()
@@ -120,19 +103,19 @@ class ConversationRepositoryImpl @Inject constructor(
                     try {
                         val dm = xmtpClientManager.client.conversations.findOrCreateDmWithIdentity(identities.first())
 
-                        val conversation = Conversation(
+                        val conversationEntity = ConversationEntity(
                             id = dm.id,
                             title = null,
                             members = listOf(dm.peerInboxId)
                         )
 
-                        val recipient = Recipient(
+                        val recipientEntity = RecipientEntity(
                             inboxId = dm.peerInboxId,
                             address = identities.first().identifier
                         )
-                        recipientDao.insertRecipients(listOf(recipient))
-                        conversationDao.insertConversation(conversation)
-                        emit(Result.Success(conversation))
+                        recipientDao.insertRecipients(listOf(recipientEntity))
+                        conversationDao.insertConversation(conversationEntity)
+                        emit(Result.Success(conversationEntity))
                     } catch (e: Exception) {
                         emit(Result.Error(e.message?: "could not create dm conversation"))
                     }

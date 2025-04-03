@@ -4,7 +4,6 @@ package org.ethereumhpone.database.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
-import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 import org.xmtp.android.library.libxmtp.DecodedMessage
@@ -12,7 +11,7 @@ import org.xmtp.android.library.libxmtp.DecodedMessage
 @Entity("message",
     foreignKeys = [
         ForeignKey(
-            entity = Conversation::class,
+            entity = ConversationEntity::class,
             parentColumns = ["id"],
             childColumns = ["threadId"],
             onDelete = ForeignKey.CASCADE
@@ -20,7 +19,7 @@ import org.xmtp.android.library.libxmtp.DecodedMessage
     ],
 )
 @Serializable
-data class Message(
+data class MessageEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true) val threadId: String,
     val senderInboxId: String,

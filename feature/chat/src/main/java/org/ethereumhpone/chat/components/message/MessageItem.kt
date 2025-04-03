@@ -14,17 +14,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -55,7 +51,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -71,11 +66,7 @@ import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
-import org.ethereumhpone.database.model.Message
-import org.ethereumhpone.database.model.isImage
-import org.ethereumhpone.database.model.isText
-import org.ethereumhpone.database.model.isVCard
-import org.ethereumhpone.database.model.isVideo
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.DecimalFormat
@@ -135,7 +126,7 @@ fun TxMessage(
 @Composable
 fun MessageItem(
     onAuthorClick: (String) -> Unit,
-    msg: Message,
+    msg: MessageEntity,
     isSelected: Boolean = false,
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
@@ -146,7 +137,7 @@ fun MessageItem(
     selectMode: MutableState<Boolean>,
     onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
-    onSelect: (Message) -> Unit,
+    onSelect: (MessageEntity) -> Unit,
     onDoubleClick: () -> Unit
 ) {
 
@@ -195,7 +186,7 @@ fun MessageItem(
         ) {
 
             ChatItemBubbleV2(
-                message = msg,
+                messageEntity = msg,
                 isUserMe = isUserMe,
                 isFirstMessageByAuthor = isFirstMessageByAuthor,
                 videoPlayer = player,
@@ -250,13 +241,13 @@ fun MessageItem(
 //TIMESTAMP
 @Composable
 fun AuthorNameTimestamp(
-    message: Message,
+    messageEntity: MessageEntity,
     modifier: Modifier = Modifier,
 ) {
 
     //Date formating
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val time = sdf.format(Date(message.date))
+    val time = sdf.format(Date(messageEntity.date))
 
     // Combine author and timestamp for a11y.
     Row(
@@ -279,7 +270,7 @@ fun AuthorNameTimestamp(
         Spacer(modifier = Modifier.width(4.dp))
 
         when {
-            message.isFailedMessage() -> Icon(
+            messageEntity.isFailedMessage() -> Icon(
                     imageVector = Icons.Rounded.Error,//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
                     tint = Colors.WHITE,
@@ -300,7 +291,7 @@ fun AuthorNameTimestamp(
              */
 
 
-            message.isDelivered() -> Icon(
+            messageEntity.isDelivered() -> Icon(
                     painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
                     tint = Colors.WHITE,
@@ -425,7 +416,7 @@ fun TxChatItemBubble(
 @Composable
 fun ChatItemBubble(
     modifier: Modifier = Modifier,
-    message: Message,
+    messageEntity: MessageEntity,
     isUserMe: Boolean,
     name: String = "",
     isFirstMessageByAuthor: Boolean,
@@ -478,7 +469,7 @@ fun ChatItemBubble(
         modifier = modifier.clip(Bubbleshape)
             .background(messageBrush)
     ){
-        val media = emptyList<Message>() // message.parts.filter { it.isImage() || it.isVideo() }
+        val media = emptyList<MessageEntity>() // message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -489,14 +480,14 @@ fun ChatItemBubble(
                 MediaBinder(
                     name= name,
                     videoPlayer = videoPlayer,
-                    message = message,
+                    messageEntity = messageEntity,
                     onPrepareVideo = { onPlayVideo(it) }
                 )
             }
         }
 
         // vCard
-        val contacts = emptyList<Message>() // message.parts.filter { it.isVCard() }
+        val contacts = emptyList<MessageEntity>() // message.parts.filter { it.isVCard() }
 
 
         if (contacts.isNotEmpty()) {
@@ -505,7 +496,7 @@ fun ChatItemBubble(
                     .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
                     .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
             {
-                VCardBinder(message)
+                VCardBinder(messageEntity)
             }
         }
         FlowRow (
@@ -517,7 +508,7 @@ fun ChatItemBubble(
 
                 val uriHandler = LocalUriHandler.current
 
-                val messageBody = message.body
+                val messageBody = messageEntity.body
 
                 if (messageBody.isNotBlank()) {
                     val styledMessage = messageFormatter(
@@ -555,7 +546,7 @@ fun ChatItemBubble(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(message)
+            AuthorNameTimestamp(messageEntity)
 
 
 

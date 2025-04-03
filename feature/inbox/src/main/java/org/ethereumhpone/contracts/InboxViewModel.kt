@@ -6,21 +6,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
-import org.ethereumhpone.data.util.PhoneNumberUtils
-import org.ethereumhpone.database.model.Contact
-import org.ethereumhpone.database.model.Conversation
-import org.ethereumhpone.database.model.PhoneNumber
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
@@ -30,23 +25,16 @@ import org.kethereum.ens.isPotentialENSDomain
 import javax.inject.Inject
 
 @HiltViewModel
-class ContactViewModel @Inject constructor(
+class InboxViewModel @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val contactRepository: ContactRepository,
     private val xmtpClientManager: XmtpClientManager,
     private val ensResolver: ENS,
     private val syncRepository: SyncRepository,
-    private val phoneNumberUtils: PhoneNumberUtils,
 ): ViewModel() {
 
-    val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
+    val conversationState: StateFlow<ConversationUIState> = conversationRepository.getCompleteConversations()
         .flowOn(Dispatchers.IO)
-        .map { conversations ->
-            val filteredConversations = conversations
-                //.sortedBy { it.date }
-                .reversed() // Filter out conversations with unknown set to true
-            ConversationUIState.Success(filteredConversations)
-        }
         .stateIn(
             scope = viewModelScope,
             initialValue = ConversationUIState.Empty,
@@ -67,7 +55,7 @@ class ContactViewModel @Inject constructor(
         )
 
 
-    val contacts: Flow<List<Contact>> = contactRepository.getContacts()
+    val contacts: Flow<List<ContactEntity>> = contactRepository.getContacts()
 
     fun setConversationAsRead(conversationId: Long) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -126,5 +114,5 @@ class ContactViewModel @Inject constructor(
 sealed interface ConversationUIState {
     object Loading : ConversationUIState
     object Empty : ConversationUIState
-    data class Success(val conversations: List<Conversation>): ConversationUIState
+    data class Success(val conversationEntities: List<ConversationEntity>): ConversationUIState
 }

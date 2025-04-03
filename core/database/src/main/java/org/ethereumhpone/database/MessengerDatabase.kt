@@ -1,6 +1,5 @@
 package org.ethereumhpone.database
 
-import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
@@ -13,26 +12,26 @@ import org.ethereumhpone.database.dao.ReactionDao
 import org.ethereumhpone.database.dao.RecipientDao
 import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.database.model.BlockedNumber
-import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.ContactGroup
-import org.ethereumhpone.database.model.Conversation
-import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.ConversationEntity
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.MessageReaction
 import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.PhoneNumber
-import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.database.util.Converters
 
 @Database(
     entities = [
-        Contact::class,
-        Conversation::class,
-        Message::class,
+        ContactEntity::class,
+        ConversationEntity::class,
+        MessageEntity::class,
         MessageReaction::class,
         MmsPart::class,
         PhoneNumber::class,
-        Recipient::class,
+        RecipientEntity::class,
         ContactGroup::class,
         BlockedNumber::class,
         SyncLog::class

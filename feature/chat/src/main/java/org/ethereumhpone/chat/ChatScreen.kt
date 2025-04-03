@@ -1,7 +1,6 @@
 package org.ethereumhpone.chat
 
 import android.net.Uri
-import android.provider.Telephony
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,18 +39,16 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.vectorResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.message.ComposablePosition
-import org.ethereumhpone.database.model.Contact
-import org.ethereumhpone.database.model.Message
-import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.domain.model.Attachment
 
 
@@ -65,7 +62,7 @@ fun ChatRoute(
     val messagesUiState by chatViewModel.messagesState.collectAsStateWithLifecycle()
     val contacts by chatViewModel.contacts.collectAsStateWithLifecycle()
     val media by chatViewModel.media.collectAsStateWithLifecycle()
-    val recipients by chatViewModel.recipientState.collectAsStateWithLifecycle()
+    val recipients by chatViewModel.recipientEntityState.collectAsStateWithLifecycle()
     val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by chatViewModel.chainName.collectAsStateWithLifecycle()
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
@@ -76,8 +73,8 @@ fun ChatRoute(
 
     ChatScreen(
         messagesUiState = messagesUiState,
-        recipients = recipients,
-        contacts = contacts,
+        recipientEntities = recipients,
+        contactEntities = contacts,
         media = media,
         attachments = attachments,
         navigateBackToConversations = onBackClick,
@@ -104,8 +101,8 @@ fun ChatRoute(
 fun ChatScreen(
     modifier: Modifier = Modifier,
     messagesUiState: MessagesUiState,
-    recipients: List<Recipient>,
-    contacts: List<Contact> = emptyList(),
+    recipientEntities: List<RecipientEntity>,
+    contactEntities: List<ContactEntity> = emptyList(),
     media: List<Uri> = emptyList(),
     attachments: Set<Attachment> = emptySet(),
     navigateBackToConversations: () -> Unit,
@@ -114,16 +111,16 @@ fun ChatScreen(
     chainName: String = "?",
     videoPlayer: Player? = null,
     onOpenContact: () -> Unit,
-    selectedMessaged: List<Message?> = emptyList(),
-    onContactSelected: (Contact) -> Unit,
+    selectedMessaged: List<MessageEntity?> = emptyList(),
+    onContactSelected: (ContactEntity) -> Unit,
     onToggleAttachment: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit,
     onDeleteMessage: (String) -> Unit,
-    onFocusedMessageUpdate: (Message) -> Unit,
+    onFocusedMessageUpdate: (MessageEntity) -> Unit,
     onPhoneClicked: () -> Unit,
     onPrepareVideo: (Uri) -> Unit,
-    onRemoveSelectedMessage: (Message) -> Unit,
-    onAddSelectedMessage: (Message) -> Unit,
+    onRemoveSelectedMessage: (MessageEntity) -> Unit,
+    onAddSelectedMessage: (MessageEntity) -> Unit,
 ) {
 
 
@@ -142,7 +139,7 @@ fun ChatScreen(
 
 
     val selectMode = remember { mutableStateOf(false) }
-    val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
+    val selectedMessagesMap = remember { mutableMapOf<MessageEntity, Boolean>() }
 
 
 
@@ -151,7 +148,7 @@ fun ChatScreen(
         topBar = {
             ChatTopAppBar(
                 "",
-                recipients = recipients,
+                recipientEntities = recipientEntities,
                 onTitleClicked = {},
                 onBackClicked = navigateBackToConversations
             )
@@ -180,15 +177,15 @@ fun ChatScreen(
             when(messagesUiState) {
                 is MessagesUiState.Success -> {
                     items(
-                        items = messagesUiState.messages,
+                        items = messagesUiState.messageEntities,
                         key = {message -> message.id}
                     ) { message ->
 
                         val listState = rememberLazyListState()
 
 
-                        val prevAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) - 1)?.senderInboxId
-                        val nextAuthor = messagesUiState.messages.getOrNull(messagesUiState.messages.indexOf(message) + 1)?.senderInboxId
+                        val prevAuthor = messagesUiState.messageEntities.getOrNull(messagesUiState.messageEntities.indexOf(message) - 1)?.senderInboxId
+                        val nextAuthor = messagesUiState.messageEntities.getOrNull(messagesUiState.messageEntities.indexOf(message) + 1)?.senderInboxId
                         val isFirstMessageByAuthor = prevAuthor != message.senderInboxId
                         val isLastMessageByAuthor = nextAuthor != message.senderInboxId
 
@@ -280,7 +277,7 @@ fun  extractTransactionDetails(message: String): TransactionDetails? {
 fun SelectorExpanded(
     onSelectorChange: (InputSelector) -> Unit,
     onShowSelectionbar: () -> Unit,
-    recipients: List<Recipient>,
+    recipientEntities: List<RecipientEntity>,
     onHideKeyboard: () -> Unit,
 ){
     Row (

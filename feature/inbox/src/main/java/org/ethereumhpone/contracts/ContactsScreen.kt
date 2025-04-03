@@ -2,35 +2,17 @@ package org.ethereumhpone.contracts
 
 import android.Manifest
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -48,35 +30,24 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.ethereumhpone.contracts.ui.ContactSheet
-import org.ethosmobile.components.library.core.ethOSHeader
 import org.ethosmobile.components.library.theme.Colors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.rememberAsyncImagePainter
-import org.ethereumhpone.database.model.Contact
-import org.ethereumhpone.database.model.Conversation
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumhpone.database.model.ConversationEntity
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
 import java.util.Date
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import org.ethereumhpone.chat.components.isEthereumAddress
-import org.ethereumhpone.chat.components.trimEthereumAddress
 import org.ethereumhpone.contracts.ui.ChatListItem
-import org.ethereumhpone.database.model.Message
 import kotlin.reflect.KSuspendFunction1
 
 
@@ -84,14 +55,14 @@ import kotlin.reflect.KSuspendFunction1
 fun ContactRoute(
     onConversationClick: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ContactViewModel = hiltViewModel()
+    viewModel: InboxViewModel = hiltViewModel()
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
     val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
 
     ContactScreen(
         modifier = modifier,
-        contacts = contacts,
+        contactEntities = contacts,
         conversationState = conversationState,
         markAccepted = { id, address -> viewModel.setConversationAsAccepted(id, address) },
         deleteConversation = { id -> viewModel.deleteConversation(id) },
@@ -110,7 +81,7 @@ fun ContactRoute(
 )
 @Composable
 fun ContactScreen(
-    contacts: List<Contact>,
+    contactEntities: List<ContactEntity>,
     conversationState: ConversationUIState,
     conversationClicked: (String) -> Unit,
     deleteConversation: (Long) -> Unit,
@@ -221,12 +192,12 @@ fun ContactScreen(
                     when (page) {
                         //TODO: Add logic
                         0 -> {
-                            if(conversationState.conversations.isNotEmpty()){
+                            if(conversationState.conversationEntities.isNotEmpty()){
                                 Box(modifier = Modifier.weight(1f)) {
                                     LazyColumn(
                                         modifier = Modifier.padding(horizontal = 12.dp)
                                     ){
-                                        conversationState.conversations
+                                        conversationState.conversationEntities
                                             //.sortedBy { it. }
                                             .reversed().forEach { conversation ->
                                             item {
@@ -434,7 +405,7 @@ fun ContactScreen(
 
             if (contactsPermissionState.allPermissionsGranted) {
                 ContactSheet(
-                    contacts = contacts,
+                    contactEntities = contactEntities,
                     onContactsSelected = {
                         showContactSheet = false
                     },
@@ -453,7 +424,7 @@ fun convertLongToTime(time: Long): String {
 
 @Composable
 fun ShowHiddenConversationsPopup(
-    hiddenConversations: List<Conversation>,
+    hiddenConversationEntities: List<ConversationEntity>,
     onApprove: (Long, String) -> Unit,
     onDismiss: () -> Unit
 ) {

@@ -4,7 +4,7 @@ import androidx.room.Embedded
 import androidx.room.Relation
 
 data class MessageWithReactions(
-    @Embedded val message: Message,
+    @Embedded val messageEntity: MessageEntity,
     @Relation(
         parentColumn = "id",
         entityColumn = "messageId"

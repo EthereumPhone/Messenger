@@ -3,11 +3,8 @@ package org.ethereumhpone.chat.components
 import android.content.Context
 import android.content.Intent
 import android.database.Cursor
-import android.graphics.Bitmap
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.ContactsContract
-import android.view.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,11 +16,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,18 +30,9 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.outlined.Call
-import androidx.compose.material.icons.outlined.Contacts
-import androidx.compose.material.icons.outlined.LocalPhone
 import androidx.compose.material.icons.outlined.PermMedia
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.rounded.ArrowForwardIos
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
@@ -62,7 +48,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -75,21 +60,11 @@ import org.ethereumhpone.chat.MessagesUiState
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.extractTransactionDetails
 import org.ethereumhpone.chat.isValidTransactionMessage
-import org.ethereumhpone.database.model.Contact
-import org.ethereumhpone.database.model.Message
-import org.ethereumhpone.database.model.Recipient
-import org.ethereumhpone.database.model.isSmil
-import org.ethereumhpone.database.model.isText
-import org.ethereumhpone.database.model.isVideo
-import org.ethereumhpone.domain.model.Attachment
-import org.ethosmobile.components.library.core.ethOSIconButton
-import org.ethosmobile.components.library.haptics.EthOSHaptics
+import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumhpone.database.model.RecipientEntity
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import org.ethosmobile.components.library.walletmanager.ethOSTransferListItem
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
@@ -110,7 +85,7 @@ enum class DetailSelector {
 fun ContactSheet(
     modifier: Modifier = Modifier,
     name: String,
-    recipient: Recipient?,
+    recipientEntity: RecipientEntity?,
     image: String,
     ens: List<String> = emptyList()
 ){
@@ -257,7 +232,7 @@ fun MediaSheet(
                 }
 
                 is MessagesUiState.Success -> {
-                    val allmedia = emptyList<Message>()//messagesUiState.messages.filter { it.parts.isNotEmpty() }
+                    val allmedia = emptyList<MessageEntity>()//messagesUiState.messages.filter { it.parts.isNotEmpty() }
 
                     if (allmedia.isEmpty()){
                         Column(
@@ -282,7 +257,7 @@ fun MediaSheet(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             content = {
                                 items(items = allmedia){
-                                    val media = emptyList<Message>() // remember { it.parts.filter { !it.isText() && !it.isSmil() } }
+                                    val media = emptyList<MessageEntity>() // remember { it.parts.filter { !it.isText() && !it.isSmil() } }
 
                                     media.forEachIndexed { index, item ->
                                         Box(Modifier.clip(RoundedCornerShape(15.dp))) {
@@ -406,7 +381,7 @@ fun TXSheet(
             when (messagesUiState) {
                 MessagesUiState.Loading -> TODO()
                 is MessagesUiState.Success -> {
-                    val alltxs = messagesUiState.messages.filter { isValidTransactionMessage(it.body) }
+                    val alltxs = messagesUiState.messageEntities.filter { isValidTransactionMessage(it.body) }
 
                     if(alltxs.isEmpty() ){
                         Column(

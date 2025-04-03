@@ -7,5 +7,5 @@ import androidx.room.PrimaryKey
 data class ContactGroup(
     @PrimaryKey val id: Long = 0,
     val title: String = "",
-    val contacts: List<Contact> = emptyList()
+    val contactEntities: List<ContactEntity> = emptyList()
 )

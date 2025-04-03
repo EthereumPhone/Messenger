@@ -3,30 +3,20 @@ package org.ethereumhpone.data.repository
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
-import android.net.Uri
 import android.provider.Telephony
-import androidx.core.content.contentValuesOf
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import org.ethereumhpone.common.compat.TelephonyCompat
-import org.ethereumhpone.common.send_message.SmsManagerFactory
-import org.ethereumhpone.common.util.removeAccents
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
-import org.ethereumhpone.database.model.Message
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.model.Attachment
-import org.ethereumhpone.domain.model.XMTPConversationHandler
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
-import org.xmtp.android.library.XMTPException
-import org.xmtp.android.library.libxmtp.DecodedMessage
 import javax.inject.Inject
 
 class MessageRepositoryImpl @Inject constructor(
@@ -39,10 +29,10 @@ class MessageRepositoryImpl @Inject constructor(
     private val context: Context,
     private val xmtpClientManager: XmtpClientManager,
 ): MessageRepository {
-    override fun getMessages(threadId: Long): Flow<List<Message>> =
+    override fun getMessages(threadId: Long): Flow<List<MessageEntity>> =
         messageDao.getMessages(threadId)
 
-    override fun getMessage(id: String): Flow<Message?> =
+    override fun getMessage(id: String): Flow<MessageEntity?> =
         flowOf(messageDao.getMessage(id))
 
 
@@ -54,7 +44,7 @@ class MessageRepositoryImpl @Inject constructor(
 
     }
 
-    override suspend fun getUnreadUnseenMessages(threadId: Long): List<Message> =
+    override suspend fun getUnreadUnseenMessages(threadId: Long): List<MessageEntity> =
         messageDao.getUnreadUnseenMessages()
 
     override suspend fun markAllSeen() {
@@ -111,7 +101,7 @@ class MessageRepositoryImpl @Inject constructor(
         TODO()
     }
 
-    private suspend fun sendXmtpMessage(message: Message): String? {
+    private suspend fun sendXmtpMessage(messageEntity: MessageEntity): String? {
         TODO()
     }
 

@@ -4,22 +4,14 @@ package org.ethereumhpone.chat
 import android.annotation.SuppressLint
 import android.content.ContentResolver
 import android.content.Context
-import android.content.Intent
-import android.database.Cursor
 import android.net.Uri
 import android.provider.ContactsContract
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.Composable
 import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ezvcard.Ezvcard
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -27,9 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -40,18 +30,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.ethereumhpone.chat.components.attachments.getDisplayName
 import org.ethereumhpone.chat.components.isEthereumAddress
 import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
-import org.ethereumhpone.common.compat.TelephonyCompat
-import org.ethereumhpone.common.extensions.map
-import org.ethereumhpone.database.model.Contact
-import org.ethereumhpone.database.model.Conversation
-import org.ethereumhpone.database.model.Message
-import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumhpone.database.model.ConversationEntity
+import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.domain.manager.PermissionManager
-import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
@@ -63,15 +49,8 @@ import org.kethereum.model.Address
 import org.kethereum.rpc.EthereumRPC
 import org.kethereum.rpc.HttpEthereumRPC
 //import org.kethereum.ens.ENS
-import org.web3j.protocol.Web3j
-import org.web3j.protocol.http.HttpService
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.security.MessageDigest
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
-import java.util.concurrent.CompletableFuture
 import javax.inject.Inject
 
 
@@ -93,18 +72,18 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val threadId = ThreadIdArgs(savedStateHandle).threadId?.toLong() ?: 0L
     private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
     // conversation state
-    private val conversationState = merge(
+    private val conversationEntityState = merge(
         conversationRepository.getConversation(threadId), // initial Conversation
         selectedConversationState(addresses, conversationRepository)
     ).stateIn(
         scope = viewModelScope,
-        initialValue = Conversation("0", title = "", ),
+        initialValue = ConversationEntity("0", title = "", ),
         started = SharingStarted.WhileSubscribed(5_000)
     )
 
 
     // recipients state
-    val recipientState = conversationState
+    val recipientEntityState = conversationEntityState
         .filterNotNull()
         .map { conversation ->
             /*
@@ -114,7 +93,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 else -> emptyList()
             }
              */
-            emptyList<Recipient>()
+            emptyList<RecipientEntity>()
 
         }
         .stateIn(
@@ -125,7 +104,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     // message state
     @OptIn(ExperimentalCoroutinesApi::class)
-    val messagesState = conversationState
+    val messagesState = conversationEntityState
         .filterNotNull()
         .flatMapLatest {
             messageRepository.getMessages(0L).map(MessagesUiState::Success) //TODO: FIX THIS
@@ -136,7 +115,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         )
 
     // contacts state
-    val contacts: StateFlow<List<Contact>> = contactRepository.getContacts()
+    val contacts: StateFlow<List<ContactEntity>> = contactRepository.getContacts()
         .stateIn(
             scope = viewModelScope,
             initialValue = emptyList(),
@@ -156,24 +135,24 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val attachments: StateFlow<Set<Attachment>> = _attachments
 
 
-    private val _selectedMessages = MutableStateFlow<MutableList<Message?>>(mutableListOf())
-    val selectedMessages: StateFlow<MutableList<Message?>> = _selectedMessages
+    private val _selectedMessages = MutableStateFlow<MutableList<MessageEntity?>>(mutableListOf())
+    val selectedMessages: StateFlow<MutableList<MessageEntity?>> = _selectedMessages
 
 
 
 
-    fun removeSelectedMessage(message: Message) {
-        _selectedMessages.value.remove(message)
+    fun removeSelectedMessage(messageEntity: MessageEntity) {
+        _selectedMessages.value.remove(messageEntity)
     }
-    fun addSelectedMessage(message: Message) {
-        _selectedMessages.value.add(message)
+    fun addSelectedMessage(messageEntity: MessageEntity) {
+        _selectedMessages.value.add(messageEntity)
     }
 
 
 
 
-    fun parseContact(contact: Contact) {
-        toggleAttachment(Attachment.Contact(contact.lookupKey, contact.photoUri?.toUri(), getVCard(contact.lookupKey)!!))
+    fun parseContact(contactEntity: ContactEntity) {
+        toggleAttachment(Attachment.Contact(contactEntity.lookupKey, contactEntity.photoUri?.toUri(), getVCard(contactEntity.lookupKey)!!))
     }
 
 
@@ -430,7 +409,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 private fun selectedConversationState(
     addresses: List<String>,
     conversationRepository: ConversationRepository
-): Flow<Conversation?> {
+): Flow<ConversationEntity?> {
     if (addresses.isEmpty()) return flowOf(null)
     return flowOf(null)
 
@@ -460,7 +439,7 @@ private fun selectedConversationState(
 
 sealed interface MessagesUiState {
     object Loading : MessagesUiState
-    data class Success(val messages: List<Message>): MessagesUiState
+    data class Success(val messageEntities: List<MessageEntity>): MessagesUiState
 }
 
 

@@ -2,12 +2,11 @@ package org.ethereumhpone.data.repository
 
 import android.content.Context
 import android.net.Uri
-import android.provider.BaseColumns
 import android.provider.ContactsContract
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.ethereumhpone.database.dao.ContactDao
-import org.ethereumhpone.database.model.Contact
+import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.ContactGroup
 import org.ethereumhpone.domain.repository.ContactRepository
 import javax.inject.Inject
@@ -35,13 +34,13 @@ class ContactRepositoryImpl @Inject constructor(
         TODO()
     }
 
-    override fun getContacts(): Flow<List<Contact>> =
+    override fun getContacts(): Flow<List<ContactEntity>> =
         contactDao.getContacts()
 
-    override fun getUnmanagedContact(lookupKey: String): Flow<Contact?> =
+    override fun getUnmanagedContact(lookupKey: String): Flow<ContactEntity?> =
         contactDao.getUnmanagedContact(lookupKey)
 
-    override fun getUnmanagedContacts(starred: Boolean): Flow<List<Contact>> =
+    override fun getUnmanagedContacts(starred: Boolean): Flow<List<ContactEntity>> =
         contactDao.getUnmanagedContacts(starred)
 
     override fun getUnmanagedContactGroups(): Flow<List<ContactGroup>> =

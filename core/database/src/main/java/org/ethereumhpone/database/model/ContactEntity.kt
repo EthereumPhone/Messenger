@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Entity("contact")
 @Serializable
-data class Contact(
+data class ContactEntity(
     @PrimaryKey val lookupKey: String = "",
     val numbers: List<PhoneNumber> = emptyList(),
     val name: String = "",

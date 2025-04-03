@@ -2,19 +2,19 @@ package org.ethereumhpone.database.model.relation
 
 import androidx.room.Embedded
 import androidx.room.Relation
-import org.ethereumhpone.database.model.Contact
-import org.ethereumhpone.database.model.Recipient
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumhpone.database.model.RecipientEntity
 
 data class RecipientWithContact(
     @Embedded
-    val recipient: Recipient,
+    val recipientEntity: RecipientEntity,
     @Relation(
         parentColumn = "contactLookupKey",
         entityColumn = "lookupKey"
     )
-    val contact: Contact?
+    val contactEntity: ContactEntity?
 ) {
-    fun getDisplayName(): String = contact?.name?.takeIf { it.isNotBlank() }
-        ?: recipient.ens
-        ?: recipient.address
+    fun getDisplayName(): String = contactEntity?.name?.takeIf { it.isNotBlank() }
+        ?: recipientEntity.ens
+        ?: recipientEntity.address
 }

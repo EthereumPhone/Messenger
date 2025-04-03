@@ -3,10 +3,9 @@ package org.ethereumhpone.database.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import kotlinx.serialization.Serializable
 
 @Entity("conversation")
-data class Conversation(
+data class ConversationEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(index = true) val archived: Boolean = false,
     @ColumnInfo(index = true) val blocked: Boolean = false,

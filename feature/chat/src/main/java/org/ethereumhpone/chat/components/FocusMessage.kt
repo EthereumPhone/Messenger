@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -12,23 +11,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -41,11 +32,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -57,18 +46,12 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
-import org.ethereumhpone.chat.components.message.ChatItemBubble
-import org.ethereumhpone.chat.components.message.ClickableMessage
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
-import org.ethereumhpone.database.model.Message
-import org.ethereumhpone.database.model.isImage
-import org.ethereumhpone.database.model.isText
-import org.ethereumhpone.database.model.isVCard
-import org.ethereumhpone.database.model.isVideo
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import kotlin.math.roundToInt
@@ -78,7 +61,7 @@ import kotlin.math.roundToInt
 fun FocusMessage(
     modifier: Modifier = Modifier,
     focusMode: MutableState<Boolean>,
-    msg: Message, //Message from core/model
+    msg: MessageEntity, //Message from core/model
     isUserMe: Boolean,
     isFirstMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
@@ -161,7 +144,7 @@ fun FocusMessage(
         //MessageReactions()
 
         FocusChatItemBubble(
-            message = msg,
+            messageEntity = msg,
             isUserMe = isUserMe,
             isFirstMessageByAuthor = isFirstMessageByAuthor,
             //isLastMessageByAuthor=isLastMessageByAuthor,
@@ -170,7 +153,7 @@ fun FocusMessage(
             onPlayVideo = {}
         )
 
-       MessageActionList(isUserMe = isUserMe, message = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
+       MessageActionList(isUserMe = isUserMe, messageEntity = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
 
     }
 
@@ -187,7 +170,7 @@ private val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.
 @Composable
 fun FocusChatItemBubble(
     modifier: Modifier = Modifier,
-    message: Message,
+    messageEntity: MessageEntity,
     isUserMe: Boolean,
     name: String = "",
     isFirstMessageByAuthor: Boolean,
@@ -246,7 +229,7 @@ fun FocusChatItemBubble(
             ),
 
         ){
-        val media = emptyList<Message>()//message.parts.filter { it.isImage() || it.isVideo() }
+        val media = emptyList<MessageEntity>()//message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -257,14 +240,14 @@ fun FocusChatItemBubble(
                 MediaBinder(
                     name= name,
                     videoPlayer = videoPlayer,
-                    message = message,
+                    messageEntity = messageEntity,
                     onPrepareVideo = { onPlayVideo(it) }
                 )
             }
         }
 
         // vCard
-        val contacts = emptyList<Message>()// message.parts.filter { it.isVCard() }
+        val contacts = emptyList<MessageEntity>()// message.parts.filter { it.isVCard() }
 
 
         if (contacts.isNotEmpty()) {
@@ -273,7 +256,7 @@ fun FocusChatItemBubble(
                     .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
                     .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
             {
-                VCardBinder(message)
+                VCardBinder(messageEntity)
             }
         }
         FlowRow (
@@ -285,7 +268,7 @@ fun FocusChatItemBubble(
 
             val uriHandler = LocalUriHandler.current
 
-            val messageBody = message.body
+            val messageBody = messageEntity.body
 
             if (messageBody.isNotBlank()) {
                 val styledMessage = messageFormatter(
@@ -322,7 +305,7 @@ fun FocusChatItemBubble(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(message)
+            AuthorNameTimestamp(messageEntity)
 
 
 
