@@ -47,12 +47,16 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(project(":android-smsmms"))
     implementation(project(":core:datastore"))
+    implementation(project(":core:model"))
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
 
     implementation(project(":core:domain"))
+    implementation(project(":core:database"))
+
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)

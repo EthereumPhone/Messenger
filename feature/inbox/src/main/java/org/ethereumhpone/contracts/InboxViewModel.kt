@@ -33,7 +33,7 @@ class InboxViewModel @Inject constructor(
     private val syncRepository: SyncRepository,
 ): ViewModel() {
 
-    val conversationState: StateFlow<ConversationUIState> = conversationRepository.getCompleteConversations()
+    val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
         .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,

@@ -3,6 +3,7 @@ package org.ethereumhpone.database.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import org.ethereumphone.model.Conversation
 
 @Entity("conversation")
 data class ConversationEntity(

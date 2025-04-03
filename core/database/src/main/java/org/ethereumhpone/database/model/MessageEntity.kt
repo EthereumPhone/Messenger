@@ -5,7 +5,11 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import org.ethereumphone.model.DeliveryStatus
+import org.ethereumphone.model.Message
+import org.ethereumphone.model.Recipient
 import org.xmtp.android.library.libxmtp.DecodedMessage
 
 @Entity("message",
@@ -34,15 +38,6 @@ data class MessageEntity(
     val xmtpDeliveryStatus: DecodedMessage.MessageDeliveryStatus = DecodedMessage.MessageDeliveryStatus.PUBLISHED,
     val isMe: Boolean = false,
 ) {
-    enum class AttachmentType {
-        TEXT,
-        IMAGE,
-        VIDEO,
-        AUDIO,
-        SLIDESHOW,
-        NOT_LOADED
-    }
-
     fun getSummary(): String = body //TODO: Change this
 
     fun isFailedMessage(): Boolean = xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.FAILED
@@ -50,3 +45,18 @@ data class MessageEntity(
     fun isDelivered(): Boolean = xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.PUBLISHED
 
 }
+
+fun MessageEntity.toExternalModel(recipient: Recipient): Message = 
+    Message(
+        id = id,
+        recipient = recipient,
+        date = Instant.fromEpochSeconds(date),
+        dateSent = Instant.fromEpochSeconds(dateSent),
+        seen = seen,
+        deliveryStatus = DeliveryStatus.valueOf(xmtpDeliveryStatus.name),
+        replyReference = replyReference,
+        isMe = isMe,
+        attachments = emptyList(),
+        reactions = emptyList(),
+    )
+

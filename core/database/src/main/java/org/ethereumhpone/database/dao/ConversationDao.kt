@@ -10,26 +10,20 @@ import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.ConversationEntity
-import org.ethereumhpone.database.model.relation.ConversationWithLastMessage
+import org.ethereumhpone.database.model.relation.CompositeConversation
 
 @Dao
 interface ConversationDao {
 
-    @Query("SELECT * FROM conversation WHERE id = :id")
-    fun getConversation(id: Long): Flow<ConversationEntity?>
-
-    @Query("SELECT * FROM conversation WHERE (:archived IS NULL or archived = :archived)")
-    fun getConversations(archived: Boolean? = null): Flow<List<ConversationEntity>>
-
-    @Query("SELECT * FROM conversation WHERE id IN (:threadIds) ")
-    fun getConversations(threadIds: List<Long>): Flow<List<ConversationEntity>>
-
+    @Transaction
     @Query("""
-        SELECT * FROM conversation 
-        WHERE json_array_length(members) = :memberCount 
-        AND members = :membersJson
+        SELECT c.*, m.* FROM conversation c
+        LEFT JOIN message m ON c.id = m.threadId
+        WHERE c.id = :id
+        ORDER BY m.dateSent DESC
+        LIMIT 1
     """)
-    suspend fun getConversationByExactMembers(memberCount: Int, membersJson: String): ConversationEntity?
+    fun getConversation(id: String): CompositeConversation
 
     @Transaction
     @Query("""
@@ -41,17 +35,14 @@ interface ConversationDao {
             WHERE threadId = c.id
         ) OR m.id IS NULL
     """)
-    fun getAllConversationsWithLatestMessage(): Flow<List<ConversationWithLastMessage>>
+    fun getConversations(): Flow<List<CompositeConversation>>
 
-    @Transaction
     @Query("""
-        SELECT c.*, m.* FROM conversation c
-        LEFT JOIN message m ON c.id = m.threadId
-        WHERE c.id = :id
-        ORDER BY m.dateSent DESC
-        LIMIT 1
+        SELECT * FROM conversation 
+        WHERE json_array_length(members) = :memberCount 
+        AND members = :membersJson
     """)
-    fun getConversationWithLastMessage(id: String): ConversationWithLastMessage
+    suspend fun getConversationByExactMembers(memberCount: Int, membersJson: String): ConversationEntity?
 
     @Query("SELECT * FROM conversation WHERE blocked = true")
     fun getBlockedConversations(): Flow<List<ConversationEntity>>

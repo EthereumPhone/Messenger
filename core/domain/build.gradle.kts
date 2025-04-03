@@ -40,8 +40,11 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.appcompat)
     implementation(libs.material)
-    implementation(project(":core:database"))
     implementation(project(":core:common"))
+    implementation(project(":core:database"))
+    implementation(project(":core:model"))
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)

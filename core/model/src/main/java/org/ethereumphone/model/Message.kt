@@ -9,7 +9,7 @@ data class Message(
     val dateSent: Instant,
     val seen: Boolean,
     val deliveryStatus: DeliveryStatus,
-    val replyReference: String,
+    val replyReference: String?,
     val isMe: Boolean,
     val attachments: List<Attachment>,
     val reactions: List<Reaction>
