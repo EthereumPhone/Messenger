@@ -20,3 +20,12 @@ data class ConversationEntity(
     fun getConversationTitle(): String = title.takeIf { it.isNullOrBlank() }
         ?: members.joinToString(", ")
 }
+
+fun ConversationEntity.toExternalModal(recipientEntities: List<RecipientEntity>) = Conversation(
+    id = id,
+    title = title,
+    recipients = recipientEntities.map { it.toExternalModel(null) },
+    draft = null,
+    lastMessage = null
+)
+

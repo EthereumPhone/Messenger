@@ -23,7 +23,7 @@ interface ConversationDao {
         ORDER BY m.dateSent DESC
         LIMIT 1
     """)
-    fun getConversation(id: String): CompositeConversation
+    fun getConversation(id: String): Flow<CompositeConversation>
 
     @Transaction
     @Query("""
@@ -37,12 +37,15 @@ interface ConversationDao {
     """)
     fun getConversations(): Flow<List<CompositeConversation>>
 
+    @Transaction
     @Query("""
-        SELECT * FROM conversation 
-        WHERE json_array_length(members) = :memberCount 
-        AND members = :membersJson
+        SELECT c.*, m.* FROM conversation c
+        LEFT JOIN message m ON c.id = m.threadId
+        WHERE members = :members
+        ORDER BY m.dateSent DESC
+        LIMIT 1
     """)
-    suspend fun getConversationByExactMembers(memberCount: Int, membersJson: String): ConversationEntity?
+    fun getCompositeConversationByExactMembers(members: List<String>): Flow<CompositeConversation?>
 
     @Query("SELECT * FROM conversation WHERE blocked = true")
     fun getBlockedConversations(): Flow<List<ConversationEntity>>

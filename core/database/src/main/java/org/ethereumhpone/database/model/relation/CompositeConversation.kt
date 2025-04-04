@@ -5,10 +5,8 @@ import androidx.room.Junction
 import androidx.room.Relation
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.MessageEntity
-import org.ethereumhpone.database.model.RecipientEntity
+import org.ethereumhpone.database.model.toExternalModel
 import org.ethereumphone.model.Conversation
-import org.ethereumphone.model.Recipient
-
 data class CompositeConversation(
     @Embedded
     val conversationEntity: ConversationEntity,
@@ -21,16 +19,30 @@ data class CompositeConversation(
     @Relation(
         parentColumn = "id",
         entityColumn = "inboxId",
-        associateBy = Junction(ConversationRecipientCrossRef::class)
+        associateBy = Junction(
+            value = ConversationRecipientCrossRef::class,
+            parentColumn = "conversationId",
+            entityColumn = "recipientId"
+        )
     )
-    val recipients: List<RecipientEntity>
+    val recipients: List<RecipientWithContact>
 )
 
-fun CompositeConversation.toExternalModel(): Conversation =
-    Conversation(
+fun CompositeConversation.toExternalModel(): Conversation {
+    val senderRecipient = if (lastMessageEntity != null) {
+        recipients.firstOrNull {
+            it.recipientEntity.inboxId == lastMessageEntity.senderInboxId
+        }
+    } else {
+        null
+    }
+    
+    return Conversation(
         id = conversationEntity.id,
         title = conversationEntity.title,
-        recipients = recipients,
+        recipients = recipients.map { it.recipientEntity.toExternalModel(it.contactEntity) },
         draft = conversationEntity.draft,
-        lastMessage =
+        lastMessage = senderRecipient?.let { lastMessageEntity?.toExternalModel(it.recipientEntity.toExternalModel(it.contactEntity)) }
     )
+}
+

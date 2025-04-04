@@ -3,6 +3,7 @@ package org.ethereumhpone.database.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
+import org.ethereumphone.model.Contact
 
 @Entity("contact")
 @Serializable
@@ -17,3 +18,11 @@ data class ContactEntity(
 ) {
     fun getDefaultNumber(): PhoneNumber? = numbers.find { number -> number.isDefault }
 }
+
+
+fun ContactEntity.toExternalModel(): Contact = Contact(
+    lookupKey = lookupKey,
+    name = name,
+    photoUri = photoUri,
+    ethAddress = ethAddress
+)
