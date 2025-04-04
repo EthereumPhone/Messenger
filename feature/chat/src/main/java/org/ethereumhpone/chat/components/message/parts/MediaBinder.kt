@@ -51,8 +51,7 @@ import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.database.model.MessageEntity
-import org.ethereumhpone.database.model.MmsPart
-import org.ethereumhpone.database.model.isVideo
+
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
@@ -98,6 +97,8 @@ val media = remember { message.parts.filter { it.isImage() || it.isVideo() } }
      */
 
 }
+/*
+
 
 @Composable
 private fun MediaListContainer(
@@ -416,3 +417,4 @@ fun Uri.getVideoThumbnail(context: Context): Bitmap? {
     }
     return metadata.frameAtTime
 }
+ */

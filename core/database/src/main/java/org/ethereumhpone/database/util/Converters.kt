@@ -9,7 +9,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.MessageEntity
-import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.RecipientEntity
 import org.xmtp.android.library.libxmtp.DecodedMessage
@@ -64,19 +63,6 @@ class Converters {
     @TypeConverter
     fun toMessage(messageEntity: MessageEntity?): String? {
         return messageEntity?.let { Json.encodeToString(it) }
-    }
-
-    @TypeConverter
-    fun fromMmsPartList(json: String?): List<MmsPart> {
-        if (json == null) {
-            return emptyList()
-        }
-        return Json.decodeFromString(json)
-    }
-
-    @TypeConverter
-    fun toMmsPartList(numbers: List<MmsPart>): String {
-        return Json.encodeToString(numbers)
     }
 
     @TypeConverter

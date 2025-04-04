@@ -35,7 +35,6 @@ import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
 import org.ethereumhpone.domain.mapper.ContactGroupMemberCursor
-import org.ethereumhpone.domain.mapper.PartCursor
 import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
@@ -57,7 +56,6 @@ class SyncRepositoryImpl @Inject constructor(
     private val xmtpClientManager: XmtpClientManager,
     private val contentResolver: ContentResolver,
     private val conversationRepository: ConversationRepository,
-    private val partCursor: PartCursor,
     private val contactCursor: ContactCursor,
     private val contactGroupCursor: ContactGroupCursor,
     private val contactGroupMemberCursor: ContactGroupMemberCursor,
@@ -82,9 +80,6 @@ class SyncRepositoryImpl @Inject constructor(
         _isSyncing.value = true
 
 
-
-
-        val partsCursor = partCursor.getPartsCursor()
 
 
         logTimeHandler.setLastLog(SyncLog().date)

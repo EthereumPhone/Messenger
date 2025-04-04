@@ -73,7 +73,7 @@ class NotificationManagerImpl @Inject constructor(
             return
         }
 
-        val conversation = conversationRepository.getConversation(threadId).first() ?: return
+        //val conversation = conversationRepository.getConversation(threadId).first() ?: return
 
 
         /*
@@ -132,9 +132,9 @@ class NotificationManagerImpl @Inject constructor(
             }
 
             else -> {
-                val conversation = conversationRepository.getConversation(threadId).single() ?: return
+                //val conversation = conversationRepository.getConversation(threadId).single() ?: return
                 val channelId = buildNotificationChannelId(threadId)
-                val title = conversation.title
+                val title = "test" //conversation.title
                 NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_HIGH).apply {
                     enableLights(true)
                     lightColor = Color.WHITE

@@ -21,7 +21,7 @@ class MarkArchivedReceiver @Inject constructor(
         val threadId = intent.getLongExtra("threadId", 0)
 
         CoroutineScope(Dispatchers.IO).launch {
-            conversationRepository.markArchived(threadId)
+            //conversationRepository.markArchived(threadId)
             messageRepository.markRead(threadId)
             notificationManager.update(threadId)
             pendingResult.finish()

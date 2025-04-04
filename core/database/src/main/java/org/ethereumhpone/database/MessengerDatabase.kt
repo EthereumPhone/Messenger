@@ -17,10 +17,10 @@ import org.ethereumhpone.database.model.ContactGroup
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.MessageReaction
-import org.ethereumhpone.database.model.MmsPart
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.SyncLog
+import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 import org.ethereumhpone.database.util.Converters
 
 @Database(
@@ -29,14 +29,14 @@ import org.ethereumhpone.database.util.Converters
         ConversationEntity::class,
         MessageEntity::class,
         MessageReaction::class,
-        MmsPart::class,
         PhoneNumber::class,
         RecipientEntity::class,
         ContactGroup::class,
         BlockedNumber::class,
-        SyncLog::class
+        SyncLog::class,
+        ConversationRecipientCrossRef::class
     ],
-    version = 2,
+    version = 3,
     //autoMigrations = [AutoMigration(from = 1, to = 2)],
     exportSchema = true,
 )

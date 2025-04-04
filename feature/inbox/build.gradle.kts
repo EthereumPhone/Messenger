@@ -114,6 +114,8 @@ dependencies {
     implementation(libs.rpc)
     implementation(libs.model)
 
+    implementation(project(":core:model"))
+
 
 
 

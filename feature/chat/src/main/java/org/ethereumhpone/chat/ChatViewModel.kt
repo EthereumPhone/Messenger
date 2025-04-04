@@ -73,7 +73,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
     // conversation state
     private val conversationEntityState = merge(
-        conversationRepository.getConversation(threadId), // initial Conversation
+        conversationRepository.getConversation(threadId.toString()), // initial Conversation
         selectedConversationState(addresses, conversationRepository)
     ).stateIn(
         scope = viewModelScope,

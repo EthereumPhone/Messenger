@@ -5,8 +5,10 @@ import androidx.room.Junction
 import androidx.room.Relation
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.toExternalModel
 import org.ethereumphone.model.Conversation
+
 data class CompositeConversation(
     @Embedded
     val conversationEntity: ConversationEntity,
@@ -18,6 +20,7 @@ data class CompositeConversation(
 
     @Relation(
         parentColumn = "id",
+        entity = RecipientEntity::class,
         entityColumn = "inboxId",
         associateBy = Junction(
             value = ConversationRecipientCrossRef::class,

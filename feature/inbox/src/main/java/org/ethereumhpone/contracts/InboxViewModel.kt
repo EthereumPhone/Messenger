@@ -19,6 +19,7 @@ import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
+import org.ethereumphone.model.Conversation
 import org.kethereum.eip137.model.ENSName
 import org.kethereum.ens.ENS
 import org.kethereum.ens.isPotentialENSDomain
@@ -34,7 +35,7 @@ class InboxViewModel @Inject constructor(
 ): ViewModel() {
 
     val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
-        .flowOn(Dispatchers.IO)
+        .map(ConversationUIState::Success)
         .stateIn(
             scope = viewModelScope,
             initialValue = ConversationUIState.Empty,
@@ -59,13 +60,13 @@ class InboxViewModel @Inject constructor(
 
     fun setConversationAsRead(conversationId: Long) {
         CoroutineScope(Dispatchers.IO).launch {
-            conversationRepository.markRead(conversationId)
+            //conversationRepository.markRead(conversationId)
         }
     }
 
     fun deleteConversation(conversationId: Long) {
         CoroutineScope(Dispatchers.IO).launch {
-            conversationRepository.deleteConversations(conversationId)
+            //conversationRepository.deleteConversations(conversationId)
         }
     }
 
@@ -90,7 +91,7 @@ class InboxViewModel @Inject constructor(
             if (clientState == XmtpClientManager.ClientState.Ready) {
                 //xmtpClientManager.client.contacts.allow(listOf(address))
             }
-            conversationRepository.markAccepted(conversationId)
+            //conversationRepository.markAccepted(conversationId)
         }
     }
 
@@ -105,7 +106,7 @@ class InboxViewModel @Inject constructor(
 
     fun setConversationArchived(conversationId: Long) {
         CoroutineScope(Dispatchers.IO).launch {
-            conversationRepository.markArchived(conversationId)
+            //conversationRepository.markArchived(conversationId)
         }
     }
 
@@ -114,5 +115,5 @@ class InboxViewModel @Inject constructor(
 sealed interface ConversationUIState {
     object Loading : ConversationUIState
     object Empty : ConversationUIState
-    data class Success(val conversationEntities: List<ConversationEntity>): ConversationUIState
+    data class Success(val conversationEntities: List<Conversation>): ConversationUIState
 }

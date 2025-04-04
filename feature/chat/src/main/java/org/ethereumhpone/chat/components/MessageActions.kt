@@ -49,10 +49,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
-import org.ethereumhpone.chat.components.message.parts.VideoPlayer
 import org.ethereumhpone.database.model.MessageEntity
-import org.ethereumhpone.database.model.MmsPart
-import org.ethereumhpone.database.model.isVideo
+
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
@@ -132,7 +130,7 @@ fun MessageAction(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ExpandedMediaDialog(
-    media: List<MmsPart>,
+    media: List<String>,
     videoPlayer: Player?,
     indexOffset: Int = 0,
     onPrepareVideo: (Uri) -> Unit,
@@ -187,8 +185,7 @@ private fun ExpandedMediaDialog(
                 )
             }
 
-
-            //
+            /*
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -206,6 +203,9 @@ private fun ExpandedMediaDialog(
                     )
                 }
             }
+             */
+
+
 
             if (pagerState.pageCount > 1) {
                 Row(
