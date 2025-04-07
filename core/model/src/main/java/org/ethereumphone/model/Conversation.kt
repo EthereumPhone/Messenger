@@ -10,7 +10,7 @@ data class Conversation(
     val blocked: Boolean = false,
     val pinned: Boolean = false,
 ) {
-    fun getTitle(): String =
+    fun getHeader(): String =
         title.takeIf { !it.isNullOrBlank() }
             ?: recipients.first().contact?.name
             ?: recipients.first().ens

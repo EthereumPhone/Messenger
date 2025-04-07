@@ -11,6 +11,7 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.relation.CompositeConversation
+import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 
 @Dao
 interface ConversationDao {
@@ -76,5 +77,8 @@ interface ConversationDao {
 
     @Query("DELETE FROM conversation WHERE id = :id")
     suspend fun deleteConversation(id: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertConversationMemberCrossRefs(refs: List<ConversationRecipientCrossRef>)
 
 }

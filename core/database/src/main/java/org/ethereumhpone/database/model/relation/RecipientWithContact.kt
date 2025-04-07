@@ -13,8 +13,4 @@ data class RecipientWithContact(
         entityColumn = "lookupKey"
     )
     val contactEntity: ContactEntity?
-) {
-    fun getDisplayName(): String = contactEntity?.name?.takeIf { it.isNotBlank() }
-        ?: recipientEntity.ens
-        ?: recipientEntity.address
-}
+)

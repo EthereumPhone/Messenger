@@ -48,7 +48,6 @@ import kotlinx.coroutines.launch
 import org.ethosmobile.components.library.theme.Colors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
-import org.ethereumhpone.database.model.ConversationEntity
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -213,7 +212,7 @@ fun InboxScreen(
                                                             )
                                                         }
                                                     },
-                                                    header = conversation.getTitle(),
+                                                    header = conversation.getHeader(),
                                                     subheader = conversation.getSummary(),
                                                     time = conversation.lastMessage?.date,
                                                     unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
@@ -273,7 +272,7 @@ fun InboxScreen(
                                                         )
                                                     }
                                                 },
-                                                header = conversation.getTitle(),
+                                                header = conversation.getHeader(),
                                                 subheader = conversation.getSummary(),
                                                 time = conversation.lastMessage?.date,
                                                 unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen

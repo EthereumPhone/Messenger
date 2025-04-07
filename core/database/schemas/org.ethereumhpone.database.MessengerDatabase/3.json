@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "5045bcc255cd50f434ff4c7cd9fc5af8",
+    "identityHash": "8af426ebb70a516c671273eb2196ab11",
     "entities": [
       {
         "tableName": "contact",
@@ -476,7 +476,7 @@
       },
       {
         "tableName": "conversation_recipient_cross_ref",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversationId` TEXT NOT NULL, `recipientId` TEXT NOT NULL, PRIMARY KEY(`conversationId`, `recipientId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversationId` TEXT NOT NULL, `memberInboxId` TEXT NOT NULL, PRIMARY KEY(`conversationId`, `memberInboxId`), FOREIGN KEY(`conversationId`) REFERENCES `conversation`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`memberInboxId`) REFERENCES `recipient`(`inboxId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "conversationId",
@@ -485,8 +485,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "recipientId",
-            "columnName": "recipientId",
+            "fieldPath": "memberInboxId",
+            "columnName": "memberInboxId",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -495,17 +495,59 @@
           "autoGenerate": false,
           "columnNames": [
             "conversationId",
-            "recipientId"
+            "memberInboxId"
           ]
         },
-        "indices": [],
-        "foreignKeys": []
+        "indices": [
+          {
+            "name": "index_conversation_recipient_cross_ref_memberInboxId",
+            "unique": false,
+            "columnNames": [
+              "memberInboxId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conversation_recipient_cross_ref_memberInboxId` ON `${TABLE_NAME}` (`memberInboxId`)"
+          },
+          {
+            "name": "index_conversation_recipient_cross_ref_conversationId",
+            "unique": false,
+            "columnNames": [
+              "conversationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conversation_recipient_cross_ref_conversationId` ON `${TABLE_NAME}` (`conversationId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "conversation",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "conversationId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "recipient",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "memberInboxId"
+            ],
+            "referencedColumns": [
+              "inboxId"
+            ]
+          }
+        ]
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5045bcc255cd50f434ff4c7cd9fc5af8')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8af426ebb70a516c671273eb2196ab11')"
     ]
   }
 }

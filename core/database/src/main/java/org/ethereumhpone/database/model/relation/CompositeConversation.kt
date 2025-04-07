@@ -20,15 +20,14 @@ data class CompositeConversation(
 
     @Relation(
         parentColumn = "id",
-        entity = RecipientEntity::class,
         entityColumn = "inboxId",
         associateBy = Junction(
             value = ConversationRecipientCrossRef::class,
             parentColumn = "conversationId",
-            entityColumn = "recipientId"
+            entityColumn = "memberInboxId"
         )
     )
-    val recipients: List<RecipientWithContact>
+    val recipients: List<RecipientEntity>
 )
 
 fun CompositeConversation.toExternalModel(): Conversation {

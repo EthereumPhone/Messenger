@@ -31,6 +31,7 @@ import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.MessageReaction
 import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.SyncLog
+import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
@@ -173,6 +174,11 @@ class SyncRepositoryImpl @Inject constructor(
                         )
                     }
                     recipientDao.insertRecipients(recipientEntities)
+
+                    val refs = members.map {
+                        ConversationRecipientCrossRef(conversation.id, it.inboxId)
+                    }
+                    conversationDao.insertConversationMemberCrossRefs(refs)
                 }
 
                 // conversation
