@@ -47,13 +47,17 @@ interface ConversationDao {
     """)
     fun getCompositeConversationByExactMembers(members: List<String>): Flow<CompositeConversation?>
 
+    @Query("UPDATE conversation SET archived = :archived WHERE id = :id")
+    suspend fun updateArchivedStatus(id: String, archived: Boolean)
+
+    @Query("UPDATE conversation SET pinned = :pinned WHERE id = :id")
+    suspend fun updatePinnedStatus(id: String, pinned: Boolean)
+
+    @Query("UPDATE conversation SET blocked = :blocked WHERE id = :id")
+    suspend fun updateBlockedStatus(id: String, blocked: Boolean)
+
     @Query("SELECT * FROM conversation WHERE blocked = true")
     fun getBlockedConversations(): Flow<List<ConversationEntity>>
-
-    @Query("SELECT * FROM conversation WHERE " +
-        "archived == true OR blocked == true OR pinned == true OR title != ''" +
-        "OR blockingClient IS NOT NULL OR blockReason != ''")
-    fun getPersistedData(): Flow<List<ConversationEntity>>
 
     @Update
     fun updateConversation(conversationEntity: ConversationEntity)
@@ -69,5 +73,8 @@ interface ConversationDao {
 
     @Delete
     fun deleteConversation(conversationEntities: List<ConversationEntity>)
+
+    @Query("DELETE FROM conversation WHERE id = :id")
+    suspend fun deleteConversation(id: String)
 
 }

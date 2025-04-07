@@ -60,6 +60,8 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
     override suspend fun markSeen(threadId: Long) {
+
+
         messageDao.getMessages(threadId).map { messages ->
             messageDao.updateMessages(
                 messages

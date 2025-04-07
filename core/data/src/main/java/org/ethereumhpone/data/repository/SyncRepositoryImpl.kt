@@ -157,8 +157,6 @@ class SyncRepositoryImpl @Inject constructor(
             }
             syncJob.join()
 
-            Log.d("CURRENT ADDREss", client.publicIdentity.identifier)
-
 
             client.conversations.list().forEach { conversation ->
                 // recipients
@@ -186,6 +184,8 @@ class SyncRepositoryImpl @Inject constructor(
                         id = conversation.id,
                         title = null, // change
                         members = members,
+
+
                     )
                     conversationDao.upsertConversation(parsedConversationEntity)
                 }

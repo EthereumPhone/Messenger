@@ -36,6 +36,9 @@ interface MessageDao {
     @Query("SELECT * FROM message WHERE seen = 0")
     fun getUnseenMessages(): Flow<List<MessageEntity>>
 
+    @Query("UPDATE message SET seen = :seen WHERE id = :id")
+    fun updateSeenMessage(id: String, seen: Boolean)
+
     @Insert
     suspend fun insertMessages(messageEntity: List<MessageEntity>)
 
@@ -43,24 +46,12 @@ interface MessageDao {
     suspend fun updateMessages(messageEntities: List<MessageEntity>)
 
     @Upsert
-    suspend fun upsertMessage(messageEntity: MessageEntity)
-
-    @Upsert
     suspend fun upsertMessages(messageEntities: List<MessageEntity>)
-
-    @Insert
-    suspend fun insertMessage(messageEntity: MessageEntity): Long
 
     @Delete
     suspend fun deleteAllMessage(messageEntity: List<MessageEntity>)
 
     @Delete
     suspend fun deleteMessage(messageEntity: MessageEntity)
-
-    @Transaction
-    suspend fun deleteAndInsert(oldMessageEntity: MessageEntity, newMessageEntity: MessageEntity) {
-        deleteMessage(oldMessageEntity)
-        insertMessages(listOf(newMessageEntity))
-    }
 
 }

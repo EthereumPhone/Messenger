@@ -2,6 +2,7 @@ package org.ethereumhpone.contracts
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,32 +43,20 @@ class InboxViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
-    // TODO: Doesn't need to be a state. Remove
-    val showHiddenButton: StateFlow<Boolean> = conversationRepository.getConversations()
-        .flowOn(Dispatchers.IO)
-        .map { conversations ->
-            //conversations.any { it.isUnknown } // Check if any conversation has unknown set to true
-            conversations == conversations //TODO: CHANGE THIS
-        }
-        .stateIn(
-            scope = viewModelScope,
-            initialValue = false, // False by default
-            started = SharingStarted.WhileSubscribed(5_000)
-        )
-
 
     val contacts: Flow<List<ContactEntity>> = contactRepository.getContacts()
 
-    fun setConversationAsRead(conversationId: Long) {
-        CoroutineScope(Dispatchers.IO).launch {
-            //conversationRepository.markRead(conversationId)
+    fun setConversationAsRead(conversationId: String, seen: Boolean) {
+        viewModelScope.launch {
+            conversationRepository.updateSeenConversation(conversationId, seen)
         }
     }
 
-    fun deleteConversation(conversationId: Long) {
-        CoroutineScope(Dispatchers.IO).launch {
-            //conversationRepository.deleteConversations(conversationId)
+    fun deleteConversation(conversationId: String) {
+        viewModelScope.launch {
+            conversationRepository
         }
+
     }
 
     fun deleteXMTPConversation(address: String) {
@@ -115,5 +104,5 @@ class InboxViewModel @Inject constructor(
 sealed interface ConversationUIState {
     object Loading : ConversationUIState
     object Empty : ConversationUIState
-    data class Success(val conversationEntities: List<Conversation>): ConversationUIState
+    data class Success(val conversations: List<Conversation>): ConversationUIState
 }

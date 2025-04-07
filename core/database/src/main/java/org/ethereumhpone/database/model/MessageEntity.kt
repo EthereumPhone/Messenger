@@ -58,5 +58,6 @@ fun MessageEntity.toExternalModel(recipient: Recipient): Message =
         isMe = isMe,
         attachments = emptyList(),
         reactions = emptyList(),
+        body = body
     )
 

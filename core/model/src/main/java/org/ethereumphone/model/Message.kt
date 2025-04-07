@@ -12,10 +12,9 @@ data class Message(
     val replyReference: String?,
     val isMe: Boolean,
     val attachments: List<Attachment>,
-    val reactions: List<Reaction>
+    val reactions: List<Reaction>,
+    val body: String
 ) {
 
-    fun getSummary(): String {
-        TODO()
-    }
+    fun getSummary(): String = body
 }

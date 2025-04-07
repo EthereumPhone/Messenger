@@ -21,7 +21,6 @@ import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.android.library.libxmtp.PublicIdentity
 import javax.inject.Inject
 import org.ethereumhpone.common.util.Result
-import org.ethereumhpone.database.model.toExternalModal
 
 class ConversationRepositoryImpl @Inject constructor(
     private val context: Context,
@@ -124,7 +123,29 @@ class ConversationRepositoryImpl @Inject constructor(
         } else {
             emit(Result.Error("Group conversations are not yet supported"))
         }
+    }
 
+    override suspend fun updatePinnedConversation(id: String, pinned: Boolean) {
+        conversationDao.updatePinnedStatus(id, pinned)
+    }
+
+    override suspend fun updateArchivedConversation(id: String, archived: Boolean) {
+        conversationDao.updateArchivedStatus(id, archived)
+    }
+
+    override suspend fun updateBlockedConversation(id: String, blocked: Boolean) {
+        conversationDao.updateBlockedStatus(id, blocked)
+    }
+
+    override suspend fun updateSeenConversation(id: String, seen: Boolean) {
+        val conversation = conversationDao.getConversation(id).first()
+        conversation.lastMessageEntity?.let {
+            messageDao.updateSeenMessage(it.id, seen)
+        }
+    }
+
+    override suspend fun deleteConversation(id: String) {
+        conversationDao.deleteConversation(id)
     }
 }
 
