@@ -21,9 +21,6 @@ data class CompositeConversation(
     )
     val lastMessageEntity: MessageEntity?,
 
-    /*
-
-
     @Relation(
         entity = RecipientEntity::class,
         parentColumn = "id",
@@ -31,15 +28,14 @@ data class CompositeConversation(
         associateBy = Junction(
             value = ConversationRecipientCrossRef::class,
             parentColumn = "conversationId",
-            entityColumn = "memberInboxId"
+            entityColumn = "inboxId"
         )
     )
     val recipients: List<RecipientWithContact>
-     */
 )
 
 fun CompositeConversation.toExternalModel(): Conversation {
-    /*
+
     val senderRecipient = if (lastMessageEntity != null) {
         recipients.firstOrNull {
             it.recipientEntity.inboxId == lastMessageEntity.senderInboxId
@@ -47,15 +43,13 @@ fun CompositeConversation.toExternalModel(): Conversation {
     } else {
         null
     }
-     */
-
     
     return Conversation(
         id = conversationEntity.id,
         title = conversationEntity.title,
-        recipients = emptyList(), //recipients.map { it.recipientEntity.toExternalModel(it.contactEntity) },
+        recipients = recipients.map { it.recipientEntity.toExternalModel(it.contactEntity) },
         draft = conversationEntity.draft,
-        lastMessage = lastMessageEntity?.toExternalModel(Recipient("123", "asd", "123", Contact("", "", "", "") )), //senderRecipient?.let { lastMessageEntity?.toExternalModel(it.recipientEntity.toExternalModel(it.contactEntity)) },
+        lastMessage = senderRecipient?.let { lastMessageEntity?.toExternalModel(it.recipientEntity.toExternalModel(it.contactEntity)) },  //lastMessageEntity?.toExternalModel(Recipient("123", "asd", "123", Contact("", "", "", "") )),
         archived = conversationEntity.archived,
         blocked = conversationEntity.blocked,
         pinned = conversationEntity.pinned

@@ -212,8 +212,8 @@ fun InboxScreen(
                                                             )
                                                         }
                                                     },
-                                                    header = "",//conversation.getHeader(),
-                                                    subheader = "",//conversation.getSummary(),
+                                                    header = conversation.getHeader(),
+                                                    subheader = conversation.getSummary(),
                                                     time = conversation.lastMessage?.date,
                                                     unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
                                                     onClick = {
@@ -272,8 +272,8 @@ fun InboxScreen(
                                                         )
                                                     }
                                                 },
-                                                header = "", //conversation.getHeader(),
-                                                subheader = "", // conversation.getSummary(),
+                                                header = conversation.getHeader(),
+                                                subheader = conversation.getSummary(),
                                                 time = conversation.lastMessage?.date,
                                                 unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
                                                 onClick = {
