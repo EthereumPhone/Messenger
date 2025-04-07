@@ -18,23 +18,42 @@ interface ConversationDao {
 
     @Transaction
     @Query("""
-        SELECT c.*, m.* FROM conversation c
-        LEFT JOIN message m ON c.id = m.threadId
-        WHERE c.id = :id
-        ORDER BY m.dateSent DESC
-        LIMIT 1
+    SELECT 
+        conversation.*,
+        message.id AS message_id,
+        message.threadId AS message_threadId,
+        message.date AS message_date,
+        message.body AS message_body
+        -- Add all other MessageEntity fields here with 'message_' prefix
+    FROM conversation
+    LEFT JOIN message 
+        ON message.id = (
+            SELECT id FROM message 
+            WHERE threadId = conversation.id 
+            ORDER BY date DESC 
+            LIMIT 1
+        )
+        WHERE conversation.id = :id
     """)
     fun getConversation(id: String): Flow<CompositeConversation>
 
     @Transaction
     @Query("""
-        SELECT c.*, m.* FROM conversation c
-        LEFT JOIN message m ON c.id = m.threadId
-        WHERE m.dateSent = (
-            SELECT MAX(dateSent) 
-            FROM message 
-            WHERE threadId = c.id
-        ) OR m.id IS NULL
+    SELECT 
+        conversation.*,
+        message.id AS message_id,
+        message.threadId AS message_threadId,
+        message.date AS message_date,
+        message.body AS message_body
+        -- Add all other MessageEntity fields here with 'message_' prefix
+    FROM conversation
+    LEFT JOIN message 
+        ON message.id = (
+            SELECT id FROM message 
+            WHERE threadId = conversation.id 
+            ORDER BY date DESC 
+            LIMIT 1
+        )
     """)
     fun getConversations(): Flow<List<CompositeConversation>>
 

@@ -193,7 +193,7 @@ fun InboxScreen(
                                             item {
                                                 ChatListItem(
                                                     image = {
-                                                        if (conversation.recipients[0].contact?.photoUri != null) {
+                                                        if (conversation.recipients.getOrNull(0)?.contact?.photoUri != null) {
                                                             Image(
                                                                 painter = rememberAsyncImagePainter(model = conversation.recipients.first().contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
                                                                 contentDescription = "Contact Image",
@@ -212,8 +212,8 @@ fun InboxScreen(
                                                             )
                                                         }
                                                     },
-                                                    header = conversation.getHeader(),
-                                                    subheader = conversation.getSummary(),
+                                                    header = "",//conversation.getHeader(),
+                                                    subheader = "",//conversation.getSummary(),
                                                     time = conversation.lastMessage?.date,
                                                     unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
                                                     onClick = {
@@ -272,8 +272,8 @@ fun InboxScreen(
                                                         )
                                                     }
                                                 },
-                                                header = conversation.getHeader(),
-                                                subheader = conversation.getSummary(),
+                                                header = "", //conversation.getHeader(),
+                                                subheader = "", // conversation.getSummary(),
                                                 time = conversation.lastMessage?.date,
                                                 unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
                                                 onClick = {

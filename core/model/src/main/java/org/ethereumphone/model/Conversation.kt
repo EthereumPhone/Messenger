@@ -15,6 +15,7 @@ data class Conversation(
             ?: recipients.first().contact?.name
             ?: recipients.first().ens
             ?: recipients.first().address
+            ?: ""
 
 
     fun getSummary(): String {
