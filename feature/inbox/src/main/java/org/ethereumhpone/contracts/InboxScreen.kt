@@ -5,16 +5,20 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -38,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.ethosmobile.components.library.theme.Colors
@@ -50,6 +55,7 @@ import java.util.Date
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import org.ethereumhpone.contracts.ui.ChatListItem
+import org.ethereumphone.model.Conversation
 import kotlin.reflect.KSuspendFunction1
 
 
@@ -60,8 +66,6 @@ fun ContactRoute(
     viewModel: InboxViewModel = hiltViewModel()
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
-    val contacts by viewModel.contacts.collectAsStateWithLifecycle(initialValue = emptyList())
-
     InboxScreen(
         modifier = modifier,
         conversationState = conversationState,
@@ -210,9 +214,9 @@ fun InboxScreen(
                                                         }
                                                     },
                                                     header = conversation.getTitle(),
-                                                    subheader = "", // conversation.lastMessage?.getSummary() ?: "",
-                                                    time = Date(), //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
-                                                    unreadConversation = true ,//conversation.unread,
+                                                    subheader = conversation.getSummary(),
+                                                    time = conversation.lastMessage?.date,
+                                                    unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
                                                     onClick = {
                                                         conversationClicked(conversation.id.toString())
                                                     },
@@ -242,89 +246,53 @@ fun InboxScreen(
 
                         }
                         1 -> {
-                            /*
-                            if(conversationState.conversations.isNotEmpty()){
-                                Box(modifier = Modifier.weight(1f)) {
-                                    LazyColumn(
-                                        modifier = Modifier.padding(horizontal = 12.dp)
-                                    ){
-                                        conversationState.conversations.filter { it.isUnknown }.filter { it.date > 0 }.sortedBy { it.date }.reversed().forEach { conversation ->
-                                            item {
-
-                                                val dates = conversation.lastMessage?.date?.let { Date(it) }
-                                                ChatListItem(
-                                                    image = {
-                                                        if (conversation.recipients.get(0).contact?.photoUri != null) {
-                                                            Image(
-                                                                painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
-                                                                contentDescription = "Contact Image",
-                                                                contentScale = ContentScale.Crop,
-                                                                modifier = Modifier
-                                                                    .size(62.dp) // Set the size of the image
-                                                                    .clip(CircleShape) // Apply a circular shape
-                                                            )
-                                                        } else {
-                                                            Image(
-                                                                painter = painterResource(id = R.drawable.nouns),
-                                                                contentDescription = "Contact Image",
-                                                                modifier = Modifier
-                                                                    .size(62.dp) // Set the size of the image
-                                                                    .clip(CircleShape) // Apply a circular shape
-                                                            )
-                                                        }
-                                                    },
-                                                    header = conversation.recipients.get(0).getDisplayName(),
-                                                    subheader = conversation.lastMessage?.getSummary() ?: "",
-                                                    time = dates, //conversation.lastMessage?.date, // convertLongToTime(conversation.lastMessage?.date ?: 0L),
-                                                    unreadConversation = conversation.unread,
-                                                    onClick = {
-                                                        conversationClicked(conversation.id.toString())
-                                                        markAccepted(conversation.id, conversation.getConversationTitle())
-                                                    },
-                                                    onClickLeft = {
-                                                        markArchived(conversation.id)
-                                                    },
-                                                    onClickRight = {
-                                                        markArchived(conversation.id)
-                                                        deleteXMTPConversation(conversation.getConversationTitle())
+                            Box(modifier = Modifier.weight(1f)) {
+                                LazyColumn(
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                ){
+                                    conversationState.conversations.forEach { conversation ->
+                                        item {
+                                            ChatListItem(
+                                                image = {
+                                                    if (conversation.recipients.get(0).contact?.photoUri != null) {
+                                                        Image(
+                                                            painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                            contentDescription = "Contact Image",
+                                                            contentScale = ContentScale.Crop,
+                                                            modifier = Modifier
+                                                                .size(62.dp) // Set the size of the image
+                                                                .clip(CircleShape) // Apply a circular shape
+                                                        )
+                                                    } else {
+                                                        Image(
+                                                            painter = painterResource(id = R.drawable.nouns),
+                                                            contentDescription = "Contact Image",
+                                                            modifier = Modifier
+                                                                .size(62.dp) // Set the size of the image
+                                                                .clip(CircleShape) // Apply a circular shape
+                                                        )
                                                     }
-                                                )
-                                            }
+                                                },
+                                                header = conversation.getTitle(),
+                                                subheader = conversation.getSummary(),
+                                                time = conversation.lastMessage?.date,
+                                                unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
+                                                onClick = {
+                                                    conversationClicked(conversation.id)
+                                                    //markAccepted(conversation.id, conversation.getConversationTitle())
+                                                },
+                                                onClickLeft = {
+                                                    //markArchived(conversation.id)
+                                                },
+                                                onClickRight = {
+                                                    //markArchived(conversation.id)
+                                                    //deleteXMTPConversation(conversation.getConversationTitle())
+                                                }
+                                            )
                                         }
                                     }
                                 }
                             }
-                            else{
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "No conversations",
-                                        fontSize = 20.sp,
-                                        fontFamily = Fonts.INTER,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Colors.GRAY,
-                                    )
-                                }
-                            }
-                             */
-                            //TODO: Add logic (unaccepted messages)
-
-
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No conversations",
-                                    fontSize = 20.sp,
-                                    fontFamily = Fonts.INTER,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Colors.GRAY,
-                                )
-                            }
-
                         }
                     }
                 }
@@ -359,11 +327,11 @@ fun convertLongToTime(time: Long): String {
 
 @Composable
 fun ShowHiddenConversationsPopup(
-    hiddenConversationEntities: List<ConversationEntity>,
+    conversations: List<Conversation>,
     onApprove: (Long, String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    /*
+
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
             shape = MaterialTheme.shapes.medium,
@@ -378,7 +346,7 @@ fun ShowHiddenConversationsPopup(
                 )
 
                 LazyColumn {
-                    items(hiddenConversations) { conversation ->
+                    items(conversations) { conversation ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -386,7 +354,7 @@ fun ShowHiddenConversationsPopup(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = trimEthereumAddress(conversation.getConversationTitle()) + ": " + conversation.lastMessage?.body, // Assuming Conversation has a 'name' property
+                                text = "" , //trimEthereumAddress(conversation.getConversationTitle()) + ": " + conversation.lastMessage?.body, // Assuming Conversation has a 'name' property
                                 modifier = Modifier.weight(1f),
                                 fontFamily = Fonts.INTER,
                                 color = Colors.WHITE,
@@ -394,15 +362,18 @@ fun ShowHiddenConversationsPopup(
                             // Icons.Default.Check
                             androidx.compose.material.IconButton(
                                 onClick = {
-                                    onApprove(conversation.id, conversation.getConversationTitle())
+                                    //onApprove(conversation.id, conversation.getConversationTitle())
                                 }
                             ) {
+                                /*
                                 Icon(
                                     imageVector = Icons.Rounded.Check,
                                     contentDescription = "Approve hidden conversation",
                                     tint = Color.White,
                                     modifier = Modifier.size(32.dp)
                                 )
+                                */
+
                             }
                         }
                     }
@@ -410,7 +381,7 @@ fun ShowHiddenConversationsPopup(
             }
         }
     }
-     */
+
 
 }
 
@@ -437,12 +408,15 @@ fun PreviewShowHiddenConversationsPopup(){
     )
      */
 
+
+
 }
 
-/*
+
 @Composable
 @Preview
-fun PreviewContactScreen(){
+fun PreviewContactScreen() {
+    /*
     ContactScreen(
         emptyList(),
         ConversationUIState.Success(
@@ -465,6 +439,7 @@ fun PreviewContactScreen(){
         {},
         {}
     )
+     */
+
 }
 
- */

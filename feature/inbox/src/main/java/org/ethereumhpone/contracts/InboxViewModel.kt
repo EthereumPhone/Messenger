@@ -43,9 +43,6 @@ class InboxViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
-
-    val contacts: Flow<List<ContactEntity>> = contactRepository.getContacts()
-
     fun setConversationAsRead(conversationId: String, seen: Boolean) {
         viewModelScope.launch {
             conversationRepository.updateSeenConversation(conversationId, seen)

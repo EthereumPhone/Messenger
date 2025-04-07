@@ -44,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
@@ -63,14 +64,15 @@ fun ChatListItem(
     image: @Composable () -> Unit = {},
     header: String = "Header",
     subheader: String = "Subheader",
-    time: Date? = Date(),
+    time: Instant? = Instant.DISTANT_PAST,
     unreadConversation: Boolean = true,
     onClick: () -> Unit = {},
     onClickLeft: () -> Unit = {},
     onClickRight: () -> Unit = {},
     isInbox: Boolean = true,
     modifier: Modifier = Modifier
-){
+) {
+    val displayTime = time ?: Instant.DISTANT_PAST
 
     val leftWidth = (-120*2).dp //-400.dp
     val rightWidth = (120*2).dp
@@ -124,7 +126,7 @@ fun ChatListItem(
                 image = image,
                 header = header,
                 subheader = subheader,
-                time = time,
+                time = Date(displayTime.epochSeconds),
                 unreadConversation = unreadConversation,
                 modifier = modifier,
                 onClick = onClick
