@@ -51,6 +51,7 @@ import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.model.Message
 
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -58,7 +59,7 @@ import org.ethosmobile.components.library.theme.Fonts
 
 @Composable
 fun MediaBinder(
-    messageEntity: MessageEntity,
+    messageEntity: Message,
     videoPlayer: Player?,
     onPrepareVideo: (Uri) -> Unit,
     name: String

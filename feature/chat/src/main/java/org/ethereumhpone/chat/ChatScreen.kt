@@ -138,7 +138,7 @@ fun ChatScreen(
 
 
     val selectMode = remember { mutableStateOf(false) }
-    val selectedMessagesMap = remember { mutableMapOf<MessageEntity, Boolean>() }
+    val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
 
 
 
@@ -184,10 +184,10 @@ fun ChatScreen(
                         val listState = rememberLazyListState()
 
 
-                        val prevAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) - 1)?.senderInboxId
-                        val nextAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) + 1)?.senderInboxId
-                        val isFirstMessageByAuthor = prevAuthor != message.senderInboxId
-                        val isLastMessageByAuthor = nextAuthor != message.senderInboxId
+                        val prevAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) - 1)?.recipient?.id
+                        val nextAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) + 1)?.recipient?.id
+                        val isFirstMessageByAuthor = prevAuthor != message.recipient.id
+                        val isLastMessageByAuthor = nextAuthor != message.recipient.id
 
                         MessageItem(
                             onAuthorClick = { },

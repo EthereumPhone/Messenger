@@ -67,6 +67,7 @@ import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.DecimalFormat
@@ -126,7 +127,7 @@ fun TxMessage(
 @Composable
 fun MessageItem(
     onAuthorClick: (String) -> Unit,
-    msg: MessageEntity,
+    msg: Message,
     isSelected: Boolean = false,
     isFirstMessageByAuthor: Boolean,
     isLastMessageByAuthor: Boolean,
@@ -137,7 +138,7 @@ fun MessageItem(
     selectMode: MutableState<Boolean>,
     onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
-    onSelect: (MessageEntity) -> Unit,
+    onSelect: (Message) -> Unit,
     onDoubleClick: () -> Unit
 ) {
 
@@ -241,13 +242,13 @@ fun MessageItem(
 //TIMESTAMP
 @Composable
 fun AuthorNameTimestamp(
-    messageEntity: MessageEntity,
+    messageEntity: Message,
     modifier: Modifier = Modifier,
 ) {
 
     //Date formating
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val time = sdf.format(Date(messageEntity.date))
+    val time = sdf.format(Date(messageEntity.date.epochSeconds))
 
     // Combine author and timestamp for a11y.
     Row(
@@ -416,7 +417,7 @@ fun TxChatItemBubble(
 @Composable
 fun ChatItemBubble(
     modifier: Modifier = Modifier,
-    messageEntity: MessageEntity,
+    messageEntity: Message,
     isUserMe: Boolean,
     name: String = "",
     isFirstMessageByAuthor: Boolean,

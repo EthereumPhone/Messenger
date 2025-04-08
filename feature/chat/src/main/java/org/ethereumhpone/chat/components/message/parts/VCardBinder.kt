@@ -19,10 +19,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.model.Message
 
 @Composable
 fun VCardBinder(
-    messageEntity: MessageEntity
+    messageEntity: Message
 ) {
     /*
     val vCards = remember { message.parts.filter(MmsPart::isVCard) }

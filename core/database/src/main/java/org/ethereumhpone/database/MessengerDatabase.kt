@@ -16,7 +16,7 @@ import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.ContactGroup
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.MessageEntity
-import org.ethereumhpone.database.model.MessageReaction
+import org.ethereumhpone.database.model.ReactionEntity
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.SyncLog
@@ -28,7 +28,7 @@ import org.ethereumhpone.database.util.Converters
         ContactEntity::class,
         ConversationEntity::class,
         MessageEntity::class,
-        MessageReaction::class,
+        ReactionEntity::class,
         PhoneNumber::class,
         RecipientEntity::class,
         ContactGroup::class,

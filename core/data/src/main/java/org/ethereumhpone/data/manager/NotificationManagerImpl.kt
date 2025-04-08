@@ -65,6 +65,7 @@ class NotificationManagerImpl @Inject constructor(
             return
         }
 
+        /*
         val messages = messageRepository.getUnreadUnseenMessages(threadId)
 
         if (messages.isEmpty()) {
@@ -72,6 +73,8 @@ class NotificationManagerImpl @Inject constructor(
             notificationManager.cancel(threadId.toInt() + 100000)
             return
         }
+         */
+
 
         //val conversation = conversationRepository.getConversation(threadId).first() ?: return
 

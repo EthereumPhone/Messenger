@@ -9,5 +9,5 @@ data class MessageWithReactions(
         parentColumn = "id",
         entityColumn = "messageId"
     )
-    val messageReactions: List<MessageReaction>
+    val reactionEntities: List<ReactionEntity>
 )
