@@ -35,25 +35,26 @@ data class MessageEntity(
     val body: String,
     val replyReference: String?,
     val seenDate: Long = 0,
-    val xmtpDeliveryStatus: DecodedMessage.MessageDeliveryStatus = DecodedMessage.MessageDeliveryStatus.PUBLISHED,
+    val deliveryStatus: DecodedMessage.MessageDeliveryStatus = DecodedMessage.MessageDeliveryStatus.PUBLISHED,
     val isMe: Boolean = false,
 ) {
     fun getSummary(): String = body //TODO: Change this
 
-    fun isFailedMessage(): Boolean = xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.FAILED
+    fun isFailedMessage(): Boolean = deliveryStatus == DecodedMessage.MessageDeliveryStatus.FAILED
 
-    fun isDelivered(): Boolean = xmtpDeliveryStatus == DecodedMessage.MessageDeliveryStatus.PUBLISHED
+    fun isDelivered(): Boolean = deliveryStatus == DecodedMessage.MessageDeliveryStatus.PUBLISHED
 
 }
 
 fun MessageEntity.toExternalModel(recipient: Recipient): Message = 
     Message(
         id = id,
+        threadId = threadId,
         recipient = recipient,
         date = Instant.fromEpochSeconds(date),
         dateSent = Instant.fromEpochSeconds(dateSent),
         seen = seen,
-        deliveryStatus = DeliveryStatus.valueOf(xmtpDeliveryStatus.name),
+        deliveryStatus = DeliveryStatus.valueOf(deliveryStatus.name),
         replyReference = replyReference,
         isMe = isMe,
         attachments = emptyList(),

@@ -10,25 +10,17 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.MessageWithReactions
+import org.ethereumhpone.database.model.relation.CompositeMessage
 
 @Dao
 interface MessageDao {
 
-    @Query("SELECT * FROM message WHERE threadId = :threadId ORDER BY date DESC")
-    fun getMessages(threadId: Long): Flow<List<MessageEntity>>
-
     @Transaction
-    @Query("SELECT * FROM message")
-    fun getMessagesWithReactions(): Flow<List<MessageWithReactions>>
+    @Query("SELECT * FROM message WHERE threadId = :threadId ORDER BY date DESC")
+    fun getMessages(threadId: String): Flow<List<CompositeMessage>>
 
     @Query("SELECT * FROM message where id == :id")
-    fun getMessage(id: String): MessageEntity?
-
-    @Query("SELECT * FROM message where threadId = :threadId ORDER BY date DESC LIMIT 1")
-    fun getLastConversationMessage(threadId: Long): Flow<MessageEntity?>
-
-    @Query("SELECT * FROM message where threadId = :threadId")
-    fun getAllConversationMessages(threadId: Long): Flow<List<MessageEntity>>
+    fun getMessage(id: String): Flow<CompositeMessage?>
 
     @Query("SELECT * FROM message WHERE seen = 0 AND read = 0 ORDER BY date")
     suspend fun getUnreadUnseenMessages(): List<MessageEntity>
@@ -41,6 +33,10 @@ interface MessageDao {
 
     @Insert
     suspend fun insertMessages(messageEntity: List<MessageEntity>)
+
+    @Insert
+    suspend fun insertMessage(messageEntity: MessageEntity)
+
 
     @Update
     suspend fun updateMessages(messageEntities: List<MessageEntity>)

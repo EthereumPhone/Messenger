@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startActivity
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
-import org.ethereumhpone.chat.MessagesUiState
+import org.ethereumhpone.chat.MessageUiState
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.extractTransactionDetails
 import org.ethereumhpone.chat.isValidTransactionMessage
@@ -193,7 +193,7 @@ fun ContactSheet(
 
 @Composable
 fun MediaSheet(
-    messagesUiState: MessagesUiState,
+    messageUiState: MessageUiState,
     modifier: Modifier = Modifier,
 ){
     Column(
@@ -226,12 +226,12 @@ fun MediaSheet(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ){
-            when(messagesUiState){
-                is MessagesUiState.Loading -> {
+            when(messageUiState){
+                is MessageUiState.Loading -> {
                     Text(text = "Loading", color = Colors.WHITE)
                 }
 
-                is MessagesUiState.Success -> {
+                is MessageUiState.Success -> {
                     val allmedia = emptyList<MessageEntity>()//messagesUiState.messages.filter { it.parts.isNotEmpty() }
 
                     if (allmedia.isEmpty()){
@@ -344,7 +344,7 @@ fun MembersSheet(
 
 @Composable
 fun TXSheet(
-    messagesUiState: MessagesUiState,
+    messageUiState: MessageUiState,
     modifier: Modifier = Modifier,
 ){
     val context = LocalContext.current
@@ -378,10 +378,10 @@ fun TXSheet(
             modifier = modifier.fillMaxSize(),
     contentAlignment = Alignment.Center
             ) {
-            when (messagesUiState) {
-                MessagesUiState.Loading -> TODO()
-                is MessagesUiState.Success -> {
-                    val alltxs = messagesUiState.messageEntities.filter { isValidTransactionMessage(it.body) }
+            when (messageUiState) {
+                MessageUiState.Loading -> TODO()
+                is MessageUiState.Success -> {
+                    val alltxs = messageUiState.messageEntities.filter { isValidTransactionMessage(it.body) }
 
                     if(alltxs.isEmpty() ){
                         Column(

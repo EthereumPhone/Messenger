@@ -128,6 +128,7 @@ dependencies {
     implementation(libs.xmtp)
 
 
+    implementation(project(":core:model"))
 
 
 

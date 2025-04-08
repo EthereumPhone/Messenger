@@ -20,12 +20,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,7 +37,6 @@ import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.MessageEntity
-import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.ContactRepository
@@ -44,6 +44,10 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.usecase.SendMessage
+import org.ethereumphone.model.Conversation
+import org.ethereumphone.model.Message
+import org.ethereumphone.model.Reaction
+import org.ethereumphone.model.Recipient
 import org.ethereumphone.walletsdk.WalletSDK
 import org.kethereum.model.Address
 import org.kethereum.rpc.EthereumRPC
@@ -64,55 +68,57 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
-    private val permissionManager: PermissionManager,
     private val context: Context
 ): ViewModel() {
 
     // nav arguments
-    private val threadId = ThreadIdArgs(savedStateHandle).threadId?.toLong() ?: 0L
+    private val threadId = ThreadIdArgs(savedStateHandle).threadId ?: ""
     private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
+
     // conversation state
-    private val conversationEntityState = merge(
-        conversationRepository.getConversation(threadId.toString()), // initial Conversation
-        selectedConversationState(addresses, conversationRepository)
-    ).stateIn(
-        scope = viewModelScope,
-        initialValue = ConversationEntity("0", title = "", ),
-        started = SharingStarted.WhileSubscribed(5_000)
-    )
-
-
-    // recipients state
-    val recipientEntityState = conversationEntityState
-        .filterNotNull()
+    val conversation = conversationRepository.getConversation(threadId)
         .map { conversation ->
-            /*
-            when {
-                conversation.recipients.isNotEmpty() -> conversation.recipients
-                addresses.isNotEmpty() -> addresses.map { address -> Recipient(address = address) }
-                else -> emptyList()
+            if (conversation == null) {
+                // TODO add fallback if convo does not exist?
+                ConversationUiState.Loading
+            } else {
+                ConversationUiState.Success(conversation = conversation)
             }
-             */
-            emptyList<RecipientEntity>()
-
         }
         .stateIn(
             scope = viewModelScope,
-            initialValue = emptyList(),
+            initialValue = ConversationUiState.Loading,
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
-    // message state
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val messagesState = conversationEntityState
-        .filterNotNull()
-        .flatMapLatest {
-            messageRepository.getMessages(0L).map(MessagesUiState::Success) //TODO: FIX THIS
-        }.stateIn(
+    val messagesState = messageRepository.getMessages(threadId = threadId)
+        .map {
+            if (it.isEmpty()) {
+                MessageUiState.Success(emptyList())
+            } else {
+                MessageUiState.Success(it)
+            }
+        }
+        .stateIn(
             scope = viewModelScope,
-            initialValue = MessagesUiState.Loading,
+            initialValue = MessageUiState.Loading,
             started = SharingStarted.WhileSubscribed(5_000)
         )
+
+    val recipients = conversationRepository.getConversation(threadId)
+        .map { conversation ->
+            if (conversation != null) {
+                RecipientUiState.Success(conversation.recipients)
+            } else {
+                RecipientUiState.Error
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = RecipientUiState.Loading,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
 
     // contacts state
     val contacts: StateFlow<List<ContactEntity>> = contactRepository.getContacts()
@@ -135,20 +141,18 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val attachments: StateFlow<Set<Attachment>> = _attachments
 
 
-    private val _selectedMessages = MutableStateFlow<MutableList<MessageEntity?>>(mutableListOf())
-    val selectedMessages: StateFlow<MutableList<MessageEntity?>> = _selectedMessages
+    private val _selectedMessages = MutableStateFlow<MutableList<Message?>>(mutableListOf())
+    val selectedMessages: StateFlow<MutableList<Message?>> = _selectedMessages
 
 
 
 
-    fun removeSelectedMessage(messageEntity: MessageEntity) {
-        _selectedMessages.value.remove(messageEntity)
+    fun removeSelectedMessage(message: Message) {
+        _selectedMessages.value.remove(message)
     }
-    fun addSelectedMessage(messageEntity: MessageEntity) {
-        _selectedMessages.value.add(messageEntity)
+    fun addSelectedMessage(message: Message) {
+        _selectedMessages.value.add(message)
     }
-
-
 
 
     fun parseContact(contactEntity: ContactEntity) {
@@ -331,27 +335,34 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
 
+    fun sendReaction(
+        reactionUri: String
+    ) {
+        viewModelScope.launch { 
+            val reaction = Reaction(
+                id = TODO(),
+                messageId = TODO(),
+                reactionSchema = TODO(),
+                content = TODO()
+            )
+            
+        }
+    }
 
-    fun sendMessage(messageBody: String) {
-
-
-        /*
-            val subId = -1 //TODO: Add sunscroptionId logic
-
-        conversationState.value?.let { convo ->
-
-
-            val addresses = convo.recipients.map { it.inboxId }
-
-            viewModelScope.launch(Dispatchers.IO) {
-                sendMessageUseCase(subId, convo.id, addresses, messageBody, _attachments.value.toList())
-
-                // remove attached items
-                _attachments.value = emptySet()
+    fun sendMessage(
+        messageBody: String = "",
+    ) {
+        if (selectedMessages.value.size == 1) {
+            viewModelScope.launch {
+                sendMessageUseCase(
+                    threadId = threadId,
+                    body = messageBody,
+                    replyReference = selectedMessages.value.getOrNull(0)?.id,
+                    attachments = attachments.value.toList(),
+                    reaction = null
+                )
             }
         }
-             */
-
     }
 
     //TODO: add specific contact selection
@@ -402,44 +413,21 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 }
 
-/**
- *
- */
-@OptIn(ExperimentalCoroutinesApi::class)
-private fun selectedConversationState(
-    addresses: List<String>,
-    conversationRepository: ConversationRepository
-): Flow<ConversationEntity?> {
-    if (addresses.isEmpty()) return flowOf(null)
-    return flowOf(null)
-
-    /*
-    return conversationRepository.getOrCreateConversation(addresses).flatMapLatest { convo ->
-        val threadId = convo?.id ?: 0
-
-        if (threadId > 0) {
-            // If the threadID exists in roomDB or ContentProvider
-            conversationRepository.getConversation(threadId)
-        } else {
-            // Otherwise, monitor conversations until one is created
-            conversationRepository.getConversations().map {
-                val actualThreadId =
-                    conversationRepository.getOrCreateConversation(addresses).first()?.id ?: 0
-
-                when (actualThreadId) {
-                    0L -> Conversation(0)
-                    else -> conversationRepository.getConversation(actualThreadId).first()
-                }
-            }
-        }
-    }
-     */
-
+sealed interface MessageUiState {
+    object Loading : MessageUiState
+    data class Success(val messageEntities: List<Message>): MessageUiState
 }
 
-sealed interface MessagesUiState {
-    object Loading : MessagesUiState
-    data class Success(val messageEntities: List<MessageEntity>): MessagesUiState
+sealed interface ConversationUiState {
+    object Loading : ConversationUiState
+    data class Success(val conversation: Conversation): ConversationUiState
+}
+
+sealed interface RecipientUiState {
+    object Loading : RecipientUiState
+    object Error : RecipientUiState
+    data class Success(val recipients: List<Recipient>): RecipientUiState
+
 }
 
 

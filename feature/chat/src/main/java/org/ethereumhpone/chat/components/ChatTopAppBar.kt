@@ -15,50 +15,64 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import org.ethereumhpone.chat.RecipientUiState
 import org.ethereumhpone.database.model.RecipientEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatTopAppBar(
     title: String = "",
-    recipientEntities: List<RecipientEntity>,
+    recipientUiState: RecipientUiState,
     onTitleClicked: () -> Unit,
     onBackClicked: () -> Unit
 ) {
-    val header = title.ifBlank {
-        val displayNames = recipientEntities.map { "it.getDisplayName()" } //TODO FIX display name
-        displayNames.joinToString(", ")
-    }
+    when(recipientUiState) {
+        is RecipientUiState.Success -> {
+            val recipients = recipientUiState.recipients
 
-    CenterAlignedTopAppBar(
-        title = {
-            Row {
-
-                //TODO: Add icon
-
-                Text(
-                    text = header,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { onTitleClicked() },
-                )
+            val header = title.ifBlank {
+                val displayNames = recipients.map { "it.getDisplayName()" } //TODO FIX display name
+                displayNames.joinToString(", ")
             }
 
-             },
-        navigationIcon = {
-            IconButton(onClick = onBackClicked) {
-                Icon(
-                    Icons.Default.ArrowBackIosNew,
-                    "Back navigation",
-                    tint = Color.White,
-            ) }
+            CenterAlignedTopAppBar(
+                title = {
+                    Row {
 
-        },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color.Black,
-            titleContentColor = Color.White
-        )
-    )
+                        //TODO: Add icon
+
+                        Text(
+                            text = header,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable { onTitleClicked() },
+                        )
+                    }
+
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClicked) {
+                        Icon(
+                            Icons.Default.ArrowBackIosNew,
+                            "Back navigation",
+                            tint = Color.White,
+                        ) }
+
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Black,
+                    titleContentColor = Color.White
+                )
+            )
+
+
+
+        }
+        else -> {}
+    }
+
+
+
 }
 
 
@@ -66,7 +80,7 @@ fun ChatTopAppBar(
 @Preview
 @Composable
 fun PreviewChatTopAppBar() {
-    ChatTopAppBar("My chat", emptyList(), {}, {})
+    ChatTopAppBar("My chat", RecipientUiState.Loading, {}, {})
 }
 
 @Preview

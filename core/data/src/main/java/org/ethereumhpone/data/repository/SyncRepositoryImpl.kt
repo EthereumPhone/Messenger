@@ -3,7 +3,6 @@ package org.ethereumhpone.data.repository
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +27,6 @@ import org.ethereumhpone.database.model.ContactGroup
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.PhoneNumber
-import org.ethereumhpone.database.model.MessageReaction
 import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
@@ -210,7 +208,7 @@ class SyncRepositoryImpl @Inject constructor(
                                     senderInboxId = msg.senderInboxId,
                                     date = System.currentTimeMillis(),
                                     seenDate = msg.sentAtNs,
-                                    xmtpDeliveryStatus = msg.deliveryStatus,
+                                    deliveryStatus = msg.deliveryStatus,
                                     isMe = msg.senderInboxId == client.inboxId,
                                     replyReference = null,
                                     body = msg.body
@@ -236,12 +234,12 @@ class SyncRepositoryImpl @Inject constructor(
                     reactionDao.deleteReaction(messageEntity.id)
                 }
                 if(xmtpReaction.action == ReactionAction.Added) {
-                    val reaction = MessageReaction(
+                    val reactionEntity = org.ethereumhpone.database.model.ReactionEntity(
                         id = messageEntity.id,
                         inboxId = messageEntity.senderInboxId,
-                        unicode = xmtpReaction.content
+                        content = xmtpReaction.content
                     )
-                    reactionDao.upsertReaction(reaction)
+                    reactionDao.upsertReaction(reactionEntity)
                 }
                 null
             }

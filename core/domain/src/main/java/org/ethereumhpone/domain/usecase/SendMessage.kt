@@ -9,6 +9,7 @@ import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MessageRepository
+import org.ethereumphone.model.Reaction
 import javax.inject.Inject
 
 class SendMessage @Inject constructor(
@@ -18,23 +19,13 @@ class SendMessage @Inject constructor(
 ) {
 
     suspend operator fun invoke(
-        subId: Int,
-        threadId: Long,
-        addresses: List<String>,
-        body: String,
-        attachments: List<Attachment> = listOf(),
+        threadId: String,
+        body: String?,
+        replyReference: String?,
+        attachments: List<Attachment> = emptyList(),
+        reaction: Reaction?
     ) {
-        if(addresses.isEmpty()) return
-
-        val newThreadId = when(threadId) {
-            0L -> TelephonyCompat.getOrCreateThreadId(context, addresses.toSet())
-            else -> threadId
-        }
-
-        messageRepository.sendMessage(subId, newThreadId, addresses, body, attachments)
-
-
-
+        messageRepository.sendMessage(threadId, body, replyReference, attachments, reaction)
 
     }
 }

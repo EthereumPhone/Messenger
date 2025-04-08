@@ -61,7 +61,7 @@ import org.ethosmobile.components.library.theme.Fonts
 @Composable
 fun ContactDetailView(
     modifier: Modifier = Modifier,
-    messagesUiState: MessagesUiState,
+    messageUiState: MessageUiState,
     profileview: MutableState<Boolean>,
     name: String,
     ens: List<String>,
@@ -84,11 +84,11 @@ fun ContactDetailView(
     ) {
         //------------PROFILE VIEW START------------
 
-        when(messagesUiState){
-            MessagesUiState.Loading -> {
+        when(messageUiState){
+            MessageUiState.Loading -> {
                 TODO()
             }
-            is MessagesUiState.Success -> {
+            is MessageUiState.Success -> {
                 Column (
                         modifier = modifier
 
@@ -208,7 +208,7 @@ fun ContactDetailView(
                             title = "Transaction",
                             icon = Icons.Outlined.AttachMoney,
                             onClick = onTxClick,
-                            amount = messagesUiState.messageEntities.filter { isValidTransactionMessage(it.body) }.size
+                            amount = messageUiState.messageEntities.filter { isValidTransactionMessage(it.body) }.size
                         )
 
                         //TODO: Members

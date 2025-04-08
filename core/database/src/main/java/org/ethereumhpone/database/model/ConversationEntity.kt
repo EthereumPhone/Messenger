@@ -11,6 +11,7 @@ data class ConversationEntity(
     @ColumnInfo(index = true) val archived: Boolean = false,
     @ColumnInfo(index = true) val blocked: Boolean = false,
     @ColumnInfo(index = true) val pinned: Boolean = false,
+    @ColumnInfo(index = true) val unknown: Boolean = false,
     val title: String?,
     val members: List<String> = emptyList(),
     val draft: String = "",

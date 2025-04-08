@@ -3,19 +3,28 @@ package org.ethereumhpone.domain.repository
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumphone.model.Message
+import org.ethereumphone.model.Reaction
 
 interface MessageRepository {
 
-    fun getMessages(threadId: Long): Flow<List<MessageEntity>>
-    fun getMessage(id: String): Flow<MessageEntity?>
+    fun getMessages(threadId: String): Flow<List<Message>>
+    fun getMessage(id: String): Flow<Message?>
     fun getUnreadCount(): Flow<Long>
     suspend fun canMessage(addresses: List<String>)
-    suspend fun getUnreadUnseenMessages(threadId: Long): List<MessageEntity>
+    suspend fun getUnreadUnseenMessages(threadId: String): List<Message>
     suspend fun markAllSeen()
-    suspend fun markSeen(threadId: Long)
-    suspend fun markRead(vararg threadIds: Long)
-    suspend fun markUnread(vararg threadIds: Long)
-    suspend fun sendMessage(subId: Int, threadId: Long, addresses: List<String>, body: String, attachments: List<Attachment>)
+    suspend fun markSeen(threadId: String)
+    suspend fun markRead(vararg threadIds: String)
+    suspend fun markUnread(vararg threadIds: String)
+    suspend fun sendMessage(
+        threadId: String,
+        body: String?,
+        replyReference: String?,
+        attachments: List<Attachment>,
+        reaction: Reaction?
+    ): String?
+    suspend fun sendReadReceipt(timestamp: Long)
     suspend fun markSending(id: String)
     suspend fun markSent(id: String)
     suspend fun markFailed(id: String, resultCode: Int)

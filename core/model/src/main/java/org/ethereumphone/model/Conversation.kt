@@ -9,6 +9,7 @@ data class Conversation(
     val archived: Boolean = false,
     val blocked: Boolean = false,
     val pinned: Boolean = false,
+    val unknown: Boolean = false,
 ) {
     fun getHeader(): String =
         title.takeIf { !it.isNullOrBlank() }

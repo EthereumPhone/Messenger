@@ -45,6 +45,7 @@ import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
@@ -52,7 +53,7 @@ import org.ethosmobile.components.library.theme.Fonts
 @Composable
 fun ChatItemBubbleV2(
     modifier: Modifier = Modifier,
-    messageEntity: MessageEntity,
+    messageEntity: Message,
     isUserMe: Boolean,
     name: String = "",
     isFirstMessageByAuthor: Boolean,
