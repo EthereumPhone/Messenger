@@ -35,7 +35,7 @@ interface ConversationDao {
         )
         WHERE conversation.id = :id
     """)
-    fun getConversation(id: String): Flow<CompositeConversation>
+    fun getConversation(id: String): Flow<CompositeConversation?>
 
     @Transaction
     @Query("""

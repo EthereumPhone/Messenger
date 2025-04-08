@@ -68,9 +68,9 @@ fun ContactRoute(
     InboxScreen(
         modifier = modifier,
         conversationState = conversationState,
-        markAccepted = { id, address -> viewModel.setConversationAsAccepted(id, address) },
+        markAccepted = { id, acceptedState -> viewModel.updateConsentState(id, acceptedState) },
         deleteConversation = { id -> viewModel.deleteConversation(id) },
-        markArchived = { id -> viewModel.setConversationArchived(id) },
+        markArchived = { id, archivedState -> viewModel.setConversationArchived(id, archivedState) },
         resolveENS = viewModel::resolveENS,
         conversationClicked = { id ->
             viewModel.setConversationAsRead(id, true)
@@ -87,8 +87,8 @@ fun InboxScreen(
     conversationState: ConversationUIState,
     conversationClicked: (String) -> Unit,
     deleteConversation: (String) -> Unit,
-    markAccepted: (Long, String) -> Unit,
-    markArchived: (Long) -> Unit,
+    markAccepted: (String, Boolean) -> Unit,
+    markArchived: (String, Boolean) -> Unit,
     resolveENS: KSuspendFunction1<String, String>,
     modifier: Modifier = Modifier
 ){

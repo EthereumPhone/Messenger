@@ -2,21 +2,16 @@ package org.ethereumhpone.contracts
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
-import org.ethereumhpone.database.model.ContactEntity
-import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
@@ -25,6 +20,7 @@ import org.kethereum.eip137.model.ENSName
 import org.kethereum.ens.ENS
 import org.kethereum.ens.isPotentialENSDomain
 import javax.inject.Inject
+import kotlin.math.acos
 
 @HiltViewModel
 class InboxViewModel @Inject constructor(
@@ -51,34 +47,13 @@ class InboxViewModel @Inject constructor(
 
     fun deleteConversation(conversationId: String) {
         viewModelScope.launch {
-            conversationRepository
-        }
+            conversationRepository.deleteConversation(conversationId)
 
-    }
-
-    fun deleteXMTPConversation(address: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val clientState = xmtpClientManager.clientState.first {
-                it == XmtpClientManager.ClientState.Ready
-            }
-
-            if (clientState == XmtpClientManager.ClientState.Ready) {
-                //xmtpClientManager.client.contacts.deny(listOf(address))
-            }
         }
     }
 
-    fun setConversationAsAccepted(conversationId: Long, address: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val clientState = xmtpClientManager.clientState.first {
-                it == XmtpClientManager.ClientState.Ready
-            }
-
-            if (clientState == XmtpClientManager.ClientState.Ready) {
-                //xmtpClientManager.client.contacts.allow(listOf(address))
-            }
-            //conversationRepository.markAccepted(conversationId)
-        }
+    fun updateConsentState(conversationId: String, address: Boolean) {
+        TODO()
     }
 
     suspend fun resolveENS(ensName: String): String {
@@ -90,9 +65,9 @@ class InboxViewModel @Inject constructor(
         }
     }
 
-    fun setConversationArchived(conversationId: Long) {
+    fun setConversationArchived(conversationId: String, archived: Boolean) {
         CoroutineScope(Dispatchers.IO).launch {
-            //conversationRepository.markArchived(conversationId)
+            conversationRepository.updateArchivedConversation(conversationId, archived)
         }
     }
 

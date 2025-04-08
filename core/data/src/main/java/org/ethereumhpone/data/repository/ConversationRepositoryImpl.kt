@@ -21,6 +21,7 @@ import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.android.library.libxmtp.PublicIdentity
 import javax.inject.Inject
 import org.ethereumhpone.common.util.Result
+import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 
 class ConversationRepositoryImpl @Inject constructor(
     private val context: Context,
@@ -34,9 +35,9 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.getConversations()
             .map { it.map(CompositeConversation::toExternalModel) }
 
-    override fun getConversation(conversationId: String): Flow<Conversation> =
+    override fun getConversation(conversationId: String): Flow<Conversation?> =
         conversationDao.getConversation(conversationId)
-            .map(CompositeConversation::toExternalModel)
+            .map { it?.toExternalModel() }
 
     override fun createConversation(addresses: List<String>): Flow<Result<Conversation>> = flow {
 
@@ -69,6 +70,7 @@ class ConversationRepositoryImpl @Inject constructor(
                 try {
                     val dm = xmtpClientManager.client.conversations.findOrCreateDmWithIdentity(identities.first())
 
+                    //TODO: might need to add client address too
                     val conversationEntity = ConversationEntity(
                         id = dm.id,
                         title = null,
@@ -83,6 +85,10 @@ class ConversationRepositoryImpl @Inject constructor(
                     // insert recipients & conversation
                     recipientDao.insertRecipients(listOf(recipientEntity))
                     conversationDao.insertConversation(conversationEntity)
+
+                    // refs
+                    val refs = ConversationRecipientCrossRef(dm.id, dm.peerInboxId)
+                    conversationDao.insertConversationMemberCrossRefs(listOf(refs))
 
                 } catch (e: Exception) {
                     emit(Result.Error(e.message?: "could not create dm conversation"))
@@ -108,18 +114,22 @@ class ConversationRepositoryImpl @Inject constructor(
         if (inboxIds.size == 1) {
             val dm = xmtpClientManager.client.conversations.findOrCreateDm(inboxIds.first())
 
-            val conversation = conversationDao.getConversation(dm.id)
+            val conversation = conversationDao.getConversation(dm.id).first()
 
-            /*
-            val conversationEntity = ConversationEntity(
-                id = dm.id,
-                title = null,
-                members = listOf(dm.peerInboxId)
-            )
-            conversationDao.insertConversation(conversationEntity)
-             */
+            if (conversation == null) {
+                val conversationEntity = ConversationEntity(
+                    id = dm.id,
+                    title = null,
+                    members = listOf(dm.peerInboxId)
+                )
+                conversationDao.insertConversation(conversationEntity)
+                emitAll(conversationDao.getConversation(dm.id).map { Result.Success(it!!.toExternalModel()) })
+            } else {
+                emit(Result.Success(conversation.toExternalModel()))
+                //emit(conversation.map { Result.Success(it.toExternalModel()) })
+            }
 
-            emitAll(conversation.map { Result.Success(it.toExternalModel()) })
+
         } else {
             emit(Result.Error("Group conversations are not yet supported"))
         }
@@ -139,7 +149,7 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override suspend fun updateSeenConversation(id: String, seen: Boolean) {
         val conversation = conversationDao.getConversation(id).first()
-        conversation.lastMessageEntity?.let {
+        conversation?.lastMessageEntity?.let {
             messageDao.updateSeenMessage(it.id, seen)
         }
     }

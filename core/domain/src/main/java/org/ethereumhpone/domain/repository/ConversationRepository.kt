@@ -7,7 +7,7 @@ import org.ethereumphone.model.Conversation
 interface ConversationRepository {
 
     fun getConversations(): Flow<List<Conversation>>
-    fun getConversation(conversationId: String): Flow<Conversation>
+    fun getConversation(conversationId: String): Flow<Conversation?>
     fun createConversation(addresses: List<String>): Flow<Result<Conversation>>
     suspend fun updatePinnedConversation(id: String, pinned: Boolean)
     suspend fun updateArchivedConversation(id: String, archived: Boolean)
