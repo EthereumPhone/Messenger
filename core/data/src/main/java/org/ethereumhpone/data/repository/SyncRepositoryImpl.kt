@@ -255,7 +255,7 @@ class SyncRepositoryImpl @Inject constructor(
                                     threadId = msg.conversationId,
                                     senderInboxId = msg.senderInboxId,
                                     date = System.currentTimeMillis(),
-                                    seenDate = msg.sentAtNs,
+                                    dateSent = msg.sentAtNs,
                                     deliveryStatus = msg.deliveryStatus,
                                     isMe = msg.senderInboxId == client.inboxId,
                                     replyReference = null,
@@ -336,7 +336,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 senderInboxId = message.senderInboxId,
                                 replyReference = null,
                                 deliveryStatus = message.deliveryStatus,
-                                isMe = client.inboxId == message.senderInboxId
+                                isMe = client.inboxId == message.senderInboxId,
+                                dateSent = message.sentAtNs,
                             )
 
                             processContent(template, message.encodedContent.type, message.content())
