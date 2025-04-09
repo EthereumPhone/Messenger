@@ -12,5 +12,5 @@ interface SyncRepository {
     suspend fun syncMessage(uri: Uri): MessageEntity?
     suspend fun syncContacts()
     suspend fun syncXmtp()
-    suspend fun startStreamAllMessages()
+    suspend fun startStream()
 }

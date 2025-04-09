@@ -7,6 +7,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -37,6 +38,9 @@ import org.ethereumhpone.domain.mapper.ContactGroupMemberCursor
 import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
+import org.xmtp.android.library.ConsentState
+import org.xmtp.android.library.Conversation
+import org.xmtp.android.library.Group
 import org.xmtp.android.library.codecs.ContentTypeAttachment
 import org.xmtp.android.library.codecs.ContentTypeReactionV2
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
@@ -158,6 +162,7 @@ class SyncRepositoryImpl @Inject constructor(
 
 
             client.conversations.list().forEach { conversation ->
+
                 // recipients
                 launch {
                     //TODO: Add refs to contacts
@@ -168,30 +173,59 @@ class SyncRepositoryImpl @Inject constructor(
                             inboxId = member.inboxId,
                             address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
                             ens = null,
-                            contactLookupKey = null
+                            contactLookupKey = null // TODO: Get contact lookupKeys
                         )
                     }
                     recipientDao.insertRecipients(recipientEntities)
 
-                    val refs = members.map {
-                        ConversationRecipientCrossRef(conversation.id, it.inboxId)
-                    }
-                    conversationDao.insertConversationMemberCrossRefs(refs)
                 }
 
                 // conversation
                 launch {
                     val members = conversation.members().map { it.inboxId }
-                    //val consent = conversation.consentState()
 
-                    val parsedConversationEntity = ConversationEntity(
-                        id = conversation.id,
-                        title = null, // change
+                    // refs
+                    val refs = members.map { inboxId ->
+                        ConversationRecipientCrossRef(conversation.id, inboxId)
+                    }
+                    conversationDao.insertConversationMemberCrossRefs(refs)
+
+
+                    val (id, title, createdAt, archived, consentState) = when (conversation.type) {
+                        Conversation.Type.DM -> {
+                            val dm = (conversation as Conversation.Dm).dm
+                            listOf(
+                                dm.id,
+                                null,
+                                dm.createdAt.time,
+                                false, // TODO: Add a way to fill this
+                                dm.consentState()
+                            )
+                        }
+
+                        Conversation.Type.GROUP -> {
+                            val group = (conversation as Conversation.Group).group
+                            listOf(
+                                group.id,
+                                group.name,
+                                group.createdAt.time,
+                                !group.isActive(),
+                                group.consentState()
+                            )
+                        }
+                    }
+
+                    val conversationEntity = ConversationEntity(
+                        id = id as String,
+                        title = title as String?,
                         members = members,
-
-
+                        createdAt = createdAt as Long,
+                        archived = archived as Boolean,
+                        unknown = consentState == ConsentState.UNKNOWN,
+                        blocked = consentState == ConsentState.DENIED
                     )
-                    conversationDao.upsertConversation(parsedConversationEntity)
+
+                    conversationDao.insertConversation(conversationEntity)
                 }
 
 
@@ -218,11 +252,93 @@ class SyncRepositoryImpl @Inject constructor(
                             messageDao.insertMessages(parsedMessages.filterNotNull())
                         }
                     }
+                }
+            }
+        }
+    }
+
+    override suspend fun startStream() = coroutineScope {
+        xmtpClientManager.clientState.collectLatest { clientState ->
+            when(clientState) {
+                is XmtpClientManager.ClientState.Ready -> {
+
+                    // stream chats
+                    launch {
+                        xmtpClientManager.client.conversations.stream().collect { conversation ->
+                            val members = conversation.members().map { it.inboxId }
+
+                            val refs = members.map { inboxId ->
+                                ConversationRecipientCrossRef(conversation.id, inboxId)
+                            }
+                            conversationDao.insertConversationMemberCrossRefs(refs)
+
+                            val (id, title, createdAt, archived, consentState) = when (conversation.type) {
+                                Conversation.Type.DM -> {
+                                    val dm = (conversation as Conversation.Dm).dm
+                                    listOf(
+                                        dm.id,
+                                        null,
+                                        dm.createdAt.time,
+                                        false,
+                                        dm.consentState()
+                                    )
+                                }
+
+                                Conversation.Type.GROUP -> {
+                                    val group = (conversation as Conversation.Group).group
+                                    listOf(
+                                        group.id,
+                                        group.name,
+                                        group.createdAt.time,
+                                        !group.isActive(),
+                                        group.consentState()
+                                    )
+                                }
+                            }
+
+                            val conversationEntity = ConversationEntity(
+                                id = id as String,
+                                title = title as String?,
+                                members = members,
+                                createdAt = createdAt as Long,
+                                archived = archived as Boolean,
+                                unknown = consentState == ConsentState.UNKNOWN,
+                                blocked = consentState == ConsentState.DENIED
+                            )
+
+                            conversationDao.upsertConversation(conversationEntity)
+                        }
+                    }
+
+
+                    // stream messages
+                    launch {
+                        xmtpClientManager.client.conversations.streamAllMessages().collect { message ->
+                            val template = MessageEntity(
+                                id = message.id,
+                                threadId = message.conversationId,
+                                body = message.body,
+                                senderInboxId = message.senderInboxId,
+                                replyReference = null
+                            )
+
+                            processContent(template, message.encodedContent.type, message.content())
+                                ?.let { messageDao.insertMessage(it) }
+                        }
+                    }
+
+                }
+                is XmtpClientManager.ClientState.Error -> {
+
+                }
+
+                is XmtpClientManager.ClientState.Unknown -> {
 
                 }
             }
         }
     }
+
 
     private suspend fun processContent(messageEntity: MessageEntity, contentType: Content.ContentTypeId, content: Any?): MessageEntity? {
         return when(contentType) {
@@ -259,30 +375,6 @@ class SyncRepositoryImpl @Inject constructor(
                 null
             }
             else -> messageEntity // assume plain text
-        }
-    }
-
-    override suspend fun startStreamAllMessages() {
-        xmtpClientManager.clientState.collectLatest { clientState ->
-            when(clientState) {
-                is XmtpClientManager.ClientState.Ready -> {
-                    val client = xmtpClientManager.client
-                    client.conversations.list().forEach { conversation ->
-                        conversation.streamMessages().collect {
-
-                            val threadId = TelephonyCompat.getOrCreateThreadId(context, conversation.id)
-
-                        }
-                    }
-                }
-                is XmtpClientManager.ClientState.Error -> {
-
-                }
-
-                is XmtpClientManager.ClientState.Unknown -> {
-
-                }
-            }
         }
     }
 }

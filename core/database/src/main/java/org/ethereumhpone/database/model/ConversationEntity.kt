@@ -13,10 +13,11 @@ data class ConversationEntity(
     @ColumnInfo(index = true) val pinned: Boolean = false,
     @ColumnInfo(index = true) val unknown: Boolean = false,
     val title: String?,
+    val description: String? = "",
     val members: List<String> = emptyList(),
     val draft: String = "",
-    val blockingClient: Int? = null,
-    val blockReason: String? = null,
+    val createdAt: Long,
+
 )
 
 fun ConversationEntity.toExternalModal(recipientEntities: List<RecipientEntity>) = Conversation(

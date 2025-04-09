@@ -1,11 +1,14 @@
 package org.ethereumphone.model
 
+import kotlinx.datetime.Instant
+
 data class Conversation(
     val id: String,
     val title: String?,
     val recipients: List<Recipient>,
     val draft: String?,
     val lastMessage: Message?,
+    val createdAt: Instant = Instant.DISTANT_PAST,
     val archived: Boolean = false,
     val blocked: Boolean = false,
     val pinned: Boolean = false,
@@ -16,7 +19,6 @@ data class Conversation(
             ?: recipients.first().contact?.name
             ?: recipients.first().ens
             ?: recipients.first().address
-            ?: ""
 
 
     fun getSummary(): String {
