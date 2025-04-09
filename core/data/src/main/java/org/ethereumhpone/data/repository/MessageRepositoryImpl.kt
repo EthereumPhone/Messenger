@@ -113,7 +113,6 @@ class MessageRepositoryImpl @Inject constructor(
             replyReference = ""
         )
 
-
         return@coroutineScope when {
 
             // attachments
@@ -155,7 +154,7 @@ class MessageRepositoryImpl @Inject constructor(
                     replyReference = replyReference ?: ""
                 )
 
-                launch { messageDao.insertMessage(messageEntity) }
+                launch { messageDao.upsertMessages(listOf(messageEntity)) }
                 launch { conversation.publishMessages() }
 
                 messageId

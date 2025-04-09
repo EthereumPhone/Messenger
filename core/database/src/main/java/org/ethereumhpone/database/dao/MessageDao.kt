@@ -3,6 +3,7 @@ package org.ethereumhpone.database.dao
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
@@ -31,10 +32,10 @@ interface MessageDao {
     @Query("UPDATE message SET seen = :seen WHERE id = :id")
     fun updateSeenMessage(id: String, seen: Boolean)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessages(messageEntity: List<MessageEntity>)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(messageEntity: MessageEntity)
 
 

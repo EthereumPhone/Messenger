@@ -17,7 +17,6 @@ data class ConversationEntity(
     val members: List<String> = emptyList(),
     val draft: String = "",
     val createdAt: Long,
-
 )
 
 fun ConversationEntity.toExternalModal(recipientEntities: List<RecipientEntity>) = Conversation(

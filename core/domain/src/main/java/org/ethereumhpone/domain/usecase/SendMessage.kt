@@ -26,6 +26,5 @@ class SendMessage @Inject constructor(
         reaction: Reaction?
     ) {
         messageRepository.sendMessage(threadId, body, replyReference, attachments, reaction)
-
     }
 }

@@ -3,6 +3,7 @@ package org.ethereumhpone.data.repository
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -156,12 +157,22 @@ class SyncRepositoryImpl @Inject constructor(
 
             val syncJob = launch {
                 client.preferences.syncConsent()
-                client.conversations.syncAllConversations()
+                val test = client.conversations.syncAllConversations()
+
+                Log.d("PRINT STUIff", test.toString())
             }
             syncJob.join()
 
 
+            Log.d("IM HERE", client.conversations.list().size.toString())
+            Log.d("CLIENT", client.inboxId)
+
+
+
+
             client.conversations.list().forEach { conversation ->
+
+                Log.d("IM HERE2", "TEST2")
 
                 // recipients
                 launch {
@@ -225,7 +236,10 @@ class SyncRepositoryImpl @Inject constructor(
                         blocked = consentState == ConsentState.DENIED
                     )
 
+                    Log.d("INSERT CONVERSATION", id)
                     conversationDao.insertConversation(conversationEntity)
+
+
                 }
 
 
@@ -324,7 +338,7 @@ class SyncRepositoryImpl @Inject constructor(
                             )
 
                             processContent(template, message.encodedContent.type, message.content())
-                                ?.let { messageDao.insertMessage(it) }
+                                ?.let { messageDao.upsertMessages(listOf(it)) }
                         }
                     }
 

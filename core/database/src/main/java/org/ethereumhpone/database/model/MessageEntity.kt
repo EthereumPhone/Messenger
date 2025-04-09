@@ -13,6 +13,8 @@ import org.ethereumphone.model.Recipient
 import org.xmtp.android.library.libxmtp.DecodedMessage
 
 @Entity("message",
+
+    /*
     foreignKeys = [
         ForeignKey(
             entity = ConversationEntity::class,
@@ -21,6 +23,8 @@ import org.xmtp.android.library.libxmtp.DecodedMessage
             onDelete = ForeignKey.CASCADE
         )
     ],
+     */
+
 )
 @Serializable
 data class MessageEntity(

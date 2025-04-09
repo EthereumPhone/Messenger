@@ -353,16 +353,14 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     fun sendMessage(
         messageBody: String = "",
     ) {
-        if (selectedMessages.value.size == 1) {
-            viewModelScope.launch {
-                sendMessageUseCase(
-                    threadId = threadId,
-                    body = messageBody,
-                    replyReference = selectedMessages.value.getOrNull(0)?.id,
-                    attachments = attachments.value.toList(),
-                    reaction = null
-                )
-            }
+        viewModelScope.launch {
+            sendMessageUseCase(
+                threadId = threadId,
+                body = messageBody,
+                replyReference = if (selectedMessages.value.size == 1) selectedMessages.value.getOrNull(0)?.id else null,
+                attachments = attachments.value.toList(),
+                reaction = null
+            )
         }
     }
 
