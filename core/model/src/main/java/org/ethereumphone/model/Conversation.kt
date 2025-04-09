@@ -16,9 +16,10 @@ data class Conversation(
 ) {
     fun getHeader(): String =
         title.takeIf { !it.isNullOrBlank() }
-            ?: recipients.first().contact?.name
-            ?: recipients.first().ens
-            ?: recipients.first().address
+            ?: recipients.firstOrNull()?.contact?.name
+            ?: recipients.firstOrNull()?.ens
+            ?: recipients.firstOrNull()?.address
+            ?: ""
 
 
     fun getSummary(): String {
