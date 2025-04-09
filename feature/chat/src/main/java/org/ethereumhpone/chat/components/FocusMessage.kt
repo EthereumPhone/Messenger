@@ -52,6 +52,7 @@ import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import kotlin.math.roundToInt
@@ -61,7 +62,7 @@ import kotlin.math.roundToInt
 fun FocusMessage(
     modifier: Modifier = Modifier,
     focusMode: MutableState<Boolean>,
-    msg: MessageEntity, //Message from core/model
+    msg: Message, //Message from core/model
     isUserMe: Boolean,
     isFirstMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
@@ -144,7 +145,7 @@ fun FocusMessage(
         //MessageReactions()
 
         FocusChatItemBubble(
-            messageEntity = msg,
+            message = msg,
             isUserMe = isUserMe,
             isFirstMessageByAuthor = isFirstMessageByAuthor,
             //isLastMessageByAuthor=isLastMessageByAuthor,
@@ -153,7 +154,7 @@ fun FocusMessage(
             onPlayVideo = {}
         )
 
-       MessageActionList(isUserMe = isUserMe, messageEntity = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
+       MessageActionList(isUserMe = isUserMe, message = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
 
     }
 
@@ -170,7 +171,7 @@ private val LastUserChatBubbleShape = RoundedCornerShape(32.dp, 20.dp, 4.dp, 32.
 @Composable
 fun FocusChatItemBubble(
     modifier: Modifier = Modifier,
-    messageEntity: MessageEntity,
+    message: Message,
     isUserMe: Boolean,
     name: String = "",
     isFirstMessageByAuthor: Boolean,
@@ -240,7 +241,7 @@ fun FocusChatItemBubble(
                 MediaBinder(
                     name= name,
                     videoPlayer = videoPlayer,
-                    messageEntity = messageEntity,
+                    messageEntity = message,
                     onPrepareVideo = { onPlayVideo(it) }
                 )
             }
@@ -256,7 +257,7 @@ fun FocusChatItemBubble(
                     .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
                     .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
             {
-                VCardBinder(messageEntity)
+                VCardBinder(message)
             }
         }
         FlowRow (
@@ -268,7 +269,7 @@ fun FocusChatItemBubble(
 
             val uriHandler = LocalUriHandler.current
 
-            val messageBody = messageEntity.body
+            val messageBody = message.body
 
             if (messageBody.isNotBlank()) {
                 val styledMessage = messageFormatter(
@@ -305,7 +306,7 @@ fun FocusChatItemBubble(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(messageEntity)
+            AuthorNameTimestamp(message)
 
 
 

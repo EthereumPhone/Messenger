@@ -77,6 +77,7 @@ dependencies {
     kapt(libs.hilt.compiler)
 
     implementation(libs.hilt.navigation)
+    implementation(libs.kotlinx.datetime)
 
 
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")

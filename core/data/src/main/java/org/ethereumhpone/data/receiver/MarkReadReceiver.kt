@@ -19,7 +19,7 @@ class MarkReadReceiver @Inject constructor(
         val threadId = intent.getLongExtra("threadId", 0)
 
         CoroutineScope(Dispatchers.IO).launch {
-            messageRepository.markRead(threadId)
+            //messageRepository.markRead(threadId)
             notificationManager.update(threadId)
         }
     }

@@ -50,13 +50,14 @@ import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.model.Message
 
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
 @Composable
 fun MessageActionList(
-    messageEntity: MessageEntity,
+    message: Message,
     focusMode: MutableState<Boolean>,
     onDeleteMessage: () -> Unit = {},
     onDetailMessage: () -> Unit = {},
@@ -78,7 +79,7 @@ fun MessageActionList(
                 text = "Copy",
                 imageVector = Icons.Outlined.ContentCopy,
                 onClick = {
-                    copyTextToClipboard(context,messageEntity.body)
+                    copyTextToClipboard(context,message.body)
                     focusMode.value = false
                 }
             )

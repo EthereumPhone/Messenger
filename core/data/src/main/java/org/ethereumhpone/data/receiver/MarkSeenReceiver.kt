@@ -22,7 +22,7 @@ class MarkSeenReceiver @Inject constructor(
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val threadId = intent.getLongExtra("threadId", 0)
-                messageRepository.markSeen(threadId)
+                //messageRepository.markSeen(threadId)
             } finally {
                 pendingResult.finish()
             }

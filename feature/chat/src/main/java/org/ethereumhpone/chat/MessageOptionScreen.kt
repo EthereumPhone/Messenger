@@ -58,6 +58,7 @@ import org.ethereumhpone.chat.components.message.ChatItemBubble
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.printFormattedDateInfo
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.core.ethOSButton
 import org.ethosmobile.components.library.theme.Colors
 import java.text.SimpleDateFormat
@@ -68,7 +69,7 @@ import java.util.Locale
 @Composable
 fun MessageOptionsScreen(
     modifier: Modifier = Modifier,
-    messageEntity: MessageEntity,
+    message: Message,
     composablePositionState: MutableState<ComposablePosition>,
     focusMode: MutableState<Boolean>,
     onDeleteMessage: (String) -> Unit = {},
@@ -88,12 +89,12 @@ fun MessageOptionsScreen(
    ) {
        Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment =  if (messageEntity.senderInboxId != "me") Alignment.Start else Alignment.End , // TODO: Probably broken
+            horizontalAlignment =  if (!message.isMe) Alignment.Start else Alignment.End , // TODO: Probably broken
             modifier = Modifier.padding(horizontal = 12.dp)
         ) {
             FocusMessage(
-                msg = messageEntity,
-                isUserMe = messageEntity.isMe,
+                msg = message,
+                isUserMe = message.isMe,
                 isFirstMessageByAuthor = true,
                 onLongClick = {
                     focusMode.value = false
@@ -118,9 +119,9 @@ fun MessageOptionsScreen(
        ){
            DeleteMessage(
                deleteConfirmation,
-               messageEntity,
+               message,
                {
-                   onDeleteMessage(messageEntity.id)
+                   onDeleteMessage(message.id)
                    Toast.makeText(context,"Message deleted",Toast.LENGTH_SHORT).show()
                },
                focusMode
@@ -137,7 +138,7 @@ fun MessageOptionsScreen(
 @Composable
 fun DeleteMessage(
     deleteConfirmation: MutableState<Boolean>,
-    messageEntity: MessageEntity,
+    message: Message,
     onDeleteMessage: (String) -> Unit = {},
     focusMode: MutableState<Boolean>,
 ){
@@ -210,7 +211,7 @@ fun DeleteMessage(
                     )
 
                     ethOSButton(text = "Delete", enabled = true, onClick = {
-                        onDeleteMessage(messageEntity.id)
+                        onDeleteMessage(message.id)
                         focusMode.value = false
 
                     })
@@ -224,7 +225,7 @@ fun DeleteMessage(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageDetailView(
-    messageEntity: MessageEntity,
+    message: Message,
     isUserMe: Boolean,
     onDismissRequest: () -> Unit,
     player: Player?,
@@ -234,19 +235,19 @@ fun MessageDetailView(
     ) {
 
     val smsTime: Calendar = Calendar.getInstance()
-    smsTime.setTimeInMillis(messageEntity.date)
+    smsTime.timeInMillis = message.date.toEpochMilliseconds()
 
     val now: Calendar = Calendar.getInstance()
     //Date formating
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val time = sdf.format(Date(messageEntity.date))
+    val time = sdf.format(Date(message.date.toEpochMilliseconds()))
 
     val day = if (now.get(Calendar.DATE) == smsTime.get(Calendar.DATE) ) {
         "Today"
     } else if (now.get(Calendar.DATE) - smsTime.get(Calendar.DATE) == 1  ){
         "Yesterday"
     } else {
-        printFormattedDateInfo(Date(messageEntity.date))
+        printFormattedDateInfo(Date(message.date.toEpochMilliseconds()))
     }
 
     var expandedAvailable by remember { mutableStateOf(false) }
@@ -301,7 +302,7 @@ fun MessageDetailView(
 
                 //TODO: Add replies - ChatItemBubbleV2
                 ChatItemBubble(
-                    messageEntity = messageEntity,
+                    message = message,
                     isUserMe = true,
                     isFirstMessageByAuthor = true,
                     videoPlayer = player,
@@ -347,7 +348,7 @@ fun MessageDetailView(
                          */
 
 
-                        messageEntity.isDelivered() -> Icon(
+                        message.isDelivered() -> Icon(
                             painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
                             contentDescription = "Go back",
                             tint = Colors.WHITE,
@@ -365,7 +366,7 @@ fun MessageDetailView(
                         .padding(vertical = 16.dp)
                 ){
                     Text("Delivered", color = Colors.WHITE, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    when (messageEntity.isDelivered()){
+                    when (message.isDelivered()){
                         true -> {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),

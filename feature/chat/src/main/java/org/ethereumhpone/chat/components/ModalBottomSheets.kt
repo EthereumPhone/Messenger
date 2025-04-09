@@ -412,7 +412,7 @@ fun TXSheet(
                         ) {
                             items(items = alltxs, key = { it.id }) { message ->
                                 val transactionDetails = extractTransactionDetails(message.body)
-                                val formatedDate = printFormattedDateInfo(Date(message.date))
+                                val formatedDate = printFormattedDateInfo(Date(message.date.epochSeconds))
 
                                 transactionDetails?.let {
                                     if (formatedDate != null) {

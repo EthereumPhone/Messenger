@@ -22,7 +22,7 @@ class MarkArchivedReceiver @Inject constructor(
 
         CoroutineScope(Dispatchers.IO).launch {
             //conversationRepository.markArchived(threadId)
-            messageRepository.markRead(threadId)
+            //messageRepository.markRead(threadId)
             notificationManager.update(threadId)
             pendingResult.finish()
         }

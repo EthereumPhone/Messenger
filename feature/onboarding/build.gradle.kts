@@ -91,5 +91,6 @@ dependencies {
     implementation(libs.walletsdk)
 
     implementation(libs.xmtp)
+    implementation(libs.kotlinx.datetime)
 
 }

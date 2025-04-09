@@ -248,7 +248,7 @@ fun AuthorNameTimestamp(
 
     //Date formating
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val time = sdf.format(Date(messageEntity.date.epochSeconds))
+    val time = sdf.format(Date(messageEntity.date.toEpochMilliseconds()))
 
     // Combine author and timestamp for a11y.
     Row(
@@ -417,7 +417,7 @@ fun TxChatItemBubble(
 @Composable
 fun ChatItemBubble(
     modifier: Modifier = Modifier,
-    messageEntity: Message,
+    message: Message,
     isUserMe: Boolean,
     name: String = "",
     isFirstMessageByAuthor: Boolean,
@@ -481,7 +481,7 @@ fun ChatItemBubble(
                 MediaBinder(
                     name= name,
                     videoPlayer = videoPlayer,
-                    messageEntity = messageEntity,
+                    messageEntity = message,
                     onPrepareVideo = { onPlayVideo(it) }
                 )
             }
@@ -497,7 +497,7 @@ fun ChatItemBubble(
                     .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
                     .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
             {
-                VCardBinder(messageEntity)
+                VCardBinder(message)
             }
         }
         FlowRow (
@@ -509,7 +509,7 @@ fun ChatItemBubble(
 
                 val uriHandler = LocalUriHandler.current
 
-                val messageBody = messageEntity.body
+                val messageBody = message.body
 
                 if (messageBody.isNotBlank()) {
                     val styledMessage = messageFormatter(
@@ -547,7 +547,7 @@ fun ChatItemBubble(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(messageEntity)
+            AuthorNameTimestamp(message)
 
 
 

@@ -9,7 +9,6 @@ import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.MessageEntity
-import org.ethereumhpone.database.model.MessageWithReactions
 import org.ethereumhpone.database.model.relation.CompositeMessage
 
 @Dao

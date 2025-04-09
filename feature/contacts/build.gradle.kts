@@ -102,4 +102,6 @@ dependencies {
     implementation(libs.ens)
     implementation(libs.rpc)
     implementation(libs.model)
+    implementation(libs.kotlinx.datetime)
+
 }

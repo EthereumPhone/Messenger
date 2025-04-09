@@ -16,9 +16,11 @@ data class CompositeMessage(
 
     @Relation(
         parentColumn = "senderInboxId",
-        entityColumn = "inboxId"
+        entityColumn = "inboxId",
+        entity = RecipientEntity::class
     )
     val recipient: RecipientWithContact,
+
 
     @Relation(
         parentColumn = "id",
@@ -27,7 +29,6 @@ data class CompositeMessage(
     val reactions: List<ReactionEntity>
 
     //TODO: add attachments
-
 )
 
 

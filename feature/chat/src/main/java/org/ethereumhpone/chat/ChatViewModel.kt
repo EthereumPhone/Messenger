@@ -343,7 +343,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 id = TODO(),
                 messageId = TODO(),
                 reactionSchema = TODO(),
-                content = TODO()
+                content = TODO(),
+                senderInboxId = TODO()
             )
             
         }
