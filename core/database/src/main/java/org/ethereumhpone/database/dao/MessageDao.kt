@@ -16,7 +16,7 @@ import org.ethereumhpone.database.model.relation.CompositeMessage
 interface MessageDao {
 
     @Transaction
-    @Query("SELECT * FROM message WHERE threadId = :threadId ORDER BY date DESC")
+    @Query("SELECT * FROM message WHERE threadId = :threadId ORDER BY date ASC")
     fun getMessages(threadId: String): Flow<List<CompositeMessage>>
 
     @Transaction

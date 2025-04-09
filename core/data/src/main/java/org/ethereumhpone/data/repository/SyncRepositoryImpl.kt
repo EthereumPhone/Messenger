@@ -273,12 +273,13 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun startStream() = coroutineScope {
         xmtpClientManager.clientState.collectLatest { clientState ->
+            val client = xmtpClientManager.client
             when(clientState) {
                 is XmtpClientManager.ClientState.Ready -> {
 
                     // stream chats
                     launch {
-                        xmtpClientManager.client.conversations.stream().collect { conversation ->
+                        client.conversations.stream().collect { conversation ->
                             val members = conversation.members().map { it.inboxId }
 
                             val refs = members.map { inboxId ->
@@ -327,14 +328,15 @@ class SyncRepositoryImpl @Inject constructor(
 
                     // stream messages
                     launch {
-                        xmtpClientManager.client.conversations.streamAllMessages().collect { message ->
+                        client.conversations.streamAllMessages().collect { message ->
                             val template = MessageEntity(
                                 id = message.id,
                                 threadId = message.conversationId,
                                 body = message.body,
                                 senderInboxId = message.senderInboxId,
                                 replyReference = null,
-                                deliveryStatus = message.deliveryStatus
+                                deliveryStatus = message.deliveryStatus,
+                                isMe = client.inboxId == message.senderInboxId
                             )
 
                             processContent(template, message.encodedContent.type, message.content())
