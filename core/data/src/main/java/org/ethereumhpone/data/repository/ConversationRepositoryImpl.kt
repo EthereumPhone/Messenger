@@ -75,7 +75,8 @@ class ConversationRepositoryImpl @Inject constructor(
                         id = dm.id,
                         title = null,
                         members = listOf(dm.peerInboxId),
-                        createdAt = dm.createdAt.time
+                        createdAt = dm.createdAt.time,
+                        clientInbox = xmtpClientManager.client.inboxId
                     )
 
                     val recipientEntity = RecipientEntity(
@@ -122,7 +123,8 @@ class ConversationRepositoryImpl @Inject constructor(
                     id = dm.id,
                     title = null,
                     members = listOf(dm.peerInboxId),
-                    createdAt = dm.createdAt.time
+                    createdAt = dm.createdAt.time,
+                    clientInbox = xmtpClientManager.client.inboxId
                 )
                 conversationDao.insertConversation(conversationEntity)
                 emitAll(conversationDao.getConversation(dm.id).map { Result.Success(it!!.toExternalModel()) })

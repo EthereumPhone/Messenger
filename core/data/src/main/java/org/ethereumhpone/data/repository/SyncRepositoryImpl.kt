@@ -233,7 +233,8 @@ class SyncRepositoryImpl @Inject constructor(
                         createdAt = createdAt as Long,
                         archived = archived as Boolean,
                         unknown = consentState == ConsentState.UNKNOWN,
-                        blocked = consentState == ConsentState.DENIED
+                        blocked = consentState == ConsentState.DENIED,
+                        clientInbox = client.inboxId
                     )
 
                     Log.d("INSERT CONVERSATION", id)
@@ -318,7 +319,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 createdAt = createdAt as Long,
                                 archived = archived as Boolean,
                                 unknown = consentState == ConsentState.UNKNOWN,
-                                blocked = consentState == ConsentState.DENIED
+                                blocked = consentState == ConsentState.DENIED,
+                                clientInbox = client.inboxId
                             )
 
                             conversationDao.upsertConversation(conversationEntity)

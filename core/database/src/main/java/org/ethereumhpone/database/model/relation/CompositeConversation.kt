@@ -49,10 +49,11 @@ fun CompositeConversation.toExternalModel(): Conversation {
         title = conversationEntity.title,
         recipients = recipients.map { it.recipientEntity.toExternalModel(it.contactEntity) },
         draft = conversationEntity.draft,
-        lastMessage = senderRecipient?.let { lastMessageEntity?.toExternalModel(it.recipientEntity.toExternalModel(it.contactEntity)) },  //lastMessageEntity?.toExternalModel(Recipient("123", "asd", "123", Contact("", "", "", "") )),
+        lastMessage = senderRecipient?.let { lastMessageEntity?.toExternalModel(it.recipientEntity.toExternalModel(it.contactEntity)) },
         archived = conversationEntity.archived,
         blocked = conversationEntity.blocked,
-        pinned = conversationEntity.pinned
+        pinned = conversationEntity.pinned,
+        clientInbox = conversationEntity.clientInbox
     )
 }
 

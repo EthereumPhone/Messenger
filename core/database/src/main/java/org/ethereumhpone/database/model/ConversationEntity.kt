@@ -17,6 +17,7 @@ data class ConversationEntity(
     val members: List<String> = emptyList(),
     val draft: String = "",
     val createdAt: Long,
+    val clientInbox: String,
 )
 
 fun ConversationEntity.toExternalModal(recipientEntities: List<RecipientEntity>) = Conversation(
@@ -27,6 +28,7 @@ fun ConversationEntity.toExternalModal(recipientEntities: List<RecipientEntity>)
     lastMessage = null,
     archived = archived,
     blocked = blocked,
-    pinned = pinned
+    pinned = pinned,
+    clientInbox = ""
 )
 
