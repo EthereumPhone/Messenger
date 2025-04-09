@@ -18,6 +18,7 @@ interface MessageDao {
     @Query("SELECT * FROM message WHERE threadId = :threadId ORDER BY date DESC")
     fun getMessages(threadId: String): Flow<List<CompositeMessage>>
 
+    @Transaction
     @Query("SELECT * FROM message where id == :id")
     fun getMessage(id: String): Flow<CompositeMessage?>
 

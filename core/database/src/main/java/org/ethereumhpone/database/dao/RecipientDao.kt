@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import org.ethereumhpone.database.model.RecipientEntity
@@ -24,8 +25,13 @@ interface RecipientDao {
     )
     fun getRecipientsByAddress(addresses: List<String>): Flow<List<RecipientEntity>>
 
+    @Transaction
     @Query("SELECT * FROM recipient")
     fun getRecipientsWithContact(): List<RecipientWithContact>
+
+    @Transaction
+    @Query("SELECT * FROM reaction where inboxId = :inboxId")
+    fun getRecipientWithContact(inboxId: String): Flow<RecipientWithContact>
 
     @Query("SELECT * FROM recipient WHERE inboxId = :inboxId")
     fun getRecipient(inboxId: Long): Flow<RecipientEntity?>
