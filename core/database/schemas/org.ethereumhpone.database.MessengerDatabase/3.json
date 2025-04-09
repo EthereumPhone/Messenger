@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "40415cc31821196be4565677ea0ee387",
+    "identityHash": "02e49bd8d7b51fca4f7b74ec5188dbf3",
     "entities": [
       {
         "tableName": "contact",
@@ -62,7 +62,7 @@
       },
       {
         "tableName": "conversation",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `archived` INTEGER NOT NULL, `blocked` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `unknown` INTEGER NOT NULL, `title` TEXT, `members` TEXT NOT NULL, `draft` TEXT NOT NULL, `blockingClient` INTEGER, `blockReason` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `archived` INTEGER NOT NULL, `blocked` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `unknown` INTEGER NOT NULL, `title` TEXT, `description` TEXT, `members` TEXT NOT NULL, `draft` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -101,6 +101,12 @@
             "notNull": false
           },
           {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
             "fieldPath": "members",
             "columnName": "members",
             "affinity": "TEXT",
@@ -113,16 +119,10 @@
             "notNull": true
           },
           {
-            "fieldPath": "blockingClient",
-            "columnName": "blockingClient",
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
             "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "blockReason",
-            "columnName": "blockReason",
-            "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -513,14 +513,33 @@
             "inboxId"
           ]
         },
-        "indices": [],
+        "indices": [
+          {
+            "name": "index_ConversationRecipientCrossRef_conversationId",
+            "unique": false,
+            "columnNames": [
+              "conversationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ConversationRecipientCrossRef_conversationId` ON `${TABLE_NAME}` (`conversationId`)"
+          },
+          {
+            "name": "index_ConversationRecipientCrossRef_inboxId",
+            "unique": false,
+            "columnNames": [
+              "inboxId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ConversationRecipientCrossRef_inboxId` ON `${TABLE_NAME}` (`inboxId`)"
+          }
+        ],
         "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '40415cc31821196be4565677ea0ee387')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '02e49bd8d7b51fca4f7b74ec5188dbf3')"
     ]
   }
 }

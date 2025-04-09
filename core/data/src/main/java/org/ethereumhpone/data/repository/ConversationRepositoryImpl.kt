@@ -74,7 +74,8 @@ class ConversationRepositoryImpl @Inject constructor(
                     val conversationEntity = ConversationEntity(
                         id = dm.id,
                         title = null,
-                        members = listOf(dm.peerInboxId)
+                        members = listOf(dm.peerInboxId),
+                        createdAt = dm.createdAt.time
                     )
 
                     val recipientEntity = RecipientEntity(
@@ -120,7 +121,8 @@ class ConversationRepositoryImpl @Inject constructor(
                 val conversationEntity = ConversationEntity(
                     id = dm.id,
                     title = null,
-                    members = listOf(dm.peerInboxId)
+                    members = listOf(dm.peerInboxId),
+                    createdAt = dm.createdAt.time
                 )
                 conversationDao.insertConversation(conversationEntity)
                 emitAll(conversationDao.getConversation(dm.id).map { Result.Success(it!!.toExternalModel()) })

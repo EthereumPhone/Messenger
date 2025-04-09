@@ -30,8 +30,8 @@ interface RecipientDao {
     fun getRecipientsWithContact(): List<RecipientWithContact>
 
     @Transaction
-    @Query("SELECT * FROM reaction where inboxId = :inboxId")
-    fun getRecipientWithContact(inboxId: String): Flow<RecipientWithContact>
+    @Query("SELECT * FROM recipient where inboxId = :inboxId")
+    fun getRecipientWithContact(inboxId: String): Flow<RecipientWithContact?>
 
     @Query("SELECT * FROM recipient WHERE inboxId = :inboxId")
     fun getRecipient(inboxId: Long): Flow<RecipientEntity?>
