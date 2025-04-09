@@ -319,7 +319,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 threadId = message.conversationId,
                                 body = message.body,
                                 senderInboxId = message.senderInboxId,
-                                replyReference = null
+                                replyReference = null,
+                                deliveryStatus = message.deliveryStatus
                             )
 
                             processContent(template, message.encodedContent.type, message.content())
