@@ -13,6 +13,7 @@ data class Conversation(
     val blocked: Boolean = false,
     val pinned: Boolean = false,
     val unknown: Boolean = false,
+    val isOptionsRevealed: Boolean = false,
     private val clientInbox: String
 ) {
     fun getHeader(): String =

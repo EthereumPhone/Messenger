@@ -231,10 +231,9 @@ fun ChatItemBubbleV2(
 
 
         FlowRow (
-            modifier = Modifier
-                .padding(end = 20.dp, start = 16.dp, top = 8.dp, bottom = 8.dp),
+            maxItemsInEachRow = 2,
+            modifier = Modifier,
             horizontalArrangement = Arrangement.End,
-            verticalArrangement = Arrangement.Bottom
         ) {
 
             val uriHandler = LocalUriHandler.current
@@ -276,7 +275,6 @@ fun ChatItemBubbleV2(
             }
 
 
-            Spacer(modifier = Modifier.width(16.dp))
 
             AuthorNameTimestamp(messageEntity)
 
@@ -293,10 +291,10 @@ fun ChatItemBubbleV2(
 @Preview
 @Composable
 fun ReplyChatItemBubblePreview() {
-    /*
 
 
-    val initialMessages = listOf(
+
+    /*val initialMessages = listOf(
 
         Message(
             address = "me",
@@ -326,6 +324,6 @@ fun ReplyChatItemBubblePreview() {
         videoPlayer = null,
         isFirstMessageByAuthor = true,
         onPlayVideo = {}
-    )
-    */
+    )*/
+
 }
