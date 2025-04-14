@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,7 +55,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -70,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.dgenlibrary.ui.theme.DgenTheme
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenRed
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
@@ -437,70 +442,13 @@ fun InboxScreen(
 
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    //TODO: Improve Inbox and Requests
                     HorizontalPager(state = pagerState) { page ->
                         when (page) {
                             0 -> {
-                                    /*
-                                    LazyColumn(
-                                        modifier = Modifier.padding(horizontal = 12.dp)
-                                    ) {
-                                        conversationState.conversations
-                                            .forEach { conversation ->
-                                                item {
-                                                    ChatListItem(
-                                                        image = {
-                                                            if (conversation.recipients.getOrNull(0)?.contact?.photoUri != null) {
-                                                                Image(
-                                                                    painter = rememberAsyncImagePainter(model = conversation.recipients.first().contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
-                                                                    contentDescription = "Contact Image",
-                                                                    contentScale = ContentScale.Crop,
-                                                                    modifier = Modifier
-                                                                        .size(62.dp) // Set the size of the image
-                                                                        .clip(CircleShape) // Apply a circular shape
-                                                                )
-                                                            } else {
-                                                                Image(
-                                                                    painter = painterResource(id = R.drawable.nouns),
-                                                                    contentDescription = "Contact Image",
-                                                                    modifier = Modifier
-                                                                        .size(62.dp) // Set the size of the image
-                                                                        .clip(CircleShape) // Apply a circular shape
-                                                                )
-                                                            }
-                                                        },
-                                                        header = conversation.getHeader(),
-                                                        subheader = conversation.getSummary(),
-                                                        time = conversation.lastMessage?.date,
-                                                        unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
-                                                        onClick = {
-                                                            conversationClicked(conversation.id.toString())
-                                                        },
-                                                        onClickLeft = {
-                                                            /*
-                                                            markArchived(conversation.id)
-                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
-                                                                deleteXMTPConversation(conversation.getConversationTitle())
-                                                            }
-                                                             */
+                                val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
 
-                                                        },
-                                                        onClickRight = {
-                                                            /*
-                                                            markArchived(conversation.id)
-                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
-                                                                deleteXMTPConversation(conversation.getConversationTitle())
-                                                            }
-                                                             */
-
-                                                        }
-                                                    )
-                                            }
-                                        }
-                                    }
-                                     */
-
-                                    val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
-
+                                if (conversationState.conversations.isNotEmpty()){
                                     LazyColumn(
                                         modifier = Modifier
                                             .fillMaxSize()
@@ -529,33 +477,12 @@ fun InboxScreen(
                                                             ).show()
                                                             conversations.remove(contact)
                                                         },
-                                                        icon = Icons.Default.Delete,
+                                                        icon = Icons.Outlined.Delete,
+                                                        iconColor = dgenRed,
+                                                        iconSize = 48.dp,
                                                         modifier = Modifier.fillMaxHeight()
                                                     )
-                                                    ConversationActionButton(
-                                                        onClick = {
-                                                            conversations[index] = contact.copy(isOptionsRevealed = false)
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Contact ${contact.id} was sent an email.",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        },
-                                                        icon = Icons.Default.Email,
-                                                        modifier = Modifier.fillMaxHeight()
-                                                    )
-                                                    ConversationActionButton(
-                                                        onClick = {
-                                                            conversations[index] = contact.copy(isOptionsRevealed = false)
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Contact ${contact.id} was shared.",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        },
-                                                        icon = Icons.Default.Share,
-                                                        modifier = Modifier.fillMaxHeight()
-                                                    )
+
                                                 },
                                             ) {
                                                 val now = Instant.parse("2025-04-10T10:00:00Z")
@@ -576,16 +503,50 @@ fun InboxScreen(
                                             Spacer(modifier = modifier.height(24.dp))
                                         }
                                     }
+                                }
+                                else{
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Image(
+                                                modifier = Modifier.size(82.dp),
+                                                contentScale = ContentScale.Crop,
+                                                painter = painterResource(id = org.ethereumhpone.contracts.R.drawable.outline_message_24),
+                                                contentDescription = null,
+                                                colorFilter = ColorFilter.tint(dgenTurqoise)
+                                            )
+                                            Text(text = "NO CONVERSATIONS",
+                                                style = TextStyle(
+                                                    fontFamily = SpaceMono,
+                                                    color = dgenTurqoise,
+                                                    fontWeight = FontWeight.Normal,
+                                                    fontSize = 24.sp,
+                                                    letterSpacing = 0.sp,
+                                                    textDecoration = TextDecoration.None
+                                                )
+                                            )
 
+                                        }
+                                    }
+                                }
 
                             }
                             1 -> {
-                                    val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
+                                val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
 
+                                if (conversationState.conversations.isEmpty()){
                                     LazyColumn(
                                         modifier = Modifier
                                             .fillMaxSize()
                                     ) {
+                                        item{
+                                            Spacer(modifier = modifier.height(64.dp))
+                                        }
                                         itemsIndexed(
                                             items = conversations,
                                         ) { index, contact ->
@@ -607,45 +568,62 @@ fun InboxScreen(
                                                             ).show()
                                                             conversations.remove(contact)
                                                         },
-                                                        backgroundColor = Color.Red,
-                                                        icon = Icons.Default.Delete,
+                                                        icon = Icons.Outlined.Delete,
+                                                        iconColor = dgenRed,
+                                                        iconSize = 48.dp,
                                                         modifier = Modifier.fillMaxHeight()
                                                     )
-                                                    ConversationActionButton(
-                                                        onClick = {
-                                                            conversations[index] = contact.copy(isOptionsRevealed = false)
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Contact ${contact.id} was sent an email.",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        },
-                                                        backgroundColor = Color.Yellow,
-                                                        icon = Icons.Default.Email,
-                                                        modifier = Modifier.fillMaxHeight()
-                                                    )
-                                                    ConversationActionButton(
-                                                        onClick = {
-                                                            conversations[index] = contact.copy(isOptionsRevealed = false)
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Contact ${contact.id} was shared.",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        },
-                                                        backgroundColor = Color.Magenta,
-                                                        icon = Icons.Default.Share,
-                                                        modifier = Modifier.fillMaxHeight()
-                                                    )
+
                                                 },
                                             ) {
-                                                Text(
-                                                    text = "Contact ${contact.id}",
-                                                    modifier = Modifier.padding(8.dp)
+                                                val now = Instant.parse("2025-04-10T10:00:00Z")
+                                                ChatListInfo(
+                                                    //TODO: Improve group identification
+                                                    isGroup = contact.recipients.size > 1,
+                                                    lastPerson = contact.lastMessage?.recipient?.contact?.name.toString(),
+                                                    header = contact.getHeader(),
+                                                    subheader = contact.lastMessage?.body.toString(),
+                                                    time = Date.from(JavaInstant.parse(now.toString())),
+                                                    readConversation = contact.lastMessage?.seen == true,
+                                                    onClick = { conversationClicked(contact.id) },
                                                 )
+
                                             }
                                         }
+                                        item{
+                                            Spacer(modifier = modifier.height(24.dp))
+                                        }
                                     }
+                                }
+                                else{
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Image(
+                                                modifier = Modifier.size(82.dp),
+                                                contentScale = ContentScale.Crop,
+                                                painter = painterResource(id = org.ethereumhpone.contracts.R.drawable.outline_message_24),
+                                                contentDescription = null,
+                                                colorFilter = ColorFilter.tint(dgenTurqoise)
+                                            )
+                                            Text(text = "NO REQUESTS",
+                                                style = TextStyle(
+                                                    fontFamily = SpaceMono,
+                                                    color = dgenTurqoise,
+                                                    fontWeight = FontWeight.Normal,
+                                                    fontSize = 24.sp,
+                                                    letterSpacing = 0.sp,
+                                                    textDecoration = TextDecoration.None
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

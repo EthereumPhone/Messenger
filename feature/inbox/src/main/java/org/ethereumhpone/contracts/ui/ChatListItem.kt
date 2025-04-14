@@ -104,7 +104,7 @@ fun ChatListInfo(
         ){
             printFormattedDateInfo(time)?.let {
                 Text(
-                    text = it,
+                    text = it.uppercase(),
                     style = TextStyle(
                         fontFamily = SpaceMono,
                         color = if(readConversation) dgenTurqoise.copy(0.5f) else dgenTurqoise,
