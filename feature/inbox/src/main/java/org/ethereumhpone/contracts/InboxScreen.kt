@@ -1,6 +1,7 @@
 package org.ethereumhpone.contracts
 
 import android.Manifest
+import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,12 +21,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +46,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -73,8 +80,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import kotlinx.datetime.Instant
 import org.ethereumhpone.contracts.ui.ChatListItem
+import org.ethereumhpone.contracts.ui.ConversationActionButton
+import org.ethereumphone.dgenlibrary.components.SwipeableListItem
+import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
+import org.ethereumphone.model.DeliveryStatus
+import org.ethereumphone.model.Message
+import org.ethereumphone.model.Recipient
 import kotlin.reflect.KSuspendFunction1
 
 
@@ -85,13 +99,186 @@ fun ContactRoute(
     viewModel: InboxViewModel = hiltViewModel()
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
+    val now = Instant.parse("2025-04-14T10:00:00Z")
+
+    val testConversations = listOf(
+        Conversation(
+            id = "1",
+            title = "Design Chat",
+            recipients = listOf(
+                Recipient("r1", "0x123", "alice.eth", Contact("lk1", "Alice", null, "0x123"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m1",
+                threadId = "1",
+                recipient = Recipient("r1", "0x123", "alice.eth", Contact("lk1", "Alice", null, "0x123")),
+                date = now,
+                dateSent = now,
+                seen = true,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = true,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Let's review the UI"
+            ),
+            clientInbox = "inbox1"
+        ),
+        Conversation(
+            id = "2",
+            title = null,
+            recipients = listOf(
+                Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
+                Recipient("r3", "0x789", null, Contact("lk3", "Carol", null, "0x789"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m2",
+                threadId = "2",
+                recipient = Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
+                date = now,
+                dateSent = now,
+                seen = false,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = false,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "See you tomorrow!"
+            ),
+            clientInbox = "inbox2"
+        ),
+        Conversation(
+            id = "3",
+            title = "🏀 Game Plan",
+            recipients = listOf(
+                Recipient("r4", "0xabc", null, Contact("lk4", "Coach", null, "0xabc"))
+            ),
+            draft = "Need to reply...",
+            lastMessage = null,
+            pinned = true,
+            clientInbox = "inbox3"
+        ),
+        Conversation(
+            id = "4",
+            title = null,
+            recipients = listOf(
+                Recipient("r5", "0xdef", null, Contact("lk5", null, null, "0xdef"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m4",
+                threadId = "4",
+                recipient = Recipient("r5", "0xdef", null, Contact("lk5", null, null, "0xdef")),
+                date = now,
+                dateSent = now,
+                seen = true,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = true,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Thanks!"
+            ),
+            clientInbox = "inbox4"
+        ),
+        Conversation(
+            id = "5",
+            title = "Dev Team",
+            recipients = listOf(
+                Recipient("r6", "0xaaa", null, Contact("lk6", "Eve", null, "0xaaa")),
+                Recipient("r7", "0xbbb", null, Contact("lk7", "Frank", null, "0xbbb"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m5",
+                threadId = "5",
+                recipient = Recipient("r6", "0xaaa", null, Contact("lk6", "Eve", null, "0xaaa")),
+                date = now,
+                dateSent = now,
+                seen = true,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = true,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Pushed the update"
+            ),
+            archived = true,
+            clientInbox = "inbox5"
+        ),
+        Conversation(
+            id = "6",
+            title = null,
+            recipients = listOf(
+                Recipient("r8", "0xccc", null, Contact("lk8", "Grace", null, "0xccc"))
+            ),
+            draft = "Don't forget the deadline",
+            lastMessage = null,
+            blocked = true,
+            clientInbox = "inbox6"
+        ),
+        Conversation(
+            id = "7",
+            title = "Meeting Notes",
+            recipients = listOf(
+                Recipient("r9", "0xddd", null, Contact("lk9", "Hank", null, "0xddd"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m7",
+                threadId = "7",
+                recipient = Recipient("r9", "0xddd", null, Contact("lk9", "Hank", null, "0xddd")),
+                date = now,
+                dateSent = now,
+                seen = false,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = false,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Uploaded the doc"
+            ),
+            clientInbox = "inbox7"
+        ),
+        Conversation(
+            id = "8",
+            title = null,
+            recipients = listOf(
+                Recipient("r10", "0xeee", null, null)
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m8",
+                threadId = "8",
+                recipient = Recipient("r10", "0xeee", null, null),
+                date = now,
+                dateSent = now,
+                seen = false,
+                deliveryStatus = DeliveryStatus.FAILED,
+                replyReference = null,
+                isMe = false,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "What's your ENS?"
+            ),
+            unknown = true,
+            clientInbox = "inbox8"
+        )
+    )
+
+    val convo = ConversationUIState.Success(
+        conversations = testConversations
+    )
+
     InboxScreen(
         modifier = modifier,
-        conversationState = conversationState,
-        markAccepted = { id, acceptedState -> viewModel.updateConsentState(id, acceptedState) },
+        conversationState = convo, //conversationState,
+        /*markAccepted = { id, acceptedState -> viewModel.updateConsentState(id, acceptedState) },
         deleteConversation = { id -> viewModel.deleteConversation(id) },
         markArchived = { id, archivedState -> viewModel.setConversationArchived(id, archivedState) },
-        resolveENS = viewModel::resolveENS,
+        resolveENS = viewModel::resolveENS,*/
         conversationClicked = { id ->
             viewModel.setConversationAsRead(id, true)
             onConversationClick(id)
@@ -106,10 +293,10 @@ fun ContactRoute(
 fun InboxScreen(
     conversationState: ConversationUIState,
     conversationClicked: (String) -> Unit,
-    deleteConversation: (String) -> Unit,
+    /*deleteConversation: (String) -> Unit,
     markAccepted: (String, Boolean) -> Unit,
     markArchived: (String, Boolean) -> Unit,
-    resolveENS: KSuspendFunction1<String, String>,
+    resolveENS: KSuspendFunction1<String, String>,*/
     modifier: Modifier = Modifier
 ){
 
@@ -278,6 +465,7 @@ fun InboxScreen(
                     when (page) {
                         0 -> {
                             Box(modifier = Modifier.weight(1f)) {
+                                /*
                                 LazyColumn(
                                     modifier = Modifier.padding(horizontal = 12.dp)
                                 ) {
@@ -331,6 +519,74 @@ fun InboxScreen(
 
                                                     }
                                                 )
+                                        }
+                                    }
+                                }
+                                 */
+
+                                val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
+
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                ) {
+                                    itemsIndexed(
+                                        items = conversations,
+                                    ) { index, contact ->
+                                        SwipeableListItem(
+                                            isRevealed = contact.isOptionsRevealed,
+                                            onExpanded = {
+                                                conversations[index] = contact.copy(isOptionsRevealed = true)
+                                            },
+                                            onCollapsed = {
+                                                conversations[index] = contact.copy(isOptionsRevealed = false)
+                                            },
+                                            actions = {
+                                                ConversationActionButton(
+                                                    onClick = {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Contact ${contact.id} was deleted.",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                        conversations.remove(contact)
+                                                    },
+                                                    backgroundColor = Color.Red,
+                                                    icon = Icons.Default.Delete,
+                                                    modifier = Modifier.fillMaxHeight()
+                                                )
+                                                ConversationActionButton(
+                                                    onClick = {
+                                                        conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Contact ${contact.id} was sent an email.",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    },
+                                                    backgroundColor = Color.Yellow,
+                                                    icon = Icons.Default.Email,
+                                                    modifier = Modifier.fillMaxHeight()
+                                                )
+                                                ConversationActionButton(
+                                                    onClick = {
+                                                        conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Contact ${contact.id} was shared.",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    },
+                                                    backgroundColor = Color.Magenta,
+                                                    icon = Icons.Default.Share,
+                                                    modifier = Modifier.fillMaxHeight()
+                                                )
+                                            },
+                                        ) {
+                                            Text(
+                                                text = "Contact ${contact.id}",
+                                                modifier = Modifier.padding(8.dp)
+                                            )
                                         }
                                     }
                                 }
@@ -508,6 +764,183 @@ fun PreviewShowHiddenConversationsPopup(){
 @Composable
 @Preview
 fun PreviewContactScreen() {
+    val now = Instant.parse("2025-04-14T10:00:00Z")
+
+    val testConversations = listOf(
+        Conversation(
+            id = "1",
+            title = "Design Chat",
+            recipients = listOf(
+                Recipient("r1", "0x123", "alice.eth", Contact("lk1", "Alice", null, "0x123"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m1",
+                threadId = "1",
+                recipient = Recipient("r1", "0x123", "alice.eth", Contact("lk1", "Alice", null, "0x123")),
+                date = now,
+                dateSent = now,
+                seen = true,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = true,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Let's review the UI"
+            ),
+            clientInbox = "inbox1"
+        ),
+        Conversation(
+            id = "2",
+            title = null,
+            recipients = listOf(
+                Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
+                Recipient("r3", "0x789", null, Contact("lk3", "Carol", null, "0x789"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m2",
+                threadId = "2",
+                recipient = Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
+                date = now,
+                dateSent = now,
+                seen = false,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = false,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "See you tomorrow!"
+            ),
+            clientInbox = "inbox2"
+        ),
+        Conversation(
+            id = "3",
+            title = "🏀 Game Plan",
+            recipients = listOf(
+                Recipient("r4", "0xabc", null, Contact("lk4", "Coach", null, "0xabc"))
+            ),
+            draft = "Need to reply...",
+            lastMessage = null,
+            pinned = true,
+            clientInbox = "inbox3"
+        ),
+        Conversation(
+            id = "4",
+            title = null,
+            recipients = listOf(
+                Recipient("r5", "0xdef", null, Contact("lk5", null, null, "0xdef"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m4",
+                threadId = "4",
+                recipient = Recipient("r5", "0xdef", null, Contact("lk5", null, null, "0xdef")),
+                date = now,
+                dateSent = now,
+                seen = true,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = true,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Thanks!"
+            ),
+            clientInbox = "inbox4"
+        ),
+        Conversation(
+            id = "5",
+            title = "Dev Team",
+            recipients = listOf(
+                Recipient("r6", "0xaaa", null, Contact("lk6", "Eve", null, "0xaaa")),
+                Recipient("r7", "0xbbb", null, Contact("lk7", "Frank", null, "0xbbb"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m5",
+                threadId = "5",
+                recipient = Recipient("r6", "0xaaa", null, Contact("lk6", "Eve", null, "0xaaa")),
+                date = now,
+                dateSent = now,
+                seen = true,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = true,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Pushed the update"
+            ),
+            archived = true,
+            clientInbox = "inbox5"
+        ),
+        Conversation(
+            id = "6",
+            title = null,
+            recipients = listOf(
+                Recipient("r8", "0xccc", null, Contact("lk8", "Grace", null, "0xccc"))
+            ),
+            draft = "Don't forget the deadline",
+            lastMessage = null,
+            blocked = true,
+            clientInbox = "inbox6"
+        ),
+        Conversation(
+            id = "7",
+            title = "Meeting Notes",
+            recipients = listOf(
+                Recipient("r9", "0xddd", null, Contact("lk9", "Hank", null, "0xddd"))
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m7",
+                threadId = "7",
+                recipient = Recipient("r9", "0xddd", null, Contact("lk9", "Hank", null, "0xddd")),
+                date = now,
+                dateSent = now,
+                seen = false,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = false,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Uploaded the doc"
+            ),
+            clientInbox = "inbox7"
+        ),
+        Conversation(
+            id = "8",
+            title = null,
+            recipients = listOf(
+                Recipient("r10", "0xeee", null, null)
+            ),
+            draft = null,
+            lastMessage = Message(
+                id = "m8",
+                threadId = "8",
+                recipient = Recipient("r10", "0xeee", null, null),
+                date = now,
+                dateSent = now,
+                seen = false,
+                deliveryStatus = DeliveryStatus.FAILED,
+                replyReference = null,
+                isMe = false,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "What's your ENS?"
+            ),
+            unknown = true,
+            clientInbox = "inbox8"
+        )
+    )
+
+    val convo = ConversationUIState.Success(
+        conversations = testConversations
+    )
+
+    InboxScreen(
+        conversationState = convo,
+        conversationClicked = { it -> }
+    )
     /*
     ContactScreen(
         emptyList(),
