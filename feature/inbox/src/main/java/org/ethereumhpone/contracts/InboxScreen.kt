@@ -109,6 +109,7 @@ fun InboxScreen(
     var showHiddenConversations by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
+
         when(conversationState) {
             is ConversationUIState.Loading ->{
                 Box(contentAlignment = Alignment.Center,modifier = Modifier.weight(1f)) {

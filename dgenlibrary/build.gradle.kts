@@ -1,22 +1,17 @@
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.exclude
-
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 
-    alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.kotlin.compose)
-
-
 }
 
 android {
-    namespace = "org.ethereumhpone.contracts"
+    namespace = "org.ethereumphone.dgenlibrary"
     compileSdk = 34
 
     defaultConfig {
-        minSdk = 34
+        minSdk = 21
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -41,6 +36,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -49,29 +45,15 @@ android {
 }
 
 dependencies {
-
+    
     implementation(libs.androidx.core)
 
 
-
-
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
     implementation("androidx.compose.material:material:1.4.3")
-    implementation("androidx.compose.material:material-icons-extended:1.4.3")
+    implementation("androidx.compose.material:material-icons-extended:1.6.1")
     implementation("androidx.compose.runtime:runtime-livedata:1.4.3")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.compose.foundation:foundation:1.6.0-alpha02")
-    implementation(project(":feature:chat"))
-    implementation(libs.androidx.navigation.common.ktx)
-    implementation(libs.androidx.navigation.runtime.ktx)
-
-    implementation(project(":core:domain"))
-    implementation(project(":core:database"))
-    implementation(project(":core:data"))
-
-    implementation(project(":dgenlibrary"))
-
-
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("androidx.activity:activity-compose:1.8.2")
@@ -80,36 +62,25 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation(libs.compose.material3)
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("junit:junit:4.12")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("io.coil-kt:coil-video:2.6.0")
 
-
-
-    implementation(libs.coil.compose.v210)
     implementation("com.github.EthereumPhone:ethOS-Component-Library:5e20c8f4a0")
 
     implementation(libs.androidx.navigation.common.ktx)
     implementation(libs.androidx.navigation.runtime.ktx)
 
-    implementation("androidx.navigation:navigation-compose:2.7.6")
-
-    implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    implementation(libs.compose.navigation)
+    implementation(libs.hilt.navigation)
 
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 
 
-    implementation(libs.hilt.navigation)
-
-    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
-    implementation(libs.xmtp)
-
-    implementation(libs.ens)
-    implementation(libs.rpc)
-    implementation(libs.model)
-
-    implementation(project(":core:model"))
+    //animation
+    implementation("androidx.compose.animation:animation:1.6.7")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.0-rc01")
 
     implementation(libs.kotlinx.datetime)
 
@@ -117,10 +88,4 @@ dependencies {
 
 
 
-
-}
-
-// Allow references to generated code
-kapt {
-    correctErrorTypes = true
 }
