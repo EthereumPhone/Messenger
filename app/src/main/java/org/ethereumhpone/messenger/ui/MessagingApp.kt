@@ -135,7 +135,7 @@ internal fun MessagingApp(
 
 
     ) { padding ->
-        Box( modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box( modifier = Modifier.fillMaxSize().padding(padding).background(dgenBlack)) {
             MessagingNavHost(
                 messengerAppState = messengerAppState,
                 threadId = threadId,

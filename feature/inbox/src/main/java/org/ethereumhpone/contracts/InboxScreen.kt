@@ -5,14 +5,13 @@ import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,7 +24,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -53,10 +51,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -70,26 +67,26 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.ethosmobile.components.library.theme.Colors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.rememberAsyncImagePainter
 import com.example.dgenlibrary.ui.theme.DgenTheme
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenRed
+import com.example.dgenlibrary.ui.theme.dgenBlack
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.time.Instant as JavaInstant
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.datetime.Instant
-import org.ethereumhpone.contracts.ui.ChatListItem
+import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.contracts.ui.ConversationActionButton
+import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.components.SwipeableListItem
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
-import kotlin.reflect.KSuspendFunction1
 
 
 @Composable
@@ -130,7 +127,6 @@ fun ContactRoute(
             title = null,
             recipients = listOf(
                 Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
-                Recipient("r3", "0x789", null, Contact("lk3", "Carol", null, "0x789"))
             ),
             draft = null,
             lastMessage = Message(
@@ -153,10 +149,24 @@ fun ContactRoute(
             id = "3",
             title = "🏀 Game Plan",
             recipients = listOf(
-                Recipient("r4", "0xabc", null, Contact("lk4", "Coach", null, "0xabc"))
+                Recipient("r4", "0xabc", null, Contact("lk4", "Coach", null, "0xabc")),
+                Recipient("r5", "0xagd", null, Contact("lk5", "Kobe", null, "0xagd"))
             ),
             draft = "Need to reply...",
-            lastMessage = null,
+            lastMessage = Message(
+                id = "m2",
+                threadId = "2",
+                recipient = Recipient("r2", "0x456", null, Contact("lk5", "Kobe", null, "0x456")),
+                date = now,
+                dateSent = now,
+                seen = false,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = false,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "See you tomorrow!"
+            ),
             pinned = true,
             clientInbox = "inbox3"
         ),
@@ -164,13 +174,13 @@ fun ContactRoute(
             id = "4",
             title = null,
             recipients = listOf(
-                Recipient("r5", "0xdef", null, Contact("lk5", null, null, "0xdef"))
+                Recipient("r5", "0xdef", null, Contact("lk5", "Shannon", null, "0xdef"))
             ),
             draft = null,
             lastMessage = Message(
                 id = "m4",
                 threadId = "4",
-                recipient = Recipient("r5", "0xdef", null, Contact("lk5", null, null, "0xdef")),
+                recipient = Recipient("r5", "0xdef", null, Contact("lk5", "Shannon", null, "0xdef")),
                 date = now,
                 dateSent = now,
                 seen = true,
@@ -215,7 +225,20 @@ fun ContactRoute(
                 Recipient("r8", "0xccc", null, Contact("lk8", "Grace", null, "0xccc"))
             ),
             draft = "Don't forget the deadline",
-            lastMessage = null,
+            lastMessage = Message(
+                id = "m5",
+                threadId = "5",
+                recipient = Recipient("r6", "0xaaa", null, Contact("lk8", "Grace", null, "0xccc")),
+                date = now,
+                dateSent = now,
+                seen = true,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
+                replyReference = null,
+                isMe = true,
+                attachments = emptyList(),
+                reactions = emptyList(),
+                body = "Pushed the update"
+            ),
             blocked = true,
             clientInbox = "inbox6"
         ),
@@ -223,7 +246,8 @@ fun ContactRoute(
             id = "7",
             title = "Meeting Notes",
             recipients = listOf(
-                Recipient("r9", "0xddd", null, Contact("lk9", "Hank", null, "0xddd"))
+                Recipient("r9", "0xddd", null, Contact("lk9", "Hank", null, "0xddd")),
+                Recipient("r23", "0xdrd", null, Contact("lk9", "Tod", null, "0xddd"))
             ),
             draft = null,
             lastMessage = Message(
@@ -244,19 +268,21 @@ fun ContactRoute(
         ),
         Conversation(
             id = "8",
-            title = null,
+            title = "Dgens",
             recipients = listOf(
-                Recipient("r10", "0xeee", null, null)
+                Recipient("r10", "0xeee", null, Contact("lk9", "Chris", null, "0xeee")),
+                Recipient("r11", "0xeej", null, Contact("lk11", "Alex", null, "0xeee"))
+
             ),
             draft = null,
             lastMessage = Message(
                 id = "m8",
                 threadId = "8",
-                recipient = Recipient("r10", "0xeee", null, null),
+                recipient = Recipient("r10", "0xeee", null, Contact("lk9", "Chris", null, "0xeee")),
                 date = now,
                 dateSent = now,
                 seen = false,
-                deliveryStatus = DeliveryStatus.FAILED,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
                 replyReference = null,
                 isMe = false,
                 attachments = emptyList(),
@@ -315,7 +341,7 @@ fun InboxScreen(
 
     var showHiddenConversations by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().background(dgenBlack)) {
 
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -337,7 +363,7 @@ fun InboxScreen(
                     }
             ){
                 Icon(
-                    painter = painterResource(org.ethereumphone.dgenlibrary.R.drawable.searchicon),
+                    painter = painterResource(R.drawable.searchicon),
                     contentDescription = "Search",
                     tint = DgenTheme.colors.dgenTurqoise,
                     modifier = Modifier.size(24.dp)
@@ -409,240 +435,280 @@ fun InboxScreen(
                     tabs.size
                 })
 
-                //TODO: Add AnimatedVisibilty with enums and make it a composable
 
-                TabRow(
-                    containerColor = Colors.TRANSPARENT,
-                    contentColor = dgenTurqoise,
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    selectedTabIndex = pagerState.currentPage,
-                    divider = { Divider(color = Colors.TRANSPARENT) },
-                    indicator = { tabPositions ->
-                        if (pagerState.currentPage < tabPositions.size) {
-                            TabRowDefaults.Indicator(
-                                color = Colors.TRANSPARENT,
-                                modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
-                            )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    HorizontalPager(state = pagerState) { page ->
+                        when (page) {
+                            0 -> {
+                                    /*
+                                    LazyColumn(
+                                        modifier = Modifier.padding(horizontal = 12.dp)
+                                    ) {
+                                        conversationState.conversations
+                                            .forEach { conversation ->
+                                                item {
+                                                    ChatListItem(
+                                                        image = {
+                                                            if (conversation.recipients.getOrNull(0)?.contact?.photoUri != null) {
+                                                                Image(
+                                                                    painter = rememberAsyncImagePainter(model = conversation.recipients.first().contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
+                                                                    contentDescription = "Contact Image",
+                                                                    contentScale = ContentScale.Crop,
+                                                                    modifier = Modifier
+                                                                        .size(62.dp) // Set the size of the image
+                                                                        .clip(CircleShape) // Apply a circular shape
+                                                                )
+                                                            } else {
+                                                                Image(
+                                                                    painter = painterResource(id = R.drawable.nouns),
+                                                                    contentDescription = "Contact Image",
+                                                                    modifier = Modifier
+                                                                        .size(62.dp) // Set the size of the image
+                                                                        .clip(CircleShape) // Apply a circular shape
+                                                                )
+                                                            }
+                                                        },
+                                                        header = conversation.getHeader(),
+                                                        subheader = conversation.getSummary(),
+                                                        time = conversation.lastMessage?.date,
+                                                        unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
+                                                        onClick = {
+                                                            conversationClicked(conversation.id.toString())
+                                                        },
+                                                        onClickLeft = {
+                                                            /*
+                                                            markArchived(conversation.id)
+                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
+                                                                deleteXMTPConversation(conversation.getConversationTitle())
+                                                            }
+                                                             */
+
+                                                        },
+                                                        onClickRight = {
+                                                            /*
+                                                            markArchived(conversation.id)
+                                                            if(isEthereumAddress(conversation.getConversationTitle())) {
+                                                                deleteXMTPConversation(conversation.getConversationTitle())
+                                                            }
+                                                             */
+
+                                                        }
+                                                    )
+                                            }
+                                        }
+                                    }
+                                     */
+
+                                    val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
+
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                    ) {
+                                        item{
+                                            Spacer(modifier = modifier.height(64.dp))
+                                        }
+                                        itemsIndexed(
+                                            items = conversations,
+                                        ) { index, contact ->
+                                            SwipeableListItem(
+                                                isRevealed = contact.isOptionsRevealed,
+                                                onExpanded = {
+                                                    conversations[index] = contact.copy(isOptionsRevealed = true)
+                                                },
+                                                onCollapsed = {
+                                                    conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                },
+                                                actions = {
+                                                    ConversationActionButton(
+                                                        onClick = {
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Contact ${contact.id} was deleted.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                            conversations.remove(contact)
+                                                        },
+                                                        icon = Icons.Default.Delete,
+                                                        modifier = Modifier.fillMaxHeight()
+                                                    )
+                                                    ConversationActionButton(
+                                                        onClick = {
+                                                            conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Contact ${contact.id} was sent an email.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        },
+                                                        icon = Icons.Default.Email,
+                                                        modifier = Modifier.fillMaxHeight()
+                                                    )
+                                                    ConversationActionButton(
+                                                        onClick = {
+                                                            conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Contact ${contact.id} was shared.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        },
+                                                        icon = Icons.Default.Share,
+                                                        modifier = Modifier.fillMaxHeight()
+                                                    )
+                                                },
+                                            ) {
+                                                val now = Instant.parse("2025-04-10T10:00:00Z")
+                                                ChatListInfo(
+                                                    //TODO: Improve group identification
+                                                    isGroup = contact.recipients.size > 1,
+                                                    lastPerson = contact.lastMessage?.recipient?.contact?.name.toString(),
+                                                    header = contact.getHeader(),
+                                                    subheader = contact.lastMessage?.body.toString(),
+                                                    time = Date.from(JavaInstant.parse(now.toString())),
+                                                    readConversation = contact.lastMessage?.seen == true,
+                                                    onClick = { conversationClicked(contact.id) },
+                                                )
+
+                                            }
+                                        }
+                                        item{
+                                            Spacer(modifier = modifier.height(24.dp))
+                                        }
+                                    }
+
+
+                            }
+                            1 -> {
+                                    val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
+
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                    ) {
+                                        itemsIndexed(
+                                            items = conversations,
+                                        ) { index, contact ->
+                                            SwipeableListItem(
+                                                isRevealed = contact.isOptionsRevealed,
+                                                onExpanded = {
+                                                    conversations[index] = contact.copy(isOptionsRevealed = true)
+                                                },
+                                                onCollapsed = {
+                                                    conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                },
+                                                actions = {
+                                                    ConversationActionButton(
+                                                        onClick = {
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Contact ${contact.id} was deleted.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                            conversations.remove(contact)
+                                                        },
+                                                        backgroundColor = Color.Red,
+                                                        icon = Icons.Default.Delete,
+                                                        modifier = Modifier.fillMaxHeight()
+                                                    )
+                                                    ConversationActionButton(
+                                                        onClick = {
+                                                            conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Contact ${contact.id} was sent an email.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        },
+                                                        backgroundColor = Color.Yellow,
+                                                        icon = Icons.Default.Email,
+                                                        modifier = Modifier.fillMaxHeight()
+                                                    )
+                                                    ConversationActionButton(
+                                                        onClick = {
+                                                            conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Contact ${contact.id} was shared.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        },
+                                                        backgroundColor = Color.Magenta,
+                                                        icon = Icons.Default.Share,
+                                                        modifier = Modifier.fillMaxHeight()
+                                                    )
+                                                },
+                                            ) {
+                                                Text(
+                                                    text = "Contact ${contact.id}",
+                                                    modifier = Modifier.padding(8.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                            }
                         }
                     }
-                ) {
-                    tabs.forEachIndexed { index, s ->
-                        val fontColor by animateColorAsState(
-                            if(pagerState.currentPage == index) dgenTurqoise else dgenTurqoise.copy(0.5f),
-                            tween(300)
-                        )
-                        //TODO: Make a custom Tab
-                        Tab(
-                            modifier = Modifier,
-                            selectedContentColor = dgenTurqoise,
-                            unselectedContentColor = dgenTurqoise.copy(0.5f),
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                //tabIndex = index
-                                coroutineScope.launch {
-                                    // Call scroll to on pagerState
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            },
-                            text = {
-                                Text(
-                                    text = s,
-                                    style = TextStyle(
-                                        fontFamily = SpaceMono,
-                                        color = fontColor,
-                                        fontWeight = FontWeight.Normal,
-                                        fontSize = 16.sp,
-                                        letterSpacing = 0.sp,
-                                        textDecoration = TextDecoration.None
+
+                    Column(
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    ) {
+                        //TODO: Add AnimatedVisibilty with enums and make it a composable
+                        TabRow(
+                            containerColor = dgenBlack,
+                            contentColor = dgenTurqoise,
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            selectedTabIndex = pagerState.currentPage,
+                            divider = { Divider(color = Colors.TRANSPARENT) },
+                            indicator = { tabPositions ->
+                                if (pagerState.currentPage < tabPositions.size) {
+                                    TabRowDefaults.Indicator(
+                                        color = Colors.TRANSPARENT,
+                                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
                                     )
+                                }
+                            }
+                        ) {
+                            tabs.forEachIndexed { index, s ->
+                                val fontColor by animateColorAsState(
+                                    if(pagerState.currentPage == index) dgenTurqoise else dgenTurqoise.copy(0.5f),
+                                    tween(300)
                                 )
-                            },
-                            )
-                    }
-                }
-                HorizontalPager(state = pagerState) { page ->
-                    when (page) {
-                        0 -> {
-                            Box(modifier = Modifier.weight(1f)) {
-                                /*
-                                LazyColumn(
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                ) {
-                                    conversationState.conversations
-                                        .forEach { conversation ->
-                                            item {
-                                                ChatListItem(
-                                                    image = {
-                                                        if (conversation.recipients.getOrNull(0)?.contact?.photoUri != null) {
-                                                            Image(
-                                                                painter = rememberAsyncImagePainter(model = conversation.recipients.first().contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
-                                                                contentDescription = "Contact Image",
-                                                                contentScale = ContentScale.Crop,
-                                                                modifier = Modifier
-                                                                    .size(62.dp) // Set the size of the image
-                                                                    .clip(CircleShape) // Apply a circular shape
-                                                            )
-                                                        } else {
-                                                            Image(
-                                                                painter = painterResource(id = R.drawable.nouns),
-                                                                contentDescription = "Contact Image",
-                                                                modifier = Modifier
-                                                                    .size(62.dp) // Set the size of the image
-                                                                    .clip(CircleShape) // Apply a circular shape
-                                                            )
-                                                        }
-                                                    },
-                                                    header = conversation.getHeader(),
-                                                    subheader = conversation.getSummary(),
-                                                    time = conversation.lastMessage?.date,
-                                                    unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
-                                                    onClick = {
-                                                        conversationClicked(conversation.id.toString())
-                                                    },
-                                                    onClickLeft = {
-                                                        /*
-                                                        markArchived(conversation.id)
-                                                        if(isEthereumAddress(conversation.getConversationTitle())) {
-                                                            deleteXMTPConversation(conversation.getConversationTitle())
-                                                        }
-                                                         */
-
-                                                    },
-                                                    onClickRight = {
-                                                        /*
-                                                        markArchived(conversation.id)
-                                                        if(isEthereumAddress(conversation.getConversationTitle())) {
-                                                            deleteXMTPConversation(conversation.getConversationTitle())
-                                                        }
-                                                         */
-
-                                                    }
-                                                )
+                                //TODO: Make a custom Tab
+                                Tab(
+                                    modifier = Modifier,
+                                    selectedContentColor = dgenTurqoise,
+                                    unselectedContentColor = dgenTurqoise.copy(0.5f),
+                                    selected = pagerState.currentPage == index,
+                                    onClick = {
+                                        //tabIndex = index
+                                        coroutineScope.launch {
+                                            // Call scroll to on pagerState
+                                            pagerState.animateScrollToPage(index)
                                         }
-                                    }
-                                }
-                                 */
-
-                                val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
-
-                                LazyColumn(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                ) {
-                                    itemsIndexed(
-                                        items = conversations,
-                                    ) { index, contact ->
-                                        SwipeableListItem(
-                                            isRevealed = contact.isOptionsRevealed,
-                                            onExpanded = {
-                                                conversations[index] = contact.copy(isOptionsRevealed = true)
-                                            },
-                                            onCollapsed = {
-                                                conversations[index] = contact.copy(isOptionsRevealed = false)
-                                            },
-                                            actions = {
-                                                ConversationActionButton(
-                                                    onClick = {
-                                                        Toast.makeText(
-                                                            context,
-                                                            "Contact ${contact.id} was deleted.",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                        conversations.remove(contact)
-                                                    },
-                                                    backgroundColor = Color.Red,
-                                                    icon = Icons.Default.Delete,
-                                                    modifier = Modifier.fillMaxHeight()
-                                                )
-                                                ConversationActionButton(
-                                                    onClick = {
-                                                        conversations[index] = contact.copy(isOptionsRevealed = false)
-                                                        Toast.makeText(
-                                                            context,
-                                                            "Contact ${contact.id} was sent an email.",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    },
-                                                    backgroundColor = Color.Yellow,
-                                                    icon = Icons.Default.Email,
-                                                    modifier = Modifier.fillMaxHeight()
-                                                )
-                                                ConversationActionButton(
-                                                    onClick = {
-                                                        conversations[index] = contact.copy(isOptionsRevealed = false)
-                                                        Toast.makeText(
-                                                            context,
-                                                            "Contact ${contact.id} was shared.",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    },
-                                                    backgroundColor = Color.Magenta,
-                                                    icon = Icons.Default.Share,
-                                                    modifier = Modifier.fillMaxHeight()
-                                                )
-                                            },
-                                        ) {
-                                            Text(
-                                                text = "Contact ${contact.id}",
-                                                modifier = Modifier.padding(8.dp)
+                                    },
+                                    text = {
+                                        Text(
+                                            text = s,
+                                            style = TextStyle(
+                                                fontFamily = SpaceMono,
+                                                color = fontColor,
+                                                fontWeight = FontWeight.Normal,
+                                                fontSize = 16.sp,
+                                                letterSpacing = 0.sp,
+                                                textDecoration = TextDecoration.None
                                             )
-                                        }
-                                    }
-                                }
-                            }
-
-                        }
-                        1 -> {
-                            Box(modifier = Modifier.weight(1f)) {
-                                LazyColumn(
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                ){
-                                    conversationState.conversations.forEach { conversation ->
-                                        item {
-                                            ChatListItem(
-                                                image = {
-                                                    if (conversation.recipients.get(0).contact?.photoUri != null) {
-                                                        Image(
-                                                            painter = rememberAsyncImagePainter(model = conversation.recipients.get(0).contact?.photoUri), // Replace 'contact.image' with the correct URI variable from your 'Contact' object
-                                                            contentDescription = "Contact Image",
-                                                            contentScale = ContentScale.Crop,
-                                                            modifier = Modifier
-                                                                .size(62.dp) // Set the size of the image
-                                                                .clip(CircleShape) // Apply a circular shape
-                                                        )
-                                                    } else {
-                                                        Image(
-                                                            painter = painterResource(id = R.drawable.nouns),
-                                                            contentDescription = "Contact Image",
-                                                            modifier = Modifier
-                                                                .size(62.dp) // Set the size of the image
-                                                                .clip(CircleShape) // Apply a circular shape
-                                                        )
-                                                    }
-                                                },
-                                                header = conversation.getHeader(),
-                                                subheader = conversation.getSummary(),
-                                                time = conversation.lastMessage?.date,
-                                                unreadConversation = conversation.lastMessage?.seen ?: false, // if the convo has no messages, always display as seen
-                                                onClick = {
-                                                    conversationClicked(conversation.id)
-                                                    //markAccepted(conversation.id, conversation.getConversationTitle())
-                                                },
-                                                onClickLeft = {
-                                                    //markArchived(conversation.id)
-                                                },
-                                                onClickRight = {
-                                                    //markArchived(conversation.id)
-                                                    //deleteXMTPConversation(conversation.getConversationTitle())
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
+                                        )
+                                    },
+                                )
                             }
                         }
+                        Spacer(modifier = Modifier.fillMaxWidth().height(24.dp).background(Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))))
                     }
+
+                    Spacer(modifier = Modifier.fillMaxWidth().height(24.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
+
                 }
             }
         }
@@ -921,7 +987,7 @@ fun PreviewContactScreen() {
                 date = now,
                 dateSent = now,
                 seen = false,
-                deliveryStatus = DeliveryStatus.FAILED,
+                deliveryStatus = DeliveryStatus.PUBLISHED,
                 replyReference = null,
                 isMe = false,
                 attachments = emptyList(),
