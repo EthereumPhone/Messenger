@@ -3,6 +3,10 @@ package org.ethereumhpone.contracts
 import android.Manifest
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +20,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -35,10 +44,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +61,10 @@ import kotlinx.coroutines.launch
 import org.ethosmobile.components.library.theme.Colors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
+import com.example.dgenlibrary.ui.theme.DgenTheme
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.dgenRed
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import org.ethosmobile.components.library.theme.Fonts
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -110,6 +127,67 @@ fun InboxScreen(
 
     Column(Modifier.fillMaxSize()) {
 
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            //TODO: implement search
+                        }
+                        // Never reached
+                        //detectDragGestures { _, _ -> log = "Dragging" }
+                    }
+            ){
+                Icon(
+                    painter = painterResource(org.ethereumphone.dgenlibrary.R.drawable.searchicon),
+                    contentDescription = "Search",
+                    tint = DgenTheme.colors.dgenTurqoise,
+                    modifier = Modifier.size(24.dp)
+
+                )
+                Text(
+                    text = "SEARCH",
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        color = DgenTheme.colors.dgenTurqoise,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 20.sp,
+                        letterSpacing = 0.sp,
+                        textDecoration = TextDecoration.None
+                    )
+                )
+            }
+
+            IconButton(
+                onClick = {
+                    //TODO: Add Convo
+                },
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = dgenTurqoise
+                ),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "Search",
+                    tint = DgenTheme.colors.dgenTurqoise,
+                    modifier = Modifier
+                        .size(32.dp)
+                )
+            }
+
+
+        }
+
+
         when(conversationState) {
             is ConversationUIState.Loading ->{
                 Box(contentAlignment = Alignment.Center,modifier = Modifier.weight(1f)) {
@@ -144,7 +222,9 @@ fun InboxScreen(
                 TabRow(
                     containerColor = Colors.TRANSPARENT,
                     contentColor = Colors.WHITE,
-                    modifier = Modifier.fillMaxWidth().padding(start = 12.dp,end = 12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp),
                     selectedTabIndex = pagerState.currentPage,
                     divider = { Divider(color = Colors.TRANSPARENT) },
                     indicator = { tabPositions ->

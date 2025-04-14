@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dgenlibrary.ui.theme.dgenBlack
 import org.ethereumhpone.messenger.navigation.MessagingNavHost
 import org.ethereumphone.contacts.ContactSheet
 import org.ethereumphone.settings.SettingsDialog
@@ -124,27 +125,25 @@ internal fun MessagingApp(
     var visible by remember { mutableStateOf(true) }
 
     Scaffold(
-        containerColor = Color.Black,
-        floatingActionButton = {
-            if (isInbox) {
+        containerColor = dgenBlack,
+        /*
+        floatingActionButton = {    if (isInbox) {
                 FloatingActionButton(onClick = onFabClick) { Icon(Icons.Default.Add, "") }
             }
         },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+         */
 
-        ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-        ) {
+
+    ) { padding ->
+        Box( modifier = Modifier.fillMaxSize().padding(padding)) {
             MessagingNavHost(
                 messengerAppState = messengerAppState,
                 threadId = threadId,
                 inputAddress = inputAddress
             )
         }
+
+
+
     }
 }

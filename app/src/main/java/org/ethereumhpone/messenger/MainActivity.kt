@@ -168,13 +168,13 @@ class MainActivity : ComponentActivity() {
             )
 
             //Box(Modifier.safeDrawingPadding()) {
-                MessengerTheme {
+
                     MessagingApp(
                         messengerAppState = appState,
                         threadId = threadId,
                         inputAddress = inputAddress
                     )
-                }
+
             //}
 
 
