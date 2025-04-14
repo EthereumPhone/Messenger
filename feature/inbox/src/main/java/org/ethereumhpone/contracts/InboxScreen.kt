@@ -1,6 +1,8 @@
 package org.ethereumhpone.contracts
 
 import android.Manifest
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -213,33 +216,40 @@ fun InboxScreen(
             }
 
             is ConversationUIState.Success -> {
-                val tabs = listOf("Inbox","Requests")
+                val tabs = listOf("INBOX","REQUESTS")
                 // Display 10 items
                 val pagerState = rememberPagerState(pageCount = {
                     tabs.size
                 })
 
+                //TODO: Add AnimatedVisibilty with enums and make it a composable
+
                 TabRow(
                     containerColor = Colors.TRANSPARENT,
-                    contentColor = Colors.WHITE,
+                    contentColor = dgenTurqoise,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 12.dp, end = 12.dp),
+                        .fillMaxWidth(),
                     selectedTabIndex = pagerState.currentPage,
                     divider = { Divider(color = Colors.TRANSPARENT) },
                     indicator = { tabPositions ->
                         if (pagerState.currentPage < tabPositions.size) {
                             TabRowDefaults.Indicator(
-                                color = Colors.WHITE,
+                                color = Colors.TRANSPARENT,
                                 modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
                             )
                         }
                     }
                 ) {
                     tabs.forEachIndexed { index, s ->
+                        val fontColor by animateColorAsState(
+                            if(pagerState.currentPage == index) dgenTurqoise else dgenTurqoise.copy(0.5f),
+                            tween(300)
+                        )
+                        //TODO: Make a custom Tab
                         Tab(
-                            selectedContentColor = Colors.WHITE,
-                            unselectedContentColor = Colors.GRAY,
+                            modifier = Modifier,
+                            selectedContentColor = dgenTurqoise,
+                            unselectedContentColor = dgenTurqoise.copy(0.5f),
                             selected = pagerState.currentPage == index,
                             onClick = {
                                 //tabIndex = index
@@ -251,14 +261,16 @@ fun InboxScreen(
                             text = {
                                 Text(
                                     text = s,
-                                    color = if(pagerState.currentPage == index) Colors.WHITE else Colors.GRAY,
-                                    fontSize = 14.sp,
-                                    fontFamily = Fonts.INTER,
-                                    fontWeight = FontWeight.SemiBold,
-
+                                    style = TextStyle(
+                                        fontFamily = SpaceMono,
+                                        color = fontColor,
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 16.sp,
+                                        letterSpacing = 0.sp,
+                                        textDecoration = TextDecoration.None
                                     )
+                                )
                             },
-
                             )
                     }
                 }
