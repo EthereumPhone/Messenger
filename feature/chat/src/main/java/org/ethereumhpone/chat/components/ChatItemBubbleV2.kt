@@ -293,10 +293,10 @@ fun ChatItemBubbleV2(
 @Preview
 @Composable
 fun ReplyChatItemBubblePreview() {
-    /*
 
 
-    val initialMessages = listOf(
+
+    /*val initialMessages = listOf(
 
         Message(
             address = "me",
@@ -326,6 +326,6 @@ fun ReplyChatItemBubblePreview() {
         videoPlayer = null,
         isFirstMessageByAuthor = true,
         onPlayVideo = {}
-    )
-    */
+    )*/
+
 }

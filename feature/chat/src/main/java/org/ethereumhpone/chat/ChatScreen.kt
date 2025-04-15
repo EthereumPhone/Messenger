@@ -2,6 +2,7 @@ package org.ethereumhpone.chat
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -16,8 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -37,21 +37,20 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
-import org.ethereumhpone.chat.RecipientUiState
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.util.generateTestMessages
+import org.ethereumhpone.chat.util.truncateToMinute
 import org.ethereumhpone.database.model.ContactEntity
-import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
@@ -103,7 +102,9 @@ fun ChatRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
+    ExperimentalFoundationApi::class
+)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
@@ -171,64 +172,81 @@ fun ChatScreen(
 
     ) { paddingValues ->
 
-        LazyColumn(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-            ,
-            reverseLayout = true,
 
 
-        ) {
-            when(messageUiState) {
-                is MessageUiState.Success -> {
+        when(messageUiState) {
+            is MessageUiState.Success -> {
+                val messages = messageUiState.messageEntities
+                val sortedMessages = messages.reversed().sortedBy {truncateToMinute(it.date) }
 
-                    items(
-                        items = messageUiState.messageEntities.reversed(),
-                        key = {message -> message.id}
-                    ) { message ->
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .fillMaxSize()
+                    ,
 
-                        val listState = rememberLazyListState()
+                ) {
+
+                    sortedMessages.forEachIndexed { index, message ->
+                           //ChatBubble(message, isGrouped = isGrouped)
+
+                            /**/
+val prevAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) - 1)?.recipient?.id
+                            val nextAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) + 1)?.recipient?.id
+                            val isFirstMessageByAuthor = prevAuthor != message.recipient.id
+                            val isLastMessageByAuthor = nextAuthor != message.recipient.id
 
 
-                        val prevAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) - 1)?.recipient?.id
-                        val nextAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) + 1)?.recipient?.id
-                        val isFirstMessageByAuthor = prevAuthor != message.recipient.id
-                        val isLastMessageByAuthor = nextAuthor != message.recipient.id
 
-                        MessageItem(
-                            onAuthorClick = { },
-                            msg = message,
-                            isFirstMessageByAuthor = isFirstMessageByAuthor,
-                            isLastMessageByAuthor = isLastMessageByAuthor,
-                            composablePositionState = composablePositionState,
-                            player = videoPlayer,
-                            onPrepareVideo =  { it -> },//{ onPrepareVideo(it) },
-                            onLongClick =  {},//{ onFocusedMessageUpdate(message) },
-                            name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
-                            isSelected = selectedMessagesMap.contains(message),
-                            selectMode = selectMode,
-                            isXMTP = true,
-                            onSelect = { selectedMessage ->
-                                // invert boolean or add
-                                selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
-                                    isChecked?.let { !it } ?: true
+                            val prevMessage = sortedMessages.getOrNull(index - 1)
+                            val prevGroup = prevMessage?.date?.let { truncateToMinute(it) }
+                            val currentGroup = truncateToMinute(message.date)
+
+                            val showHeader = prevGroup != currentGroup
+
+                            if (showHeader) {
+                                item {
+                                    TimeHeader(message.date)
                                 }
-                            },
-                            onDoubleClick = {selectMode.value = !selectMode.value}
-                        )
+                            }
 
-                        LaunchedEffect(key1 = messageUiState) { listState.animateScrollToItem(0) }
+                            val isGrouped = prevMessage?.isMe == message.isMe && prevGroup == currentGroup
+                            item {
+                                MessageItem(
+                                    onAuthorClick = { },
+                                    msg = message,
+                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                    isLastMessageByAuthor = isLastMessageByAuthor,
+                                    composablePositionState = composablePositionState,
+                                    player = videoPlayer,
+                                    onPrepareVideo =  { it -> },//{ onPrepareVideo(it) },
+                                    onLongClick =  {},//{ onFocusedMessageUpdate(message) },
+                                    name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
+                                    isSelected = selectedMessagesMap.contains(message),
+                                    selectMode = selectMode,
+                                    isXMTP = true,
+                                    onSelect = { selectedMessage ->
+                                        // invert boolean or add
+                                        selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
+                                            isChecked?.let { !it } ?: true
+                                        }
+                                    },
+                                    onDoubleClick = {selectMode.value = !selectMode.value}
+                                )
+                            }
+
+                        }
 
 
-                    }
 
-                }
-                else -> {
 
                 }
             }
+            else -> {
+
+            }
         }
+
     }
 }
 
