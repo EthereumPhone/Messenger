@@ -43,14 +43,18 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
+import org.ethereumhpone.chat.RecipientUiState
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.message.ComposablePosition
+import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Message
+import org.ethereumphone.model.Recipient
 
 
 @Composable
@@ -64,12 +68,15 @@ fun ChatRoute(
     val contacts by chatViewModel.contacts.collectAsStateWithLifecycle()
     val media by chatViewModel.media.collectAsStateWithLifecycle()
     val recipients by chatViewModel.recipients.collectAsStateWithLifecycle()
-    val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
+    //val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by chatViewModel.chainName.collectAsStateWithLifecycle()
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
    // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
 
     val selectedMessaged by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
+
+
+
 
 
     ChatScreen(
@@ -79,12 +86,12 @@ fun ChatRoute(
         media = media,
         attachments = attachments,
         navigateBackToConversations = onBackClick,
-        tokenBalance = tokenBalance,
+        tokenBalance = 2.456, //tokenBalance,
         chainName = chainName,
         videoPlayer = videoPlayer,
-        selectedMessaged = selectedMessaged,
+        //selectedMessaged = selectedMessaged,
         onSendEthClicked = { },
-        onSendMessageClicked = chatViewModel::sendMessage,
+        /*onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
         onFocusedMessageUpdate = {},
         onPrepareVideo = mediaViewModel::addVideoUri,
@@ -92,7 +99,7 @@ fun ChatRoute(
         onToggleAttachment = chatViewModel::toggleAttachment,
         onRemoveSelectedMessage = chatViewModel::removeSelectedMessage,
         onOpenContact = chatViewModel::onOpenContact,
-        onAddSelectedMessage = chatViewModel::addSelectedMessage,
+        onAddSelectedMessage = chatViewModel::addSelectedMessage,*/
     )
 }
 
@@ -110,7 +117,7 @@ fun ChatScreen(
     tokenBalance: Double = 0.0,
     chainName: String = "?",
     videoPlayer: Player? = null,
-    onOpenContact: () -> Unit,
+    /*onOpenContact: () -> Unit,
     selectedMessaged: List<Message?> = emptyList(),
     onContactSelected: (ContactEntity) -> Unit,
     onToggleAttachment: (Attachment) -> Unit,
@@ -119,7 +126,7 @@ fun ChatScreen(
     onFocusedMessageUpdate: (Message) -> Unit,
     onPrepareVideo: (Uri) -> Unit,
     onRemoveSelectedMessage: (Message) -> Unit,
-    onAddSelectedMessage: (Message) -> Unit,
+    onAddSelectedMessage: (Message) -> Unit,*/
 ) {
 
 
@@ -155,8 +162,8 @@ fun ChatScreen(
         bottomBar = {
                 ChatBottomAppBar(
                     attachments,
-                    onToggleAttachment = onToggleAttachment,
-                    onSendClick = onSendMessageClicked
+                    onToggleAttachment = { it -> }, //onToggleAttachment,
+                    onSendClick =  { it -> }, //onSendMessageClicked
                 )
         },
         containerColor = Color.Black,
@@ -177,7 +184,7 @@ fun ChatScreen(
                 is MessageUiState.Success -> {
 
                     items(
-                        items = messageUiState.messageEntities,
+                        items = messageUiState.messageEntities.reversed(),
                         key = {message -> message.id}
                     ) { message ->
 
@@ -196,8 +203,8 @@ fun ChatScreen(
                             isLastMessageByAuthor = isLastMessageByAuthor,
                             composablePositionState = composablePositionState,
                             player = videoPlayer,
-                            onPrepareVideo = { onPrepareVideo(it) },
-                            onLongClick = { onFocusedMessageUpdate(message) },
+                            onPrepareVideo =  { it -> },//{ onPrepareVideo(it) },
+                            onLongClick =  {},//{ onFocusedMessageUpdate(message) },
                             name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
                             isSelected = selectedMessagesMap.contains(message),
                             selectMode = selectMode,
@@ -217,8 +224,6 @@ fun ChatScreen(
                     }
 
                 }
-
-
                 else -> {
 
                 }
@@ -226,6 +231,9 @@ fun ChatScreen(
         }
     }
 }
+
+
+
 
 fun chainIdToReadableName(chainId: Int): String = when(chainId) {
     1 -> "Ethereum Mainnet"
@@ -264,13 +272,6 @@ fun  extractTransactionDetails(message: String): TransactionDetails? {
 
     return if (chainId != -1) TransactionDetails(amount, url, chainId) else null
 }
-
-
-
-
-
-
-
 
 
 @Composable
@@ -368,58 +369,40 @@ fun SelectorExpanded(
 }
 
 @Composable
-@Preview
+@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 private fun PreviewChatScreen() {
-    /*
-    val messages = listOf(
-        Message(
-            boxId = Telephony.Mms.MESSAGE_BOX_INBOX,
-            type = "sms",
-            body = "Thanks, just got them :)",
-            dateSent = 1729852610,
-            date = 1732552610
-        ),
-        Message(
-            boxId = 2,
-            type = "sms",
-            body = "Sent 0.01 ETH: https://etherscan.io/tx/0x4e3b4ef5e7bcce14cf2f8fa65d2d2ec4483aef7fa3e47324f3bc76d1e7d0f8cd",
 
-        ),
 
-        Message(
-            type = "sms",
-            body = " A wait, could you borrow me some eth before I go?",
-            dateSent = 1729852610,
-            date = 1729852610
-        ),
-        Message(
-            type = "sms",
-            body = "Will do, see you soon :)",
-            dateSent = 1729459260,
-            date = 1729459260
-        ),
-        Message(
-            boxId = 2,
-            type = "sms",
-            body = "Ok, have a great flight :) Tell me when you land, so I can pick you up",
-            dateSent = 1729241255,
-            date = 1729248355
 
-        ),
-        Message(
-            type = "sms",
-            body = "Hey, my flight will at 2pm. Just wanted to let you know",
-            dateSent = 1729247355,
-            date = 1729248355
+    val messageUiState = MessageUiState.Success(generateTestMessages())
+    val recipientUiState = RecipientUiState.Success(
+        listOf(
+            Recipient(
+                id = "userB",
+                address = "0xDeF456HodlGuyWallet",
+                ens = "hodl.eth",
+                contact = Contact("lk2", "Bob", null, "0x456")
+            )
         )
-
-
     )
-
-    val messageUiState = MessagesUiState.Success(messages)
+    ChatScreen(
+        messageUiState = messageUiState,
+        recipientUiState = recipientUiState,
+        navigateBackToConversations = { },
+        tokenBalance = 2.456,
+        onSendEthClicked = { it -> },
+    )
+    /*
     ChatScreen(
         messagesUiState = messageUiState,
-        recipients = listOf(Recipient(address = "nceornea.eth")),
+        recipients = listOf(
+            Recipient(
+                id = "userB",
+                address = "0xDeF456HodlGuyWallet",
+                ens = "hodl.eth",
+                contact = Contact("lk2", "Bob", null, "0x456")
+            )
+        ),
         navigateBackToConversations={},
         onPhoneClicked = {},
         onSendEthClicked = {},
@@ -435,5 +418,6 @@ private fun PreviewChatScreen() {
         videoPlayer = null
     )
      */
+
 
 }

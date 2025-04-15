@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
@@ -17,6 +18,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import org.ethereumhpone.chat.RecipientUiState
 import org.ethereumhpone.database.model.RecipientEntity
+import org.ethereumphone.model.Contact
+import org.ethereumphone.model.Recipient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +39,8 @@ fun ChatTopAppBar(
             }
 
             CenterAlignedTopAppBar(
+                modifier = Modifier.background(Color.Green),
                 title = {
-                    Row {
-
-                        //TODO: Add icon
 
                         Text(
                             text = header,
@@ -47,8 +48,7 @@ fun ChatTopAppBar(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.clickable { onTitleClicked() },
                         )
-                    }
-
+                    
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
@@ -80,28 +80,14 @@ fun ChatTopAppBar(
 @Preview
 @Composable
 fun PreviewChatTopAppBar() {
-    ChatTopAppBar("My chat", RecipientUiState.Loading, {}, {})
-}
-
-@Preview
-@Composable
-fun PreviewChatTopAppBarNoTitle() {
-    /*
-ChatTopAppBar(
-        "",
+    ChatTopAppBar("My chat", RecipientUiState.Success(
         listOf(
-            Recipient(address = "nicola"),
-            Recipient(address = "nicola"),
-            Recipient(address = "nicola"),
-            Recipient(address = "nicola"),
-            Recipient(address = "nicola"),
-            Recipient(address = "nicola"),
-
-        ),
-        {},
-        {}
-    )
-     */
-
+            Recipient(
+                id = "userB",
+                address = "0xDeF456HodlGuyWallet",
+                ens = "hodl.eth",
+                contact = Contact("lk2", "Bob", null, "0x456")
+            )
+        )
+    ), {}, {})
 }
-

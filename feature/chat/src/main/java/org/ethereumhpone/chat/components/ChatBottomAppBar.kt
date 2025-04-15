@@ -72,7 +72,7 @@ fun ChatBottomAppBar(
     val focusManager = LocalFocusManager.current
 
     BottomAppBar(
-        containerColor = Color.Black
+        containerColor = Color.Blue
     ) {
         Column {
             /*

@@ -682,7 +682,7 @@ fun InboxScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.fillMaxWidth().height(24.dp).background(Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))))
+                        Spacer(modifier = Modifier.fillMaxWidth().height(16.dp).background(Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))))
                     }
 
                     Spacer(modifier = Modifier.fillMaxWidth().height(24.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
