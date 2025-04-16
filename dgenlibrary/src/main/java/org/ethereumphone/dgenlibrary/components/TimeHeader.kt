@@ -17,7 +17,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import com.example.dgenlibrary.ui.theme.dgenWhite
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -38,17 +40,17 @@ fun TimeHeader(timestamp: Instant) {
     ) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = Color.LightGray.copy(alpha = 0.3f)
+            color = dgenWhite.copy(alpha = 0.1f)
         ) {
             Text(
-                text = formatted,
+                text = formatted.uppercase(),
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 style = TextStyle(
-                    fontFamily = PitagonsSans,
+                    fontFamily = SpaceMono,
                     color = dgenTurqoise,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 24.sp,
-                    lineHeight = 24.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 12.sp,
                     letterSpacing = 0.sp,
                     textDecoration = TextDecoration.None
                 )

@@ -173,25 +173,23 @@ fun ChatScreen(
     ) { paddingValues ->
 
 
+        Box(modifier= Modifier.fillMaxSize().padding(paddingValues)){
+            when(messageUiState) {
+                is MessageUiState.Success -> {
+                    val messages = messageUiState.messageEntities
+                    val sortedMessages = messages.reversed().sortedBy {truncateToMinute(it.date) }
 
-        when(messageUiState) {
-            is MessageUiState.Success -> {
-                val messages = messageUiState.messageEntities
-                val sortedMessages = messages.reversed().sortedBy {truncateToMinute(it.date) }
+                    LazyColumn(
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp)
+                            .fillMaxSize()
+                        ,
 
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize()
-                    ,
+                        ) {
 
-                ) {
+                        sortedMessages.forEachIndexed { index, message ->
 
-                    sortedMessages.forEachIndexed { index, message ->
-                           //ChatBubble(message, isGrouped = isGrouped)
-
-                            /**/
-val prevAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) - 1)?.recipient?.id
+                            val prevAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) - 1)?.recipient?.id
                             val nextAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) + 1)?.recipient?.id
                             val isFirstMessageByAuthor = prevAuthor != message.recipient.id
                             val isLastMessageByAuthor = nextAuthor != message.recipient.id
@@ -240,12 +238,14 @@ val prevAuthor = messageUiState.messageEntities.getOrNull(messageUiState.message
 
 
 
+                    }
+                }
+                else -> {
+
                 }
             }
-            else -> {
-
-            }
         }
+
 
     }
 }

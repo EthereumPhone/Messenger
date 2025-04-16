@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -61,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.ChatItemBubbleV2
+import org.ethereumhpone.chat.components.ChatItemBubbleV3
 import org.ethereumhpone.chat.components.EthOSCheckbox
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
@@ -147,30 +150,18 @@ fun MessageItem(
     val isUserMe = msg.isMe
 
 
-    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
-        .padding(top = 8.dp)
-        .fillMaxWidth() else Modifier
+    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier.fillMaxWidth() else Modifier
 
-    val alignmessage = if(isUserMe) {
-        Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp)
-            .onGloballyPositioned { coordinates ->
-                compSize = coordinates.size.height
-                positionComp = coordinates.positionInRoot()
-            }
-    } else {
-        Modifier
-            .fillMaxWidth()
-            .padding(end = 16.dp)
-            .onGloballyPositioned { coordinates ->
-                compSize = coordinates.size.height
-                positionComp = coordinates.positionInRoot()
-            }
-    }
+    val alignmessage = Modifier
+        .widthIn(max = 400.dp)
+        .onGloballyPositioned { coordinates ->
+            compSize = coordinates.size.height
+            positionComp = coordinates.positionInRoot()
+        }
 
     Row(
         modifier = spaceBetweenAuthors,
+        horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
         AnimatedVisibility(selectMode.value){
@@ -186,7 +177,8 @@ fun MessageItem(
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
 
-            ChatItemBubbleV2(
+            ChatItemBubbleV3(
+                modifier = alignmessage,
                 messageEntity = msg,
                 isUserMe = isUserMe,
                 isFirstMessageByAuthor = isFirstMessageByAuthor,
@@ -201,30 +193,6 @@ fun MessageItem(
                 name = name,
                 onDoubleClick = onDoubleClick
             )
-
-            //TODO: FIX these
-            /*
-            val messageText = when {
-                msg.isSending() -> ""
-                msg.isFailedMessage() -> "Tap to resend"
-                else -> ""
-            }
-             */
-
-            val messageText = ""
-
-
-            if (messageText.isNotEmpty()) {
-                Text(
-                    text = messageText,
-                    fontFamily = Fonts.INTER,
-                    fontSize = 12.sp,
-                    color = Color.White,
-                    modifier = Modifier.clickable {  }
-                )
-            }
-
-
 
             if (isFirstMessageByAuthor) {
                 // Last bubble before next author
@@ -255,7 +223,6 @@ fun AuthorNameTimestamp(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .padding(top = 4.dp)
     ) {
 
         Text(

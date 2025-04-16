@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Text
@@ -33,11 +34,18 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.dgenOcean
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import com.example.dgenlibrary.ui.theme.dgenWhite
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
 import org.ethereumhpone.chat.components.message.ClickableMessage
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
@@ -49,9 +57,12 @@ import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 
+
+val BubbleShape = RoundedCornerShape(8.dp,8.dp,8.dp,8.dp)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ChatItemBubbleV2(
+fun ChatItemBubbleV3(
     modifier: Modifier = Modifier,
     messageEntity: Message,
     isUserMe: Boolean,
@@ -69,22 +80,10 @@ fun ChatItemBubbleV2(
     //TODO: Distinction between reply message and normal message
     val hasReply = hasReply
 
-    val Bubbleshape = if(isUserMe) {
-        if (isFirstMessageByAuthor){
-            org.ethereumhpone.chat.components.message.LastUserChatBubbleShape
-        }else{
-            org.ethereumhpone.chat.components.message.UserChatBubbleShape
-        }
-    } else{
-        if (isFirstMessageByAuthor){
-            org.ethereumhpone.chat.components.message.LastChatBubbleShape
-        }else{
-            org.ethereumhpone.chat.components.message.ChatBubbleShape
-        }
-    }
+    val Bubbleshape = BubbleShape
 
     val nogradient = Color(0xFF8C7DF7)
-    val xmtpgradient = Color(0xFFF83C40)
+    val xmtpgradient = dgenOcean
 
     val reciepientcolor = Colors.DARK_GRAY
 
@@ -106,14 +105,14 @@ fun ChatItemBubbleV2(
 
 
     Column (
-        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.Bottom,
         modifier = Modifier
             .clip(Bubbleshape)
             .background(messageBrush)
-            .width(IntrinsicSize.Max)
+            .padding(end = 12.dp, start = 12.dp, top = 12.dp, bottom = 8.dp)
     ){
         //TODO FIX THIS
-        val media =  emptyList<MessageEntity>() //message.parts.filter { it.isImage() || it.isVideo() }
+        /*val media =  emptyList<MessageEntity>() //message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
             Box(
@@ -227,13 +226,13 @@ fun ChatItemBubbleV2(
 
 
             }
-        }
+        }*/
 
 
         FlowRow (
-            maxItemsInEachRow = 2,
             modifier = Modifier,
             horizontalArrangement = Arrangement.End,
+            verticalArrangement = Arrangement.Center
         ) {
 
             val uriHandler = LocalUriHandler.current
@@ -247,12 +246,17 @@ fun ChatItemBubbleV2(
                 )
 
                 ClickableMessage(
+                    modifier= Modifier.widthIn(max = 400.dp),
                     styledMessage = styledMessage,
                     style = TextStyle(
+                        textAlign = TextAlign.Start ,
+                        fontFamily = PitagonsSans,
+                        color = dgenWhite,
+                        fontWeight = FontWeight.Normal,
                         fontSize = 16.sp,
-                        fontWeight =  FontWeight.Normal,
-                        color = Colors.WHITE,
-                        fontFamily = Fonts.INTER
+                        lineHeight = 16.sp,
+                        letterSpacing = 0.sp,
+                        textDecoration = TextDecoration.None
                     ),
                     onLongClick = onLongClick,
 
@@ -273,57 +277,13 @@ fun ChatItemBubbleV2(
                     messageBrush = messageBrush
                 )
             }
-
-
-
-            AuthorNameTimestamp(messageEntity)
+            AuthorNameTimestamp(
+                messageEntity,
+                modifier = Modifier.padding(start=16.dp, top=4.dp).fillMaxHeight()
+            )
 
 
 
         }
     }
-
-//    }
-}
-
-
-
-@Preview
-@Composable
-fun ReplyChatItemBubblePreview() {
-
-
-
-    /*val initialMessages = listOf(
-
-        Message(
-            address = "me",
-            body = "Check it out!",
-            subject = "8:07 PM"
-        ),
-//        Message(
-//            address = "me",
-//            body = "Thank you!",
-//            subject = "8:06 PM",
-//            mmsStatus = R.drawable.ethos
-//        ),
-        Message(
-            address = "me",
-            body = "You can use all the same stuff",
-            subject = "8:05 PM"
-        ),
-
-    )
-
-    val authorMe = "me"
-
-
-    ChatItemBubbleV2(
-        message = initialMessages[1],
-        isUserMe = true,
-        videoPlayer = null,
-        isFirstMessageByAuthor = true,
-        onPlayVideo = {}
-    )*/
-
 }
