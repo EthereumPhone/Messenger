@@ -147,17 +147,17 @@ fun ChatBottomAppBar(
 
     Column(
             Modifier
-                .fillMaxWidth().background(dgenGreen)
-                .animateContentSize()
+                .fillMaxWidth()
+                .animateContentSize().background(dgenBlack)
                 .padding(vertical = 8.dp, horizontal = 16.dp)
-                .then(if (expand.value) Modifier.fillMaxHeight() else Modifier.heightIn(max= 100.dp)),
+                .then(if (expand.value) Modifier.fillMaxHeight() else Modifier.heightIn(max= 250.dp)),
         verticalArrangement = Arrangement.Center
     ) {
 
 
         Box {
             Row(
-                modifier = Modifier.padding(top=8.dp),
+                modifier = Modifier,
                 verticalAlignment = Alignment.CenterVertically,
 
             ) {
@@ -230,7 +230,7 @@ fun ChatBottomAppBar(
 
 
                 Row(
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp,)
                 ) {
                     OldSchoolThickCursorTextField(
                         value = textState,
@@ -248,7 +248,7 @@ fun ChatBottomAppBar(
                             color = dgenWhite,
                             fontWeight = FontWeight.Normal,
                             fontSize = 18.sp,
-                            lineHeight = 18.sp,
+                            lineHeight = 20.sp,
                             letterSpacing = 0.sp,
                             textDecoration = TextDecoration.None
                         ),
@@ -282,9 +282,12 @@ fun ChatBottomAppBar(
                 }
 
             }
+            /**/
             if(hasMultipleLines.value){
-                Spacer(modifier = Modifier.width(320.dp).height(24.dp).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(dgenBlack,Color.Transparent ))))
+                Spacer(modifier = Modifier.width(320.dp).height(8.dp).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(dgenBlack,Color.Transparent ))))
             }
+
+
         }
 
     }

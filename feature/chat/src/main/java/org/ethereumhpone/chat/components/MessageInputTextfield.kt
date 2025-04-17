@@ -45,6 +45,7 @@ import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.dgenBlack
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.example.dgenlibrary.ui.theme.dgenWhite
+import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 
 @Composable
 fun OldSchoolThickCursorTextField(
@@ -57,6 +58,7 @@ fun OldSchoolThickCursorTextField(
     cursorHeight: Float = 32f,
     blinkDuration: Int = 500,
     hasMultipleLines: MutableState<Boolean> = mutableStateOf(false),
+    expand: MutableState<Boolean> = mutableStateOf(false),
     visualTransformation: VisualTransformation = VisualTransformation.None,
     maxFieldHeight: Dp = 150.dp,
     cursorVerticalOffset: Dp = 18.dp,
@@ -114,6 +116,10 @@ fun OldSchoolThickCursorTextField(
                 lineCount = layoutResult.lineCount
                 hasMultipleLines.value = (lineCount > 1)
                 textLayoutResult = layoutResult
+
+                if(hasMultipleLines.value && lineCount > 3){
+                    expand.value = true
+                }
             }
         ) { innerTextField ->
             // 4) draw text + custom cursor, offset by scrollState.value

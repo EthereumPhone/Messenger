@@ -89,7 +89,7 @@ fun Modifier.verticalLazyListScrollbar(
                 drawRoundRect(
                     color = scrollBarTrackColor.copy(alpha = alpha),
                     cornerRadius = CornerRadius(scrollBarCornerRadius),
-                    topLeft = Offset(size.width - endPadding.toPx(),endPadding.toPx()),
+                    topLeft = Offset(size.width - 32f,32f),
                     size = Size(width.toPx(), trackHeight)
                 )
             }
@@ -98,7 +98,7 @@ fun Modifier.verticalLazyListScrollbar(
             drawRoundRect(
                 color = scrollBarColor.copy(alpha = alpha),
                 cornerRadius = CornerRadius(scrollBarCornerRadius),
-                topLeft = Offset(size.width - endPadding.toPx(), endPadding.toPx() + targetScrollBarOffset),
+                topLeft = Offset(size.width - 32f, 32f + targetScrollBarOffset),
                 size = Size(width.toPx(), thumbHeight)
             )
         }

@@ -82,6 +82,7 @@ import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.components.TimeHeader
+import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient

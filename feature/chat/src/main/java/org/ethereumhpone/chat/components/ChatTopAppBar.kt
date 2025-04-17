@@ -54,12 +54,15 @@ fun ChatTopAppBar(
             val recipients = recipientUiState.recipients
 
             val header = title.ifBlank {
-                val displayNames = recipients.map { "it.getDisplayName()" } //TODO FIX display name
+                val displayNames = recipients.map { "${it.contact?.name}" } //TODO FIX display name
                 displayNames.joinToString(", ")
             }
 
             Row(
-                modifier = modifier.background(dgenRed).fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = modifier
+                    .background(dgenBlack)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ){
@@ -84,7 +87,9 @@ fun ChatTopAppBar(
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = modifier.widthIn(min= 10.dp, max = 250.dp).clickable { onTitleClicked() },
+                    modifier = modifier
+                        .widthIn(min = 10.dp, max = 250.dp)
+                        .clickable { onTitleClicked() },
                 )
                 IconButton(onClick = onBackClicked) {
                     Icon(
