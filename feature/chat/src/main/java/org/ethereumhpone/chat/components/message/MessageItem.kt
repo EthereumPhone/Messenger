@@ -150,25 +150,18 @@ fun MessageItem(
 
 
     val alignmessage = Modifier
-        .widthIn(max = 400.dp)
+        .widthIn(max = 300.dp)
         .onGloballyPositioned { coordinates ->
             compSize = coordinates.size.height
             positionComp = coordinates.positionInRoot()
         }
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(start = 32.dp,end = 32.dp),
         horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AnimatedVisibility(selectMode.value){
-            EthOSCheckbox(
-                checked = isSelected,
-                onCheckedChange = {
-                    onSelect(msg)
-                },
-            )
-        }
+
         Column(
             modifier = alignmessage,
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start

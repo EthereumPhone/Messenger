@@ -2,9 +2,20 @@ package org.ethereumhpone.chat
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -32,16 +44,32 @@ import androidx.compose.ui.unit.dp
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.chat.components.message.MessageItem
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.InsertPhoto
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ChatBottomAppBar
@@ -138,12 +166,6 @@ fun ChatScreen(
     val showBottomSheet by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
-    // check if either keyboard or bottomSheet are open
-    BackHandler(WindowInsets.isImeVisible && !showBottomSheet) {
-        focusManager.clearFocus()
-
-    }
-
     //gets offset of message composable
     val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
 
@@ -151,116 +173,314 @@ fun ChatScreen(
     val selectMode = remember { mutableStateOf(false) }
     val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
 
+    var showOverlay = remember { mutableStateOf(false) }
+    var hasMultipleLines = remember { mutableStateOf(false) }
+    val expand = remember { mutableStateOf(false) }
+    var shouldRotate by remember { mutableStateOf(false) }
+    val scrollState = rememberLazyListState()
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    BackHandler(showOverlay.value || (WindowInsets.isImeVisible && !showBottomSheet)) {
+        if (showOverlay.value) {
+            showOverlay.value = false
+        } else {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+        }
+    }
 
 
 
-    Scaffold (
-        topBar = {
-            ChatTopAppBar(
-                "",
-                recipientUiState = recipientUiState,
-                onTitleClicked = {},
-                onBackClicked = navigateBackToConversations
-            )
-        },
-        bottomBar = {
+
+    Box(
+        modifier = Modifier.fillMaxSize().imePadding()
+    ){
+        Scaffold (
+            topBar = {
+                ChatTopAppBar(
+                    "",
+                    recipientUiState = recipientUiState,
+                    onTitleClicked = {},
+                    onBackClicked = navigateBackToConversations
+                )
+            },
+            bottomBar = {
                 ChatBottomAppBar(
                     attachments,
                     onToggleAttachment = { it -> }, //onToggleAttachment,
                     onSendClick =  { it -> }, //onSendMessageClicked
+                    hasMultipleLines =  hasMultipleLines,
+                    expand = expand,
+                    openAction = {
+                        // Show overlay when this action is triggered
+                        showOverlay.value = true
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                    },
+
+
+
                 )
-        },
-        containerColor = Color.Black,
-        modifier = Modifier.imePadding()
-
-    ) { paddingValues ->
+            },
+            containerColor = dgenBlack,
+        ) { paddingValues ->
 
 
-        Box(modifier= Modifier.fillMaxSize().padding(paddingValues)){
-            when(messageUiState) {
-                is MessageUiState.Success -> {
-                    val messages = messageUiState.messageEntities
-                    val sortedMessages = messages.reversed().sortedBy {truncateToDate(it.date) }
+            Box(modifier= Modifier.fillMaxSize().padding(paddingValues)){
+                when(messageUiState) {
+                    is MessageUiState.Success -> {
+                        val messages = messageUiState.messageEntities
+                        val sortedMessages = messages.reversed().sortedBy {truncateToDate(it.date) }
 
-                    LazyColumn(
-                        modifier = Modifier
-                            .padding(horizontal = 24.dp)
-                            .fillMaxSize()
-                        ,
-
+                        LazyColumn(
+                            state = scrollState,
+                            modifier = Modifier.fillMaxSize(),
                         ) {
 
-                        sortedMessages.reversed().forEachIndexed { index, message ->
+                            sortedMessages.reversed().forEachIndexed { index, message ->
 
 
-                            /*
-                            val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
-                            val nextAuthor = messages.getOrNull(messages.indexOf(message) + 1)?.recipient?.id
-                            val isFirstMessageByAuthor = prevAuthor != message.recipient.id
-                            val isLastMessageByAuthor = nextAuthor != message.recipient.id
-                             */
+                                /*
+                                val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
+                                val nextAuthor = messages.getOrNull(messages.indexOf(message) + 1)?.recipient?.id
+                                val isFirstMessageByAuthor = prevAuthor != message.recipient.id
+                                val isLastMessageByAuthor = nextAuthor != message.recipient.id
+                                 */
 
 
-                            val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
-                            val isFirstMessageByAuthor = prevAuthor != message.recipient.id
+                                val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
+                                val isFirstMessageByAuthor = prevAuthor != message.recipient.id
 
 
 
 
 
-                            val prevDate = messages.getOrNull(messages.indexOf(message) - 1)?.date
+                                val prevDate = messages.getOrNull(messages.indexOf(message) - 1)?.date
 
-                            val newprevDate =
-                                prevDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
+                                val newprevDate =
+                                    prevDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
 
 
-                            val nextDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
+                                val nextDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
 
-                            if (newprevDate != nextDate){
-                                item {
-                                    TimeHeader(message.date)
+                                if (newprevDate != nextDate){
+                                    item {
+                                        TimeHeader(message.date)
+                                    }
                                 }
+
+                                item {
+                                    MessageItem(
+                                        onAuthorClick = { },
+                                        msg = message,
+
+                                        composablePositionState = composablePositionState,
+                                        player = videoPlayer,
+                                        onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
+                                        onLongClick = {},//{ onFocusedMessageUpdate(message) },
+                                        name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
+                                        isSelected = selectedMessagesMap.contains(message),
+                                        selectMode = selectMode,
+                                        isXMTP = true,
+                                        onSelect = { selectedMessage ->
+                                            // invert boolean or add
+                                            selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
+                                                isChecked?.let { !it } ?: true
+                                            }
+                                        },
+                                        onDoubleClick = { selectMode.value = !selectMode.value },
+                                        isFirstMessageByAuthor = isFirstMessageByAuthor
+                                    )
+                                }
+
                             }
 
-                            item {
-                                MessageItem(
-                                    onAuthorClick = { },
-                                    msg = message,
 
-                                    composablePositionState = composablePositionState,
-                                    player = videoPlayer,
-                                    onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
-                                    onLongClick = {},//{ onFocusedMessageUpdate(message) },
-                                    name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
-                                    isSelected = selectedMessagesMap.contains(message),
-                                    selectMode = selectMode,
-                                    isXMTP = true,
-                                    onSelect = { selectedMessage ->
-                                        // invert boolean or add
-                                        selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
-                                            isChecked?.let { !it } ?: true
-                                        }
-                                    },
-                                    onDoubleClick = { selectMode.value = !selectMode.value },
-                                    isFirstMessageByAuthor = isFirstMessageByAuthor
-                                )
-                            }
+
 
                         }
-
-
-
+                    }
+                    else -> {
 
                     }
                 }
-                else -> {
+            }
 
+
+        }
+
+        // Overlay with AnimatedVisibility for fade effect
+        AnimatedVisibility(
+            visible = showOverlay.value,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+
+            LaunchedEffect(showOverlay.value) {
+                if (showOverlay.value) {
+                    delay(300)
+                    shouldRotate = true
+                } else {
+                    shouldRotate = false
+                }
+            }
+
+            var alpha1 by remember { mutableStateOf(0f) }
+            var alpha2 by remember { mutableStateOf(0f) }
+            var alpha3 by remember { mutableStateOf(0f) }
+            val delayBetweenTexts = 25
+
+            // Animation spec
+            val animationSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
+
+            // Trigger animations when parent becomes visible
+            LaunchedEffect(showOverlay.value) {
+                if (showOverlay.value) {
+                    // Reset states
+                    alpha1 = 0f
+                    alpha2 = 0f
+                    alpha3 = 0f
+
+                    // Start sequential animations
+                    delay(100) // Small initial delay
+
+                    // Animate first text
+                    animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
+                        alpha1 = value
+                    }
+
+                    delay(delayBetweenTexts.toLong())
+
+                    // Animate second text
+                    animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
+                        alpha2 = value
+                    }
+
+                    delay(delayBetweenTexts.toLong())
+
+                    // Animate third text
+                    animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
+                        alpha3 = value
+                    }
+                } else {
+                    // Reset when hiding
+                    alpha1 = 0f
+                    alpha2 = 0f
+                    alpha3 = 0f
+                }
+            }
+
+            // Create animated rotation value
+            val rotation by animateFloatAsState(
+                targetValue = if (shouldRotate) 45f else 0f,
+                animationSpec = tween(
+                    durationMillis = 300,
+                    easing = FastOutSlowInEasing
+                ),
+                label = "rotation"
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(dgenBlack)
+                    .clickable { showOverlay.value = false },
+                contentAlignment = Alignment.BottomStart
+            ) {
+                // Your overlay content here
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+
+                        //.align(Alignment.Center)
+                        // Prevent clicks on the content from closing the overlay
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { /* Do nothing to prevent propagation */ },
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(32.dp)
+                    ) {
+                        Text(
+                            text = "Video",
+                            style = TextStyle(
+                                fontFamily = PitagonsSans,
+                                color = dgenTurqoise,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 40.sp,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None
+                            ),
+                            modifier = Modifier.alpha(alpha3)
+                        )
+                        Text(
+                            text = "Image",
+                            style = TextStyle(
+                                fontFamily = PitagonsSans,
+                                color = dgenTurqoise,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 40.sp,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None
+                            ),
+                            modifier = Modifier.alpha(alpha2)
+                        )
+                        Text(
+                            text = "Send",
+                            style = TextStyle(
+                                fontFamily = PitagonsSans,
+                                color = dgenTurqoise,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 40.sp,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None
+                            ),
+                            modifier = Modifier.alpha(alpha1)
+                        )
+                    }
+
+
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp, horizontal = 16.dp),
+                    ) {
+                        IconButton(
+                            onClick = {
+                                showOverlay.value = false
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                Color.Transparent,
+                                dgenTurqoise
+                            ),
+                            modifier = Modifier.size(56.dp)
+                        ) {
+
+                            Icon(
+                                modifier = Modifier.size(36.dp).graphicsLayer{
+                                    rotationZ = rotation
+                                },
+                                imageVector = Icons.Outlined.Add,
+                                tint = dgenTurqoise,
+                                contentDescription = "collapse"
+                            )
+                        }
+                    }
                 }
             }
         }
-
-
     }
+
 }
 
 

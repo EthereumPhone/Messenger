@@ -245,7 +245,7 @@ fun ChatItemBubbleV3(
                 )
 
                 ClickableMessage(
-                    modifier= Modifier.widthIn(max = 400.dp),
+                    modifier= Modifier.widthIn(max = 300.dp),
                     styledMessage = styledMessage,
                     style = TextStyle(
                         textAlign = TextAlign.Start ,
@@ -253,7 +253,7 @@ fun ChatItemBubbleV3(
                         color = dgenWhite,
                         fontWeight = FontWeight.Normal,
                         fontSize = 16.sp,
-                        lineHeight = 16.sp,
+                        lineHeight = 18.sp,
                         letterSpacing = 0.sp,
                         textDecoration = TextDecoration.None
                     ),

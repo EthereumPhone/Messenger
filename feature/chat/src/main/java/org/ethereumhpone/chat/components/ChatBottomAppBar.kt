@@ -1,6 +1,7 @@
 package org.ethereumhpone.chat.components
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
@@ -18,18 +19,25 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 
@@ -55,6 +63,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -65,12 +74,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.SoftwareKeyboardController
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -89,9 +103,12 @@ import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.body1_fontSize
 import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenGreen
+import com.example.dgenlibrary.ui.theme.dgenRed
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.example.dgenlibrary.ui.theme.dgenWhite
 import com.example.dgenlibrary.ui.theme.label_fontSize
+import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.model.Attachments
@@ -102,13 +119,14 @@ import org.ethosmobile.components.library.theme.Fonts
 fun ChatBottomAppBar(
     attachments: Set<Attachment>,
     onToggleAttachment: (Attachment) -> Unit,
-    onSendClick: (String) -> Unit
+    onSendClick: (String) -> Unit,
+    hasMultipleLines: MutableState<Boolean> = mutableStateOf(false),
+    expand: MutableState<Boolean> = mutableStateOf(false),
+    openAction: () -> Unit
 ) {
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusManager = LocalFocusManager.current
 
-    var isFocused by remember { mutableStateOf(true) }
-    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
 
     val customTextSelectionColors = TextSelectionColors(
@@ -126,42 +144,93 @@ fun ChatBottomAppBar(
     )
 
 
+
     Column(
             Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().background(dgenGreen)
                 .animateContentSize()
-                .height(IntrinsicSize.Max)
                 .padding(vertical = 8.dp, horizontal = 16.dp)
-        ) {
+                .then(if (expand.value) Modifier.fillMaxHeight() else Modifier.heightIn(max= 100.dp)),
+        verticalArrangement = Arrangement.Center
+    ) {
 
+
+        Box {
             Row(
+                modifier = Modifier.padding(top=8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
 
-                    IconButton(
-                        onClick = {
-                            onSendClick(textState.text)
-                            focusManager.clearFocus()
-                            textState = TextFieldValue()
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            Color.Transparent,
-                            dgenTurqoise
-                        ),
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(36.dp),
-                            imageVector = Icons.Outlined.Add,
-                            contentDescription = "send"
-                        )
+            ) {
+                AnimatedContent(
+                    targetState = hasMultipleLines.value,
+                    label = "animated content",
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(150, 150)) togetherWith
+                                fadeOut(animationSpec = tween(150))
                     }
+                ) { target ->
+                    // Make sure to use `targetCount`, not `count`.
+                    if (target){
+                        IconButton(
+                            onClick = {
+                                expand.value = !expand.value
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                Color.Transparent,
+                                dgenTurqoise
+                            ),
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            AnimatedContent(
+                                targetState = expand.value,
+                                label = "animated content",
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(150, 150)) togetherWith
+                                            fadeOut(animationSpec = tween(150))
+                                }
+                            ) { expandValue ->
+                                if(expandValue){
+                                    Icon(
+                                        modifier = Modifier.size(36.dp),
+                                        imageVector = ImageVector.vectorResource(R.drawable.sharp_collapse_content_24),
+                                        tint = dgenTurqoise,
+                                        contentDescription = "collapse"
+                                    )
+                                }else{
+                                    Icon(
+                                        modifier = Modifier.size(36.dp),
+                                        imageVector = ImageVector.vectorResource(R.drawable.sharp_expand_content_24),
+                                        tint = dgenTurqoise,
+                                        contentDescription = "expand"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        IconButton(
+                            onClick = openAction,
+                            colors = IconButtonDefaults.iconButtonColors(
+                                Color.Transparent,
+                                dgenTurqoise
+                            ),
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(36.dp),
+                                imageVector = Icons.Outlined.Add,
+                                tint = dgenTurqoise,
+                                contentDescription = "collapse"
+                            )
+                        }
+                    }
+
+                }
 
 
 
                 Row(
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                 ) {
                     OldSchoolThickCursorTextField(
                         value = textState,
@@ -183,34 +252,42 @@ fun ChatBottomAppBar(
                             letterSpacing = 0.sp,
                             textDecoration = TextDecoration.None
                         ),
+                        hasMultipleLines = hasMultipleLines,
                         cursorColor = dgenWhite,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
 
-                    IconButton(
-                        onClick = {
-                            onSendClick(textState.text)
-                            focusManager.clearFocus()
-                            textState = TextFieldValue()
-                                  },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            Color.Transparent,
-                            dgenTurqoise
-                        ),
-                        modifier = Modifier
-                            .padding(start = 5.dp)
-                            .size(56.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Send,
-                            contentDescription = "send",
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
+                IconButton(
+                    onClick = {
+                        onSendClick(textState.text)
+                        focusManager.clearFocus()
+                        textState = TextFieldValue()
+                        expand.value = false
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        Color.Transparent,
+                        dgenTurqoise
+                    ),
+                    modifier = Modifier
+                        .size(56.dp)
+                ) {
+                    Icon(
+                        modifier = Modifier.size(36.dp),
+                        imageVector = ImageVector.vectorResource(R.drawable.sharp_send_24),
+                        tint = dgenTurqoise,
+                        contentDescription = "collapse"
+                    )
+                }
+
+            }
+            if(hasMultipleLines.value){
+                Spacer(modifier = Modifier.width(320.dp).height(24.dp).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(dgenBlack,Color.Transparent ))))
             }
         }
+
+    }
 
 }
 
@@ -222,8 +299,10 @@ fun previewChatBottomAppBar() {
 
     var selected by remember {  mutableStateOf(true)  }
 
+    var test = remember {  mutableStateOf(true)  }
+
     Column {
         Button(onClick = {selected = !selected}) { Text("Switch") }
-        ChatBottomAppBar(if (selected) set1 else set2, {}, {})
+       // ChatBottomAppBar(if (selected) set1 else set2, {}, {},  test, openAction = {})
     }
 }

@@ -5,7 +5,9 @@ package org.ethereumhpone.chat.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -15,21 +17,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import com.example.dgenlibrary.ui.theme.dgenWhite
 
 @Composable
 fun OldSchoolThickCursorTextField(
@@ -38,11 +53,16 @@ fun OldSchoolThickCursorTextField(
     modifier: Modifier = Modifier,
     textStyle: TextStyle = LocalTextStyle.current,
     cursorColor: Color = MaterialTheme.colors.primary,
-    cursorWidth: Float = 8f,
-    cursorHeight: Float = 24f,
+    cursorWidth: Float = 16f,
+    cursorHeight: Float = 32f,
     blinkDuration: Int = 500,
-    visualTransformation: VisualTransformation = VisualTransformation.None
+    hasMultipleLines: MutableState<Boolean> = mutableStateOf(false),
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    maxFieldHeight: Dp = 150.dp,
+    cursorVerticalOffset: Dp = 18.dp,
 ) {
+
+    // 1) blink animation, layout & focus state
     val infiniteTransition = rememberInfiniteTransition()
     val blinkAlpha by infiniteTransition.animateFloat(
         initialValue = 1f, targetValue = 0f,
@@ -51,43 +71,83 @@ fun OldSchoolThickCursorTextField(
             repeatMode = RepeatMode.Reverse
         )
     )
-
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
-    val textMeasurer = rememberTextMeasurer()
+    var isFocused by remember { mutableStateOf(false) }
 
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        textStyle = textStyle,
-        visualTransformation = visualTransformation,
-        modifier = modifier,
-        onTextLayout = { textLayoutResult = it } // capture the layout
-    ) { innerTextField ->
-        Box(
-            Modifier.drawWithContent {
-                // first draw the text
-                drawContent()
+    // 2) scroll state for vertical scrolling
+    val scrollState = rememberScrollState()
 
-                // then draw our thick cursor on top
-                textLayoutResult
-                    ?.takeIf { value.selection.collapsed }
-                    ?.let { tlr ->
-                        val pos = value.selection.start
-                        val rect = tlr.getCursorRect(pos)
-                        val y = rect.top + (rect.height - cursorHeight) / 2
+    // 3) auto‐scroll down whenever new text bumps max scroll
+    LaunchedEffect(scrollState.maxValue) {
+        scrollState.scrollTo(scrollState.maxValue)
+    }
 
-                        drawRect(
-                            color   = cursorColor.copy(alpha = blinkAlpha),
-                            topLeft = Offset(rect.left, y),
-                            size    = Size(cursorWidth, cursorHeight)
-                        )
-                    }
-            }
-        ) {
-            innerTextField()
+    var lineCount by remember { mutableStateOf(1)}
+
+    Box(
+        modifier = modifier.heightIn(max = maxFieldHeight)      // fix the height so overflow can happen
+            .verticalScroll(scrollState),
+        contentAlignment = Alignment.CenterStart
+    ) {
+
+        if (value.text.isBlank()) {
+            Text(
+                text = "Type a message",
+                style = TextStyle(
+                    fontFamily = PitagonsSans,
+                    color = dgenTurqoise.copy(alpha = 0.45f),
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 20.sp
+                )
+            )
         }
+
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = textStyle,
+            visualTransformation = visualTransformation,
+            modifier = modifier
+                .onFocusChanged { isFocused = it.isFocused },
+            cursorBrush = SolidColor(Color.Transparent),
+            onTextLayout = { layoutResult ->
+                lineCount = layoutResult.lineCount
+                hasMultipleLines.value = (lineCount > 1)
+                textLayoutResult = layoutResult
+            }
+        ) { innerTextField ->
+            // 4) draw text + custom cursor, offset by scrollState.value
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .drawWithContent {
+                        drawContent()
+                        textLayoutResult
+                            ?.takeIf { value.selection.collapsed }
+                            ?.let { tlr ->
+                                val rect = tlr.getCursorRect(value.selection.start)
+
+                                // subtract scroll to bring into view
+                                val y = rect.top
+                                - scrollState.value
+                                + (rect.height - cursorHeight) / 2f
+                                + cursorVerticalOffset.toPx()
+
+                                drawRect(
+                                    color   = cursorColor.copy(alpha = if (isFocused) blinkAlpha else 0f),
+                                    topLeft = Offset(rect.left, y),
+                                    size    = Size(cursorWidth, cursorHeight)
+                                )
+                            }
+                    }
+            ) {
+                innerTextField()
+            }
+        }
+
     }
 }
+
 
 
 // Helper class to handle text layout consistently
