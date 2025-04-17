@@ -161,70 +161,20 @@ fun ChatBottomAppBar(
                 verticalAlignment = Alignment.CenterVertically,
 
             ) {
-                AnimatedContent(
-                    targetState = hasMultipleLines.value,
-                    label = "animated content",
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(150, 150)) togetherWith
-                                fadeOut(animationSpec = tween(150))
-                    }
-                ) { target ->
-                    // Make sure to use `targetCount`, not `count`.
-                    if (target){
-                        IconButton(
-                            onClick = {
-                                expand.value = !expand.value
-                            },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                Color.Transparent,
-                                dgenTurqoise
-                            ),
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            AnimatedContent(
-                                targetState = expand.value,
-                                label = "animated content",
-                                transitionSpec = {
-                                    fadeIn(animationSpec = tween(150, 150)) togetherWith
-                                            fadeOut(animationSpec = tween(150))
-                                }
-                            ) { expandValue ->
-                                if(expandValue){
-                                    Icon(
-                                        modifier = Modifier.size(36.dp),
-                                        imageVector = ImageVector.vectorResource(R.drawable.sharp_collapse_content_24),
-                                        tint = dgenTurqoise,
-                                        contentDescription = "collapse"
-                                    )
-                                }else{
-                                    Icon(
-                                        modifier = Modifier.size(36.dp),
-                                        imageVector = ImageVector.vectorResource(R.drawable.sharp_expand_content_24),
-                                        tint = dgenTurqoise,
-                                        contentDescription = "expand"
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        IconButton(
-                            onClick = openAction,
-                            colors = IconButtonDefaults.iconButtonColors(
-                                Color.Transparent,
-                                dgenTurqoise
-                            ),
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(36.dp),
-                                imageVector = Icons.Outlined.Add,
-                                tint = dgenTurqoise,
-                                contentDescription = "collapse"
-                            )
-                        }
-                    }
-
+                IconButton(
+                    onClick = openAction,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        Color.Transparent,
+                        dgenTurqoise
+                    ),
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        modifier = Modifier.size(36.dp),
+                        imageVector = Icons.Outlined.Add,
+                        tint = dgenTurqoise,
+                        contentDescription = "collapse"
+                    )
                 }
 
 
