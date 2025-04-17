@@ -3,9 +3,15 @@ package org.ethereumhpone.chat.components
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -26,7 +32,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.BottomNavigationDefaults.windowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -43,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,12 +64,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
@@ -66,9 +87,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.body1_fontSize
 import com.example.dgenlibrary.ui.theme.dgenBlack
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.example.dgenlibrary.ui.theme.dgenWhite
+import com.example.dgenlibrary.ui.theme.label_fontSize
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.model.Attachments
@@ -84,7 +107,26 @@ fun ChatBottomAppBar(
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusManager = LocalFocusManager.current
 
-        Column(
+    var isFocused by remember { mutableStateOf(true) }
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+
+    val customTextSelectionColors = TextSelectionColors(
+        handleColor = Color.Transparent,     // <- Hides the handle
+        backgroundColor = Color.Transparent  // <- Optional: also hides selection highlight
+    )
+
+    val cursorAlpha by rememberInfiniteTransition().animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+
+    Column(
             Modifier
                 .fillMaxWidth()
                 .animateContentSize()
@@ -117,55 +159,35 @@ fun ChatBottomAppBar(
                     }
 
 
-                TextField(
-                    shape = RoundedCornerShape(35.dp),
-                    value = textState,
-                    onValueChange = { textState = it },
-                    modifier = Modifier
-                        .weight(1f)
-                        .animateContentSize(spring(
-                            stiffness = Spring.StiffnessMediumLow,
-                            visibilityThreshold = IntSize.VisibilityThreshold
-                        ))
 
-                    ,
-                    placeholder = {
-                        Text(
-                            text = "Type a message",
-                            style = TextStyle(
-                                fontFamily = PitagonsSans,
-                                color = dgenTurqoise,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 20.sp,
-                                lineHeight = 20.sp,
-                                letterSpacing = 0.sp,
-                                textDecoration = TextDecoration.None
-                            )
-                        )
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = dgenWhite,
-                        unfocusedTextColor = dgenWhite,
-                        focusedContainerColor = Colors.TRANSPARENT,
-                        unfocusedContainerColor = Colors.TRANSPARENT,
-                        disabledContainerColor = Colors.TRANSPARENT,
+                Row(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OldSchoolThickCursorTextField(
+                        value = textState,
+                        onValueChange = { value ->
+                            textState = value
+                            // Handle Enter key to submit command
+                            /*if (value.text.contains("\n")) {
+                                val newCommand = value.text.replace("\n", "")
+                                commandHistory = commandHistory + newCommand
+                                currentCommand = TextFieldValue("")
+                            }*/
+                        },
+                        textStyle = TextStyle(
+                            fontFamily = PitagonsSans,
+                            color = dgenWhite,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 18.sp,
+                            lineHeight = 18.sp,
+                            letterSpacing = 0.sp,
+                            textDecoration = TextDecoration.None
+                        ),
                         cursorColor = dgenWhite,
-                        errorCursorColor = dgenWhite,
-                        focusedBorderColor = Colors.TRANSPARENT,
-                        unfocusedBorderColor = Colors.TRANSPARENT,
-                        focusedPlaceholderColor = Colors.GRAY,
-                        unfocusedPlaceholderColor = Colors.GRAY,
-                    ),
-                    textStyle = TextStyle(
-                        fontFamily = PitagonsSans,
-                        color = dgenTurqoise,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 18.sp,
-                        lineHeight = 18.sp,
-                        letterSpacing = 0.sp,
-                        textDecoration = TextDecoration.None
-                    ),
-                )
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
 
                     IconButton(
                         onClick = {
