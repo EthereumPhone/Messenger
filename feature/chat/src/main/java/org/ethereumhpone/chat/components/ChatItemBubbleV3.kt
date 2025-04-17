@@ -67,7 +67,6 @@ fun ChatItemBubbleV3(
     messageEntity: Message,
     isUserMe: Boolean,
     name: String = "",
-    isFirstMessageByAuthor: Boolean,
     videoPlayer: Player?,
     onPlayVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},

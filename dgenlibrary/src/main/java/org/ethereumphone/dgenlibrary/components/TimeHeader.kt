@@ -35,7 +35,7 @@ fun TimeHeader(timestamp: Instant) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 24.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
@@ -73,19 +73,19 @@ fun formatTimestamp(timestamp: Instant): String {
     val timePart = "%02d:%02d".format(messageDateTime.hour, messageDateTime.minute)
 
     return when {
-        daysAgo == 0 -> "Today, $timePart"
-        daysAgo == -1 -> "Yesterday, $timePart"
+        daysAgo == 0 -> "$timePart"
+        daysAgo == -1 -> "Yesterday"
         daysAgo in -6..-2 -> {
             val dayName = messageDate.dayOfWeek.name.lowercase()
                 .replaceFirstChar { it.uppercase() }
-            "$dayName, $timePart"
+            "$dayName"
         }
         else -> {
             val day = messageDate.dayOfMonth.toString().padStart(2, '0')
             val month = messageDate.month.name.lowercase()
                 .replaceFirstChar { it.uppercase() }
                 .take(3)
-            "$day $month, $timePart"
+            "$day $month"
         }
     }
 }

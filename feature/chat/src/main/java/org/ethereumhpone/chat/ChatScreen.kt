@@ -42,10 +42,13 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.util.generateTestMessages
+import org.ethereumhpone.chat.util.truncateToDate
 import org.ethereumhpone.chat.util.truncateToMinute
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.RecipientEntity
@@ -177,7 +180,7 @@ fun ChatScreen(
             when(messageUiState) {
                 is MessageUiState.Success -> {
                     val messages = messageUiState.messageEntities
-                    val sortedMessages = messages.reversed().sortedBy {truncateToMinute(it.date) }
+                    val sortedMessages = messages.reversed().sortedBy {truncateToDate(it.date) }
 
                     LazyColumn(
                         modifier = Modifier
@@ -187,38 +190,47 @@ fun ChatScreen(
 
                         ) {
 
-                        sortedMessages.forEachIndexed { index, message ->
+                        sortedMessages.reversed().forEachIndexed { index, message ->
 
-                            val prevAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) - 1)?.recipient?.id
-                            val nextAuthor = messageUiState.messageEntities.getOrNull(messageUiState.messageEntities.indexOf(message) + 1)?.recipient?.id
+
+                            /*
+                            val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
+                            val nextAuthor = messages.getOrNull(messages.indexOf(message) + 1)?.recipient?.id
                             val isFirstMessageByAuthor = prevAuthor != message.recipient.id
                             val isLastMessageByAuthor = nextAuthor != message.recipient.id
+                             */
+
+
+                            val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
+                            val isFirstMessageByAuthor = prevAuthor != message.recipient.id
 
 
 
-                            val prevMessage = sortedMessages.getOrNull(index - 1)
-                            val prevGroup = prevMessage?.date?.let { truncateToMinute(it) }
-                            val currentGroup = truncateToMinute(message.date)
 
-                            val showHeader = prevGroup != currentGroup
 
-                            if (showHeader) {
+                            val prevDate = messages.getOrNull(messages.indexOf(message) - 1)?.date
+
+                            val newprevDate =
+                                prevDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
+
+
+                            val nextDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
+
+                            if (newprevDate != nextDate){
                                 item {
                                     TimeHeader(message.date)
                                 }
                             }
 
-                            val isGrouped = prevMessage?.isMe == message.isMe && prevGroup == currentGroup
                             item {
                                 MessageItem(
                                     onAuthorClick = { },
                                     msg = message,
-                                    isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                    isLastMessageByAuthor = isLastMessageByAuthor,
+
                                     composablePositionState = composablePositionState,
                                     player = videoPlayer,
-                                    onPrepareVideo =  { it -> },//{ onPrepareVideo(it) },
-                                    onLongClick =  {},//{ onFocusedMessageUpdate(message) },
+                                    onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
+                                    onLongClick = {},//{ onFocusedMessageUpdate(message) },
                                     name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
                                     isSelected = selectedMessagesMap.contains(message),
                                     selectMode = selectMode,
@@ -229,7 +241,8 @@ fun ChatScreen(
                                             isChecked?.let { !it } ?: true
                                         }
                                     },
-                                    onDoubleClick = {selectMode.value = !selectMode.value}
+                                    onDoubleClick = { selectMode.value = !selectMode.value },
+                                    isFirstMessageByAuthor = isFirstMessageByAuthor
                                 )
                             }
 

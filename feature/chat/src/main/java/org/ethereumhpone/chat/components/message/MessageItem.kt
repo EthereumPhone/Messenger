@@ -133,7 +133,6 @@ fun MessageItem(
     msg: Message,
     isSelected: Boolean = false,
     isFirstMessageByAuthor: Boolean,
-    isLastMessageByAuthor: Boolean,
     composablePositionState: MutableState<ComposablePosition>,
     player: Player?,
     name: String,
@@ -150,8 +149,6 @@ fun MessageItem(
     val isUserMe = msg.isMe
 
 
-    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier.fillMaxWidth() else Modifier
-
     val alignmessage = Modifier
         .widthIn(max = 400.dp)
         .onGloballyPositioned { coordinates ->
@@ -160,7 +157,7 @@ fun MessageItem(
         }
 
     Row(
-        modifier = spaceBetweenAuthors,
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -177,11 +174,18 @@ fun MessageItem(
             horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
         ) {
 
+            if (isFirstMessageByAuthor) {
+                // Last bubble before next author
+                Spacer(modifier = Modifier.height(24.dp))
+            } else {
+                // Between bubbles
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
             ChatItemBubbleV3(
                 modifier = alignmessage,
                 messageEntity = msg,
                 isUserMe = isUserMe,
-                isFirstMessageByAuthor = isFirstMessageByAuthor,
                 videoPlayer = player,
                 isXMTP = isXMTP,
                 onPlayVideo = { onPrepareVideo(it) },
@@ -194,13 +198,7 @@ fun MessageItem(
                 onDoubleClick = onDoubleClick
             )
 
-            if (isFirstMessageByAuthor) {
-                // Last bubble before next author
-                Spacer(modifier = Modifier.height(8.dp))
-            } else {
-                // Between bubbles
-                Spacer(modifier = Modifier.height(4.dp))
-            }
+
         }
     }
 }

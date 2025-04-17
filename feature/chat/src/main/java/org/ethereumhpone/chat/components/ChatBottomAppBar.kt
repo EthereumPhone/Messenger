@@ -15,16 +15,23 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.BottomNavigationDefaults.windowInsets
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
@@ -51,11 +58,17 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import com.example.dgenlibrary.ui.theme.dgenWhite
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.model.Attachments
@@ -71,21 +84,38 @@ fun ChatBottomAppBar(
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusManager = LocalFocusManager.current
 
-    BottomAppBar(
-        containerColor = Color.Blue
-    ) {
-        Column {
-            /*
-AttachmentRow(
-                selectedAttachments = attachments.toList(),
-                onToggleAttachment = { onToggleAttachment(it) }
-            )
-             */
-
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .animateContentSize()
+                .height(IntrinsicSize.Max)
+                .padding(vertical = 8.dp, horizontal = 16.dp)
+        ) {
 
             Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
+
+                    IconButton(
+                        onClick = {
+                            onSendClick(textState.text)
+                            focusManager.clearFocus()
+                            textState = TextFieldValue()
+                        },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            Color.Transparent,
+                            dgenTurqoise
+                        ),
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(36.dp),
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = "send"
+                        )
+                    }
+
 
                 TextField(
                     shape = RoundedCornerShape(35.dp),
@@ -93,45 +123,50 @@ AttachmentRow(
                     onValueChange = { textState = it },
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(35.dp))
                         .animateContentSize(spring(
                             stiffness = Spring.StiffnessMediumLow,
                             visibilityThreshold = IntSize.VisibilityThreshold
                         ))
-                        .border(
-                            2.dp,
-                            Colors.DARK_GRAY,
-                            RoundedCornerShape(35.dp)
-                        )
+
                     ,
-                    placeholder = { Text("Type a message") },
+                    placeholder = {
+                        Text(
+                            text = "Type a message",
+                            style = TextStyle(
+                                fontFamily = PitagonsSans,
+                                color = dgenTurqoise,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 20.sp,
+                                lineHeight = 20.sp,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None
+                            )
+                        )
+                    },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Colors.WHITE,
-                        unfocusedTextColor = Colors.WHITE,
+                        focusedTextColor = dgenWhite,
+                        unfocusedTextColor = dgenWhite,
                         focusedContainerColor = Colors.TRANSPARENT,
                         unfocusedContainerColor = Colors.TRANSPARENT,
                         disabledContainerColor = Colors.TRANSPARENT,
-                        cursorColor = Colors.WHITE,
-                        errorCursorColor = Colors.WHITE,
+                        cursorColor = dgenWhite,
+                        errorCursorColor = dgenWhite,
                         focusedBorderColor = Colors.TRANSPARENT,
                         unfocusedBorderColor = Colors.TRANSPARENT,
                         focusedPlaceholderColor = Colors.GRAY,
                         unfocusedPlaceholderColor = Colors.GRAY,
                     ),
                     textStyle = TextStyle(
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = Fonts.INTER,
+                        fontFamily = PitagonsSans,
+                        color = dgenTurqoise,
+                        fontWeight = FontWeight.Normal,
                         fontSize = 18.sp,
-                        color = Colors.WHITE,
+                        lineHeight = 18.sp,
+                        letterSpacing = 0.sp,
+                        textDecoration = TextDecoration.None
                     ),
                 )
 
-
-                AnimatedVisibility(
-                    textState.text.isNotBlank() || attachments.isNotEmpty(),
-                    enter = expandHorizontally(expandFrom = Alignment.Start),
-                    exit = shrinkHorizontally(shrinkTowards = Alignment.Start)
-                ) {
                     IconButton(
                         onClick = {
                             onSendClick(textState.text)
@@ -139,22 +174,22 @@ AttachmentRow(
                             textState = TextFieldValue()
                                   },
                         colors = IconButtonDefaults.iconButtonColors(
-                            Color(0xFF8C7DF7),
-                            Color.White
+                            Color.Transparent,
+                            dgenTurqoise
                         ),
                         modifier = Modifier
                             .padding(start = 5.dp)
                             .size(56.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.ArrowUpward,
-                            contentDescription = "send"
+                            imageVector = Icons.Outlined.Send,
+                            contentDescription = "send",
+                            modifier = Modifier.size(28.dp)
                         )
                     }
-                }
             }
         }
-    }
+
 }
 
 @Composable
