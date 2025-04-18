@@ -99,10 +99,10 @@ fun ChatRoute(
     val contacts by chatViewModel.contacts.collectAsStateWithLifecycle()
     val media by chatViewModel.media.collectAsStateWithLifecycle()
     val recipients by chatViewModel.recipients.collectAsStateWithLifecycle()
-    //val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
+    val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by chatViewModel.chainName.collectAsStateWithLifecycle()
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
-   // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
+    //val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
 
     val selectedMessaged by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
 
@@ -117,12 +117,12 @@ fun ChatRoute(
         media = media,
         attachments = attachments,
         navigateBackToConversations = onBackClick,
-        tokenBalance = 2.456, //tokenBalance,
+        tokenBalance = tokenBalance,
         chainName = chainName,
         videoPlayer = videoPlayer,
-        //selectedMessaged = selectedMessaged,
+        selectedMessaged = selectedMessaged,
         onSendEthClicked = { },
-        /*onSendMessageClicked = chatViewModel::sendMessage,
+        onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
         onFocusedMessageUpdate = {},
         onPrepareVideo = mediaViewModel::addVideoUri,
@@ -130,7 +130,7 @@ fun ChatRoute(
         onToggleAttachment = chatViewModel::toggleAttachment,
         onRemoveSelectedMessage = chatViewModel::removeSelectedMessage,
         onOpenContact = chatViewModel::onOpenContact,
-        onAddSelectedMessage = chatViewModel::addSelectedMessage,*/
+        onAddSelectedMessage = chatViewModel::addSelectedMessage,
     )
 }
 
@@ -150,7 +150,7 @@ fun ChatScreen(
     tokenBalance: Double = 0.0,
     chainName: String = "?",
     videoPlayer: Player? = null,
-    /*onOpenContact: () -> Unit,
+    onOpenContact: () -> Unit,
     selectedMessaged: List<Message?> = emptyList(),
     onContactSelected: (ContactEntity) -> Unit,
     onToggleAttachment: (Attachment) -> Unit,
@@ -159,7 +159,7 @@ fun ChatScreen(
     onFocusedMessageUpdate: (Message) -> Unit,
     onPrepareVideo: (Uri) -> Unit,
     onRemoveSelectedMessage: (Message) -> Unit,
-    onAddSelectedMessage: (Message) -> Unit,*/
+    onAddSelectedMessage: (Message) -> Unit,
 ) {
 
 
@@ -278,9 +278,9 @@ fun ChatScreen(
 
                                         composablePositionState = composablePositionState,
                                         player = videoPlayer,
-                                        onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
-                                        onLongClick = {},//{ onFocusedMessageUpdate(message) },
-                                        name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
+                                        onPrepareVideo = { onPrepareVideo(it) },
+                                        onLongClick = { onFocusedMessageUpdate(message) },
+                                        name = message.recipient.contact?.name.toString(), // "recipients.first().getDisplayName()", //TODO FIX THIS
                                         isSelected = selectedMessagesMap.contains(message),
                                         selectMode = selectMode,
                                         isXMTP = true,
@@ -527,100 +527,6 @@ fun  extractTransactionDetails(message: String): TransactionDetails? {
 
 
 @Composable
-fun SelectorExpanded(
-    onSelectorChange: (InputSelector) -> Unit,
-    onShowSelectionbar: () -> Unit,
-    recipientEntities: List<RecipientEntity>,
-    onHideKeyboard: () -> Unit,
-){
-    Row (
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-
-    ){
-        IconButton(
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .clip(CircleShape)
-                .size(42.dp)
-            ,
-            enabled = true,
-            onClick = {
-                onSelectorChange(InputSelector.CONTACT)
-                onHideKeyboard()
-                onShowSelectionbar()
-            },
-        ) {
-            Box(
-                contentAlignment = Alignment.Center
-            ){
-                Icon(imageVector = Icons.Outlined.Person, modifier= Modifier
-                    .size(32.dp)
-                    ,contentDescription = "Contact",tint = Color.White)
-            }
-
-        }
-        /*
-        recipients[0].contact?.ethAddress?.let {
-            if (it == "") return@let
-            Spacer(modifier = Modifier.width(12.dp))
-            IconButton(
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .clip(CircleShape)
-                    .size(42.dp)
-                ,
-                enabled = true,
-                onClick = {
-                    onSelectorChange(InputSelector.WALLET)
-                    onHideKeyboard()
-                    onShowSelectionbar()
-                },
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center
-                ){
-                    Icon(
-                        imageVector = ImageVector.vectorResource(R.drawable.wallet),
-                        modifier= Modifier.size(32.dp),
-                        contentDescription = "Send",
-                        tint = Color.White
-                    )
-                }
-
-            }
-        }
-         */
-
-        Spacer(modifier = Modifier.width(12.dp))
-        IconButton(
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .clip(CircleShape)
-                .size(42.dp)
-            ,
-            enabled = true,
-            onClick = {
-                onSelectorChange(InputSelector.PICTURE)
-                onHideKeyboard()
-                onShowSelectionbar()
-            },
-        ) {
-            Box(
-                contentAlignment = Alignment.Center
-            ){
-                Icon(imageVector = Icons.Outlined.InsertPhoto, modifier= Modifier
-                    .size(32.dp)
-                    ,contentDescription = "Send",tint = Color.White)
-            }
-
-        }
-    }
-}
-
-@Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 private fun PreviewChatScreen() {
 
@@ -637,6 +543,7 @@ private fun PreviewChatScreen() {
             )
         )
     )
+    /*
     ChatScreen(
         messageUiState = messageUiState,
         recipientUiState = recipientUiState,
@@ -644,6 +551,8 @@ private fun PreviewChatScreen() {
         tokenBalance = 2.456,
         onSendEthClicked = { it -> },
     )
+     */
+
     /*
     ChatScreen(
         messagesUiState = messageUiState,
