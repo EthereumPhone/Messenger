@@ -101,215 +101,14 @@ fun ContactRoute(
     viewModel: InboxViewModel = hiltViewModel()
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
-    val now = Instant.parse("2025-04-14T10:00:00Z")
-
-    val testConversations = listOf(
-        Conversation(
-            id = "1",
-            title = "Design Chat",
-            recipients = listOf(
-                Recipient("r1", "0x123", "alice.eth", Contact("lk1", "Alice", null, "0x123"))
-            ),
-            draft = null,
-            lastMessage = Message(
-                id = "m1",
-                threadId = "1",
-                recipient = Recipient("r1", "0x123", "alice.eth", Contact("lk1", "Alice", null, "0x123")),
-                date = now,
-                dateSent = now,
-                seen = true,
-                deliveryStatus = DeliveryStatus.PUBLISHED,
-                replyReference = null,
-                isMe = true,
-                attachments = emptyList(),
-                reactions = emptyList(),
-                body = "Let's review the UI"
-            ),
-            clientInbox = "inbox1"
-        ),
-        Conversation(
-            id = "2",
-            title = null,
-            recipients = listOf(
-                Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
-            ),
-            draft = null,
-            lastMessage = Message(
-                id = "m2",
-                threadId = "2",
-                recipient = Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
-                date = now,
-                dateSent = now,
-                seen = false,
-                deliveryStatus = DeliveryStatus.PUBLISHED,
-                replyReference = null,
-                isMe = false,
-                attachments = emptyList(),
-                reactions = emptyList(),
-                body = "See you tomorrow!"
-            ),
-            clientInbox = "inbox2"
-        ),
-        Conversation(
-            id = "3",
-            title = "🏀 Game Plan",
-            recipients = listOf(
-                Recipient("r4", "0xabc", null, Contact("lk4", "Coach", null, "0xabc")),
-                Recipient("r5", "0xagd", null, Contact("lk5", "Kobe", null, "0xagd"))
-            ),
-            draft = "Need to reply...",
-            lastMessage = Message(
-                id = "m2",
-                threadId = "2",
-                recipient = Recipient("r2", "0x456", null, Contact("lk5", "Kobe", null, "0x456")),
-                date = now,
-                dateSent = now,
-                seen = false,
-                deliveryStatus = DeliveryStatus.PUBLISHED,
-                replyReference = null,
-                isMe = false,
-                attachments = emptyList(),
-                reactions = emptyList(),
-                body = "See you tomorrow!"
-            ),
-            pinned = true,
-            clientInbox = "inbox3"
-        ),
-        Conversation(
-            id = "4",
-            title = null,
-            recipients = listOf(
-                Recipient("r5", "0xdef", null, Contact("lk5", "Shannon", null, "0xdef"))
-            ),
-            draft = null,
-            lastMessage = Message(
-                id = "m4",
-                threadId = "4",
-                recipient = Recipient("r5", "0xdef", null, Contact("lk5", "Shannon", null, "0xdef")),
-                date = now,
-                dateSent = now,
-                seen = true,
-                deliveryStatus = DeliveryStatus.PUBLISHED,
-                replyReference = null,
-                isMe = true,
-                attachments = emptyList(),
-                reactions = emptyList(),
-                body = "Thanks!"
-            ),
-            clientInbox = "inbox4"
-        ),
-        Conversation(
-            id = "5",
-            title = "Dev Team",
-            recipients = listOf(
-                Recipient("r6", "0xaaa", null, Contact("lk6", "Eve", null, "0xaaa")),
-                Recipient("r7", "0xbbb", null, Contact("lk7", "Frank", null, "0xbbb"))
-            ),
-            draft = null,
-            lastMessage = Message(
-                id = "m5",
-                threadId = "5",
-                recipient = Recipient("r6", "0xaaa", null, Contact("lk6", "Eve", null, "0xaaa")),
-                date = now,
-                dateSent = now,
-                seen = true,
-                deliveryStatus = DeliveryStatus.PUBLISHED,
-                replyReference = null,
-                isMe = true,
-                attachments = emptyList(),
-                reactions = emptyList(),
-                body = "Pushed the update"
-            ),
-            archived = true,
-            clientInbox = "inbox5"
-        ),
-        Conversation(
-            id = "6",
-            title = null,
-            recipients = listOf(
-                Recipient("r8", "0xccc", null, Contact("lk8", "Grace", null, "0xccc"))
-            ),
-            draft = "Don't forget the deadline",
-            lastMessage = Message(
-                id = "m5",
-                threadId = "5",
-                recipient = Recipient("r6", "0xaaa", null, Contact("lk8", "Grace", null, "0xccc")),
-                date = now,
-                dateSent = now,
-                seen = true,
-                deliveryStatus = DeliveryStatus.PUBLISHED,
-                replyReference = null,
-                isMe = true,
-                attachments = emptyList(),
-                reactions = emptyList(),
-                body = "Pushed the update"
-            ),
-            blocked = true,
-            clientInbox = "inbox6"
-        ),
-        Conversation(
-            id = "7",
-            title = "Meeting Notes",
-            recipients = listOf(
-                Recipient("r9", "0xddd", null, Contact("lk9", "Hank", null, "0xddd")),
-                Recipient("r23", "0xdrd", null, Contact("lk9", "Tod", null, "0xddd"))
-            ),
-            draft = null,
-            lastMessage = Message(
-                id = "m7",
-                threadId = "7",
-                recipient = Recipient("r9", "0xddd", null, Contact("lk9", "Hank", null, "0xddd")),
-                date = now,
-                dateSent = now,
-                seen = false,
-                deliveryStatus = DeliveryStatus.PUBLISHED,
-                replyReference = null,
-                isMe = false,
-                attachments = emptyList(),
-                reactions = emptyList(),
-                body = "Uploaded the doc"
-            ),
-            clientInbox = "inbox7"
-        ),
-        Conversation(
-            id = "8",
-            title = "Dgens",
-            recipients = listOf(
-                Recipient("r10", "0xeee", null, Contact("lk9", "Chris", null, "0xeee")),
-                Recipient("r11", "0xeej", null, Contact("lk11", "Alex", null, "0xeee"))
-
-            ),
-            draft = null,
-            lastMessage = Message(
-                id = "m8",
-                threadId = "8",
-                recipient = Recipient("r10", "0xeee", null, Contact("lk9", "Chris", null, "0xeee")),
-                date = now,
-                dateSent = now,
-                seen = false,
-                deliveryStatus = DeliveryStatus.PUBLISHED,
-                replyReference = null,
-                isMe = false,
-                attachments = emptyList(),
-                reactions = emptyList(),
-                body = "What's your ENS?"
-            ),
-            unknown = true,
-            clientInbox = "inbox8"
-        )
-    )
-
-    val convo = ConversationUIState.Success(
-        conversations = testConversations
-    )
 
     InboxScreen(
         modifier = modifier,
-        conversationState = convo, //conversationState,
-        /*markAccepted = { id, acceptedState -> viewModel.updateConsentState(id, acceptedState) },
+        conversationState = conversationState,
+        markAccepted = { id, acceptedState -> viewModel.updateConsentState(id, acceptedState) },
         deleteConversation = { id -> viewModel.deleteConversation(id) },
         markArchived = { id, archivedState -> viewModel.setConversationArchived(id, archivedState) },
-        resolveENS = viewModel::resolveENS,*/
+        resolveENS = viewModel::resolveENS,
         conversationClicked = { id ->
             viewModel.setConversationAsRead(id, true)
             onConversationClick(id)
@@ -324,10 +123,10 @@ fun ContactRoute(
 fun InboxScreen(
     conversationState: ConversationUIState,
     conversationClicked: (String) -> Unit,
-    /*deleteConversation: (String) -> Unit,
+    deleteConversation: (String) -> Unit,
     markAccepted: (String, Boolean) -> Unit,
     markArchived: (String, Boolean) -> Unit,
-    resolveENS: KSuspendFunction1<String, String>,*/
+    resolveENS: KSuspendFunction1<String, String>,
     modifier: Modifier = Modifier
 ){
 
@@ -981,10 +780,13 @@ fun PreviewContactScreen() {
         conversations = testConversations
     )
 
+    /*
     InboxScreen(
         conversationState = convo,
         conversationClicked = { it -> }
     )
+     */
+
     /*
     ContactScreen(
         emptyList(),
