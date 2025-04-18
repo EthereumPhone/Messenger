@@ -106,6 +106,8 @@ fun ChatRoute(
 
     val selectedMessaged by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
 
+    val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
+
 
 
 
@@ -634,6 +636,12 @@ private fun PreviewChatScreen() {
                 address = "0xDeF456HodlGuyWallet",
                 ens = "hodl.eth",
                 contact = Contact("lk2", "Bob", null, "0x456")
+            ),
+            Recipient(
+                id = "userC",
+                address = "0xDeF456JoeGuy",
+                ens = "Joe.eth",
+                contact = Contact("lk2", "Joe", null, "0x474")
             )
         )
     )
