@@ -52,6 +52,7 @@ import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
+import org.ethereumhpone.chat.util.colorFor
 import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
@@ -73,7 +74,9 @@ fun ChatItemBubbleV3(
     authorClicked: (String) -> Unit = {},
     onDoubleClick: () -> Unit = {},
     isXMTP: Boolean = false,
-    hasReply: Boolean = false
+    hasReply: Boolean = false,
+    isGroup: Boolean,
+    isFirstMessageByAuthor: Boolean
 ) {
 
     //TODO: Distinction between reply message and normal message
@@ -108,8 +111,24 @@ fun ChatItemBubbleV3(
         modifier = Modifier
             .clip(Bubbleshape)
             .background(messageBrush)
-            .padding(end = 12.dp, start = 12.dp, top = 12.dp, bottom = 8.dp)
+            .padding(end = 12.dp, start = 12.dp, top = 8.dp, bottom = 4.dp)
     ){
+        if (isGroup && !isUserMe && isFirstMessageByAuthor){
+            Text(
+                messageEntity.recipient.contact?.name.toString(),
+                style = TextStyle(
+                    textAlign = TextAlign.Start ,
+                    fontFamily = PitagonsSans,
+                    color = colorFor(messageEntity.recipient),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    lineHeight = 18.sp,
+                    letterSpacing = 0.sp,
+                    textDecoration = TextDecoration.None
+                ),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
         //TODO FIX THIS
         /*val media =  emptyList<MessageEntity>() //message.parts.filter { it.isImage() || it.isVideo() }
 
@@ -253,7 +272,7 @@ fun ChatItemBubbleV3(
                         color = dgenWhite,
                         fontWeight = FontWeight.Normal,
                         fontSize = 16.sp,
-                        lineHeight = 18.sp,
+                        lineHeight = 20.sp,
                         letterSpacing = 0.sp,
                         textDecoration = TextDecoration.None
                     ),
@@ -278,6 +297,7 @@ fun ChatItemBubbleV3(
             }
             AuthorNameTimestamp(
                 messageEntity,
+                isUserMe,
                 modifier = Modifier.padding(start=16.dp, top=4.dp).fillMaxHeight()
             )
 

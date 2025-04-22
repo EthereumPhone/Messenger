@@ -70,11 +70,13 @@ import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.dgenBlack
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import kotlinx.coroutines.delay
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.message.ComposablePosition
+import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.chat.util.truncateToDate
 import org.ethereumhpone.chat.util.truncateToMinute
@@ -84,8 +86,11 @@ import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
+import org.ethereumphone.model.Conversation
+import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
+import kotlin.time.Duration.Companion.seconds
 
 
 @Composable
@@ -115,6 +120,7 @@ fun ChatRoute(
     ChatScreen(
         messageUiState = messagesUiState,
         recipientUiState = recipients,
+        converstation = converstation,
         contactEntities = contacts,
         media = media,
         attachments = attachments,
@@ -144,6 +150,7 @@ fun ChatScreen(
     modifier: Modifier = Modifier,
     messageUiState: MessageUiState,
     recipientUiState: RecipientUiState,
+    converstation: ConversationUiState,
     contactEntities: List<ContactEntity> = emptyList(),
     media: List<Uri> = emptyList(),
     attachments: Set<Attachment> = emptySet(),
@@ -193,16 +200,24 @@ fun ChatScreen(
         }
     }
 
+    val chatConversion = when(converstation){
+        ConversationUiState.Loading -> null
+        is ConversationUiState.Success -> converstation.conversation
+    }
+
 
 
 
     Box(
-        modifier = Modifier.fillMaxSize().imePadding()
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
     ){
         Scaffold (
             topBar = {
                 ChatTopAppBar(
-                    "",
+
+                    chatConversion?.title.toString(),
                     recipientUiState = recipientUiState,
                     onTitleClicked = {},
                     onBackClicked = navigateBackToConversations
@@ -230,7 +245,9 @@ fun ChatScreen(
         ) { paddingValues ->
 
 
-            Box(modifier= Modifier.fillMaxSize().padding(paddingValues)){
+            Box(modifier= Modifier
+                .fillMaxSize()
+                .padding(paddingValues)){
                 when(messageUiState) {
                     is MessageUiState.Success -> {
                         val messages = messageUiState.messageEntities
@@ -277,12 +294,11 @@ fun ChatScreen(
                                     MessageItem(
                                         onAuthorClick = { },
                                         msg = message,
-
                                         composablePositionState = composablePositionState,
                                         player = videoPlayer,
                                         onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
                                         onLongClick = {},//{ onFocusedMessageUpdate(message) },
-                                        name = "TEST", // "recipients.first().getDisplayName()", //TODO FIX THIS
+                                        name = "${message.recipient.contact?.name}", //TODO FIX THIS
                                         isSelected = selectedMessagesMap.contains(message),
                                         selectMode = selectMode,
                                         isXMTP = true,
@@ -293,7 +309,8 @@ fun ChatScreen(
                                             }
                                         },
                                         onDoubleClick = { selectMode.value = !selectMode.value },
-                                        isFirstMessageByAuthor = isFirstMessageByAuthor
+                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                        isGroup = chatConversion?.isGroup == true
                                     )
                                 }
 
@@ -470,9 +487,11 @@ fun ChatScreen(
                         ) {
 
                             Icon(
-                                modifier = Modifier.size(36.dp).graphicsLayer{
-                                    rotationZ = rotation
-                                },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .graphicsLayer {
+                                        rotationZ = rotation
+                                    },
                                 imageVector = Icons.Outlined.Add,
                                 tint = dgenTurqoise,
                                 contentDescription = "collapse"
@@ -627,8 +646,97 @@ fun SelectorExpanded(
 private fun PreviewChatScreen() {
 
 
+    val now = Instant.parse("2025-04-17T12:23:05Z")
 
     val messageUiState = MessageUiState.Success(generateTestMessages())
+    val recipientUiState = RecipientUiState.Success(
+        listOf(
+            Recipient(
+                id = "userB",
+                address = "0xDeF456HodlGuyWallet",
+                ens = "hodl.eth",
+                contact = Contact("lk2", "Bob", null, "0x456")
+            )
+        )
+    )
+    ChatScreen(
+        messageUiState = messageUiState,
+        recipientUiState = recipientUiState,
+        navigateBackToConversations = { },
+        tokenBalance = 2.456,
+        onSendEthClicked = { it -> },
+        converstation = ConversationUiState.Success(
+            Conversation(
+                id = "2",
+                title = null,
+                recipients = listOf(
+                    Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
+                ),
+                draft = null,
+                lastMessage = Message(
+                    id = "m2",
+                    threadId = "2",
+                    recipient = Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
+                    date = now,
+                    dateSent = now,
+                    seen = false,
+                    deliveryStatus = DeliveryStatus.PUBLISHED,
+                    replyReference = null,
+                    isMe = false,
+                    attachments = emptyList(),
+                    reactions = emptyList(),
+                    body = "See you tomorrow!"
+                ),
+                clientInbox = "inbox2"
+            )
+        )
+    )
+    /*
+    ChatScreen(
+        messagesUiState = messageUiState,
+        recipients = listOf(
+            Recipient(
+                id = "userB",
+                address = "0xDeF456HodlGuyWallet",
+                ens = "hodl.eth",
+                contact = Contact("lk2", "Bob", null, "0x456")
+            )
+        ),
+        navigateBackToConversations={},
+        onPhoneClicked = {},
+        onSendEthClicked = {},
+        onOpenContact = {},
+        onContactSelected = {},
+        onToggleAttachment = {},
+        onSendMessageClicked = {},
+        onDeleteMessage = {},
+        onFocusedMessageUpdate = {},
+        onPrepareVideo = {},
+        onRemoveSelectedMessage = {},
+        onAddSelectedMessage = {},
+        videoPlayer = null
+    )
+     */
+
+
+}
+
+
+@Composable
+@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
+private fun PreviewGroupChatScreen() {
+
+
+    val now = Instant.parse("2025-04-17T12:23:05Z")
+    val messageUiState = MessageUiState.Success(generateTestGroupMessages())
+
+    val recipientMe = Recipient(
+        id = "userA",
+        address = "0xAbC123CryptoBroWallet",
+        ens = "bro.eth",
+        contact = Contact("lk1", "Timothy", null, "0x423")
+    )
+
     val recipientUiState = RecipientUiState.Success(
         listOf(
             Recipient(
@@ -645,12 +753,41 @@ private fun PreviewChatScreen() {
             )
         )
     )
+    val convo = ConversationUiState.Success(Conversation(
+        id = "3",
+        title = "🏀 Game Plan",
+        recipients = listOf(
+            recipientMe,
+            Recipient(
+                id = "userB",
+                address = "0xDeF456HodlGuyWallet",
+                ens = "hodl.eth",
+                contact = Contact("lk2", "Bob", null, "0x456")
+            ),
+            Recipient(
+                id = "userC",
+                address = "0xDeF456JoeGuy",
+                ens = "Joe.eth",
+                contact = Contact("lk2", "Joe", null, "0x474")
+            )
+        ),
+        draft = "Need to reply...",
+        lastMessage = Message("17","thread3x3",recipientMe,now-(51*60).seconds,now-(51*60).seconds,true,DeliveryStatus.PUBLISHED,null,false,emptyList(),emptyList(),"Got it! And I’ll post some stories tagging Freedom Factory later."),
+        pinned = true,
+        clientInbox = "inbox3",
+        isGroup = true
+    ))
+
+
+
     ChatScreen(
         messageUiState = messageUiState,
         recipientUiState = recipientUiState,
         navigateBackToConversations = { },
         tokenBalance = 2.456,
         onSendEthClicked = { it -> },
+        converstation = convo
+
     )
     /*
     ChatScreen(

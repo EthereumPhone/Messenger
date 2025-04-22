@@ -141,6 +141,7 @@ fun MessageItem(
     onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
     onSelect: (Message) -> Unit,
+    isGroup: Boolean,
     onDoubleClick: () -> Unit
 ) {
 
@@ -188,7 +189,9 @@ fun MessageItem(
                     onLongClick()
                 },
                 name = name,
-                onDoubleClick = onDoubleClick
+                onDoubleClick = onDoubleClick,
+                isGroup = isGroup,
+                isFirstMessageByAuthor = isFirstMessageByAuthor
             )
 
 
@@ -202,6 +205,7 @@ fun MessageItem(
 @Composable
 fun AuthorNameTimestamp(
     messageEntity: Message,
+    isUserMe: Boolean,
     modifier: Modifier = Modifier,
 ) {
 
@@ -226,38 +230,41 @@ fun AuthorNameTimestamp(
             color = Colors.WHITE,
         )
 
-        Spacer(modifier = Modifier.width(4.dp))
+        if (isUserMe){
+            Spacer(modifier = Modifier.width(4.dp))
 
-        when {
-            messageEntity.isFailedMessage() -> Icon(
+            when {
+                messageEntity.isFailedMessage() -> Icon(
                     imageVector = Icons.Rounded.Error,//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
                     tint = Colors.WHITE,
                     modifier = Modifier
                         .size(16.dp)
                         .alpha(0.5f)
-            )
+                )
 
-            /*
-            message.isSending() -> Icon(
-                    painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
-                    contentDescription = "Go back",
-                    tint = Colors.WHITE,
-                    modifier = Modifier
-                        .size(16.dp)
-                        .alpha(0.5f)
-            )
-             */
+                /*
+                message.isSending() -> Icon(
+                        painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
+                        contentDescription = "Go back",
+                        tint = Colors.WHITE,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .alpha(0.5f)
+                )
+                 */
 
 
-            messageEntity.isDelivered() -> Icon(
+                messageEntity.isDelivered() -> Icon(
                     painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
                     tint = Colors.WHITE,
                     modifier = Modifier
                         .size(16.dp)
                         .alpha(0.5f)
-            )
+                )
+            }
+
         }
 
     }
@@ -498,14 +505,14 @@ fun ChatItemBubble(
                                 }
                         },
                         onDoubleClick = onDoubleClick,
-                        messageBrush = messageBrush
+                        messageBrush = messageBrush,
                     )
                 }
 
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(message)
+            AuthorNameTimestamp(message,isUserMe)
 
 
 

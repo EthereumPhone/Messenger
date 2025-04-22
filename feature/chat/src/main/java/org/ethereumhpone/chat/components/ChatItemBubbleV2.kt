@@ -39,7 +39,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
+import org.ethereumhpone.chat.components.message.ChatBubbleShape
 import org.ethereumhpone.chat.components.message.ClickableMessage
+import org.ethereumhpone.chat.components.message.LastChatBubbleShape
+import org.ethereumhpone.chat.components.message.LastUserChatBubbleShape
+import org.ethereumhpone.chat.components.message.UserChatBubbleShape
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
@@ -71,15 +75,15 @@ fun ChatItemBubbleV2(
 
     val Bubbleshape = if(isUserMe) {
         if (isFirstMessageByAuthor){
-            org.ethereumhpone.chat.components.message.LastUserChatBubbleShape
+            LastUserChatBubbleShape
         }else{
-            org.ethereumhpone.chat.components.message.UserChatBubbleShape
+            UserChatBubbleShape
         }
     } else{
         if (isFirstMessageByAuthor){
-            org.ethereumhpone.chat.components.message.LastChatBubbleShape
+            LastChatBubbleShape
         }else{
-            org.ethereumhpone.chat.components.message.ChatBubbleShape
+            ChatBubbleShape
         }
     }
 
@@ -276,7 +280,10 @@ fun ChatItemBubbleV2(
 
 
 
-            AuthorNameTimestamp(messageEntity)
+            AuthorNameTimestamp(
+                messageEntity,
+                isUserMe = false,
+            )
 
 
 
