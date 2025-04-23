@@ -291,6 +291,7 @@ fun ChatScreen(
                                 }
 
                                 item {
+                                    //TODO: add Transaction Messages
                                     MessageItem(
                                         onAuthorClick = { },
                                         msg = message,

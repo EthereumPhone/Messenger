@@ -61,6 +61,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.dgenWhite
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.ChatItemBubbleV2
 import org.ethereumhpone.chat.components.ChatItemBubbleV3
@@ -182,11 +184,11 @@ fun AuthorNameTimestamp(
         Text(
             text = "$time",
             fontSize = 12.sp,
-            fontFamily = Fonts.INTER,
+            fontFamily = SpaceMono,
             modifier = Modifier
                 .alignBy(LastBaseline)
                 .alpha(0.5f),
-            color = Colors.WHITE,
+            color = dgenWhite,
         )
 
         if (isUserMe){
@@ -196,7 +198,7 @@ fun AuthorNameTimestamp(
                 messageEntity.isFailedMessage() -> Icon(
                     imageVector = Icons.Rounded.Error,//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
-                    tint = Colors.WHITE,
+                    tint = dgenWhite,
                     modifier = Modifier
                         .size(16.dp)
                         .alpha(0.5f)
@@ -217,7 +219,7 @@ fun AuthorNameTimestamp(
                 messageEntity.isDelivered() -> Icon(
                     painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
-                    tint = Colors.WHITE,
+                    tint = dgenWhite,
                     modifier = Modifier
                         .size(16.dp)
                         .alpha(0.5f)

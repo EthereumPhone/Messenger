@@ -151,7 +151,7 @@ fun ChatBottomAppBar(
                 .animateContentSize().background(dgenBlack)
                 .padding(vertical = 8.dp, horizontal = 16.dp)
                 .then(if (expand.value) Modifier.fillMaxHeight() else Modifier.heightIn(max= 250.dp)),
-        verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center
     ) {
 
 
