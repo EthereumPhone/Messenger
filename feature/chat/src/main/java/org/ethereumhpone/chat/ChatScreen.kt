@@ -251,14 +251,14 @@ fun ChatScreen(
                 when(messageUiState) {
                     is MessageUiState.Success -> {
                         val messages = messageUiState.messageEntities
-                        val sortedMessages = messages.reversed().sortedBy {truncateToDate(it.date) }
+                        val sortedMessages = messages.sortedBy {truncateToDate(it.date) }
 
                         LazyColumn(
                             state = scrollState,
                             modifier = Modifier.fillMaxSize(),
                         ) {
 
-                            sortedMessages.reversed().forEachIndexed { index, message ->
+                            sortedMessages.forEachIndexed { index, message ->
 
 
                                 /*
@@ -633,7 +633,7 @@ private fun PreviewChatScreen() {
 private fun PreviewGroupChatScreen() {
 
 
-    val now = Instant.parse("2025-04-17T12:23:05Z")
+    val now  = Instant.parse("2025-04-17T12:00:00Z")
     val messageUiState = MessageUiState.Success(generateTestGroupMessages())
 
     val recipientMe = Recipient(
