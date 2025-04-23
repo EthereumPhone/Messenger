@@ -142,7 +142,6 @@ fun MessageItem(
                 messageEntity = msg,
                 isUserMe = isUserMe,
                 videoPlayer = player,
-                isXMTP = isXMTP,
                 onPlayVideo = { onPrepareVideo(it) },
                 onLongClick = {
                     composablePositionState.value.height = compSize

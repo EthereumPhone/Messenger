@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -29,6 +31,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
@@ -43,9 +46,14 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenBurgendy
+import com.example.dgenlibrary.ui.theme.dgenDarkBlack
+import com.example.dgenlibrary.ui.theme.dgenGray
 import com.example.dgenlibrary.ui.theme.dgenOcean
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.example.dgenlibrary.ui.theme.dgenWhite
+import kotlinx.datetime.Instant
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
 import org.ethereumhpone.chat.components.message.ClickableMessage
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
@@ -54,9 +62,13 @@ import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.chat.util.colorFor
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.model.Contact
+import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
+import org.ethereumphone.model.Recipient
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import kotlin.time.Duration.Companion.seconds
 
 
 val BubbleShape = RoundedCornerShape(8.dp,8.dp,8.dp,8.dp)
@@ -73,7 +85,6 @@ fun ChatItemBubbleV3(
     onLongClick: () -> Unit = {},
     authorClicked: (String) -> Unit = {},
     onDoubleClick: () -> Unit = {},
-    isXMTP: Boolean = false,
     hasReply: Boolean = false,
     isGroup: Boolean,
     isFirstMessageByAuthor: Boolean
@@ -84,30 +95,15 @@ fun ChatItemBubbleV3(
 
     val Bubbleshape = BubbleShape
 
-    val nogradient = Color(0xFF8C7DF7)
-    val xmtpgradient = dgenOcean
-
-    val reciepientcolor = Colors.DARK_GRAY
-
-
     val messageBrush = when(isUserMe){
-        true -> { //message from user
-
-            if(isXMTP) {
-                xmtpgradient
-            } else {
-                nogradient
-            }
-
-        }
-        false -> { //message not from user
-            reciepientcolor
-        }
+        true -> dgenOcean
+        false -> Colors.DARK_GRAY
     }
 
 
     Column (
         verticalArrangement = Arrangement.Bottom,
+        horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
         modifier = Modifier
             .clip(Bubbleshape)
             .background(messageBrush)
@@ -129,128 +125,30 @@ fun ChatItemBubbleV3(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-        //TODO FIX THIS
-        /*val media =  emptyList<MessageEntity>() //message.parts.filter { it.isImage() || it.isVideo() }
-
-        if (media.isNotEmpty()) {
-            Box(
-                modifier = modifier
-                    .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
-                    .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
-            {
-                MediaBinder(
-                    name= name,
-                    videoPlayer = videoPlayer,
-                    messageEntity = messageEntity,
-                    onPrepareVideo = { onPlayVideo(it) }
-                )
-            }
-        }
-
-        // vCard
-        val contacts = emptyList<MessageEntity>() //message.parts.filter { it.isVCard() }
 
 
-        if (contacts.isNotEmpty()) {
-            Box(
-                modifier = modifier
-                    .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = 0.dp)
-                    .sizeIn(maxHeight = 256.dp, maxWidth = 256.dp))
-            {
-                VCardBinder(messageEntity)
-            }
-        }
+        //TODO: Add Images and Videos
 
-
-        if (hasReply){
-            Column(
-                modifier = modifier
-                    .padding(vertical = 8.dp, horizontal = 16.dp)
-            ){
-                Row (
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min)
-                        .clickable {  }
-                        .drawBehind {
-                            drawRoundRect(
-                                Colors.BLACK,
-                                alpha = 0.3f,
-                                cornerRadius = CornerRadius(12.dp.toPx())
+        /*
+            if (videoPlayer == null) {
+                        Box(
+                            modifier = modifier.padding(bottom = 6.dp).clip(BubbleShape).size(218.dp).aspectRatio(1f).background(
+                                dgenBlack.copy(0.25f)
                             )
+                        ) {
 
                         }
-                ){
-                    Box(
-                        Modifier
-                            .background(if(isUserMe)  Colors.WHITE else Color(0xFF8C7DF7))
-                            .width(6.dp)
-                            .fillMaxHeight()
-                    ){
-
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .padding(top = 12.dp, bottom = 12.dp, end = 18.dp)
-
-                    ) {
-
-
-                            Text(
-                                text = if (isUserMe) name else "You",
-                                style = TextStyle(
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if(!isUserMe) Color(0xFF8C7DF7) else Colors.WHITE,
-                                    fontFamily = Fonts.INTER
-                                )
-                            )
+         */
 
 
 
-                        BasicText(
-                            text = messageEntity.body,
-                            maxLines = 4,
-                            overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Normal,
-                                color = Colors.WHITE,
-                                fontFamily = Fonts.INTER
-                            ),
-                            modifier = Modifier
-                                .alpha(0.8f)
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            onLongClick()
-                                        },
-                                        onDoubleTap = {
-                                            onDoubleClick()
-                                        }
-
-                                    )
-                                },
-
-                            )
-                    }
-
-                }
-
-
-            }
-        }*/
 
 
         FlowRow (
             modifier = Modifier,
             horizontalArrangement = Arrangement.End,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Bottom
         ) {
 
             val uriHandler = LocalUriHandler.current
@@ -298,11 +196,46 @@ fun ChatItemBubbleV3(
             AuthorNameTimestamp(
                 messageEntity,
                 isUserMe,
-                modifier = Modifier.padding(start=16.dp, top=4.dp).fillMaxHeight()
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 4.dp)
+                    .fillMaxHeight()
             )
-
-
-
         }
+
     }
+}
+
+@Composable
+@Preview
+fun ChatItemBubbleV3Preview(){
+    val recipientB = Recipient(
+        id = "userB",
+        address = "0x54h5CryptoBroWallet",
+        ens = "ski.eth",
+        contact = Contact("lk1", "Bob", null, "0x423")
+    )
+    val now = Instant.parse("2025-04-17T12:23:05Z")
+
+    val recipientA = Recipient(
+        id = "userA",
+        address = "0xAbC123CryptoBroWallet",
+        ens = "bro.eth",
+        contact = Contact("lk1", "Timothy", null, "0x423")
+    )
+
+
+    val msg = Message("19", "thread123", recipientA, now - (35 * 60).seconds, now - (35 * 60).seconds, true, DeliveryStatus.PUBLISHED, null, true, emptyList(), emptyList(), "Of course.")
+
+    ChatItemBubbleV3(
+        messageEntity = msg,
+        isUserMe = true,
+        videoPlayer = null,
+        onPlayVideo = {  },
+        onLongClick = {},
+        name = recipientA.contact?.name.toString(),
+        onDoubleClick = { },
+        isGroup = true,
+        isFirstMessageByAuthor = false
+    )
+
 }
