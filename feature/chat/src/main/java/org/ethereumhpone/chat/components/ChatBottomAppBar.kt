@@ -110,10 +110,12 @@ import com.example.dgenlibrary.ui.theme.dgenWhite
 import com.example.dgenlibrary.ui.theme.label_fontSize
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
+import org.ethereumhpone.chat.util.ChatMessage
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.model.Attachments
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import kotlin.collections.set
 
 @Composable
 fun ChatBottomAppBar(
@@ -211,10 +213,22 @@ fun ChatBottomAppBar(
 
                 IconButton(
                     onClick = {
-                        onSendClick(textState.text)
-                        focusManager.clearFocus()
-                        textState = TextFieldValue()
-                        expand.value = false
+                        if (textState.text.isNotBlank()) {
+                            onSendClick(textState.text)
+                            /*
+                            val newMsg = ChatMessage(text = textState.text)
+                            // start invisible so it will animate in
+                            visibleMap[newMsg.id] = mutableStateOf(false)
+                            messages.add(0, newMsg)
+                            input = ""
+                             */
+
+                            focusManager.clearFocus()
+                            textState = TextFieldValue()
+                            expand.value = false
+                        }
+
+
                     },
                     colors = IconButtonDefaults.iconButtonColors(
                         Color.Transparent,

@@ -4,11 +4,15 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +22,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,11 +29,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
@@ -41,21 +41,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.chat.components.message.MessageItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.InsertPhoto
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -70,21 +73,21 @@ import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.dgenBlack
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.message.ComposablePosition
+import org.ethereumhpone.chat.util.ChatMessage
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
+import org.ethereumhpone.chat.util.testMessage
 import org.ethereumhpone.chat.util.truncateToDate
-import org.ethereumhpone.chat.util.truncateToMinute
 import org.ethereumhpone.database.model.ContactEntity
-import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.components.TimeHeader
-import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
@@ -112,7 +115,6 @@ fun ChatRoute(
     val selectedMessaged by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
 
     val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
-
 
 
 
@@ -162,9 +164,9 @@ fun ChatScreen(
     /*onOpenContact: () -> Unit,
     selectedMessaged: List<Message?> = emptyList(),
     onContactSelected: (ContactEntity) -> Unit,
-    onToggleAttachment: (Attachment) -> Unit,
-    onSendMessageClicked: (String) -> Unit,
-    onDeleteMessage: (String) -> Unit,
+    onToggleAttachment: (Attachment) -> Unit,*/
+    onSendMessageClicked: (String) -> Unit = {},
+    /*onDeleteMessage: (String) -> Unit,
     onFocusedMessageUpdate: (Message) -> Unit,
     onPrepareVideo: (Uri) -> Unit,
     onRemoveSelectedMessage: (Message) -> Unit,
@@ -184,8 +186,7 @@ fun ChatScreen(
     val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
 
     var showOverlay = remember { mutableStateOf(false) }
-    var hasMultipleLines = remember { mutableStateOf(false) }
-    val expand = remember { mutableStateOf(false) }
+
     var shouldRotate by remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
 
@@ -204,6 +205,46 @@ fun ChatScreen(
         ConversationUiState.Loading -> null
         is ConversationUiState.Success -> converstation.conversation
     }
+
+    // variables for ui
+    val messages = remember { mutableStateListOf<Message>() }
+    val visibleMap = remember { mutableStateMapOf<String, MutableState<Boolean>>() }
+    val isFirstLoad = remember { mutableStateOf(true) }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // variables for Chatbottombar
+    var hasMultipleLines = remember { mutableStateOf(false) }
+    val expand = remember { mutableStateOf(false) }
+
+    // if message state change -> updates list
+    LaunchedEffect(messageUiState) {
+        when (messageUiState) {
+            is MessageUiState.Success -> {
+                val incoming = messageUiState.messageEntities.sortedBy {truncateToDate(it.date) }
+                messages.apply {
+                    clear()
+                    addAll(incoming)
+                }
+                if (isFirstLoad.value) {
+                    // Erstbefüllung: alle existierenden auf true
+                    incoming.forEach { msg ->
+                        visibleMap[msg.id] = mutableStateOf(true)
+                    }
+                    isFirstLoad.value = false
+                } else {
+                    // Nur new IDs auf false setzen
+                    incoming.map { it.id }
+                        .filterNot { visibleMap.containsKey(it) }
+                        .forEach { newId ->
+                            visibleMap[newId] = mutableStateOf(false)
+                        }
+                }
+            }
+            else -> { /* Loading oder Fehler: nix tun */ }
+        }
+    }
+
 
 
 
@@ -225,20 +266,19 @@ fun ChatScreen(
             },
             bottomBar = {
                 ChatBottomAppBar(
-                    attachments,
-                    onToggleAttachment = { it -> }, //onToggleAttachment,
-                    onSendClick =  { it -> }, //onSendMessageClicked
-                    hasMultipleLines =  hasMultipleLines,
-                    expand = expand,
-                    openAction = {
-                        // Show overlay when this action is triggered
-                        showOverlay.value = true
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
+                    attachments = emptySet(),
+                    onToggleAttachment = {},
+                    onSendClick = { text ->
+                        if (text.isNotBlank()) {
+                            onSendMessageClicked(text)
+                            coroutineScope.launch { listState.animateScrollToItem(0) }
+                        }
+                        //Test
+                        messages.add(testMessage)
                     },
-
-
-
+                    hasMultipleLines = hasMultipleLines,
+                    expand = expand,
+                    openAction = { expand.value = !expand.value }
                 )
             },
             containerColor = dgenBlack,
@@ -247,41 +287,24 @@ fun ChatScreen(
 
             Box(modifier= Modifier
                 .fillMaxSize()
-                .padding(paddingValues)){
+                .padding(paddingValues)
+            ){
+
                 when(messageUiState) {
                     is MessageUiState.Success -> {
-                        val messages = messageUiState.messageEntities
-                        val sortedMessages = messages.sortedBy {truncateToDate(it.date) }
-
                         LazyColumn(
                             state = scrollState,
                             modifier = Modifier.fillMaxSize(),
+
                         ) {
 
-                            sortedMessages.forEachIndexed { index, message ->
-
-
-                                /*
-                                val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
-                                val nextAuthor = messages.getOrNull(messages.indexOf(message) + 1)?.recipient?.id
-                                val isFirstMessageByAuthor = prevAuthor != message.recipient.id
-                                val isLastMessageByAuthor = nextAuthor != message.recipient.id
-                                 */
-
+                            messages.forEachIndexed { index, message ->
 
                                 val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
                                 val isFirstMessageByAuthor = prevAuthor != message.recipient.id
-
-
-
-
 
                                 val prevDate = messages.getOrNull(messages.indexOf(message) - 1)?.date
-
-                                val newprevDate =
-                                    prevDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
-
-
+                                val newprevDate = prevDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
                                 val nextDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
 
                                 if (newprevDate != nextDate){
@@ -291,28 +314,49 @@ fun ChatScreen(
                                 }
 
                                 item {
-                                    //TODO: add Transaction Messages
-                                    MessageItem(
-                                        onAuthorClick = { },
-                                        msg = message,
-                                        composablePositionState = composablePositionState,
-                                        player = videoPlayer,
-                                        onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
-                                        onLongClick = {},//{ onFocusedMessageUpdate(message) },
-                                        name = "${message.recipient.contact?.name}", //TODO FIX THIS
-                                        isSelected = selectedMessagesMap.contains(message),
-                                        selectMode = selectMode,
-                                        isXMTP = true,
-                                        onSelect = { selectedMessage ->
-                                            // invert boolean or add
-                                            selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
-                                                isChecked?.let { !it } ?: true
-                                            }
-                                        },
-                                        onDoubleClick = { selectMode.value = !selectMode.value },
-                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                        isGroup = chatConversion?.isGroup == true
-                                    )
+
+                                    //check if a message is already visible
+                                    val isVisible = visibleMap.getOrPut(message.id) { mutableStateOf(false) }
+
+                                    //Animated the message
+                                    AnimatedVisibility(
+                                        visible = isVisible.value,
+                                        enter = scaleIn(
+                                            initialScale = 0f,
+                                            transformOrigin = if(message.isMe) TransformOrigin(1f, 1f) else TransformOrigin(0f, 1f),
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessLow
+                                            )
+                                        ) + fadeIn(tween(300)),
+                                        exit = fadeOut() + scaleOut(),
+                                        modifier = Modifier.animateItemPlacement(animationSpec = tween(durationMillis = 300))
+
+                                    ) {
+                                        //TODO: add Transaction Messages
+                                        MessageItem(
+                                            onAuthorClick = { },
+                                            msg = message,
+                                            composablePositionState = composablePositionState,
+                                            player = videoPlayer,
+                                            onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
+                                            onLongClick = {},//{ onFocusedMessageUpdate(message) },
+                                            name = "${message.recipient.contact?.name}", //TODO FIX THIS
+                                            isSelected = selectedMessagesMap.contains(message),
+                                            selectMode = selectMode,
+                                            isXMTP = true,
+                                            onSelect = { selectedMessage ->
+                                                // invert boolean or add
+                                                selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
+                                                    isChecked?.let { !it } ?: true
+                                                }
+                                            },
+                                            onDoubleClick = { selectMode.value = !selectMode.value },
+                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                            isGroup = chatConversion?.isGroup == true,
+                                            isVisible = isVisible.value
+                                        )
+                                    }
                                 }
 
                             }
@@ -322,10 +366,18 @@ fun ChatScreen(
 
                         }
                     }
-                    else -> {
 
+                    MessageUiState.Loading -> {
+                        Box(
+                            Modifier
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
+
             }
 
 

@@ -7,6 +7,32 @@ import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
 
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.TransformOrigin
+import org.ethereumphone.model.Attachment
+import org.ethereumphone.model.Reaction
+import kotlin.random.Random
+
+
 fun generateTestMessages(): List<Message> {
     val recipientMe = Recipient(
         id = "userA",
@@ -66,14 +92,14 @@ fun generateTestGroupMessages(): List<Message> {
         contact = Contact("lk1", "Timothy", null, "0x423")
     )
 
-    val recipientOther = Recipient(
+    val recipientOther2 = Recipient(
         id = "userB",
         address = "0xDeF456HodlGuyWallet",
         ens = "hodl.eth",
         contact = Contact("lk2", "Bob", null, "0x456")
     )
 
-    val recipientOther2 = Recipient(
+    val recipientOther = Recipient(
         id = "userC",
         address = "0xDeF456JoeGuy",
         ens = "Joe.eth",
@@ -106,3 +132,142 @@ fun generateTestGroupMessages(): List<Message> {
             Message("17","thread3x3",recipientMe,now-(51*60).seconds,now-(51*60).seconds,true,DeliveryStatus.PUBLISHED,null,true,emptyList(),emptyList(),"Got it! And I’ll post some stories tagging Freedom Factory later.")
     )
 }
+
+val testMessage = Message(
+    id = "msg_123",
+    threadId = "thread_456",
+    recipient = Recipient(
+        id = "user_789",
+        address = "rrehstgrq",
+        ens = "bro.eth",
+        contact = Contact("lk3", "Timothy", null, "0x474")
+    ),
+    date = Instant.parse("2025-04-23T12:00:00Z"),
+    dateSent = Instant.parse("2025-04-23T11:59:00Z"),
+    seen = false,
+    deliveryStatus = DeliveryStatus.PUBLISHED,
+    replyReference = null,
+    isMe = true,
+    attachments = listOf(
+       /*
+        Attachment(
+         id = "att_1",
+            type = "image/png",
+            url = "https://example.com/image.png"
+        )
+        */
+
+    ),
+    reactions = emptyList(),
+    body = "Hallo, das hier ist eine Testnachricht!"
+)
+/*
+@OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
+@Composable
+fun ChatScreen(preloaded: List<String> = emptyList()) {
+    // 1) Create ChatMessage objects for your history…
+    val initialMsgs = remember { preloaded.map { ChatMessage(text = it) } }
+    // 2) Backing list, seeded with history:
+    val messages = remember { mutableStateListOf<ChatMessage>().apply { addAll(initialMsgs) } }
+    // 3) Visibility map: mark history as already visible = true
+    val visibleMap = remember {
+        mutableStateMapOf<Long, MutableState<Boolean>>().apply {
+            initialMsgs.forEach { put(it.id, mutableStateOf(true)) }
+        }
+    }
+    val listState = rememberLazyListState()
+    var input by remember { mutableStateOf("") }
+
+    Column(Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            reverseLayout = true,
+            modifier = Modifier.weight(1f)
+        ) {
+            items(items = messages, key = { it.id }) { msg ->
+
+
+                    // each msg gets its own MutableState<Boolean>
+                    val isVisible = visibleMap.getOrPut(msg.id) { mutableStateOf(false) }
+
+                    AnimatedVisibility(
+                        visible = isVisible.value,
+                        enter = scaleIn(
+                            initialScale = 0f,
+                            transformOrigin = TransformOrigin(0f, 1f),
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) + fadeIn(tween(300)),
+                        exit = fadeOut() + scaleOut(),
+                        modifier = Modifier.animateItemPlacement(animationSpec = tween(durationMillis = 300))
+
+                    ) {
+                        MessageBubble(msg.text)
+                    }
+
+
+
+                // only flip to true if it wasn’t already (history stays true)
+                LaunchedEffect(msg.id) {
+                    if (!isVisible.value) {
+                        isVisible.value = true
+                    }
+                }
+            }
+        }
+
+        Row(Modifier.padding(8.dp)) {
+            TextField(
+                value = input,
+                onValueChange = { input = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Type a message") }
+            )
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = {
+                if (input.isNotBlank()) {
+                    val newMsg = ChatMessage(text = input)
+                    // start invisible so it will animate in
+                    visibleMap[newMsg.id] = mutableStateOf(false)
+                    messages.add(0, newMsg)
+                    input = ""
+
+                }
+            }) {
+                Text("Send")
+            }
+            LaunchedEffect(messages.size) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
+}
+
+// same as before
+data class ChatMessage(val id: Long = Random.nextLong(), val text: String)
+
+@Composable
+fun MessageBubble(text: String) {
+    Box(
+        Modifier
+            .padding(4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFDCF8C6))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Text(text)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ChatScreenPreview() {
+    MaterialTheme {
+        ChatScreen(listOf("Bruh", "Hallow"))
+    }
+}
+ */
+
+

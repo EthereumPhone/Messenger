@@ -1,11 +1,8 @@
 package org.ethereumhpone.chat.components.message
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +11,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -23,14 +19,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -64,9 +57,7 @@ import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.dgenWhite
 import org.ethereumhpone.chat.R
-import org.ethereumhpone.chat.components.ChatItemBubbleV2
 import org.ethereumhpone.chat.components.ChatItemBubbleV3
-import org.ethereumhpone.chat.components.EthOSCheckbox
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
@@ -75,8 +66,6 @@ import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -103,7 +92,8 @@ fun MessageItem(
     onLongClick: () -> Unit = {},
     onSelect: (Message) -> Unit,
     isGroup: Boolean,
-    onDoubleClick: () -> Unit
+    onDoubleClick: () -> Unit,
+    isVisible: Boolean
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
@@ -137,6 +127,8 @@ fun MessageItem(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
+            //Animates the bubble based on if its visible or not
+            
             ChatItemBubbleV3(
                 modifier = alignmessage,
                 messageEntity = msg,
@@ -145,13 +137,13 @@ fun MessageItem(
                 onPlayVideo = { onPrepareVideo(it) },
                 onLongClick = {
                     composablePositionState.value.height = compSize
-                    composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
+                    composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
                     onLongClick()
                 },
                 name = name,
                 onDoubleClick = onDoubleClick,
                 isGroup = isGroup,
-                isFirstMessageByAuthor = isFirstMessageByAuthor
+                isFirstMessageByAuthor = isFirstMessageByAuthor,
             )
 
 

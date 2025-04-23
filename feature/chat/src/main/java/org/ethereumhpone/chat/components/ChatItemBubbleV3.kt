@@ -1,6 +1,7 @@
 package org.ethereumhpone.chat.components
 
 import android.net.Uri
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -99,7 +100,6 @@ fun ChatItemBubbleV3(
         true -> dgenOcean
         false -> Colors.DARK_GRAY
     }
-
 
     Column (
         verticalArrangement = Arrangement.Bottom,
