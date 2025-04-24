@@ -123,13 +123,12 @@ import kotlin.collections.set
 
 @Composable
 fun ChatBottomAppBar(
-    attachments: Set<Attachment>,
+    attachments: List<Attachment>,
     onToggleAttachment: (Attachment) -> Unit,
     onSendClick: (String) -> Unit,
     hasMultipleLines: MutableState<Boolean> = mutableStateOf(false),
     expand: MutableState<Boolean> = mutableStateOf(false),
     openAction: () -> Unit,
-    selectedUris: SnapshotStateList<Uri>
 ) {
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusManager = LocalFocusManager.current
@@ -161,26 +160,10 @@ fun ChatBottomAppBar(
             verticalArrangement = Arrangement.Center
     ) {
 
-        if (selectedUris.isNotEmpty()) {
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(selectedUris) { uri ->
-
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                }
-            }
-        }
+        AttachmentRow(
+            selectedAttachments = attachments,
+            onToggleAttachment = onToggleAttachment
+        )
 
 
         Box {

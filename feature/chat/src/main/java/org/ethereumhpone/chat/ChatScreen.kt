@@ -284,40 +284,32 @@ fun ChatScreen(
     }
      */
     var showPicker by remember { mutableStateOf(false) }
-    val selectedUris = remember { mutableStateListOf<Uri>() }
+    val attachments = remember { mutableStateListOf<Attachment>() }
+
+
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
+        ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val intent = result.data
-            intent?.let { data ->
-                // 1) If the user picked >1 image, it'll come in clipData
-                val clip = data.clipData
-                if (clip != null) {
-                    // Clear old, then add each URI
-                    selectedUris.clear()
-                    for (i in 0 until clip.itemCount) {
-                        clip.getItemAt(i).uri?.let { selectedUris.add(it) }
-                    }
-                }
-                // 2) If only one image was picked
-                else if (data.data != null) {
-                    selectedUris.clear()
-                    selectedUris.add(data.data!!)
-                }
-                // 3) If the camera was used (no dataUri, but a Bitmap in extras)
-                else {
-                    val bitmap = data.extras?.get("data") as? Bitmap
-                    bitmap?.let {
-                        getImageUri(context, it)?.let { uri ->
-                            selectedUris.clear()
-                            selectedUris.add(uri)
-                        }
+            val data = result.data
+            attachments.clear()
+
+            data?.clipData?.let { clip ->
+                // multiple images
+                for (i in 0 until clip.itemCount) {
+                    clip.getItemAt(i).uri?.let { uri ->
+                        attachments.add(Attachment.Image(uri = uri))
                     }
                 }
             }
+            // single image
+            data?.data?.let { uri ->
+                attachments.add(Attachment.Image(uri = uri))
+            }
         }
     }
+
+
 
 
     Box(
@@ -336,15 +328,19 @@ fun ChatScreen(
             },
             bottomBar = {
                 ChatBottomAppBar(
-                    attachments = emptySet(),
-                    onToggleAttachment = {},
+                    attachments = attachments,
+                    onToggleAttachment = { att ->
+                        if (att in attachments) attachments.remove(att)
+                        else attachments.add(att)
+                    },
                     onSendClick = { text ->
                         if (text.isNotBlank()) {
                             onSendMessageClicked(text)
                             coroutineScope.launch { listState.animateScrollToItem(0) }
                         }
-                        //Test
-                        messages.add(testMessage)
+
+                        attachments.clear()
+
                     },
                     hasMultipleLines = hasMultipleLines,
                     expand = expand,
@@ -354,8 +350,7 @@ fun ChatScreen(
                         showOverlay.value = true
                         focusManager.clearFocus()
                         keyboardController?.hide()
-                    },
-                    selectedUris = selectedUris
+                    }
                 )
             },
             containerColor = dgenBlack,
@@ -491,10 +486,10 @@ fun ChatScreen(
                 Modifier.fillMaxSize().background(dgenBlack)
             ){
                 ImageSelectionScreen(
-                    selectedUris = selectedUris,
-                    onToggleSelection = { uri ->
-                        if (selectedUris.contains(uri)) selectedUris.remove(uri)
-                        else selectedUris.add(uri)
+                    attachments = attachments,
+                    onToggleAttachment = { attachment ->
+                        if (attachment in attachments) attachments.remove(attachment)
+                        else attachments.add(attachment)
                     },
                     onDone = { showPicker = false }
                 )
