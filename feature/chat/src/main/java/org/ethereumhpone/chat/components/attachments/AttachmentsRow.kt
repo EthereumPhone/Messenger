@@ -54,7 +54,7 @@ fun AttachmentRow(
                         MediaItem(
                             modifier = Modifier
                                 .size(64.dp)
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(RoundedCornerShape(8.dp)),
                             attachment = attachment
                         )
                     }

@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat.components
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -39,6 +40,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.foundation.text.BasicTextField
@@ -70,6 +73,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -99,6 +103,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import coil.compose.AsyncImage
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.body1_fontSize
@@ -123,7 +128,8 @@ fun ChatBottomAppBar(
     onSendClick: (String) -> Unit,
     hasMultipleLines: MutableState<Boolean> = mutableStateOf(false),
     expand: MutableState<Boolean> = mutableStateOf(false),
-    openAction: () -> Unit
+    openAction: () -> Unit,
+    selectedUris: SnapshotStateList<Uri>
 ) {
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusManager = LocalFocusManager.current
@@ -154,6 +160,27 @@ fun ChatBottomAppBar(
                 .then(if (expand.value) Modifier.fillMaxHeight() else Modifier.heightIn(max= 250.dp)),
             verticalArrangement = Arrangement.Center
     ) {
+
+        if (selectedUris.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(selectedUris) { uri ->
+
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                }
+            }
+        }
 
 
         Box {

@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -38,6 +39,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
@@ -55,6 +57,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,6 +77,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
@@ -88,6 +92,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
+import org.ethereumhpone.chat.components.ImageSelectionScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
@@ -260,6 +265,7 @@ fun ChatScreen(
 
 
     //for selecting images from gallery
+    /*
     val imageUri = remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -276,6 +282,43 @@ fun ChatScreen(
             }
         }
     }
+     */
+    var showPicker by remember { mutableStateOf(false) }
+    val selectedUris = remember { mutableStateListOf<Uri>() }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val intent = result.data
+            intent?.let { data ->
+                // 1) If the user picked >1 image, it'll come in clipData
+                val clip = data.clipData
+                if (clip != null) {
+                    // Clear old, then add each URI
+                    selectedUris.clear()
+                    for (i in 0 until clip.itemCount) {
+                        clip.getItemAt(i).uri?.let { selectedUris.add(it) }
+                    }
+                }
+                // 2) If only one image was picked
+                else if (data.data != null) {
+                    selectedUris.clear()
+                    selectedUris.add(data.data!!)
+                }
+                // 3) If the camera was used (no dataUri, but a Bitmap in extras)
+                else {
+                    val bitmap = data.extras?.get("data") as? Bitmap
+                    bitmap?.let {
+                        getImageUri(context, it)?.let { uri ->
+                            selectedUris.clear()
+                            selectedUris.add(uri)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     Box(
         modifier = Modifier
@@ -285,7 +328,6 @@ fun ChatScreen(
         Scaffold (
             topBar = {
                 ChatTopAppBar(
-
                     chatConversion?.title.toString(),
                     recipientUiState = recipientUiState,
                     onTitleClicked = {},
@@ -312,7 +354,8 @@ fun ChatScreen(
                         showOverlay.value = true
                         focusManager.clearFocus()
                         keyboardController?.hide()
-                    }
+                    },
+                    selectedUris = selectedUris
                 )
             },
             containerColor = dgenBlack,
@@ -417,13 +460,47 @@ fun ChatScreen(
             showOverlay = showOverlay,
             shouldRotate = shouldRotate,
             openGallery = {
-                val intent = Intent(
-                    Intent.ACTION_PICK,
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                )
+                //opens gallery for selecting images
+                /*
+
+                 */
+                //val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                //    type = "image/*"
+                //    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                //}
+                //launcher.launch(intent)
+                showPicker = true
+                showOverlay.value = false
+            },
+            openCamera = {
+                //open camera
+                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
                 launcher.launch(intent)
+                showOverlay.value = false
             }
         )
+
+
+        AnimatedVisibility(
+            visible = showPicker,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                Modifier.fillMaxSize().background(dgenBlack)
+            ){
+                ImageSelectionScreen(
+                    selectedUris = selectedUris,
+                    onToggleSelection = { uri ->
+                        if (selectedUris.contains(uri)) selectedUris.remove(uri)
+                        else selectedUris.add(uri)
+                    },
+                    onDone = { showPicker = false }
+                )
+            }
+        }
+
     }
 
 }

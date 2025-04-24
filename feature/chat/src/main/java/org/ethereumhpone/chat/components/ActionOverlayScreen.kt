@@ -57,7 +57,8 @@ import java.io.ByteArrayOutputStream
 fun ActionOverlayScreen(
     showOverlay:  MutableState<Boolean>,
     shouldRotate:  MutableState<Boolean>,
-    openGallery: () -> Unit
+    openGallery: () -> Unit,
+    openCamera: () -> Unit
 ){
     AnimatedVisibility(
         visible = showOverlay.value,
@@ -158,7 +159,7 @@ fun ActionOverlayScreen(
                     verticalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
                     Text(
-                        text = "Video",
+                        text = "Camera",
                         style = TextStyle(
                             fontFamily = PitagonsSans,
                             color = dgenTurqoise,
@@ -169,7 +170,7 @@ fun ActionOverlayScreen(
                         ),
                         modifier = Modifier.alpha(alpha3).pointerInput(Unit) {
                             detectTapGestures{
-                                openGallery()
+                                openCamera()
                             }
                         }
                     )
