@@ -1,7 +1,14 @@
 package org.ethereumhpone.chat
 
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
+import android.provider.MediaStore
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -60,6 +67,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
@@ -77,10 +85,10 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.message.ComposablePosition
-import org.ethereumhpone.chat.util.ChatMessage
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.chat.util.testMessage
@@ -93,6 +101,7 @@ import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
+import java.io.ByteArrayOutputStream
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -174,6 +183,8 @@ fun ChatScreen(
 ) {
 
 
+    val context = LocalContext.current
+
     //handle focus
     val showBottomSheet by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
@@ -187,7 +198,7 @@ fun ChatScreen(
 
     var showOverlay = remember { mutableStateOf(false) }
 
-    var shouldRotate by remember { mutableStateOf(false) }
+    var shouldRotate = remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -248,6 +259,23 @@ fun ChatScreen(
 
 
 
+    //for selecting images from gallery
+    val imageUri = remember { mutableStateOf<Uri?>(null) }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Handle the result here
+            if (result.data?.data == null) {
+                val bitmap = result.data?.extras?.get("data") as Bitmap
+                val uri = getImageUri(context, bitmap)
+                imageUri.value = uri
+            } else {
+                val data: Intent? = result.data
+                imageUri.value = data?.data
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -278,7 +306,13 @@ fun ChatScreen(
                     },
                     hasMultipleLines = hasMultipleLines,
                     expand = expand,
-                    openAction = { expand.value = !expand.value }
+                    openAction = {
+                        expand.value = false
+                        // Show overlay when this action is triggered
+                        showOverlay.value = true
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                    }
                 )
             },
             containerColor = dgenBlack,
@@ -358,12 +392,7 @@ fun ChatScreen(
                                         )
                                     }
                                 }
-
                             }
-
-
-
-
                         }
                     }
 
@@ -384,181 +413,27 @@ fun ChatScreen(
         }
 
         // Overlay with AnimatedVisibility for fade effect
-        AnimatedVisibility(
-            visible = showOverlay.value,
-            enter = fadeIn(animationSpec = tween(300)),
-            exit = fadeOut(animationSpec = tween(300)),
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            LaunchedEffect(showOverlay.value) {
-                if (showOverlay.value) {
-                    delay(300)
-                    shouldRotate = true
-                } else {
-                    shouldRotate = false
-                }
+        ActionOverlayScreen(
+            showOverlay = showOverlay,
+            shouldRotate = shouldRotate,
+            openGallery = {
+                val intent = Intent(
+                    Intent.ACTION_PICK,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                )
+                launcher.launch(intent)
             }
-
-            var alpha1 by remember { mutableStateOf(0f) }
-            var alpha2 by remember { mutableStateOf(0f) }
-            var alpha3 by remember { mutableStateOf(0f) }
-            val delayBetweenTexts = 25
-
-            // Animation spec
-            val animationSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
-
-            // Trigger animations when parent becomes visible
-            LaunchedEffect(showOverlay.value) {
-                if (showOverlay.value) {
-                    // Reset states
-                    alpha1 = 0f
-                    alpha2 = 0f
-                    alpha3 = 0f
-
-                    // Start sequential animations
-                    delay(100) // Small initial delay
-
-                    // Animate first text
-                    animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
-                        alpha1 = value
-                    }
-
-                    delay(delayBetweenTexts.toLong())
-
-                    // Animate second text
-                    animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
-                        alpha2 = value
-                    }
-
-                    delay(delayBetweenTexts.toLong())
-
-                    // Animate third text
-                    animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
-                        alpha3 = value
-                    }
-                } else {
-                    // Reset when hiding
-                    alpha1 = 0f
-                    alpha2 = 0f
-                    alpha3 = 0f
-                }
-            }
-
-            // Create animated rotation value
-            val rotation by animateFloatAsState(
-                targetValue = if (shouldRotate) 45f else 0f,
-                animationSpec = tween(
-                    durationMillis = 300,
-                    easing = FastOutSlowInEasing
-                ),
-                label = "rotation"
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(dgenBlack)
-                    .clickable { showOverlay.value = false },
-                contentAlignment = Alignment.BottomStart
-            ) {
-                // Your overlay content here
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-
-                        //.align(Alignment.Center)
-                        // Prevent clicks on the content from closing the overlay
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { /* Do nothing to prevent propagation */ },
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 32.dp),
-                        verticalArrangement = Arrangement.spacedBy(32.dp)
-                    ) {
-                        Text(
-                            text = "Video",
-                            style = TextStyle(
-                                fontFamily = PitagonsSans,
-                                color = dgenTurqoise,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 40.sp,
-                                letterSpacing = 0.sp,
-                                textDecoration = TextDecoration.None
-                            ),
-                            modifier = Modifier.alpha(alpha3)
-                        )
-                        Text(
-                            text = "Image",
-                            style = TextStyle(
-                                fontFamily = PitagonsSans,
-                                color = dgenTurqoise,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 40.sp,
-                                letterSpacing = 0.sp,
-                                textDecoration = TextDecoration.None
-                            ),
-                            modifier = Modifier.alpha(alpha2)
-                        )
-                        Text(
-                            text = "Send",
-                            style = TextStyle(
-                                fontFamily = PitagonsSans,
-                                color = dgenTurqoise,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 40.sp,
-                                letterSpacing = 0.sp,
-                                textDecoration = TextDecoration.None
-                            ),
-                            modifier = Modifier.alpha(alpha1)
-                        )
-                    }
-
-
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 16.dp),
-                    ) {
-                        IconButton(
-                            onClick = {
-                                showOverlay.value = false
-                            },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                Color.Transparent,
-                                dgenTurqoise
-                            ),
-                            modifier = Modifier.size(56.dp)
-                        ) {
-
-                            Icon(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .graphicsLayer {
-                                        rotationZ = rotation
-                                    },
-                                imageVector = Icons.Outlined.Add,
-                                tint = dgenTurqoise,
-                                contentDescription = "collapse"
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        )
     }
 
 }
 
-
+private fun getImageUri(context: Context, bitmap: Bitmap): Uri? {
+    val bytes = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
+    val path = MediaStore.Images.Media.insertImage(context.contentResolver, bitmap, "Title", null)
+    return Uri.parse(path)
+}
 
 
 fun chainIdToReadableName(chainId: Int): String = when(chainId) {
@@ -598,6 +473,7 @@ fun  extractTransactionDetails(message: String): TransactionDetails? {
 
     return if (chainId != -1) TransactionDetails(amount, url, chainId) else null
 }
+
 
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")

@@ -1,5 +1,10 @@
 package org.ethereumhpone.chat.util
 
+import android.graphics.drawable.Drawable
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.datetime.Instant
 import org.ethereumphone.model.Contact
 import kotlin.time.Duration.Companion.seconds
@@ -26,8 +31,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import org.ethereumphone.model.Attachment
 import org.ethereumphone.model.Reaction
 import kotlin.random.Random
@@ -161,6 +172,13 @@ val testMessage = Message(
     reactions = emptyList(),
     body = "Hallo, das hier ist eine Testnachricht!"
 )
+
+
+
+
+
+
+
 /*
 @OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
 @Composable

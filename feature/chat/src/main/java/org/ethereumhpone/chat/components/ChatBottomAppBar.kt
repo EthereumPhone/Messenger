@@ -110,7 +110,6 @@ import com.example.dgenlibrary.ui.theme.dgenWhite
 import com.example.dgenlibrary.ui.theme.label_fontSize
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
-import org.ethereumhpone.chat.util.ChatMessage
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.model.Attachments
 import org.ethosmobile.components.library.theme.Colors
