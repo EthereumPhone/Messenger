@@ -68,6 +68,7 @@ import coil.compose.AsyncImage
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenGreen
 import com.example.dgenlibrary.ui.theme.dgenOcean
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.example.dgenlibrary.ui.theme.dgenWhite
@@ -97,16 +98,26 @@ fun OverlaySendScreen(
     
     var title = when(readyToSend){
         false ->  "SELECT TOKEN"
-        true -> "SEND ${token.uppercase()}"
+        true -> "SEND $${token.uppercase()}"
     }
 
     //TODO: Fill with a list of recipient
-    val list = remember { mutableStateListOf("Max", "Joe", "Alex") }
+    val list = remember { mutableStateListOf(
+        "Max", "Joe", "Alex",
+        "Max", "Joe", "Alex",
+        "Max", "Joe", "Alex",
+        "Max", "Joe", "Alex",
+        "Max", "Joe", "Alex",
+        "Max", "Joe", "Alex",
+        "Max", "Joe", "Alex",
+
+        ) }
     val preselectedRecipient = 0
 
 
 
-    Column(Modifier.fillMaxSize().background(dgenBlack)) {
+    Column(Modifier.fillMaxSize().background(dgenBlack),
+            verticalArrangement =  Arrangement.SpaceBetween) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -150,6 +161,7 @@ fun OverlaySendScreen(
         }
 
         AnimatedContent(
+            modifier = Modifier,
             targetState = readyToSend,
             transitionSpec = {
                 fadeIn(animationSpec = tween(300, 300)) togetherWith
@@ -179,7 +191,7 @@ fun OverlaySendScreen(
                                 fiatamount=645.0,
                                 modifier = Modifier.padding(horizontal = 32.dp).pointerInput(Unit){
                                     detectTapGestures {
-                                        token = "\$TOKEN $index"// TODO: add token name
+                                        token = "TOKEN$index"// TODO: add token name
                                         readyToSend = true
                                     }
                                 }
@@ -195,45 +207,18 @@ fun OverlaySendScreen(
 
             }
             else{
-         Column (
+        Column (
             verticalArrangement =  Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(vertical = 12.dp, horizontal = 32.dp),
         ){
+            Spacer(Modifier.height(8.dp))
              Column(
-                 verticalArrangement = Arrangement.spacedBy(8.dp)
+                 verticalArrangement = Arrangement.spacedBy(24.dp)
              ) {
                  Column(modifier = Modifier.fillMaxWidth()) {
-                     Column (
-                         horizontalAlignment = Alignment.Start,
-                         modifier = Modifier.fillMaxWidth(),
-                     ){
-                         Text(
-                             text= "MAX",
-                             style = TextStyle(
-                                 fontFamily = SpaceMono,
-                                 color = dgenTurqoise,
-                                 fontWeight = FontWeight.Normal,
-                                 fontSize = 16.sp,
-                                 lineHeight = 16.sp,
-                                 letterSpacing = 0.sp,
-                                 textDecoration = TextDecoration.None
-                             )
-                         )
-                         Text(
-                             text= abbreviateNumber(max),
-                             style = TextStyle(
-                                 fontFamily = PitagonsSans,
-                                 color = dgenTurqoise,
-                                 fontWeight = FontWeight.SemiBold,
-                                 fontSize = 24.sp,
-                                 lineHeight = 24.sp,
-                                 letterSpacing = 0.sp,
-                                 textDecoration = TextDecoration.None
-                             )
-                         )
-                     }
+
                      Text(
                          text= "AMOUNT",
                          style = TextStyle(
@@ -282,13 +267,27 @@ fun OverlaySendScreen(
                          modifier = Modifier.fillMaxWidth()
                      )
                      Text(
-                         text= abbreviateNumber(max) + " $token available",
+                         text = buildAnnotatedString {
+                             append(abbreviateNumber(max))
+                             withStyle(style = SpanStyle(
+                                 fontFamily = PitagonsSans,
+                                 color = dgenTurqoise,
+                                 fontWeight = FontWeight.SemiBold,
+                                 fontSize = 14.sp,
+                                 letterSpacing = 0.sp,
+                                 textDecoration = TextDecoration.None
+                             )
+                             ) {
+                                 append(" $token available")
+                             }
+
+                         },
                          style = TextStyle(
                              fontFamily = PitagonsSans,
                              color = dgenTurqoise,
                              fontWeight = FontWeight.SemiBold,
-                             fontSize = 24.sp,
-                             lineHeight = 24.sp,
+                             fontSize = 16.sp,
+                             lineHeight = 16.sp,
                              letterSpacing = 0.sp,
                              textDecoration = TextDecoration.None
                          )
@@ -308,7 +307,7 @@ fun OverlaySendScreen(
                              textDecoration = TextDecoration.None
                          )
                      )
-                     Box(modifier = Modifier.fillMaxWidth().animateContentSize().heightIn(max = 100.dp)){
+                     Box(modifier = Modifier.fillMaxWidth().animateContentSize().heightIn(max = 100.dp).padding(vertical = 12.dp)){
                          SelectableTextGrid(
                              list,
                              preselectedIndex = preselectedRecipient,
@@ -316,9 +315,10 @@ fun OverlaySendScreen(
 
                              }
                          )
-                         Spacer(modifier = Modifier.fillMaxWidth().height(6.dp).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(dgenBlack,Color.Transparent))))
+                         Spacer(modifier = Modifier.fillMaxWidth().height(12.dp).align(Alignment.TopCenter).background(
+                             Brush.verticalGradient(listOf(dgenBlack,Color.Transparent))))
 
-                         Spacer(modifier = Modifier.fillMaxWidth().height(6.dp).align(Alignment.BottomCenter).background(
+                         Spacer(modifier = Modifier.fillMaxWidth().height(12.dp).align(Alignment.BottomCenter).background(
                              Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
 
                      }
@@ -326,9 +326,8 @@ fun OverlaySendScreen(
                  }
              }
 
-
              Row(
-                 modifier = Modifier.fillMaxWidth().padding(bottom = 0.dp),
+                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                  horizontalArrangement = Arrangement.Center
              ) {
 
@@ -353,9 +352,6 @@ fun OverlaySendScreen(
                      )
 
              }
-
-
-
 
         }
             }
@@ -383,10 +379,10 @@ fun SelectableTextGrid(
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
-        contentPadding = PaddingValues(0.dp),
+        contentPadding = PaddingValues(2.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(vertical = 8.dp)
+        modifier = Modifier
     ) {
         itemsIndexed(items) { index, text ->
 
