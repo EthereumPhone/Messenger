@@ -41,9 +41,59 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import org.ethereumphone.model.Attachment
 import org.ethereumphone.model.Reaction
+import org.ethosmobile.components.library.models.TransferItem
 import kotlin.random.Random
 
+@Composable
+fun generateRandomTransfers(): List<TransferItem> {
+    val random = Random(System.currentTimeMillis())
 
+    // Beispielhafte Listen für zufällige Werte
+    val possibleChainIds = listOf(1, 56, 137, 42)  // z.B. Ethereum, BSC, Polygon, Kovan
+    val possibleAssets = listOf("DAI","ETH")
+
+    // Beispiel-Adressen (typisch 0x + 40 Hex-Stellen, hier verkürzt oder zufällig generiert)
+    val sampleAddresses = listOf(
+        "emunsi.eth",
+        "0x4e83362442B8d1beC281594cEa3050c8EB01311C",
+        "0xC0fFee0000000000000000000000000000000000",
+        "0x7Bb4fC5D2f9afE98Ed7be9cEB49F2C4dA333b0B3",
+        "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB",
+        "0x1111111254EEB25477B68fb85Ed929f73A960582"
+    )
+
+    // Beispiel-Zeitstempel im Format YYYY-MM-dd HH:mm:ss, hier stark vereinfacht
+    val sampleTimeStamps = listOf(
+        "2023-01-10 14:25:13",
+        "2023-02-11 09:41:22",
+        "2023-03-15 22:07:59",
+        "2023-03-16 01:33:45",
+        "2023-03-17 16:00:00"
+    )
+
+    // Beispiel-Hashes (typisch 0x + 64 Hex-Stellen)
+    val sampleTxHashes = listOf(
+        "0xaaaabbbbccccddddeeeeffff1111222233334444555566667777888899990000",
+        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        "0xbad00bad00bad00bad00bad00bad00bad00bad00bad00bad00bad00bad00bad0",
+        "0x7777777777777777777777777777777777777777777777777777777777777777",
+        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    )
+
+    // Erzeuge mindestens 10 Einträge
+    return List(10) {
+        TransferItem(
+            chainId = possibleChainIds.random(random),
+            from = sampleAddresses.random(random),
+            to = sampleAddresses.random(random),
+            asset = possibleAssets.random(random),
+            value = (random.nextInt(1, 1000) + random.nextDouble()).toString(),
+            timeStamp = sampleTimeStamps.random(random),
+            userSent = random.nextBoolean(),
+            txHash = sampleTxHashes.random(random),
+        )
+    }
+}
 fun generateTestMessages(): List<Message> {
     val recipientMe = Recipient(
         id = "userA",

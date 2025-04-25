@@ -309,6 +309,9 @@ fun ChatScreen(
     }
 
 
+    var showContact by remember { mutableStateOf(false) }
+
+
 
 
 
@@ -325,7 +328,10 @@ fun ChatScreen(
                 ChatTopAppBar(
                     chatConversion?.title.toString(),
                     recipientUiState = recipientUiState,
-                    onTitleClicked = {},
+                    onTitleClicked = {
+                        currentActions = Actions.CONTACT
+                        showPicker = true
+                    },
                     onBackClicked = navigateBackToConversations
                 )
             },
@@ -496,7 +502,6 @@ fun ChatScreen(
 
 
         //TODO: Fix Action Picker
-
         AnimatedVisibility(
             visible = showPicker,
             enter = fadeIn(animationSpec = tween(300)),
@@ -513,16 +518,16 @@ fun ChatScreen(
                     Actions.SEND -> {
                         //if (chatConversion != null) {
 
-                            OverlaySendScreen(
-                                onBackClick = {
-                                    currentActions = Actions.IDLE
-                                    showPicker = false
-                                    showOverlay.value = false
-                                },
-                                onDone = {
-                                    //TODO: Implement Sending
-                                },
-                            )
+                        OverlaySendScreen(
+                            onBackClick = {
+                                currentActions = Actions.IDLE
+                                showPicker = false
+                                showOverlay.value = false
+                            },
+                            onDone = {
+                                //TODO: Implement Sending
+                            },
+                        )
 
                         //}
                     }
@@ -542,9 +547,25 @@ fun ChatScreen(
                     Actions.VIDEO -> {
                         //TODO: add Videopicker
                     }
+                    Actions.CONTACT -> {
+                        chatConversion?.isGroup?.let {
+                            OverlayContactScreen(
+                                onBackClick = {
+                                    currentActions = Actions.IDLE
+                                    showPicker = false
+                                    showOverlay.value = false
+                                },
+                                onDone = {  },
+                                title = chatConversion.title.toString(),
+                                isGroup = it
+                            )
+                        }
+                    }
                 }
             }
         }
+
+
 
 
 
@@ -560,7 +581,7 @@ private fun getImageUri(context: Context, bitmap: Bitmap): Uri? {
 }
 
 enum class Actions{
-    IDLE, SEND, PHOTO, VIDEO
+    IDLE, SEND, PHOTO, VIDEO, CONTACT
 }
 
 

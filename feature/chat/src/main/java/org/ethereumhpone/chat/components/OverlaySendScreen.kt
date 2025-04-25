@@ -33,6 +33,8 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -85,7 +87,6 @@ import java.util.Locale
 fun OverlaySendScreen(
     onBackClick: () -> Unit,
     onDone: () -> Unit,
-    isGroup: Boolean = false
 ) {
 
     val scrollState = rememberLazyListState()
@@ -156,7 +157,14 @@ fun OverlaySendScreen(
                     .widthIn(min = 10.dp, max = 250.dp)
                 ,
             )
-            Spacer(Modifier.size(24.dp))
+            IconButton(modifier = Modifier.alpha(0f), onClick = {  }) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "BackButton",
+                    modifier = Modifier.size(24.dp),
+                    tint = dgenTurqoise
+                )
+            }
 
         }
 
@@ -356,13 +364,7 @@ fun OverlaySendScreen(
         }
             }
         }
-
-
-
-
     }
-
-
 }
 
 
