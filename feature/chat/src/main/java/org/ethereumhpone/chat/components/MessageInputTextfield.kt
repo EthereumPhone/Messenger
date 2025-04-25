@@ -52,6 +52,17 @@ fun OldSchoolThickCursorTextField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
+    placeholder: @Composable () -> Unit = {
+        Text(
+            text = "Type a message",
+            style = TextStyle(
+                fontFamily = PitagonsSans,
+                color = dgenTurqoise.copy(alpha = 0.45f),
+                fontWeight = FontWeight.Normal,
+                fontSize = 20.sp
+            )
+        )
+    },
     textStyle: TextStyle = LocalTextStyle.current,
     cursorColor: Color = MaterialTheme.colors.primary,
     cursorWidth: Float = 16f,
@@ -93,15 +104,7 @@ fun OldSchoolThickCursorTextField(
     ) {
 
         if (value.text.isBlank()) {
-            Text(
-                text = "Type a message",
-                style = TextStyle(
-                    fontFamily = PitagonsSans,
-                    color = dgenTurqoise.copy(alpha = 0.45f),
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 20.sp
-                )
-            )
+            placeholder()
         }
 
         BasicTextField(

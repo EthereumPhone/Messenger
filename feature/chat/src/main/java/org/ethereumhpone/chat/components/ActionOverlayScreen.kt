@@ -57,7 +57,9 @@ import java.io.ByteArrayOutputStream
 fun ActionOverlayScreen(
     showOverlay:  MutableState<Boolean>,
     shouldRotate:  MutableState<Boolean>,
-    openGallery: () -> Unit,
+    openImage: () -> Unit,
+    openVideo: () -> Unit,
+    openSend: () -> Unit,
     openCamera: () -> Unit
 ){
     AnimatedVisibility(
@@ -79,6 +81,7 @@ fun ActionOverlayScreen(
         var alpha1 by remember { mutableStateOf(0f) }
         var alpha2 by remember { mutableStateOf(0f) }
         var alpha3 by remember { mutableStateOf(0f) }
+        var alpha4 by remember { mutableStateOf(0f) }
         val delayBetweenTexts = 25
 
         // Animation spec
@@ -91,6 +94,7 @@ fun ActionOverlayScreen(
                 alpha1 = 0f
                 alpha2 = 0f
                 alpha3 = 0f
+                alpha4 = 0f
 
                 // Start sequential animations
                 delay(100) // Small initial delay
@@ -113,11 +117,19 @@ fun ActionOverlayScreen(
                 animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
                     alpha3 = value
                 }
+
+                delay(delayBetweenTexts.toLong())
+
+                // Animate third text
+                animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
+                    alpha4 = value
+                }
             } else {
                 // Reset when hiding
                 alpha1 = 0f
                 alpha2 = 0f
                 alpha3 = 0f
+                alpha4 = 0f
             }
         }
 
@@ -168,14 +180,30 @@ fun ActionOverlayScreen(
                             letterSpacing = 0.sp,
                             textDecoration = TextDecoration.None
                         ),
-                        modifier = Modifier.alpha(alpha3).pointerInput(Unit) {
+                        modifier = Modifier.alpha(alpha4).pointerInput(Unit) {
                             detectTapGestures{
                                 openCamera()
                             }
                         }
                     )
                     Text(
-                        text = "Image",
+                        text = "Photos",
+                        style = TextStyle(
+                            fontFamily = PitagonsSans,
+                            color = dgenTurqoise,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 40.sp,
+                            letterSpacing = 0.sp,
+                            textDecoration = TextDecoration.None
+                        ),
+                        modifier = Modifier.alpha(alpha3).pointerInput(Unit) {
+                            detectTapGestures{
+                                openImage()
+                            }
+                        }
+                    )
+                    Text(
+                        text = "Videos",
                         style = TextStyle(
                             fontFamily = PitagonsSans,
                             color = dgenTurqoise,
@@ -186,7 +214,7 @@ fun ActionOverlayScreen(
                         ),
                         modifier = Modifier.alpha(alpha2).pointerInput(Unit) {
                             detectTapGestures{
-                                openGallery()
+                                openVideo()
                             }
                         }
                     )
@@ -200,7 +228,11 @@ fun ActionOverlayScreen(
                             letterSpacing = 0.sp,
                             textDecoration = TextDecoration.None
                         ),
-                        modifier = Modifier.alpha(alpha1)
+                        modifier = Modifier.alpha(alpha1).pointerInput(Unit) {
+                            detectTapGestures{
+                                openSend()
+                            }
+                        }
                     )
                 }
 

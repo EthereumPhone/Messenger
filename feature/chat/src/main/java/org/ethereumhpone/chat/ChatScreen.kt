@@ -93,6 +93,7 @@ import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.ImageSelectionScreen
+import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
@@ -223,6 +224,7 @@ fun ChatScreen(
     }
 
     // variables for ui
+    var currentActions by remember { mutableStateOf(Actions.IDLE) }
     val messages = remember { mutableStateListOf<Message>() }
     val visibleMap = remember { mutableStateMapOf<String, MutableState<Boolean>>() }
     val isFirstLoad = remember { mutableStateOf(true) }
@@ -264,25 +266,9 @@ fun ChatScreen(
 
 
 
+
+
     //for selecting images from gallery
-    /*
-    val imageUri = remember { mutableStateOf<Uri?>(null) }
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            // Handle the result here
-            if (result.data?.data == null) {
-                val bitmap = result.data?.extras?.get("data") as Bitmap
-                val uri = getImageUri(context, bitmap)
-                imageUri.value = uri
-            } else {
-                val data: Intent? = result.data
-                imageUri.value = data?.data
-            }
-        }
-    }
-     */
     var showPicker by remember { mutableStateOf(false) }
     val attachments = remember { mutableStateListOf<Attachment>() }
 
@@ -308,6 +294,23 @@ fun ChatScreen(
             }
         }
     }
+
+    // for camera
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            // convert to Uri and wrap
+            getImageUri(context, it)?.let { uri ->
+                attachments += Attachment.Image(uri = uri, date = System.currentTimeMillis())
+            }
+        }
+        showPicker = true
+    }
+
+
+
+
 
 
 
@@ -454,27 +457,45 @@ fun ChatScreen(
         ActionOverlayScreen(
             showOverlay = showOverlay,
             shouldRotate = shouldRotate,
-            openGallery = {
+            openImage = {
                 //opens gallery for selecting images
-                /*
+                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                    type = "image/*"
+                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                }
+                launcher.launch(intent)
+                //showPicker = true
+                showOverlay.value = false
+            },
+            openVideo = {
+                //opens gallery for selecting images
+                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                    type = "video/*"
+                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                }
+                launcher.launch(intent)
 
-                 */
-                //val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                //    type = "image/*"
-                //    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                //}
-                //launcher.launch(intent)
-                showPicker = true
+                //showPicker = true
                 showOverlay.value = false
             },
             openCamera = {
                 //open camera
-                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                launcher.launch(intent)
+                //val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                cameraLauncher.launch(null)
                 showOverlay.value = false
+            },
+            openSend = {
+                //open camera
+                //val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                //cameraLauncher.launch(null)
+                //showOverlay.value = false
+                currentActions = Actions.SEND //set sending screen
+                showPicker = true
             }
         )
 
+
+        //TODO: Fix Action Picker
 
         AnimatedVisibility(
             visible = showPicker,
@@ -483,18 +504,49 @@ fun ChatScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(
-                Modifier.fillMaxSize().background(dgenBlack)
+                Modifier
+                    .fillMaxSize()
+                    .background(dgenBlack)
             ){
-                ImageSelectionScreen(
-                    attachments = attachments,
-                    onToggleAttachment = { attachment ->
-                        if (attachment in attachments) attachments.remove(attachment)
-                        else attachments.add(attachment)
-                    },
-                    onDone = { showPicker = false }
-                )
+                when(currentActions){
+                    Actions.IDLE -> {}
+                    Actions.SEND -> {
+                        //if (chatConversion != null) {
+
+                            OverlaySendScreen(
+                                onBackClick = {
+                                    currentActions = Actions.IDLE
+                                    showPicker = false
+                                    showOverlay.value = false
+                                },
+                                onDone = {
+                                    //TODO: Implement Sending
+                                },
+                            )
+
+                        //}
+                    }
+                    Actions.PHOTO -> {
+                        //TODO: Fix Imagepicker
+                        /*
+                        ImageSelectionScreen(
+                            attachments = attachments,
+                            onToggleAttachment = { attachment ->
+                                if (attachment in attachments) attachments.remove(attachment)
+                                else attachments.add(attachment)
+                            },
+                            onDone = { showPicker = false }
+                        )
+                         */
+                    }
+                    Actions.VIDEO -> {
+                        //TODO: add Videopicker
+                    }
+                }
             }
         }
+
+
 
     }
 
@@ -505,6 +557,10 @@ private fun getImageUri(context: Context, bitmap: Bitmap): Uri? {
     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
     val path = MediaStore.Images.Media.insertImage(context.contentResolver, bitmap, "Title", null)
     return Uri.parse(path)
+}
+
+enum class Actions{
+    IDLE, SEND, PHOTO, VIDEO
 }
 
 

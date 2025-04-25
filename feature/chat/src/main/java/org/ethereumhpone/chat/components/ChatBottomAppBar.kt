@@ -270,15 +270,5 @@ fun ChatBottomAppBar(
 @Composable
 @Preview
 fun previewChatBottomAppBar() {
-    val set1 = setOf(Attachment.Image("uri".toUri()))
-    val set2 = emptySet<Attachment>()
 
-    var selected by remember {  mutableStateOf(true)  }
-
-    var test = remember {  mutableStateOf(true)  }
-
-    Column {
-        Button(onClick = {selected = !selected}) { Text("Switch") }
-       // ChatBottomAppBar(if (selected) set1 else set2, {}, {},  test, openAction = {})
-    }
 }
