@@ -5,4 +5,6 @@ interface ActiveConversationManager {
     fun setActiveConversation(threadId: String)
 
     fun getActiveConversation(): String?
+
+    fun clearActiveConversation()
 }

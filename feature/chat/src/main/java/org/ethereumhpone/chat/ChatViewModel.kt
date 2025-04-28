@@ -37,6 +37,7 @@ import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.repository.ContactRepository
@@ -64,12 +65,16 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     savedStateHandle: SavedStateHandle,
     conversationRepository: ConversationRepository,
     private val contactRepository: ContactRepository,
+    private val activeConversationManager: ActiveConversationManager,
     mediaRepository: MediaRepository,
     private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
     private val context: Context
 ): ViewModel() {
+
+
+
 
     // nav arguments
     private val threadId = ThreadIdArgs(savedStateHandle).threadId ?: ""
@@ -82,6 +87,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 // TODO add fallback if convo does not exist?
                 ConversationUiState.Loading
             } else {
+                activeConversationManager.setActiveConversation(conversation.id)
                 ConversationUiState.Success(conversation = conversation)
             }
         }
@@ -229,6 +235,20 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
+    // set conversation
+    init {
+        viewModelScope.launch {
+            conversation.collect { state ->
+                if (state is ConversationUiState.Success) {
+                    activeConversationManager.setActiveConversation(state.conversation.id)
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        activeConversationManager.clearActiveConversation()
+    }
 
 
     fun increaseByFivePercent(value: BigInteger): BigInteger {
