@@ -49,6 +49,7 @@ import org.xmtp.android.library.codecs.ContentTypeRemoteAttachment
 import org.xmtp.android.library.codecs.ContentTypeReply
 import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
+import org.xmtp.android.library.codecs.ReadReceipt
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.proto.message.contents.Content
@@ -373,6 +374,12 @@ class SyncRepositoryImpl @Inject constructor(
             }
             // Handle read receipts
             ContentTypeReadReceipt -> {
+                val readReceipt = content as ReadReceipt
+
+
+
+
+
                 null
             }
             // Handle replies

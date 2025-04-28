@@ -42,6 +42,15 @@ interface MessageDao {
     @Update
     suspend fun updateMessages(messageEntities: List<MessageEntity>)
 
+    @Query("""
+        UPDATE message
+        SET seenDate = :seenDate
+        WHERE seenDate = 0 AND seenDate < dateSent
+    """
+    )
+    suspend fun updateMessageSeenDate(seenDate: Long)
+
+
     @Upsert
     suspend fun upsertMessages(messageEntities: List<MessageEntity>)
 
