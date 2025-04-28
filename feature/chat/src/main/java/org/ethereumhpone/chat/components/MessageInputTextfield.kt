@@ -73,6 +73,7 @@ fun OldSchoolThickCursorTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     maxFieldHeight: Dp = 150.dp,
     cursorVerticalOffset: Dp = 18.dp,
+    singleLine: Boolean = false
 ) {
 
     // 1) blink animation, layout & focus state
@@ -123,7 +124,9 @@ fun OldSchoolThickCursorTextField(
                 if(hasMultipleLines.value && lineCount > 3){
                     expand.value = true
                 }
-            }
+            },
+            singleLine = singleLine
+
         ) { innerTextField ->
             // 4) draw text + custom cursor, offset by scrollState.value
             Box(
