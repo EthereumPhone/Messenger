@@ -14,4 +14,8 @@ class ActiveConversationManagerImpl @Inject constructor(): ActiveConversationMan
     override fun getActiveConversation(): String? {
         return threadId
     }
+
+    override fun clearActiveConversation() {
+        this.threadId = null
+    }
 }
