@@ -2,7 +2,7 @@ package org.ethereumhpone.domain.manager
 
 interface ActiveConversationManager {
 
-    fun setActiveConversation(threadId: Long?)
+    fun setActiveConversation(threadId: String)
 
-    fun getActiveConversation(): Long?
+    fun getActiveConversation(): String?
 }

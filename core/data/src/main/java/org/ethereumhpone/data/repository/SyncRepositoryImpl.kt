@@ -33,6 +33,7 @@ import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 import org.ethereumhpone.datastore.MessengerPreferences
+import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
 import org.ethereumhpone.domain.mapper.ContactGroupMemberCursor
@@ -42,6 +43,7 @@ import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.ConsentState
 import org.xmtp.android.library.Conversation
 import org.xmtp.android.library.Group
+import org.xmtp.android.library.SendOptions
 import org.xmtp.android.library.codecs.ContentTypeAttachment
 import org.xmtp.android.library.codecs.ContentTypeReactionV2
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
@@ -60,6 +62,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val context: Context,
     private val xmtpClientManager: XmtpClientManager,
     private val contentResolver: ContentResolver,
+    private val activeConversationManager: ActiveConversationManager,
     private val conversationRepository: ConversationRepository,
     private val contactCursor: ContactCursor,
     private val contactGroupCursor: ContactGroupCursor,
@@ -271,6 +274,8 @@ class SyncRepositoryImpl @Inject constructor(
             when(clientState) {
                 is XmtpClientManager.ClientState.Ready -> {
 
+                    var conversation: Conversation? = null
+
                     // stream chats
                     launch {
                         client.conversations.stream().collect { conversation ->
@@ -322,8 +327,13 @@ class SyncRepositoryImpl @Inject constructor(
 
 
                     // stream messages
+
+
+
                     launch {
                         client.conversations.streamAllMessages().collect { message ->
+                            val isMe = client.inboxId == message.senderInboxId
+
                             val template = MessageEntity(
                                 id = message.id,
                                 threadId = message.conversationId,
@@ -331,12 +341,39 @@ class SyncRepositoryImpl @Inject constructor(
                                 senderInboxId = message.senderInboxId,
                                 replyReference = null,
                                 deliveryStatus = message.deliveryStatus,
-                                isMe = client.inboxId == message.senderInboxId,
+                                isMe = isMe,
                                 dateSent = message.sentAtNs,
                             )
 
                             processContent(template, message.encodedContent.type, message.content())
                                 ?.let { messageDao.upsertMessages(listOf(it)) }
+
+
+                            // automatically send readReceipt for active conversation
+                            if (!isMe && activeConversationManager.getActiveConversation() == message.conversationId) {
+                                if (conversation != null) {
+                                    try {
+                                        conversation!!.send(
+                                            content = ReadReceipt,
+                                            options = SendOptions(contentType = ContentTypeReadReceipt)
+                                        )
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                } else {
+                                    try {
+                                        val fetchedConversation = client.conversations.findConversation(message.conversationId)!!
+                                        conversation = fetchedConversation
+
+                                        fetchedConversation.send(
+                                            content = ReadReceipt,
+                                            options = SendOptions(contentType = ContentTypeReadReceipt)
+                                        )
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -374,11 +411,7 @@ class SyncRepositoryImpl @Inject constructor(
             }
             // Handle read receipts
             ContentTypeReadReceipt -> {
-                val readReceipt = content as ReadReceipt
-
-
-
-
+                messageDao.updateMessageSeenDate(messageEntity.dateSent)
 
                 null
             }

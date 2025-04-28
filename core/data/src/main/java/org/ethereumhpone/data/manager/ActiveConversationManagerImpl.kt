@@ -5,13 +5,13 @@ import javax.inject.Inject
 
 
 class ActiveConversationManagerImpl @Inject constructor(): ActiveConversationManager {
-    private var threadId: Long? = null
+    private var threadId: String? = null
 
-    override fun setActiveConversation(threadId: Long?) {
+    override fun setActiveConversation(threadId: String) {
         this.threadId = threadId
     }
 
-    override fun getActiveConversation(): Long? {
+    override fun getActiveConversation(): String? {
         return threadId
     }
 }
