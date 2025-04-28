@@ -45,7 +45,7 @@ interface MessageDao {
     @Query("""
         UPDATE message
         SET seenDate = :seenDate
-        WHERE seenDate = 0 AND seenDate < dateSent
+        WHERE seenDate = 0 AND :seenDate >= dateSent
     """
     )
     suspend fun updateMessageSeenDate(seenDate: Long)
