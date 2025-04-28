@@ -163,16 +163,8 @@ class SyncRepositoryImpl @Inject constructor(
             }
             syncJob.join()
 
-
-            Log.d("IM HERE", client.conversations.list().size.toString())
-            Log.d("CLIENT", client.inboxId)
-
-
-
-
             client.conversations.list().forEach { conversation ->
 
-                Log.d("IM HERE2", "TEST2")
 
                 // recipients
                 launch {

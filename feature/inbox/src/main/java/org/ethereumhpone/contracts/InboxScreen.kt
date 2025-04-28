@@ -27,9 +27,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -126,9 +123,9 @@ fun InboxScreen(
     deleteConversation: (String) -> Unit,
     markAccepted: (String, Boolean) -> Unit,
     markArchived: (String, Boolean) -> Unit,
-    resolveENS: KSuspendFunction1<String, String>,
+    resolveENS: (String) -> Unit,
     modifier: Modifier = Modifier
-){
+) {
 
     val context = LocalContext.current
 

@@ -56,7 +56,7 @@ class InboxViewModel @Inject constructor(
         TODO()
     }
 
-    suspend fun resolveENS(ensName: String): String {
+    fun resolveENS(ensName: String): String {
         if (ENSName(ensName).isPotentialENSDomain()) {
             val address = ensResolver.getAddress(ENSName(ensName))
             return address?.toString() ?: ""
