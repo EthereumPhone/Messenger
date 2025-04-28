@@ -1,6 +1,7 @@
 package org.ethereumhpone.chat.components.attachments
 
 import android.net.Uri
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -41,8 +43,7 @@ fun AttachmentRow(
     onToggleAttachment: (Attachment) -> Unit,
 ) {
     LazyRow(
-        contentPadding = PaddingValues(10.dp),
-        //modifier = Modifier.background(Color.Red),
+        modifier = Modifier.animateContentSize().padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         items(selectedAttachments) { attachment ->
@@ -54,7 +55,7 @@ fun AttachmentRow(
                         MediaItem(
                             modifier = Modifier
                                 .size(64.dp)
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(RoundedCornerShape(8.dp)),
                             attachment = attachment
                         )
                     }

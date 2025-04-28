@@ -3,7 +3,9 @@ package org.ethereumphone.dgenlibrary.components
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -104,3 +106,74 @@ fun Modifier.verticalLazyListScrollbar(
         }
     )
 }
+
+@Composable
+fun Modifier.verticalScrollBarForLazyGrid(
+    gridState: LazyGridState,
+    width: Dp = 6.dp,
+    showScrollBarTrack: Boolean = true,
+    scrollBarTrackColor: Color = dgenOcean,
+    scrollBarColor: Color = dgenTurqoise,
+    scrollBarCornerRadius: Float = 4f,
+    endPadding: Dp = 16.dp
+): Modifier {
+    var targetAlpha by remember { mutableStateOf(0f) }
+    val alpha by animateFloatAsState(
+        targetValue = targetAlpha,
+        animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+    )
+
+    LaunchedEffect(gridState.isScrollInProgress) {
+        if (gridState.isScrollInProgress) {
+            targetAlpha = 1f
+        } else {
+            delay(1000)
+            targetAlpha = 0f
+        }
+    }
+
+    return this.then(
+        Modifier.drawWithContent {
+            drawContent()
+
+            val layoutInfo = gridState.layoutInfo
+            val visibleItems = layoutInfo.visibleItemsInfo
+            val totalItemsCount = layoutInfo.totalItemsCount
+
+            if (visibleItems.isEmpty() || totalItemsCount == 0) return@drawWithContent
+
+            val trackHeight = size.height - 64.dp.toPx()
+
+            val visibleItemCount = visibleItems.size.toFloat()
+            val thumbHeight = (visibleItemCount / totalItemsCount) * trackHeight
+                .coerceAtLeast(40.dp.toPx())
+
+            val firstVisibleItem = gridState.firstVisibleItemIndex
+            val firstItemOffset = gridState.firstVisibleItemScrollOffset
+
+            val averageItemHeight = visibleItems.sumOf { it.size.height }.toFloat() / visibleItems.size
+            val maxScrollOffset = (totalItemsCount - visibleItemCount) * averageItemHeight
+            val scrolledOffset = (firstVisibleItem * averageItemHeight) + firstItemOffset
+
+            val thumbOffset = ((scrolledOffset / maxScrollOffset) * (trackHeight - thumbHeight))
+                .coerceIn(0f, trackHeight - thumbHeight)
+
+            if (showScrollBarTrack) {
+                drawRoundRect(
+                    color = scrollBarTrackColor.copy(alpha = alpha),
+                    cornerRadius = CornerRadius(scrollBarCornerRadius),
+                    topLeft = Offset(size.width - 32f, 32f),
+                    size = Size(width.toPx(), trackHeight)
+                )
+            }
+
+            drawRoundRect(
+                color = scrollBarColor.copy(alpha = alpha),
+                cornerRadius = CornerRadius(scrollBarCornerRadius),
+                topLeft = Offset(size.width - 32f, 32f + thumbOffset),
+                size = Size(width.toPx(), thumbHeight)
+            )
+        }
+    )
+}
+

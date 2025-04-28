@@ -1,10 +1,10 @@
 package org.ethereumhpone.chat.components
 
 import android.net.Uri
-import androidx.compose.animation.core.tween
+import android.widget.Space
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,76 +13,70 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ArrowRightAlt
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenBurgendy
-import com.example.dgenlibrary.ui.theme.dgenDarkBlack
-import com.example.dgenlibrary.ui.theme.dgenGray
 import com.example.dgenlibrary.ui.theme.dgenOcean
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.example.dgenlibrary.ui.theme.dgenWhite
 import kotlinx.datetime.Instant
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
 import org.ethereumhpone.chat.components.message.ClickableMessage
-import org.ethereumhpone.chat.components.message.parts.MediaBinder
-import org.ethereumhpone.chat.components.message.parts.VCardBinder
+import org.ethereumhpone.chat.components.message.TxChatBubbleShape
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.chat.util.colorFor
-import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
 
-val BubbleShape = RoundedCornerShape(8.dp,8.dp,8.dp,8.dp)
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ChatItemBubbleV3(
+fun TxBubble(
     modifier: Modifier = Modifier,
     messageEntity: Message,
+    amount: Double = 0.0,
+    token: String = "USD",
     isUserMe: Boolean,
-    name: String = "",
-    videoPlayer: Player?,
-    onPlayVideo: (Uri) -> Unit,
+    sendingReceipient: Recipient,
+    receivingReceipient: Recipient,
     onLongClick: () -> Unit = {},
     authorClicked: (String) -> Unit = {},
     onDoubleClick: () -> Unit = {},
@@ -95,60 +89,107 @@ fun ChatItemBubbleV3(
     val hasReply = hasReply
 
     val Bubbleshape = BubbleShape
+    val usergradient = dgenOcean
+
+    val reciepientcolor = Colors.DARK_GRAY
+
 
     val messageBrush = when(isUserMe){
-        true -> dgenOcean
-        false -> Colors.DARK_GRAY
+        true ->  usergradient
+        false -> reciepientcolor
     }
+
 
     Column (
         verticalArrangement = Arrangement.Bottom,
-        horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
+        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         modifier = Modifier
             .clip(Bubbleshape)
             .background(messageBrush)
-            .padding(end = 12.dp, start = 12.dp, top = 8.dp, bottom = 4.dp)
+            .padding(end = 12.dp, start = 12.dp, top = 8.dp, bottom = 4.dp).height(IntrinsicSize.Min)
     ){
-        if (isGroup && !isUserMe && isFirstMessageByAuthor){
+
+
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                Text(
+                    sendingReceipient.contact?.name.toString(),
+                    style = TextStyle(
+                        textAlign = TextAlign.Start ,
+                        fontFamily = SpaceMono,
+                        color = colorFor(sendingReceipient),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        lineHeight = 14.sp,
+                        letterSpacing = 0.sp,
+                        textDecoration = TextDecoration.None
+                    ),
+                )
+                Icon(
+                    modifier = Modifier.size(22.dp),
+                    imageVector = Icons.Outlined.ArrowRightAlt,
+                    tint = dgenTurqoise,
+                    contentDescription = "collapse"
+                )
+                Text(
+                    receivingReceipient.contact?.name.toString(),
+                    style = TextStyle(
+                        textAlign = TextAlign.Start ,
+                        fontFamily = SpaceMono,
+                        color = colorFor(receivingReceipient),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        lineHeight = 14.sp,
+                        letterSpacing = 0.sp,
+                        textDecoration = TextDecoration.None
+                    ),
+                )
+
+            }
+
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
             Text(
-                messageEntity.recipient.contact?.name.toString(),
+                text = "$amount",
                 style = TextStyle(
                     textAlign = TextAlign.Start ,
                     fontFamily = PitagonsSans,
-                    color = colorFor(messageEntity.recipient),
+                    color = dgenWhite,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    lineHeight = 18.sp,
+                    fontSize = 32.sp,
                     letterSpacing = 0.sp,
                     textDecoration = TextDecoration.None
                 ),
-                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "$token",
+                style = TextStyle(
+                    textAlign = TextAlign.Start ,
+                    fontFamily = PitagonsSans,
+                    color = dgenWhite,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 32.sp,
+                    letterSpacing = 0.sp,
+                    textDecoration = TextDecoration.None
+                ),
             )
         }
 
 
-        //TODO: Add Images and Videos
-
-        /*
-            if (videoPlayer == null) {
-                        Box(
-                            modifier = modifier.padding(bottom = 6.dp).clip(BubbleShape).size(218.dp).aspectRatio(1f).background(
-                                dgenBlack.copy(0.25f)
-                            )
-                        ) {
-
-                        }
-                    }
-         */
 
 
-
-
+       
 
         FlowRow (
             modifier = Modifier,
             horizontalArrangement = Arrangement.End,
-            verticalArrangement = Arrangement.Bottom
+            verticalArrangement = Arrangement.Center
         ) {
 
             val uriHandler = LocalUriHandler.current
@@ -200,20 +241,17 @@ fun ChatItemBubbleV3(
                     .padding(start = 16.dp, top = 4.dp)
                     .fillMaxHeight()
             )
-        }
 
+
+
+        }
     }
 }
 
 @Composable
-@Preview
-fun ChatItemBubbleV3Preview(){
-    val recipientB = Recipient(
-        id = "userB",
-        address = "0x54h5CryptoBroWallet",
-        ens = "ski.eth",
-        contact = Contact("lk1", "Bob", null, "0x423")
-    )
+@Preview //(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
+fun TxPreviewBubble(){
+
     val now = Instant.parse("2025-04-17T12:23:05Z")
 
     val recipientA = Recipient(
@@ -223,16 +261,20 @@ fun ChatItemBubbleV3Preview(){
         contact = Contact("lk1", "Timothy", null, "0x423")
     )
 
-
+    val recipientB = Recipient(
+        id = "userB",
+        address = "0x54h5CryptoBroWallet",
+        ens = "ski.eth",
+        contact = Contact("lk1", "Bob", null, "0x423")
+    )
     val msg = Message("19", "thread123", recipientA, now - (35 * 60).seconds, now - (35 * 60).seconds, true, DeliveryStatus.PUBLISHED, null, true, emptyList(), emptyList(), "Of course.")
 
-    ChatItemBubbleV3(
+    TxBubble(
         messageEntity = msg,
         isUserMe = true,
-        videoPlayer = null,
-        onPlayVideo = {  },
         onLongClick = {},
-        name = recipientA.contact?.name.toString(),
+        sendingReceipient = recipientA,
+        receivingReceipient = recipientB,
         onDoubleClick = { },
         isGroup = true,
         isFirstMessageByAuthor = false

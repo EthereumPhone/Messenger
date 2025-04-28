@@ -35,7 +35,7 @@ fun TimeHeader(timestamp: Instant) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 24.dp),
+            .padding(top = 48.dp, bottom = 24.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(

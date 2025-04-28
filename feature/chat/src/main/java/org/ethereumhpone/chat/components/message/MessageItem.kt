@@ -1,11 +1,8 @@
 package org.ethereumhpone.chat.components.message
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +11,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -23,14 +19,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -61,10 +54,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.dgenWhite
 import org.ethereumhpone.chat.R
-import org.ethereumhpone.chat.components.ChatItemBubbleV2
 import org.ethereumhpone.chat.components.ChatItemBubbleV3
-import org.ethereumhpone.chat.components.EthOSCheckbox
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
@@ -73,8 +66,6 @@ import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -85,47 +76,6 @@ data class ComposablePosition(
     var height: Int = 0
 )
 
-@Composable
-fun TxMessage(
-    amount: Double,
-    txUrl: String,
-    isUserMe: Boolean,
-    networkName: String,
-    isFirstMessageByAuthor: Boolean,
-    isLastMessageByAuthor: Boolean,
-    modifier: Modifier = Modifier
-){
-    val spaceBetweenAuthors = if (isLastMessageByAuthor) Modifier
-        .padding(top = 8.dp)
-        .fillMaxWidth() else Modifier
-
-
-    Row(
-        modifier = spaceBetweenAuthors,
-        horizontalArrangement = Arrangement.End
-    ) {
-        Column(
-            modifier = modifier,
-            horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
-        ) {
-            TxChatItemBubble(
-                amount = amount,
-                txUrl = txUrl,
-                isUserMe = isUserMe,
-                networkName = networkName,
-                isLastMessageByAuthor=isLastMessageByAuthor,
-            )
-            if (isFirstMessageByAuthor) {
-                // Last bubble before next author
-                Spacer(modifier = Modifier.height(8.dp))
-            } else {
-                // Between bubbles
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-        }
-    }
-
-}
 
 @Composable
 fun MessageItem(
@@ -141,7 +91,9 @@ fun MessageItem(
     onPrepareVideo: (Uri) -> Unit,
     onLongClick: () -> Unit = {},
     onSelect: (Message) -> Unit,
-    onDoubleClick: () -> Unit
+    isGroup: Boolean,
+    onDoubleClick: () -> Unit,
+    isVisible: Boolean
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
@@ -175,20 +127,23 @@ fun MessageItem(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
+            //Animates the bubble based on if its visible or not
+            
             ChatItemBubbleV3(
                 modifier = alignmessage,
                 messageEntity = msg,
                 isUserMe = isUserMe,
                 videoPlayer = player,
-                isXMTP = isXMTP,
                 onPlayVideo = { onPrepareVideo(it) },
                 onLongClick = {
                     composablePositionState.value.height = compSize
-                    composablePositionState.value.offset = Offset(positionComp.x,positionComp.y)
+                    composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
                     onLongClick()
                 },
                 name = name,
-                onDoubleClick = onDoubleClick
+                onDoubleClick = onDoubleClick,
+                isGroup = isGroup,
+                isFirstMessageByAuthor = isFirstMessageByAuthor,
             )
 
 
@@ -202,6 +157,7 @@ fun MessageItem(
 @Composable
 fun AuthorNameTimestamp(
     messageEntity: Message,
+    isUserMe: Boolean,
     modifier: Modifier = Modifier,
 ) {
 
@@ -219,45 +175,48 @@ fun AuthorNameTimestamp(
         Text(
             text = "$time",
             fontSize = 12.sp,
-            fontFamily = Fonts.INTER,
+            fontFamily = SpaceMono,
             modifier = Modifier
                 .alignBy(LastBaseline)
                 .alpha(0.5f),
-            color = Colors.WHITE,
+            color = dgenWhite,
         )
 
-        Spacer(modifier = Modifier.width(4.dp))
+        if (isUserMe){
+            Spacer(modifier = Modifier.width(4.dp))
 
-        when {
-            messageEntity.isFailedMessage() -> Icon(
+            when {
+                messageEntity.isFailedMessage() -> Icon(
                     imageVector = Icons.Rounded.Error,//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
-                    tint = Colors.WHITE,
+                    tint = dgenWhite,
                     modifier = Modifier
                         .size(16.dp)
                         .alpha(0.5f)
-            )
+                )
 
-            /*
-            message.isSending() -> Icon(
-                    painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
-                    contentDescription = "Go back",
-                    tint = Colors.WHITE,
-                    modifier = Modifier
-                        .size(16.dp)
-                        .alpha(0.5f)
-            )
-             */
+                /*
+                message.isSending() -> Icon(
+                        painter = painterResource(id = R.drawable.unread_icons),//Icons.Filled.CheckCircleOutline,
+                        contentDescription = "Go back",
+                        tint = Colors.WHITE,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .alpha(0.5f)
+                )
+                 */
 
 
-            messageEntity.isDelivered() -> Icon(
+                messageEntity.isDelivered() -> Icon(
                     painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
-                    tint = Colors.WHITE,
+                    tint = dgenWhite,
                     modifier = Modifier
                         .size(16.dp)
                         .alpha(0.5f)
-            )
+                )
+            }
+
         }
 
     }
@@ -271,104 +230,6 @@ fun AuthorNameTimestamp(
  val TxChatBubbleShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 20.dp)
 
 
-@Composable
-fun TxChatItemBubble(
-    symbol: String = "ETH",
-    txUrl: String,
-    networkName: String,
-    amount: Double,
-    isUserMe: Boolean,
-    isLastMessageByAuthor: Boolean,
-) {
-
-    val uriHandler = LocalUriHandler.current
-
-    val gradient = Modifier
-        .clip(TxChatBubbleShape)
-        .background(Colors.WHITE)
-        .border(1.dp, Color(0xFF8C7DF7), TxChatBubbleShape)
-
-    val nogradient = Modifier
-        .clip(TxChatBubbleShape)
-        .background(Colors.WHITE)
-        .border(1.dp, Color(0xFF8C7DF7), TxChatBubbleShape)
-
-    val usercolor = nogradient
-
-    val reciepientcolor = Modifier
-        .clip(TxChatBubbleShape)
-        .background(
-            Colors.WHITE
-        )
-        .border(1.dp, Colors.DARK_GRAY, TxChatBubbleShape)
-
-
-    Column(
-        horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                uriHandler.openUri(txUrl)
-            }
-    ) {
-        Surface(
-            modifier = if(isUserMe) usercolor else reciepientcolor,
-            color = Color.Transparent,
-            shape = TxChatBubbleShape
-        ) {
-
-            Column(
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(16.dp)
-            ) {
-
-                Text(
-                    text = "Sent",
-                    style = TextStyle(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY,
-                        fontFamily = Fonts.INTER
-                    )
-                )
-                val decimalFormat = DecimalFormat("#.#######", DecimalFormatSymbols(Locale.US).apply {
-                    decimalSeparator = '.'
-                })
-
-                Text(
-                    text = "${decimalFormat.format(amount)} ${symbol.uppercase()}",
-                    style = TextStyle(
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY,
-                        fontFamily = Fonts.INTER
-                    )
-                )
-
-                Row (
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-
-                ){
-                    Box ( modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(if (isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY)){}
-                    Text(
-                        text = networkName,
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = if(isUserMe) Color(0xFF8C7DF7) else Colors.DARK_GRAY,
-                            fontFamily = Fonts.INTER
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
 
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -498,14 +359,14 @@ fun ChatItemBubble(
                                 }
                         },
                         onDoubleClick = onDoubleClick,
-                        messageBrush = messageBrush
+                        messageBrush = messageBrush,
                     )
                 }
 
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(message)
+            AuthorNameTimestamp(message,isUserMe)
 
 
 
@@ -621,78 +482,8 @@ fun ClickableMessage(
 }
 
 
-@Preview
-@Composable
-fun previewTxClickableMessage() {
-    TxClickableMessage(
-        txUrl = "eth-mainnet",
-        amount = 0.0008,
-        isUserMe = true,
-    )
-
-}
-
-@Composable
-fun TxClickableMessage(
-    txUrl: String,
-    symbol: String = "ETH",
-    amount: Double,
-    isUserMe: Boolean,
-) {
-    val uriHandler = LocalUriHandler.current
-
-    val decimalFormat = DecimalFormat("#.#######", DecimalFormatSymbols(Locale.US).apply {
-        decimalSeparator = '.'
-    })
 
 
-    val styledMessage = messageFormatter(
-        text = "Sent ${decimalFormat.format(amount)} ${symbol.uppercase()}",
-        primary = isUserMe
-    )
-
-
-
-    ClickableText(
-        text = styledMessage,
-        style = TextStyle(
-            fontSize = 24.sp,
-            fontWeight =  FontWeight.SemiBold,
-            color = Colors.WHITE,
-            fontFamily = Fonts.INTER
-        ),
-        modifier = Modifier.padding(horizontal = 16.dp),
-        onClick = {
-            // Open txUrl in browser
-            uriHandler.openUri(txUrl)
-        }
-
-    )
-}
-
-
-@Preview
-@Composable
-fun previewTChatItemBubble() {
-    /*
-    ChatItemBubble(
-        message = Message(
-            address = "me",
-            body = "Check it out!",
-            subject = "8:07 PM"
-        ),
-        videoPlayer = null,
-        isUserMe = true,
-        authorClicked = {},
-        isFirstMessageByAuthor= true,
-        onLongClick = {},
-        onPlayVideo = {}
-
-    )
-     */
-
-
-}
 
 @Preview
 @Composable

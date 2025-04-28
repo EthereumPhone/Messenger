@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cancel
@@ -14,13 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import org.bouncycastle.math.raw.Mod
 
 @Composable
 fun SelectedAttachment(
     iconClicked: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    Box {
+    Box(modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)) {
         content()
 
         Box(Modifier.align(Alignment.TopEnd)) {
@@ -28,7 +30,7 @@ fun SelectedAttachment(
                 imageVector = Icons.Outlined.Cancel,
                 contentDescription = "",
                 modifier = Modifier
-                    .offset((10).dp, (-10).dp)
+                    .offset((4).dp, (-4).dp)
                     .clickable { iconClicked() }
                     .background(Color.White, CircleShape)
             )

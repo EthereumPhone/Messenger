@@ -46,7 +46,11 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
+import org.ethereumhpone.chat.components.message.ChatBubbleShape
 import org.ethereumhpone.chat.components.message.ComposablePosition
+import org.ethereumhpone.chat.components.message.LastChatBubbleShape
+import org.ethereumhpone.chat.components.message.LastUserChatBubbleShape
+import org.ethereumhpone.chat.components.message.UserChatBubbleShape
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
@@ -186,15 +190,15 @@ fun FocusChatItemBubble(
 
     val Bubbleshape = if(isUserMe) {
         if (isFirstMessageByAuthor){
-            org.ethereumhpone.chat.components.message.LastUserChatBubbleShape
+            LastUserChatBubbleShape
         }else{
-            org.ethereumhpone.chat.components.message.UserChatBubbleShape
+            UserChatBubbleShape
         }
     } else{
         if (isFirstMessageByAuthor){
-            org.ethereumhpone.chat.components.message.LastChatBubbleShape
+            LastChatBubbleShape
         }else{
-            org.ethereumhpone.chat.components.message.ChatBubbleShape
+            ChatBubbleShape
         }
     }
 
@@ -306,7 +310,10 @@ fun FocusChatItemBubble(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(message)
+            AuthorNameTimestamp(
+                message,
+                isUserMe = false,
+            )
 
 
 

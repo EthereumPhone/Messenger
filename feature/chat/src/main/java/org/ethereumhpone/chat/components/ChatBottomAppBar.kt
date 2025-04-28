@@ -1,5 +1,6 @@
 package org.ethereumhpone.chat.components
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -39,6 +40,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.foundation.text.BasicTextField
@@ -70,6 +73,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -99,6 +103,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import coil.compose.AsyncImage
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.body1_fontSize
@@ -114,15 +119,16 @@ import org.ethereumhpone.domain.model.Attachment
 import org.ethereumhpone.domain.model.Attachments
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import kotlin.collections.set
 
 @Composable
 fun ChatBottomAppBar(
-    attachments: Set<Attachment>,
+    attachments: List<Attachment>,
     onToggleAttachment: (Attachment) -> Unit,
     onSendClick: (String) -> Unit,
     hasMultipleLines: MutableState<Boolean> = mutableStateOf(false),
     expand: MutableState<Boolean> = mutableStateOf(false),
-    openAction: () -> Unit
+    openAction: () -> Unit,
 ) {
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusManager = LocalFocusManager.current
@@ -151,8 +157,13 @@ fun ChatBottomAppBar(
                 .animateContentSize().background(dgenBlack)
                 .padding(vertical = 8.dp, horizontal = 16.dp)
                 .then(if (expand.value) Modifier.fillMaxHeight() else Modifier.heightIn(max= 250.dp)),
-        verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center
     ) {
+
+        AttachmentRow(
+            selectedAttachments = attachments,
+            onToggleAttachment = onToggleAttachment
+        )
 
 
         Box {
@@ -211,10 +222,22 @@ fun ChatBottomAppBar(
 
                 IconButton(
                     onClick = {
-                        onSendClick(textState.text)
-                        focusManager.clearFocus()
-                        textState = TextFieldValue()
-                        expand.value = false
+                        if (textState.text.isNotBlank()) {
+                            onSendClick(textState.text)
+                            /*
+                            val newMsg = ChatMessage(text = textState.text)
+                            // start invisible so it will animate in
+                            visibleMap[newMsg.id] = mutableStateOf(false)
+                            messages.add(0, newMsg)
+                            input = ""
+                             */
+
+                            focusManager.clearFocus()
+                            textState = TextFieldValue()
+                            expand.value = false
+                        }
+
+
                     },
                     colors = IconButtonDefaults.iconButtonColors(
                         Color.Transparent,
@@ -247,15 +270,5 @@ fun ChatBottomAppBar(
 @Composable
 @Preview
 fun previewChatBottomAppBar() {
-    val set1 = setOf(Attachment.Image("uri".toUri()))
-    val set2 = emptySet<Attachment>()
 
-    var selected by remember {  mutableStateOf(true)  }
-
-    var test = remember {  mutableStateOf(true)  }
-
-    Column {
-        Button(onClick = {selected = !selected}) { Text("Switch") }
-       // ChatBottomAppBar(if (selected) set1 else set2, {}, {},  test, openAction = {})
-    }
 }
