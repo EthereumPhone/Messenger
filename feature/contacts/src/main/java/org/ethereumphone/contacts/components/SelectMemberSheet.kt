@@ -275,7 +275,7 @@ fun SelectMembersSheet(
                     onBackClick = { showFinalGroupSheet = false },
                     onCreateGroup = { members ->
                         showFinalGroupSheet = false
-                        onContactsSelected()
+                        onContactsSelected(members)
                     },
                 )
             }

@@ -53,7 +53,7 @@ import org.ethereumhpone.database.model.ContactEntity
 fun CreateGroupSheet(
     members: List<ContactEntity>,
     onBackClick: () -> Unit,
-    onCreateGroup: () -> Unit,
+    onCreateGroup: (List<ContactEntity>) -> Unit,
 ) {
 
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -99,7 +99,7 @@ fun CreateGroupSheet(
                     .alpha(buttonAlpha)
                     .pointerInput(Unit) {
                         detectTapGestures {
-                            onCreateGroup()
+                            onCreateGroup(members)
                         }
                     }
             ){

@@ -80,21 +80,13 @@ fun NewConversationSheet(
     viewModel: ContactViewModel = hiltViewModel()
 ) {
     val queryResultUiState by viewModel.queryResultUiState.collectAsStateWithLifecycle()
-    var openGroupCreation by remember { mutableStateOf(false) }
-
 
     ConversationSheet(
         queryResultUiState = queryResultUiState,
         onContactsSelected,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
-        onOpenGroupClick = {
-            openGroupCreation = true
-        },
         onDismiss = onDismiss
     )
-
-
-
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -103,12 +95,10 @@ internal fun ConversationSheet(
     queryResultUiState: QueryResultUiState,
     onContactsSelected: (List<ContactEntity>) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
-    onOpenGroupClick: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var multiSelectMode by remember { mutableStateOf(false) }
     val selectedItems = remember { mutableStateListOf<ContactEntity>() }
-
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
     val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
@@ -117,12 +107,10 @@ internal fun ConversationSheet(
     if (currentInputSelector != InputSelector.NONE) {
         BackHandler(onBack = dismissKeyboard)
     }
-    var textFieldFocusState by remember { mutableStateOf(false) }
 
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
     }
-
 
     Box(
         modifier = Modifier
@@ -312,7 +300,7 @@ internal fun ConversationSheet(
 
 
 
-                                if (queryResultUiState.isEmpty()) {
+                                if (queryResultUiState.contactEntities.isEmpty()) {
                                     item {
                                         Box(modifier = Modifier
                                             .fillParentMaxHeight(0.5f)
@@ -374,7 +362,6 @@ internal fun ConversationSheet(
             else {
                 SelectMembersSheet(
                     queryResultUiState = queryResultUiState,
-                    onCreateGroup = { multiSelectMode = false },
                     onSearchQueryChanged = onSearchQueryChanged,
                     onBackClick = { multiSelectMode = false },
                     onContactsSelected = onContactsSelected
@@ -409,7 +396,7 @@ fun previewContactSheet() {
         queryResultUiState,
         {},
         {},
-        onOpenGroupClick = { TODO() },{}
+        {}
     )
 }
 
@@ -425,7 +412,8 @@ fun previewNoContactsContactSheet() {
     ConversationSheet(
         queryResultUiState,
         {},
-        {},{},{}
+        {},
+        {},
     )
 }
 
