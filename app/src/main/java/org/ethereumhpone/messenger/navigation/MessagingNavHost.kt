@@ -80,6 +80,9 @@ fun MessagingNavHost(
     ) {
         conversationsGraph (
             onConversationClick = navController::navigateToChatByThreadId,
+            openNewConversation = { contacts ->
+                messengerAppState.navigateToConversation(contacts.map { it.getDefaultNumber()?.address ?: it.numbers[0].address })
+            },
             conversationDestination = {
                 chatScreen (
                     onBackClick = navController::popBackStack,

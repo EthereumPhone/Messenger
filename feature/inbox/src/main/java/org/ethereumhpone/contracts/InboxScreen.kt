@@ -2,8 +2,11 @@ package org.ethereumhpone.contracts
 
 import android.Manifest
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -82,6 +85,8 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.datetime.Instant
 import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.contracts.ui.ConversationActionButton
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumphone.contacts.NewConversationSheet
 import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.components.SwipeableListItem
 import org.ethereumphone.model.Contact
@@ -94,6 +99,7 @@ import org.ethereumphone.model.Recipient
 @Composable
 fun ContactRoute(
     onConversationClick: (String) -> Unit,
+    openNewConversation: (List<ContactEntity>) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: InboxViewModel = hiltViewModel()
 ) {
@@ -109,7 +115,8 @@ fun ContactRoute(
         conversationClicked = { id ->
             viewModel.setConversationAsRead(id, true)
             onConversationClick(id)
-        }
+        },
+        openNewConversation = openNewConversation
     )
 }
 
@@ -120,6 +127,7 @@ fun ContactRoute(
 fun InboxScreen(
     conversationState: ConversationUIState,
     conversationClicked: (String) -> Unit,
+    openNewConversation: (List<ContactEntity>) -> Unit,
     deleteConversation: (String) -> Unit,
     markAccepted: (String, Boolean) -> Unit,
     markArchived: (String, Boolean) -> Unit,
@@ -140,9 +148,31 @@ fun InboxScreen(
 
     val contactsPermissionState = rememberMultiplePermissionsState(permissions = contactsPermissionsToRequest)
 
-    var showHiddenConversations by remember { mutableStateOf(false) }
+    var showNewConversationSheet by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().background(dgenBlack)) {
+    Box {
+
+        AnimatedVisibility(
+            visible = showNewConversationSheet,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+
+            NewConversationSheet(
+                onDismiss = { showNewConversationSheet = false },
+                onContactsSelected = { contacts ->
+                    showNewConversationSheet = false
+                    //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!
+                    openNewConversation(contacts)
+                }
+            )
+        }
+    }
+
+    Column(Modifier
+        .fillMaxSize()
+        .background(dgenBlack)) {
 
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -228,7 +258,6 @@ fun InboxScreen(
                     )
                 }
             }
-
             is ConversationUIState.Success -> {
                 val tabs = listOf("INBOX","REQUESTS")
                 // Display 10 items
@@ -478,101 +507,30 @@ fun InboxScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.fillMaxWidth().height(16.dp).background(Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))))
-                    }
-
-                    Spacer(modifier = Modifier.fillMaxWidth().height(24.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
-
-                }
-            }
-        }
-    }
-
-    if(showHiddenConversations){
-        // Popup that lists conversations names that have unknown set to true
-        /*
-        if (conversationState is ConversationUIState.Success) {
-            val allConvos = conversationState.conversations
-            ShowHiddenConversationsPopup(
-                hiddenConversations = allConvos.filter { it.isUnknown },
-                onApprove = { id, address ->
-                    showHiddenConversations = false
-                    markAccepted(id, address)
-                },
-                onDismiss = { showHiddenConversations = false }
-            )
-        }
-         */
-
-    }
-}
-
-fun convertLongToTime(time: Long): String {
-    val date = Date(time)
-    val format = SimpleDateFormat("yyyy.MM.dd HH:mm")
-    return format.format(date)
-}
-
-@Composable
-fun ShowHiddenConversationsPopup(
-    conversations: List<Conversation>,
-    onApprove: (Long, String) -> Unit,
-    onDismiss: () -> Unit
-) {
-
-    Dialog(onDismissRequest = { onDismiss() }) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = Colors.BLACK
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Hidden Conversations",
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    fontFamily = Fonts.INTER,
-                    color = Colors.WHITE,
-                )
-
-                LazyColumn {
-                    items(conversations) { conversation ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "" , //trimEthereumAddress(conversation.getConversationTitle()) + ": " + conversation.lastMessage?.body, // Assuming Conversation has a 'name' property
-                                modifier = Modifier.weight(1f),
-                                fontFamily = Fonts.INTER,
-                                color = Colors.WHITE,
-                            )
-                            // Icons.Default.Check
-                            androidx.compose.material.IconButton(
-                                onClick = {
-                                    //onApprove(conversation.id, conversation.getConversationTitle())
-                                }
-                            ) {
-                                /*
-                                Icon(
-                                    imageVector = Icons.Rounded.Check,
-                                    contentDescription = "Approve hidden conversation",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(32.dp)
+                        Spacer(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        dgenBlack,
+                                        Color.Transparent
+                                    )
                                 )
-                                */
-
-                            }
-                        }
+                            ))
                     }
+
+                    Spacer(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
+
                 }
             }
         }
     }
-
-
 }
-
 
 
 @Composable

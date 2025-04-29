@@ -7,6 +7,7 @@ import androidx.navigation.navigation
 import org.ethereumhpone.contracts.ContactRoute
 
 import androidx.navigation.compose.*
+import org.ethereumhpone.database.model.ContactEntity
 
 
 const val conversationsGraphRoutePattern = "conversations_graph"
@@ -18,6 +19,7 @@ fun NavController.navigateToConversations(navOptions: NavOptions? = null) {
 
 fun NavGraphBuilder.conversationsGraph(
     onConversationClick: (String) -> Unit,
+    openNewConversation: (List<ContactEntity>) -> Unit,
     conversationDestination: NavGraphBuilder.() -> Unit,
 ) {
     navigation(
@@ -25,7 +27,7 @@ fun NavGraphBuilder.conversationsGraph(
         startDestination = conversationsRoute
     ) {
         composable(route = conversationsRoute) {
-            ContactRoute(onConversationClick)
+            ContactRoute(onConversationClick,openNewConversation)
         }
         conversationDestination()
     }

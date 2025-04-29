@@ -70,6 +70,8 @@ dependencies {
     implementation(project(":core:data"))
 
     implementation(project(":dgenlibrary"))
+    implementation(project(":feature:contacts"))
+
 
 
     implementation("androidx.core:core-ktx:1.12.0")

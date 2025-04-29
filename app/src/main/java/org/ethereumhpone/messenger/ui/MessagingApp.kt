@@ -3,6 +3,7 @@ package org.ethereumhpone.messenger.ui
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -77,7 +78,6 @@ fun MessagingApp(
         inputAddress = inputAddress,
         onTopAppBarActionClick = { showSettingsDialog = true },
         onFabClick = { showContactSheet = true },
-        onDismissContactSheet = { showContactSheet = false },
         onDismissSettingsDialog = { showSettingsDialog = false }
     )
 
@@ -92,10 +92,7 @@ internal fun MessagingApp(
     showContactSheet: Boolean,
     threadId: Int? = null,
     inputAddress: String? = null,
-    onTopAppBarActionClick: () -> Unit,
-    onFabClick: () -> Unit,
     onDismissSettingsDialog:() -> Unit,
-    onDismissContactSheet: () -> Unit
 ) {
 
     if (showSettingsDialog) {
@@ -103,22 +100,6 @@ internal fun MessagingApp(
     }
 
     val sheetState = rememberModalBottomSheetState(true)
-
-    if (showContactSheet) {
-        ModalBottomSheet(
-            onDismissRequest = onDismissContactSheet,
-            sheetState = sheetState,
-            containerColor = Color.Black
-        ) {
-            ContactSheet(
-                onDismiss = onDismissContactSheet,
-                onContactsSelected = { contacts ->
-                    onDismissContactSheet()
-                    //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!
-                    messengerAppState.navigateToConversation(contacts.map { it.getDefaultNumber()?.address ?: it.numbers[0].address }) }
-            )
-        }
-    }
 
     val isInbox by messengerAppState.isInboxScreen.collectAsState()
     val density = LocalDensity.current
@@ -142,8 +123,5 @@ internal fun MessagingApp(
                 inputAddress = inputAddress
             )
         }
-
-
-
     }
 }
