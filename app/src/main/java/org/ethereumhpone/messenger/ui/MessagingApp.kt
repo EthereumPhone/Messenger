@@ -57,7 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.dgenBlack
 import org.ethereumhpone.messenger.navigation.MessagingNavHost
-import org.ethereumphone.contacts.ContactSheet
 import org.ethereumphone.settings.SettingsDialog
 
 @Composable
@@ -76,8 +75,6 @@ fun MessagingApp(
         showContactSheet = showContactSheet,
         threadId = threadId,
         inputAddress = inputAddress,
-        onTopAppBarActionClick = { showSettingsDialog = true },
-        onFabClick = { showContactSheet = true },
         onDismissSettingsDialog = { showSettingsDialog = false }
     )
 

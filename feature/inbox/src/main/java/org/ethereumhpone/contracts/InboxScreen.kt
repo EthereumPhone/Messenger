@@ -74,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.dgenlibrary.ui.theme.DgenTheme
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenGreen
 import com.example.dgenlibrary.ui.theme.dgenRed
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import org.ethosmobile.components.library.theme.Fonts
@@ -150,15 +151,371 @@ fun InboxScreen(
 
     var showNewConversationSheet by remember { mutableStateOf(false) }
 
-    Box {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(dgenBlack)
+    ) {
+        Column() {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .pointerInput(Unit) {
+                            detectTapGestures {
+                                //TODO: implement search
+                            }
+                        }
+                ){
+                    Icon(
+                        painter = painterResource(R.drawable.searchicon),
+                        contentDescription = "Search",
+                        tint = DgenTheme.colors.dgenTurqoise,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "SEARCH",
+                        style = TextStyle(
+                            fontFamily = SpaceMono,
+                            color = DgenTheme.colors.dgenTurqoise,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 20.sp,
+                            letterSpacing = 0.sp,
+                            textDecoration = TextDecoration.None
+                        )
+                    )
+                }
 
+                IconButton(
+                    onClick = {
+                        //TODO: Add Convo
+                        showNewConversationSheet = true
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = dgenTurqoise
+                    ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Search",
+                        tint = DgenTheme.colors.dgenTurqoise,
+                        modifier = Modifier
+                            .size(32.dp)
+                    )
+                }
+
+
+            }
+
+            when(conversationState) {
+                is ConversationUIState.Loading ->{
+                    Box(contentAlignment = Alignment.Center,modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Loading",
+                            fontSize = 14.sp,
+                            fontFamily = Fonts.INTER,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Colors.WHITE,
+                        )
+                    }
+                }
+                is ConversationUIState.Empty ->{
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "No conversations",
+                            fontSize = 14.sp,
+                            fontFamily = Fonts.INTER,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Colors.WHITE,
+                        )
+                    }
+                }
+                is ConversationUIState.Success -> {
+                    val tabs = listOf("INBOX","REQUESTS")
+                    // Display 10 items
+                    val pagerState = rememberPagerState(pageCount = {
+                        tabs.size
+                    })
+
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        //TODO: Improve Inbox and Requests
+                        HorizontalPager(state = pagerState) { page ->
+                            when (page) {
+                                0 -> {
+                                    val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
+
+                                    if (conversationState.conversations.isNotEmpty()){
+                                        LazyColumn(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                        ) {
+                                            item{
+                                                Spacer(modifier = modifier.height(64.dp))
+                                            }
+                                            itemsIndexed(
+                                                items = conversations,
+                                            ) { index, contact ->
+                                                SwipeableListItem(
+                                                    isRevealed = contact.isOptionsRevealed,
+                                                    onExpanded = {
+                                                        conversations[index] = contact.copy(isOptionsRevealed = true)
+                                                    },
+                                                    onCollapsed = {
+                                                        conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                    },
+                                                    actions = {
+                                                        ConversationActionButton(
+                                                            onClick = {
+                                                                Toast.makeText(
+                                                                    context,
+                                                                    "Contact ${contact.id} was deleted.",
+                                                                    Toast.LENGTH_SHORT
+                                                                ).show()
+                                                                conversations.remove(contact)
+                                                            },
+                                                            icon = Icons.Outlined.Delete,
+                                                            iconColor = dgenRed,
+                                                            iconSize = 48.dp,
+                                                            modifier = Modifier.fillMaxHeight()
+                                                        )
+
+                                                    },
+                                                ) {
+                                                    val now = Instant.parse("2025-04-10T10:00:00Z")
+                                                    ChatListInfo(
+                                                        //TODO: Improve group identification
+                                                        isGroup = contact.recipients.size > 1,
+                                                        lastPerson = contact.lastMessage?.recipient?.contact?.name.toString(),
+                                                        header = contact.getHeader(),
+                                                        subheader = contact.lastMessage?.body.toString(),
+                                                        time = Date.from(JavaInstant.parse(now.toString())),
+                                                        readConversation = contact.lastMessage?.seen == true,
+                                                        onClick = { conversationClicked(contact.id) },
+                                                    )
+
+                                                }
+                                            }
+                                            item{
+                                                Spacer(modifier = modifier.height(24.dp))
+                                            }
+                                        }
+                                    }
+                                    else{
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Image(
+                                                    modifier = Modifier.size(82.dp),
+                                                    contentScale = ContentScale.Crop,
+                                                    painter = painterResource(id = org.ethereumhpone.contracts.R.drawable.outline_message_24),
+                                                    contentDescription = null,
+                                                    colorFilter = ColorFilter.tint(dgenTurqoise)
+                                                )
+                                                Text(text = "NO CONVERSATIONS",
+                                                    style = TextStyle(
+                                                        fontFamily = SpaceMono,
+                                                        color = dgenTurqoise,
+                                                        fontWeight = FontWeight.Normal,
+                                                        fontSize = 24.sp,
+                                                        letterSpacing = 0.sp,
+                                                        textDecoration = TextDecoration.None
+                                                    )
+                                                )
+
+                                            }
+                                        }
+                                    }
+
+                                }
+                                1 -> {
+                                    val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
+
+                                    if (conversationState.conversations.isEmpty()){
+                                        LazyColumn(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                        ) {
+                                            item{
+                                                Spacer(modifier = modifier.height(64.dp))
+                                            }
+                                            itemsIndexed(
+                                                items = conversations,
+                                            ) { index, contact ->
+                                                SwipeableListItem(
+                                                    isRevealed = contact.isOptionsRevealed,
+                                                    onExpanded = {
+                                                        conversations[index] = contact.copy(isOptionsRevealed = true)
+                                                    },
+                                                    onCollapsed = {
+                                                        conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                    },
+                                                    actions = {
+                                                        ConversationActionButton(
+                                                            onClick = {
+                                                                Toast.makeText(
+                                                                    context,
+                                                                    "Contact ${contact.id} was deleted.",
+                                                                    Toast.LENGTH_SHORT
+                                                                ).show()
+                                                                conversations.remove(contact)
+                                                            },
+                                                            icon = Icons.Outlined.Delete,
+                                                            iconColor = dgenRed,
+                                                            iconSize = 48.dp,
+                                                            modifier = Modifier.fillMaxHeight()
+                                                        )
+
+                                                    },
+                                                ) {
+                                                    val now = Instant.parse("2025-04-10T10:00:00Z")
+                                                    ChatListInfo(
+                                                        //TODO: Improve group identification
+                                                        isGroup = contact.recipients.size > 1,
+                                                        lastPerson = contact.lastMessage?.recipient?.contact?.name.toString(),
+                                                        header = contact.getHeader(),
+                                                        subheader = contact.lastMessage?.body.toString(),
+                                                        time = Date.from(JavaInstant.parse(now.toString())),
+                                                        readConversation = contact.lastMessage?.seen == true,
+                                                        onClick = { conversationClicked(contact.id) },
+                                                    )
+
+                                                }
+                                            }
+                                            item{
+                                                Spacer(modifier = modifier.height(24.dp))
+                                            }
+                                        }
+                                    }
+                                    else{
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Image(
+                                                    modifier = Modifier.size(82.dp),
+                                                    contentScale = ContentScale.Crop,
+                                                    painter = painterResource(id = org.ethereumhpone.contracts.R.drawable.outline_message_24),
+                                                    contentDescription = null,
+                                                    colorFilter = ColorFilter.tint(dgenTurqoise)
+                                                )
+                                                Text(text = "NO REQUESTS",
+                                                    style = TextStyle(
+                                                        fontFamily = SpaceMono,
+                                                        color = dgenTurqoise,
+                                                        fontWeight = FontWeight.Normal,
+                                                        fontSize = 24.sp,
+                                                        letterSpacing = 0.sp,
+                                                        textDecoration = TextDecoration.None
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.align(Alignment.TopCenter)
+                        ) {
+                            //TODO: Add AnimatedVisibilty with enums and make it a composable
+                            TabRow(
+                                containerColor = dgenBlack,
+                                contentColor = dgenTurqoise,
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                selectedTabIndex = pagerState.currentPage,
+                                divider = { Divider(color = Colors.TRANSPARENT) },
+                                indicator = { tabPositions ->
+                                    if (pagerState.currentPage < tabPositions.size) {
+                                        TabRowDefaults.Indicator(
+                                            color = Colors.TRANSPARENT,
+                                            modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
+                                        )
+                                    }
+                                }
+                            ) {
+                                tabs.forEachIndexed { index, s ->
+                                    val fontColor by animateColorAsState(
+                                        if(pagerState.currentPage == index) dgenTurqoise else dgenTurqoise.copy(0.5f),
+                                        tween(300)
+                                    )
+                                    //TODO: Make a custom Tab
+                                    Tab(
+                                        modifier = Modifier,
+                                        selectedContentColor = dgenTurqoise,
+                                        unselectedContentColor = dgenTurqoise.copy(0.5f),
+                                        selected = pagerState.currentPage == index,
+                                        onClick = {
+                                            //tabIndex = index
+                                            coroutineScope.launch {
+                                                // Call scroll to on pagerState
+                                                pagerState.animateScrollToPage(index)
+                                            }
+                                        },
+                                        text = {
+                                            Text(
+                                                text = s,
+                                                style = TextStyle(
+                                                    fontFamily = SpaceMono,
+                                                    color = fontColor,
+                                                    fontWeight = FontWeight.Normal,
+                                                    fontSize = 16.sp,
+                                                    letterSpacing = 0.sp,
+                                                    textDecoration = TextDecoration.None
+                                                )
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier
+                                .fillMaxWidth()
+                                .height(16.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            dgenBlack,
+                                            Color.Transparent
+                                        )
+                                    )
+                                ))
+                        }
+
+                        Spacer(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(24.dp)
+                            .align(Alignment.BottomCenter)
+                            .background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
+
+                    }
+                }
+            }
+        }
         AnimatedVisibility(
             visible = showNewConversationSheet,
             enter = fadeIn(animationSpec = tween(300)),
             exit = fadeOut(animationSpec = tween(300)),
             modifier = Modifier.fillMaxSize()
         ) {
-
             NewConversationSheet(
                 onDismiss = { showNewConversationSheet = false },
                 onContactsSelected = { contacts ->
@@ -167,367 +524,6 @@ fun InboxScreen(
                     openNewConversation(contacts)
                 }
             )
-        }
-    }
-
-    Column(Modifier
-        .fillMaxSize()
-        .background(dgenBlack)) {
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .pointerInput(Unit) {
-                        detectTapGestures {
-                            //TODO: implement search
-                        }
-                        // Never reached
-                        //detectDragGestures { _, _ -> log = "Dragging" }
-                    }
-            ){
-                Icon(
-                    painter = painterResource(R.drawable.searchicon),
-                    contentDescription = "Search",
-                    tint = DgenTheme.colors.dgenTurqoise,
-                    modifier = Modifier.size(24.dp)
-
-                )
-                Text(
-                    text = "SEARCH",
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        color = DgenTheme.colors.dgenTurqoise,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 20.sp,
-                        letterSpacing = 0.sp,
-                        textDecoration = TextDecoration.None
-                    )
-                )
-            }
-
-            IconButton(
-                onClick = {
-                    //TODO: Add Convo
-                },
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = dgenTurqoise
-                ),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Search",
-                    tint = DgenTheme.colors.dgenTurqoise,
-                    modifier = Modifier
-                        .size(32.dp)
-                )
-            }
-
-
-        }
-
-
-        when(conversationState) {
-            is ConversationUIState.Loading ->{
-                Box(contentAlignment = Alignment.Center,modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Loading",
-                        fontSize = 14.sp,
-                        fontFamily = Fonts.INTER,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Colors.WHITE,
-                    )
-                }
-            }
-            is ConversationUIState.Empty ->{
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "No conversations",
-                        fontSize = 14.sp,
-                        fontFamily = Fonts.INTER,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Colors.WHITE,
-                    )
-                }
-            }
-            is ConversationUIState.Success -> {
-                val tabs = listOf("INBOX","REQUESTS")
-                // Display 10 items
-                val pagerState = rememberPagerState(pageCount = {
-                    tabs.size
-                })
-
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                    //TODO: Improve Inbox and Requests
-                    HorizontalPager(state = pagerState) { page ->
-                        when (page) {
-                            0 -> {
-                                val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
-
-                                if (conversationState.conversations.isNotEmpty()){
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                    ) {
-                                        item{
-                                            Spacer(modifier = modifier.height(64.dp))
-                                        }
-                                        itemsIndexed(
-                                            items = conversations,
-                                        ) { index, contact ->
-                                            SwipeableListItem(
-                                                isRevealed = contact.isOptionsRevealed,
-                                                onExpanded = {
-                                                    conversations[index] = contact.copy(isOptionsRevealed = true)
-                                                },
-                                                onCollapsed = {
-                                                    conversations[index] = contact.copy(isOptionsRevealed = false)
-                                                },
-                                                actions = {
-                                                    ConversationActionButton(
-                                                        onClick = {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Contact ${contact.id} was deleted.",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                            conversations.remove(contact)
-                                                        },
-                                                        icon = Icons.Outlined.Delete,
-                                                        iconColor = dgenRed,
-                                                        iconSize = 48.dp,
-                                                        modifier = Modifier.fillMaxHeight()
-                                                    )
-
-                                                },
-                                            ) {
-                                                val now = Instant.parse("2025-04-10T10:00:00Z")
-                                                ChatListInfo(
-                                                    //TODO: Improve group identification
-                                                    isGroup = contact.recipients.size > 1,
-                                                    lastPerson = contact.lastMessage?.recipient?.contact?.name.toString(),
-                                                    header = contact.getHeader(),
-                                                    subheader = contact.lastMessage?.body.toString(),
-                                                    time = Date.from(JavaInstant.parse(now.toString())),
-                                                    readConversation = contact.lastMessage?.seen == true,
-                                                    onClick = { conversationClicked(contact.id) },
-                                                )
-
-                                            }
-                                        }
-                                        item{
-                                            Spacer(modifier = modifier.height(24.dp))
-                                        }
-                                    }
-                                }
-                                else{
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            Image(
-                                                modifier = Modifier.size(82.dp),
-                                                contentScale = ContentScale.Crop,
-                                                painter = painterResource(id = org.ethereumhpone.contracts.R.drawable.outline_message_24),
-                                                contentDescription = null,
-                                                colorFilter = ColorFilter.tint(dgenTurqoise)
-                                            )
-                                            Text(text = "NO CONVERSATIONS",
-                                                style = TextStyle(
-                                                    fontFamily = SpaceMono,
-                                                    color = dgenTurqoise,
-                                                    fontWeight = FontWeight.Normal,
-                                                    fontSize = 24.sp,
-                                                    letterSpacing = 0.sp,
-                                                    textDecoration = TextDecoration.None
-                                                )
-                                            )
-
-                                        }
-                                    }
-                                }
-
-                            }
-                            1 -> {
-                                val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
-
-                                if (conversationState.conversations.isEmpty()){
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                    ) {
-                                        item{
-                                            Spacer(modifier = modifier.height(64.dp))
-                                        }
-                                        itemsIndexed(
-                                            items = conversations,
-                                        ) { index, contact ->
-                                            SwipeableListItem(
-                                                isRevealed = contact.isOptionsRevealed,
-                                                onExpanded = {
-                                                    conversations[index] = contact.copy(isOptionsRevealed = true)
-                                                },
-                                                onCollapsed = {
-                                                    conversations[index] = contact.copy(isOptionsRevealed = false)
-                                                },
-                                                actions = {
-                                                    ConversationActionButton(
-                                                        onClick = {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Contact ${contact.id} was deleted.",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                            conversations.remove(contact)
-                                                        },
-                                                        icon = Icons.Outlined.Delete,
-                                                        iconColor = dgenRed,
-                                                        iconSize = 48.dp,
-                                                        modifier = Modifier.fillMaxHeight()
-                                                    )
-
-                                                },
-                                            ) {
-                                                val now = Instant.parse("2025-04-10T10:00:00Z")
-                                                ChatListInfo(
-                                                    //TODO: Improve group identification
-                                                    isGroup = contact.recipients.size > 1,
-                                                    lastPerson = contact.lastMessage?.recipient?.contact?.name.toString(),
-                                                    header = contact.getHeader(),
-                                                    subheader = contact.lastMessage?.body.toString(),
-                                                    time = Date.from(JavaInstant.parse(now.toString())),
-                                                    readConversation = contact.lastMessage?.seen == true,
-                                                    onClick = { conversationClicked(contact.id) },
-                                                )
-
-                                            }
-                                        }
-                                        item{
-                                            Spacer(modifier = modifier.height(24.dp))
-                                        }
-                                    }
-                                }
-                                else{
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            Image(
-                                                modifier = Modifier.size(82.dp),
-                                                contentScale = ContentScale.Crop,
-                                                painter = painterResource(id = org.ethereumhpone.contracts.R.drawable.outline_message_24),
-                                                contentDescription = null,
-                                                colorFilter = ColorFilter.tint(dgenTurqoise)
-                                            )
-                                            Text(text = "NO REQUESTS",
-                                                style = TextStyle(
-                                                    fontFamily = SpaceMono,
-                                                    color = dgenTurqoise,
-                                                    fontWeight = FontWeight.Normal,
-                                                    fontSize = 24.sp,
-                                                    letterSpacing = 0.sp,
-                                                    textDecoration = TextDecoration.None
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Column(
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    ) {
-                        //TODO: Add AnimatedVisibilty with enums and make it a composable
-                        TabRow(
-                            containerColor = dgenBlack,
-                            contentColor = dgenTurqoise,
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            selectedTabIndex = pagerState.currentPage,
-                            divider = { Divider(color = Colors.TRANSPARENT) },
-                            indicator = { tabPositions ->
-                                if (pagerState.currentPage < tabPositions.size) {
-                                    TabRowDefaults.Indicator(
-                                        color = Colors.TRANSPARENT,
-                                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
-                                    )
-                                }
-                            }
-                        ) {
-                            tabs.forEachIndexed { index, s ->
-                                val fontColor by animateColorAsState(
-                                    if(pagerState.currentPage == index) dgenTurqoise else dgenTurqoise.copy(0.5f),
-                                    tween(300)
-                                )
-                                //TODO: Make a custom Tab
-                                Tab(
-                                    modifier = Modifier,
-                                    selectedContentColor = dgenTurqoise,
-                                    unselectedContentColor = dgenTurqoise.copy(0.5f),
-                                    selected = pagerState.currentPage == index,
-                                    onClick = {
-                                        //tabIndex = index
-                                        coroutineScope.launch {
-                                            // Call scroll to on pagerState
-                                            pagerState.animateScrollToPage(index)
-                                        }
-                                    },
-                                    text = {
-                                        Text(
-                                            text = s,
-                                            style = TextStyle(
-                                                fontFamily = SpaceMono,
-                                                color = fontColor,
-                                                fontWeight = FontWeight.Normal,
-                                                fontSize = 16.sp,
-                                                letterSpacing = 0.sp,
-                                                textDecoration = TextDecoration.None
-                                            )
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier
-                            .fillMaxWidth()
-                            .height(16.dp)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        dgenBlack,
-                                        Color.Transparent
-                                    )
-                                )
-                            ))
-                    }
-
-                    Spacer(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
-
-                }
-            }
         }
     }
 }
@@ -553,9 +549,6 @@ fun PreviewShowHiddenConversationsPopup(){
         {}
     )
      */
-
-
-
 }
 
 
