@@ -19,7 +19,6 @@ fun NavController.navigateToConversations(navOptions: NavOptions? = null) {
 
 fun NavGraphBuilder.conversationsGraph(
     onConversationClick: (String) -> Unit,
-    openNewConversation: (List<ContactEntity>) -> Unit,
     conversationDestination: NavGraphBuilder.() -> Unit,
 ) {
     navigation(
@@ -27,7 +26,7 @@ fun NavGraphBuilder.conversationsGraph(
         startDestination = conversationsRoute
     ) {
         composable(route = conversationsRoute) {
-            ContactRoute(onConversationClick,openNewConversation)
+            ContactRoute(onConversationClick)
         }
         conversationDestination()
     }

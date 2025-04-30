@@ -12,6 +12,7 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -65,6 +67,7 @@ import com.example.dgenlibrary.ui.theme.dgenOcean
 import com.example.dgenlibrary.ui.theme.dgenRed
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.example.dgenlibrary.ui.theme.dgenWhite
+import kotlinx.coroutines.flow.collectLatest
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.chat.components.OldSchoolThickCursorTextField
 import org.ethereumhpone.database.model.ContactEntity
@@ -76,17 +79,36 @@ import org.ethereumphone.contacts.components.SelectMembersSheet
 @Composable
 fun NewConversationSheet(
     onDismiss: () -> Unit,
-    onContactsSelected: (List<ContactEntity>) -> Unit,
+    onConversationCreated: (String) -> Unit,
     viewModel: ContactViewModel = hiltViewModel()
 ) {
     val queryResultUiState by viewModel.queryResultUiState.collectAsStateWithLifecycle()
-
     ConversationSheet(
         queryResultUiState = queryResultUiState,
-        onContactsSelected,
+        onContactsSelected = {
+            viewModel.getOrCreateConversation(it)
+            // navigate to chat if conversation exists
+        },
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
         onDismiss = onDismiss
     )
+
+    // handles navigation and displaying of error
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collectLatest { event ->
+            when (event) {
+                is UiEvent.NavigateToConversation -> {
+                    onConversationCreated(event.id)
+                }
+
+                is UiEvent.ShowError -> {
+                    // You can show a snackbar here if needed
+                    // scaffoldState.snackbarHostState.showSnackbar(event.message)
+                }
+            }
+        }
+    }
+
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -321,7 +343,9 @@ internal fun ConversationSheet(
                                     }
                                 } else {
                                     items(queryResultUiState.contactEntities) { contact ->
-                                        Column {
+                                        // add onCLick behaviour
+                                        Column(modifier = Modifier
+                                            .clickable { onContactsSelected(listOf(contact)) }) {
                                             Text(
                                                 text = contact.name,
                                                 overflow = TextOverflow.Ellipsis,

@@ -5,13 +5,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import org.ethereumhpone.common.util.Result
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.repository.ContactRepository
+import org.ethereumhpone.domain.repository.ConversationRepository
 import javax.inject.Inject
 
 @HiltViewModel
@@ -19,10 +25,16 @@ class ContactViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val contactRepository: ContactRepository,
     private val phoneNumberUtils: PhoneNumberUtils,
+    private val conversationRepository: ConversationRepository
 ): ViewModel() {
 
     val searchQuery = savedStateHandle.getStateFlow(key = SEARCH_QUERY, initialValue = "")
     private val contacts: Flow<List<ContactEntity>> = contactRepository.getContacts()
+
+    private val _uiEvent = MutableSharedFlow<UiEvent>(extraBufferCapacity = 1)
+    val uiEvent: SharedFlow<UiEvent> = _uiEvent
+
+
 
     val queryResultUiState: StateFlow<QueryResultUiState> =
         combine(
@@ -57,6 +69,25 @@ class ContactViewModel @Inject constructor(
     fun onSearchQueryChanged(query: String) {
         savedStateHandle[SEARCH_QUERY] = query
     }
+
+
+    fun getOrCreateConversation(contacts: List<ContactEntity>) {
+        val addresses = contacts.mapNotNull { it.ethAddress }
+
+        viewModelScope.launch {
+            conversationRepository.createConversation(addresses).collectLatest { result ->
+                when (result) {
+                    is Result.Success -> {
+                        _uiEvent.tryEmit(UiEvent.NavigateToConversation(result.data.id))
+                    }
+
+                    is Result.Error -> {
+                        _uiEvent.tryEmit(UiEvent.ShowError(result.message))
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun filterContact(contactEntity: ContactEntity, query: String): Boolean {
@@ -76,6 +107,13 @@ private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F
 private fun String.isValidEns(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_$]{3,}\\.eth$"))
 
 private fun String.isPossibleENS(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_\$]{3,}$"))
+
+
+sealed interface UiEvent {
+    data class NavigateToConversation(val id: String) : UiEvent
+    data class ShowError(val message: String) : UiEvent
+}
+
 
 
 sealed interface QueryResultUiState {

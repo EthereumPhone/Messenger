@@ -100,7 +100,6 @@ import org.ethereumphone.model.Recipient
 @Composable
 fun ContactRoute(
     onConversationClick: (String) -> Unit,
-    openNewConversation: (List<ContactEntity>) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: InboxViewModel = hiltViewModel()
 ) {
@@ -117,7 +116,6 @@ fun ContactRoute(
             viewModel.setConversationAsRead(id, true)
             onConversationClick(id)
         },
-        openNewConversation = openNewConversation
     )
 }
 
@@ -128,7 +126,6 @@ fun ContactRoute(
 fun InboxScreen(
     conversationState: ConversationUIState,
     conversationClicked: (String) -> Unit,
-    openNewConversation: (List<ContactEntity>) -> Unit,
     deleteConversation: (String) -> Unit,
     markAccepted: (String, Boolean) -> Unit,
     markArchived: (String, Boolean) -> Unit,
@@ -518,10 +515,10 @@ fun InboxScreen(
         ) {
             NewConversationSheet(
                 onDismiss = { showNewConversationSheet = false },
-                onContactsSelected = { contacts ->
+                onConversationCreated = {
                     showNewConversationSheet = false
                     //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!
-                    openNewConversation(contacts)
+                    conversationClicked(it)
                 }
             )
         }
