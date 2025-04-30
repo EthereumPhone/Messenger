@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -56,6 +57,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.ethereumphone.dgenlibrary.components.dgenButton
+import org.ethereumphone.dgenlibrary.components.dgenTextButton
 
 @Composable
 fun OnboardingRoute(
@@ -124,52 +126,42 @@ fun OnboardingScreen(
         ) {
             when(pagerState.currentPage) {
                 0 -> {
-                    dgenButton(
-                        onClick = {},
-                        text = "Enable XMTP"
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        dgenButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                    onStartXmtp()
+                                    delay(500)
+                                }
+                            },
+                            text = "Enable XMTP"
+                        )
 
-                    Button(
-                        colors =  ButtonDefaults.buttonColors(containerColor = Color(0xFF8C7DF7)),
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                onStartXmtp()
-                                delay(500)
-                            }
-                        }
-                    ) {
-                        Text(
-                            text = "Enable XMTP",
-                            color = Color.White
+                        dgenTextButton(
+                            onClick = { onFinishOnboarding(false) },
+                            text = "Skip"
                         )
                     }
 
-                    Text(
-                        text = "Skip",
-                        color = Color.White,
-                        modifier = Modifier.clickable { onFinishOnboarding(false) }
-                    )
+
 
                 }
                 1 -> DegenLoadingCircle()
 
                 2,3 -> {
-                    Button(
-                        colors =  ButtonDefaults.buttonColors(containerColor = Color(0xFF8C7DF7)),
+                    dgenButton(
                         onClick = {
                             if (syncState is SyncState.Success) {
                                 onFinishOnboarding(true)
                             } else {
                                 onFinishOnboarding(false)
                             }
-                        }
-                    ) {
-                        Text(
-                            text = "Finish Setup",
-                            color = Color.White
-                        )
-                    }
+                        },
+                        text = "Finish Setup"
+                    )
                 }
             }
         }
@@ -193,12 +185,12 @@ private fun PagerContent(
                 fontFamily = PitagonsSans,
                 color = dgenTurqoise,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp,
-                lineHeight = 24.sp,
+                fontSize = 32.sp,
+                lineHeight = 32.sp,
                 letterSpacing = 0.sp,
                 textDecoration = TextDecoration.None
             ),
-            modifier = Modifier.padding(vertical = 5.dp)
+            modifier = Modifier
 
         )
 
@@ -207,13 +199,14 @@ private fun PagerContent(
             style = TextStyle(
                 fontFamily = PitagonsSans,
                 color = dgenTurqoise,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp,
-                lineHeight = 24.sp,
+                fontWeight = FontWeight.Normal,
+                fontSize = 18.sp,
+                lineHeight = 18.sp,
                 letterSpacing = 0.sp,
                 textDecoration = TextDecoration.None,
                 textAlign = TextAlign.Center
-            )
+            ),
+            modifier = Modifier.width(350.dp).padding(top = 16.dp, bottom = 48.dp)
         )
         Spacer(Modifier.height(10.dp))
 
@@ -237,19 +230,19 @@ private fun DegenLoadingCircle() {
         Alignment.BottomStart
     )
 
-    Box(Modifier.size(60.dp)) {
+    Box(Modifier.size(120.dp)) {
         Box(
             Modifier
                 .align(Alignment.Center)
-                .size(15.dp)
-                .background(Color.DarkGray))
+                .size(30.dp)
+                .background(dgenOcean))
         alignments.forEachIndexed { index, alignment ->
 
             Box(
                 Modifier
                     .align(alignment)
-                    .size(15.dp)
-                    .background(if (activatedBox == index) Color.White else Color.DarkGray)
+                    .size(30.dp)
+                    .background(if (activatedBox == index) dgenTurqoise else dgenOcean)
             )
         }
     }
@@ -268,7 +261,7 @@ enum class OnboardingPageContent(
 ) {
     WELCOME(
         "Chat with XMTP",
-        "XMTP is a secure messaging protocol that allows you to communicate via eth addresses"
+        "XMTP enables secure, wallet-to-wallet messaging using Ethereum addresses."
     ),
     SYNC("Settings things up", "Please, sign the next two prompts"),
     FINISH("All set up :)", "You can change XMTP behaviours via the messenger's options"),

@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -84,9 +85,9 @@ fun dgenTextButton(
     )
 
     Surface(
-        color = dgenTurqoise,
+        color = Color.Transparent,
         shape = CircleShape,
-        modifier = Modifier
+        modifier = modifier
             .alpha(buttonAlpha)
             .pointerInput(Unit) {
                 detectTapGestures {
@@ -100,7 +101,7 @@ fun dgenTextButton(
         ) {
             Text(
                 text = text.uppercase(),
-                color = dgenOcean,
+                color = dgenTurqoise,
                 style = TextStyle(
                     fontFamily = SpaceMono,
                     color = dgenWhite,
