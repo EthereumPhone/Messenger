@@ -40,22 +40,15 @@ class ConversationRepositoryImpl @Inject constructor(
             .map { it?.toExternalModel() }
 
     override fun createConversation(addresses: List<String>): Flow<Result<Conversation>> = flow {
-
-        // Check if recipients already exist in the database
         val recipients = recipientDao.getRecipientsByAddress(addresses).first()
         val inboxIds = recipients.map { it.inboxId }
 
         val allRecipientsFound = inboxIds.size == addresses.size
-
-        // missing recipients path
         if (!allRecipientsFound) {
-            //build identities and check permissions
             val identities = addresses.map {
-                PublicIdentity(
-                    kind = IdentityKind.ETHEREUM,
-                    identifier = it
-                )
+                PublicIdentity(kind = IdentityKind.ETHEREUM, identifier = it)
             }
+
             val consentMap = xmtpClientManager.client.canMessage(identities)
             val notAllowed = consentMap.filterValues { !it }
 
@@ -65,43 +58,44 @@ class ConversationRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            // handle dms
-            if(addresses.size == 1) {
-                try {
-                    val dm = xmtpClientManager.client.conversations.findOrCreateDmWithIdentity(identities.first())
-
-                    //TODO: might need to add client address too
-                    val conversationEntity = ConversationEntity(
-                        id = dm.id,
-                        title = null,
-                        members = listOf(dm.peerInboxId),
-                        createdAt = dm.createdAt.time,
-                        clientInbox = xmtpClientManager.client.inboxId
-                    )
-
-                    val recipientEntity = RecipientEntity(
-                        inboxId = dm.peerInboxId,
-                        address = identities.first().identifier
-                    )
-
-                    // insert recipients & conversation
-                    recipientDao.insertRecipients(listOf(recipientEntity))
-                    conversationDao.insertConversation(conversationEntity)
-
-                    // refs
-                    val refs = ConversationRecipientCrossRef(dm.id, dm.peerInboxId)
-                    conversationDao.insertConversationMemberCrossRefs(listOf(refs))
-
-                } catch (e: Exception) {
-                    emit(Result.Error(e.message?: "could not create dm conversation"))
-                    return@flow
-                }
-            } else { // handle groups
+            if (addresses.size > 1) {
                 emit(Result.Error("Group conversations are not yet supported"))
                 return@flow
             }
+
+            // Handle direct message creation
+            try {
+                val identity = identities.first()
+                val dm = xmtpClientManager.client.conversations.findOrCreateDmWithIdentity(identity)
+
+                val conversationEntity = ConversationEntity(
+                    id = dm.id,
+                    title = null,
+                    members = listOf(dm.peerInboxId),
+                    createdAt = dm.createdAt.time,
+                    clientInbox = xmtpClientManager.client.inboxId
+                )
+
+                val recipientEntity = RecipientEntity(
+                    inboxId = dm.peerInboxId,
+                    address = identity.identifier
+                )
+
+                recipientDao.insertRecipients(listOf(recipientEntity))
+                conversationDao.insertConversation(conversationEntity)
+                conversationDao.insertConversationMemberCrossRefs(
+                    listOf(ConversationRecipientCrossRef(dm.id, dm.peerInboxId))
+                )
+
+                //TODO: might cause problems
+                emit(Result.Success(conversationDao.getConversation(dm.id).first()!!.toExternalModel()))
+            } catch (e: Exception) {
+                emit(Result.Error(e.message ?: "Could not create DM conversation"))
+            }
+            return@flow
         }
 
+        // All recipients found - check for existing conversation
         val existingConversation = conversationDao
             .getCompositeConversationByExactMembers(inboxIds)
             .first()
@@ -112,30 +106,28 @@ class ConversationRepositoryImpl @Inject constructor(
             return@flow
         }
 
-        // fallback if conversation is not found
-        if (inboxIds.size == 1) {
-            val dm = xmtpClientManager.client.conversations.findOrCreateDm(inboxIds.first())
-
-            val conversation = conversationDao.getConversation(dm.id).first()
-
-            if (conversation == null) {
-                val conversationEntity = ConversationEntity(
-                    id = dm.id,
-                    title = null,
-                    members = listOf(dm.peerInboxId),
-                    createdAt = dm.createdAt.time,
-                    clientInbox = xmtpClientManager.client.inboxId
-                )
-                conversationDao.insertConversation(conversationEntity)
-                emitAll(conversationDao.getConversation(dm.id).map { Result.Success(it!!.toExternalModel()) })
-            } else {
-                emit(Result.Success(conversation.toExternalModel()))
-                //emit(conversation.map { Result.Success(it.toExternalModel()) })
-            }
-
-
-        } else {
+        if (inboxIds.size > 1) {
             emit(Result.Error("Group conversations are not yet supported"))
+            return@flow
+        }
+
+        // Fallback: attempt to re-fetch or create DM
+        val inboxId = inboxIds.first()
+        val dm = xmtpClientManager.client.conversations.findOrCreateDm(inboxId)
+        val conversation = conversationDao.getConversation(dm.id).first()
+
+        if (conversation != null) {
+            emit(Result.Success(conversation.toExternalModel()))
+        } else {
+            val newConversation = ConversationEntity(
+                id = dm.id,
+                title = null,
+                members = listOf(dm.peerInboxId),
+                createdAt = dm.createdAt.time,
+                clientInbox = xmtpClientManager.client.inboxId
+            )
+            conversationDao.insertConversation(newConversation)
+            emitAll(conversationDao.getConversation(dm.id).map { Result.Success(it!!.toExternalModel()) })
         }
     }
 
