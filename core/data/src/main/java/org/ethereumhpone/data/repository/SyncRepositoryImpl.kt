@@ -100,7 +100,7 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun syncContacts() {
         val contacts = getContacts()
-
+        contactDao.insertContacts(contacts)
     }
 
     private suspend fun getContacts(): List<ContactEntity> {

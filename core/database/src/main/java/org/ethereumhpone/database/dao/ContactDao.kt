@@ -1,6 +1,8 @@
 package org.ethereumhpone.database.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +33,12 @@ interface ContactDao {
 
     @Upsert
     fun upsertContact(contactEntities: List<ContactEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertContact(contact: ContactEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertContacts(contact: List<ContactEntity>)
 
     @Upsert
     fun upsertContactGroup(contactGroups: List<ContactGroup>)
