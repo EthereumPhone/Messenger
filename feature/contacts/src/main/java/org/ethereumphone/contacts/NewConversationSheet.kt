@@ -1,5 +1,6 @@
 package org.ethereumphone.contacts
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -49,6 +50,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +75,7 @@ import org.ethereumhpone.chat.components.OldSchoolThickCursorTextField
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.contacts.components.CheckBox
 import org.ethereumphone.contacts.components.CreateGroupSheet
+import org.ethereumphone.contacts.components.NewConversationHeader
 import org.ethereumphone.contacts.components.SelectMembersSheet
 
 
@@ -119,6 +122,8 @@ internal fun ConversationSheet(
     onSearchQueryChanged: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+
     var multiSelectMode by remember { mutableStateOf(false) }
     val selectedItems = remember { mutableStateListOf<ContactEntity>() }
 
@@ -149,54 +154,16 @@ internal fun ConversationSheet(
             if(!open){
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(32.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(start = 12.dp, end = 12.dp, bottom = 24.dp) // fab size 64.dp
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ){
+                    NewConversationHeader(
+                        title = "NEW CONVERSATION",
+                        onBackClick = onDismiss
+                    )
 
-                        IconButton(onClick = onDismiss) {
-                            Icon(
-                                painter = painterResource(org.ethereumphone.dgenlibrary.R.drawable.backicon),
-                                contentDescription = "BackButton",
-                                modifier = Modifier.size(24.dp),
-                                tint = dgenTurqoise
-                            )
-                        }
-
-                        Text(
-                            text = "NEW CONVERSATION",
-                            style = TextStyle(
-                                fontFamily = PitagonsSans,
-                                color = dgenTurqoise,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 24.sp,
-                                lineHeight = 24.sp,
-                                letterSpacing = 0.sp,
-                                textDecoration = TextDecoration.None
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier,
-                        )
-
-                        IconButton(modifier = Modifier.alpha(0f), onClick = {  }) {
-                            Icon(
-                                painter = painterResource(org.ethereumphone.dgenlibrary.R.drawable.backicon),
-                                contentDescription = "BackButton",
-                                modifier = Modifier.size(24.dp),
-                                tint = dgenTurqoise
-                            )
-                        }
-
-                    }
 
                     Row(
                         Modifier.padding(horizontal = 16.dp),
@@ -263,7 +230,7 @@ internal fun ConversationSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         when(queryResultUiState) {
                             is QueryResultUiState.Loading -> {}
@@ -286,7 +253,6 @@ internal fun ConversationSheet(
                                                     }
                                                 },
                                             text = "MAKE NEW GROUP",
-                                            fontSize = 24.sp,
                                             style = TextStyle(
                                                 fontFamily = PitagonsSans,
                                                 color = dgenTurqoise,
@@ -310,8 +276,8 @@ internal fun ConversationSheet(
                                                     fontFamily = PitagonsSans,
                                                     color = dgenTurqoise,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 22.sp,
-                                                    lineHeight = 22.sp,
+                                                    fontSize = 20.sp,
+                                                    lineHeight = 20.sp,
                                                     letterSpacing = 0.sp,
                                                     textDecoration = TextDecoration.None
                                                 )
@@ -344,8 +310,12 @@ internal fun ConversationSheet(
                                 } else {
                                     items(queryResultUiState.contactEntities) { contact ->
                                         // add onCLick behaviour
-                                        Column(modifier = Modifier
-                                            .clickable { onContactsSelected(listOf(contact)) }) {
+                                        Column(modifier = Modifier.background(Color.Red)
+                                            .clickable {
+                                                Toast.makeText(context, "addreses: ${contact.toString()} ", Toast.LENGTH_SHORT).show()
+                                                onContactsSelected(listOf(contact))
+                                            }
+                                        ) {
                                             Text(
                                                 text = contact.name,
                                                 overflow = TextOverflow.Ellipsis,
