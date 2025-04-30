@@ -5,8 +5,11 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,10 +18,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -30,17 +35,27 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenOcean
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import com.example.dgenlibrary.ui.theme.dgenWhite
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.ethereumphone.dgenlibrary.components.dgenButton
 
 @Composable
 fun OnboardingRoute(
@@ -101,7 +116,7 @@ fun OnboardingScreen(
     HorizontalPager(
         modifier = Modifier
             .fillMaxHeight()
-            .background(Color.Black),
+            .background(dgenBlack),
         state = pagerState,
         userScrollEnabled = false
     ) {
@@ -109,6 +124,11 @@ fun OnboardingScreen(
         ) {
             when(pagerState.currentPage) {
                 0 -> {
+                    dgenButton(
+                        onClick = {},
+                        text = "Enable XMTP"
+                    )
+
                     Button(
                         colors =  ButtonDefaults.buttonColors(containerColor = Color(0xFF8C7DF7)),
                         onClick = {
@@ -163,18 +183,20 @@ private fun PagerContent(
     extraContent: @Composable () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
 
     ) {
         Text(
             text = pagerContent.title,
             style = TextStyle(
-                color = Color.White,
-                fontWeight = FontWeight.Normal,
-                fontSize = 32.sp,
-                lineHeight = 40.sp,
+                fontFamily = PitagonsSans,
+                color = dgenTurqoise,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 24.sp,
+                lineHeight = 24.sp,
                 letterSpacing = 0.sp,
+                textDecoration = TextDecoration.None
             ),
             modifier = Modifier.padding(vertical = 5.dp)
 
@@ -182,8 +204,14 @@ private fun PagerContent(
 
         Text(
             text = pagerContent.description,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = Color.White,
+            style = TextStyle(
+                fontFamily = PitagonsSans,
+                color = dgenTurqoise,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 24.sp,
+                lineHeight = 24.sp,
+                letterSpacing = 0.sp,
+                textDecoration = TextDecoration.None,
                 textAlign = TextAlign.Center
             )
         )
@@ -248,7 +276,7 @@ enum class OnboardingPageContent(
 }
 
 
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice",uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun previewOnboarding() {
     Column(Modifier.background(Color.Black)) {

@@ -93,4 +93,7 @@ dependencies {
     implementation(libs.xmtp)
     implementation(libs.kotlinx.datetime)
 
+    //ui-library
+    implementation(project(":dgenlibrary"))
+
 }
