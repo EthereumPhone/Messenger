@@ -193,7 +193,6 @@ fun ChatScreen(
     var currentActions by remember { mutableStateOf(Actions.IDLE) }
     val visibleMap = remember { mutableStateMapOf<String, MutableState<Boolean>>() }
     val isFirstLoad = remember { mutableStateOf(true) }
-    val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     // variables for Chatbottombar
@@ -273,7 +272,7 @@ fun ChatScreen(
                     onSendClick = { text ->
                         if (text.isNotBlank()) {
                             onSendMessageClicked(text)
-                            coroutineScope.launch { listState.animateScrollToItem(0) }
+                            coroutineScope.launch { scrollState.animateScrollToItem(0) }
                         }
 
                         attachments.clear()
