@@ -248,9 +248,10 @@ fun InboxScreen(
                         HorizontalPager(state = pagerState) { page ->
                             when (page) {
                                 0 -> {
-                                    val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
 
                                     if (conversationState.conversations.isNotEmpty()){
+                                        val conversations = conversationState.conversations
+
                                         LazyColumn(
                                             modifier = Modifier
                                                 .fillMaxSize()
@@ -264,10 +265,10 @@ fun InboxScreen(
                                                 SwipeableListItem(
                                                     isRevealed = conversation.isOptionsRevealed,
                                                     onExpanded = {
-                                                        conversations[index] = conversation.copy(isOptionsRevealed = true)
+                                                        //conversations[index] = conversation.copy(isOptionsRevealed = true)
                                                     },
                                                     onCollapsed = {
-                                                        conversations[index] = conversation.copy(isOptionsRevealed = false)
+                                                        //conversations[index] = conversation.copy(isOptionsRevealed = false)
                                                     },
                                                     actions = {
                                                         ConversationActionButton(
@@ -277,7 +278,8 @@ fun InboxScreen(
                                                                     "Contact ${conversation.id} was deleted.",
                                                                     Toast.LENGTH_SHORT
                                                                 ).show()
-                                                                conversations.remove(conversation)
+                                                                //conversations.remove(conversation)
+                                                                //TODO: call viewModel
                                                             },
                                                             icon = Icons.Outlined.Delete,
                                                             iconColor = dgenRed,
@@ -377,7 +379,6 @@ fun InboxScreen(
 
                                                     },
                                                 ) {
-                                                    val now = Instant.parse("2025-04-10T10:00:00Z")
                                                     ChatListInfo(
                                                         //TODO: Improve group identification
                                                         isGroup = conversation.recipients.size > 1,
