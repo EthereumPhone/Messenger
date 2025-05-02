@@ -246,13 +246,15 @@ class SyncRepositoryImpl @Inject constructor(
 
                     messages.chunked(10) { messageChunk ->
                         launch {
+
                             val parsedMessages = messageChunk.map { msg ->
+
                                 val template = MessageEntity(
                                     id = msg.id,
                                     threadId = msg.conversationId,
                                     senderInboxId = msg.senderInboxId,
-                                    date = System.currentTimeMillis(),
-                                    dateSent = msg.sentAtNs,
+                                    date = msg.sentAtNs / 1_000_000, // conver to millis
+                                    dateSent = msg.sentAtNs / 1_000_000,
                                     deliveryStatus = msg.deliveryStatus,
                                     isMe = msg.senderInboxId == client.inboxId,
                                     replyReference = null,
@@ -344,7 +346,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 replyReference = null,
                                 deliveryStatus = message.deliveryStatus,
                                 isMe = isMe,
-                                dateSent = message.sentAtNs,
+                                date = message.sentAtNs / 1_000_000,
+                                dateSent = message.sentAtNs / 1_000_000,
                             )
 
                             processContent(template, message.encodedContent.type, message.content())

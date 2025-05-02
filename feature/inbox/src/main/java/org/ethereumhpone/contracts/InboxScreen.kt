@@ -293,7 +293,7 @@ fun InboxScreen(
                                                         lastPerson = conversation.lastMessage?.recipient?.contact?.name.toString(),
                                                         header = conversation.getHeader(),
                                                         subheader = conversation.lastMessage?.body.toString(),
-                                                        time = conversation.lastMessage?.date?.toEpochMilliseconds()?.let(::Date),
+                                                        time = conversation.lastMessage?.date,
                                                         readConversation = conversation.lastMessage?.seen == true,
                                                         onClick = { conversationClicked(conversation.id) },
                                                     )
@@ -350,24 +350,24 @@ fun InboxScreen(
                                             }
                                             itemsIndexed(
                                                 items = conversations,
-                                            ) { index, contact ->
+                                            ) { index, conversation ->
                                                 SwipeableListItem(
-                                                    isRevealed = contact.isOptionsRevealed,
+                                                    isRevealed = conversation.isOptionsRevealed,
                                                     onExpanded = {
-                                                        conversations[index] = contact.copy(isOptionsRevealed = true)
+                                                        conversations[index] = conversation.copy(isOptionsRevealed = true)
                                                     },
                                                     onCollapsed = {
-                                                        conversations[index] = contact.copy(isOptionsRevealed = false)
+                                                        conversations[index] = conversation.copy(isOptionsRevealed = false)
                                                     },
                                                     actions = {
                                                         ConversationActionButton(
                                                             onClick = {
                                                                 Toast.makeText(
                                                                     context,
-                                                                    "Contact ${contact.id} was deleted.",
+                                                                    "Contact ${conversation.id} was deleted.",
                                                                     Toast.LENGTH_SHORT
                                                                 ).show()
-                                                                conversations.remove(contact)
+                                                                conversations.remove(conversation)
                                                             },
                                                             icon = Icons.Outlined.Delete,
                                                             iconColor = dgenRed,
@@ -380,13 +380,13 @@ fun InboxScreen(
                                                     val now = Instant.parse("2025-04-10T10:00:00Z")
                                                     ChatListInfo(
                                                         //TODO: Improve group identification
-                                                        isGroup = contact.recipients.size > 1,
-                                                        lastPerson = contact.lastMessage?.recipient?.contact?.name.toString(),
-                                                        header = contact.getHeader(),
-                                                        subheader = contact.lastMessage?.body.toString(),
-                                                        time = Date.from(JavaInstant.parse(now.toString())),
-                                                        readConversation = contact.lastMessage?.seen == true,
-                                                        onClick = { conversationClicked(contact.id) },
+                                                        isGroup = conversation.recipients.size > 1,
+                                                        lastPerson = conversation.lastMessage?.recipient?.contact?.name.toString(),
+                                                        header = conversation.getHeader(),
+                                                        subheader = conversation.lastMessage?.body.toString(),
+                                                        time = conversation.lastMessage?.date,
+                                                        readConversation = conversation.lastMessage?.seen == true,
+                                                        onClick = { conversationClicked(conversation.id) },
                                                     )
 
                                                 }

@@ -1,94 +1,80 @@
 package org.ethereumhpone.contracts.utils
 
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeArithmeticException
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.days
 
-fun printFormattedDateInfo(date: Date?): String? {
 
+fun printFormattedDateInfo(instant: Instant?): String? {
+    if (instant == null) return null
 
-    val formattedDate = date?.let { formatDate(it) }
-
-    val calendar = Calendar.getInstance()
-    if (date != null) {
-        calendar.time = date
+    val now = Clock.System.now()
+    val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val date = try {
+        instant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    } catch (e: DateTimeArithmeticException) {
+        return "Invalid Date"
     }
 
-    val currentCalendar = Calendar.getInstance()
-
-    when {
-        date?.let { isWithinLast7Days(it) } == true -> {
-            val weekday = getWeekday(date)
-            if (isSameDay(calendar, currentCalendar)){
-                return formattedDate
-            }
-
-            return weekday
-        }
-        date?.let { isBeforeLast7Days(it) } == true -> {
-            return formattedDate
-        }
-        else -> {
-            return formattedDate
-        }
-    }
-}
-
-fun formatDate(date: Date): String {
-    val calendar = Calendar.getInstance()
-    calendar.time = date
-
-    val currentCalendar = Calendar.getInstance()
+    val formattedDate = formatInstant(instant)
 
     return when {
-        isSameDay(calendar, currentCalendar) -> {
-            SimpleDateFormat("HH:mm").format(date)
+        isWithinLast7Days(instant, now) -> {
+            if (date == today) {
+                formattedDate
+            } else {
+                getWeekday(instant)
+            }
         }
-        calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) -> {
-            SimpleDateFormat("MM.dd").format(date)
-        }
-        else -> {
-            SimpleDateFormat("yyyy.MM.dd").format(date)
-        }
+        isBeforeLast7Days(instant, now) -> formattedDate
+        else -> formattedDate
     }
 }
 
-fun isSameDay(calendar1: Calendar, calendar2: Calendar): Boolean {
-    return calendar1.get(Calendar.YEAR) == calendar2.get(Calendar.YEAR) &&
-            calendar1.get(Calendar.DAY_OF_YEAR) == calendar2.get(Calendar.DAY_OF_YEAR)
+fun formatInstant(instant: Instant): String {
+    val zone = TimeZone.currentSystemDefault()
+    val now = Clock.System.now().toLocalDateTime(zone)
+
+    val dateTime = try {
+        instant.toLocalDateTime(zone)
+    } catch (e: DateTimeArithmeticException) {
+        return "Invalid Date"
+    }
+
+    return when {
+        dateTime.date == now.date -> dateTime.time.toString()  // returns HH:mm:ss.SSS
+        dateTime.year == now.year -> "%02d.%02d".format(dateTime.monthNumber, dateTime.dayOfMonth)
+        else -> "%04d.%02d.%02d".format(dateTime.year, dateTime.monthNumber, dateTime.dayOfMonth)
+    }
 }
 
-fun isWithinLast7Days(date: Date): Boolean {
-    val currentDate = Date()
-    val sevenDaysAgo = Calendar.getInstance().apply {
-        time = currentDate
-        add(Calendar.DAY_OF_YEAR, -7)
-    }.time
-
-    return !date.before(sevenDaysAgo) && !date.after(currentDate)
+fun isWithinLast7Days(instant: Instant, now: Instant = Clock.System.now()): Boolean {
+    val sevenDaysAgo = now - 7.days
+    return instant >= sevenDaysAgo && instant <= now
 }
 
-fun isBeforeLast7Days(date: Date): Boolean {
-    val sevenDaysAgo = Calendar.getInstance().apply {
-        time = Date()
-        add(Calendar.DAY_OF_YEAR, -7)
-    }.time
-
-    return date.before(sevenDaysAgo)
+fun isBeforeLast7Days(instant: Instant, now: Instant = Clock.System.now()): Boolean {
+    val sevenDaysAgo = now - 7.days
+    return instant < sevenDaysAgo
 }
 
-fun getWeekday(date: Date): String {
-    val calendar = Calendar.getInstance()
-    calendar.time = date
-
-    return when (calendar.get(Calendar.DAY_OF_WEEK)) {
-        Calendar.SUNDAY -> "Sunday"
-        Calendar.MONDAY -> "Monday"
-        Calendar.TUESDAY -> "Tuesday"
-        Calendar.WEDNESDAY -> "Wednesday"
-        Calendar.THURSDAY -> "Thursday"
-        Calendar.FRIDAY -> "Friday"
-        Calendar.SATURDAY -> "Saturday"
-        else -> "Unknown"
+fun getWeekday(instant: Instant): String {
+    val dateTime = try {
+        instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    } catch (e: DateTimeArithmeticException) {
+        return "Invalid Date"
+    }
+    return when (dateTime.date.dayOfWeek) {
+        DayOfWeek.SUNDAY -> "Sunday"
+        DayOfWeek.MONDAY -> "Monday"
+        DayOfWeek.TUESDAY -> "Tuesday"
+        DayOfWeek.WEDNESDAY -> "Wednesday"
+        DayOfWeek.THURSDAY -> "Thursday"
+        DayOfWeek.FRIDAY -> "Friday"
+        DayOfWeek.SATURDAY -> "Saturday"
     }
 }

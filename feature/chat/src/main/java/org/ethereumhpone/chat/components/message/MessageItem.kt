@@ -98,7 +98,6 @@ fun MessageItem(
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
     var compSize by remember { mutableIntStateOf(0) }
-    val isUserMe = msg.isMe
 
 
     val alignmessage = Modifier
@@ -110,13 +109,13 @@ fun MessageItem(
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(start = 32.dp,end = 32.dp),
-        horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
+        horizontalArrangement = if (msg.isMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
 
         Column(
             modifier = alignmessage,
-            horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start
+            horizontalAlignment = if(msg.isMe) Alignment.End else Alignment.Start
         ) {
 
             if (isFirstMessageByAuthor) {
@@ -132,7 +131,7 @@ fun MessageItem(
             ChatItemBubbleV3(
                 modifier = alignmessage,
                 messageEntity = msg,
-                isUserMe = isUserMe,
+                isUserMe = msg.isMe,
                 videoPlayer = player,
                 onPlayVideo = { onPrepareVideo(it) },
                 onLongClick = {

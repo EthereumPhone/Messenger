@@ -43,7 +43,7 @@ fun ChatListInfo(
     subheader: String = "Subheader",
     lastPerson: String = "",
     unReadMessagesAmount: Int = 1,
-    time: Date?,//"0:00AM",
+    time: Instant?,//"0:00AM",
     isGroup: Boolean = false,
     readConversation: Boolean = false,
     onClick: () -> Unit = {}, //threadId long -> String
@@ -102,9 +102,10 @@ fun ChatListInfo(
             modifier = modifier
                 .weight(0.25f)
         ){
+
             printFormattedDateInfo(time)?.let {
                 Text(
-                    text = it.uppercase(),
+                    text = it,
                     style = TextStyle(
                         fontFamily = SpaceMono,
                         color = if(readConversation) dgenTurqoise.copy(0.5f) else dgenTurqoise,
@@ -116,6 +117,7 @@ fun ChatListInfo(
                     ),
                 )
             }
+
 
             /*
                     if(!readConversation && isGroup)  {
@@ -160,7 +162,7 @@ fun PreviewContactItem(){
         onClick = { Toast.makeText(context, "onClick", Toast.LENGTH_SHORT).show() },
         header = "Alex Lynn",
         subheader = "The dGEN1 is sick!!!",
-        time = Date.from(JavaInstant.parse(now.toString())),
+        time = Instant.DISTANT_PAST,
         isGroup = false,
     )
 }
