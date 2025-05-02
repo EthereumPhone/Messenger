@@ -1,11 +1,13 @@
 package org.ethereumhpone.data.repository
 
-import android.content.ContentUris
-import android.content.ContentValues
+
+import android.annotation.SuppressLint
 import android.content.Context
-import android.provider.Telephony
+import androidx.media3.common.util.Log
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
@@ -13,9 +15,7 @@ import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
 import org.ethereumhpone.database.model.MessageEntity
-import org.ethereumhpone.database.model.relation.CompositeMessage
 import org.ethereumhpone.database.model.relation.toExternalMessage
-import org.ethereumhpone.database.model.toExternalModel
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.model.Attachment
@@ -23,7 +23,6 @@ import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Reaction
-import org.ethereumphone.model.Recipient
 import org.xmtp.android.library.codecs.ContentTypeText
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.android.library.libxmtp.DecodedMessage
@@ -92,6 +91,7 @@ class MessageRepositoryImpl @Inject constructor(
         TODO()
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
     override suspend fun sendMessage(
         threadId: String,
         body: String?,
@@ -99,59 +99,47 @@ class MessageRepositoryImpl @Inject constructor(
         attachments: List<Attachment>,
         reaction: Reaction?
     ): String? = coroutineScope {
-        //TODO: add error handling?
-        val conversation = xmtpClientManager.client.conversations.findConversation(threadId) ?: return@coroutineScope null
+        // Wait until the XMTP client is ready
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
 
-        val templateMessage = MessageEntity(
-            id = "",
-            threadId = threadId,
-            dateSent = Instant.now().epochSecond,
-            senderInboxId = xmtpClientManager.client.inboxId,
-            body = body ?: "",
-            deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
-            isMe = true,
-            replyReference = ""
-        )
+        val conversation = xmtpClientManager.client.conversations.findConversation(threadId)
+            ?: return@coroutineScope null
 
-        return@coroutineScope when {
-
-            // attachments
+        when {
             attachments.isNotEmpty() -> {
-
-
+                // TODO: Handle attachments
                 null
             }
-
 
             reaction != null -> {
-
-
+                // TODO: Handle reaction
                 null
             }
 
-
-            // plain text
             else -> {
                 val messageId = if (replyReference != null) {
-                    val reply = Reply(
-                        reference = replyReference,
-                        content = body ?: "",
-                        contentType = ContentTypeText
+                    conversation.prepareMessage(
+                        Reply(
+                            reference = replyReference,
+                            content = body.orEmpty(),
+                            contentType = ContentTypeText
+                        )
                     )
-                    conversation.prepareMessage(reply)
                 } else {
                     conversation.prepareMessage(body)
                 }
+
+                Log.d("MESSAGE ID", messageId)
 
                 val messageEntity = MessageEntity(
                     id = messageId,
                     threadId = threadId,
                     dateSent = Instant.now().epochSecond,
                     senderInboxId = xmtpClientManager.client.inboxId,
-                    body = body ?: "",
+                    body = body.orEmpty(),
                     deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
                     isMe = true,
-                    replyReference = replyReference ?: ""
+                    replyReference = replyReference.orEmpty()
                 )
 
                 launch { messageDao.upsertMessages(listOf(messageEntity)) }

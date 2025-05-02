@@ -132,8 +132,6 @@ fun ChatRoute(
     val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
 
 
-
-
     ChatScreen(
         messageUiState = messagesUiState,
         recipientUiState = recipients,
@@ -147,7 +145,7 @@ fun ChatRoute(
         videoPlayer = videoPlayer,
         //selectedMessaged = selectedMessaged,
         onSendEthClicked = { },
-        /*onSendMessageClicked = chatViewModel::sendMessage,
+        onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
         onFocusedMessageUpdate = {},
         onPrepareVideo = mediaViewModel::addVideoUri,
@@ -155,7 +153,7 @@ fun ChatRoute(
         onToggleAttachment = chatViewModel::toggleAttachment,
         onRemoveSelectedMessage = chatViewModel::removeSelectedMessage,
         onOpenContact = chatViewModel::onOpenContact,
-        onAddSelectedMessage = chatViewModel::addSelectedMessage,*/
+        onAddSelectedMessage = chatViewModel::addSelectedMessage,
     )
 }
 
@@ -176,16 +174,16 @@ fun ChatScreen(
     tokenBalance: Double = 0.0,
     chainName: String = "?",
     videoPlayer: Player? = null,
-    /*onOpenContact: () -> Unit,
+    onOpenContact: () -> Unit,
     selectedMessaged: List<Message?> = emptyList(),
     onContactSelected: (ContactEntity) -> Unit,
-    onToggleAttachment: (Attachment) -> Unit,*/
+    onToggleAttachment: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit = {},
-    /*onDeleteMessage: (String) -> Unit,
+    onDeleteMessage: (String) -> Unit,
     onFocusedMessageUpdate: (Message) -> Unit,
     onPrepareVideo: (Uri) -> Unit,
     onRemoveSelectedMessage: (Message) -> Unit,
-    onAddSelectedMessage: (Message) -> Unit,*/
+    onAddSelectedMessage: (Message) -> Unit,
 ) {
 
 
@@ -659,7 +657,12 @@ private fun PreviewChatScreen() {
                 lastMessage = Message(
                     id = "m2",
                     threadId = "2",
-                    recipient = Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
+                    recipient = Recipient(
+                        "r2",
+                        "0x456",
+                        null,
+                        Contact("lk2", "Bob", null, "0x456")
+                    ),
                     date = now,
                     dateSent = now,
                     seen = false,
@@ -672,7 +675,23 @@ private fun PreviewChatScreen() {
                 ),
                 clientInbox = "inbox2"
             )
-        )
+        ),
+        modifier = TODO(),
+        contactEntities = TODO(),
+        media = TODO(),
+        attachments = TODO(),
+        chainName = TODO(),
+        videoPlayer = TODO(),
+        onOpenContact = TODO(),
+        selectedMessaged = TODO(),
+        onContactSelected = TODO(),
+        onToggleAttachment = TODO(),
+        onSendMessageClicked = TODO(),
+        onDeleteMessage = TODO(),
+        onFocusedMessageUpdate = TODO(),
+        onPrepareVideo = TODO(),
+        onRemoveSelectedMessage = TODO(),
+        onAddSelectedMessage = TODO()
     )
     /*
     ChatScreen(
@@ -769,8 +788,23 @@ private fun PreviewGroupChatScreen() {
         navigateBackToConversations = { },
         tokenBalance = 2.456,
         onSendEthClicked = { it -> },
-        converstation = convo
-
+        converstation = convo,
+        modifier = TODO(),
+        contactEntities = TODO(),
+        media = TODO(),
+        attachments = TODO(),
+        chainName = TODO(),
+        videoPlayer = TODO(),
+        onOpenContact = TODO(),
+        selectedMessaged = TODO(),
+        onContactSelected = TODO(),
+        onToggleAttachment = TODO(),
+        onSendMessageClicked = TODO(),
+        onDeleteMessage = TODO(),
+        onFocusedMessageUpdate = TODO(),
+        onPrepareVideo = TODO(),
+        onRemoveSelectedMessage = TODO(),
+        onAddSelectedMessage = TODO()
     )
     /*
     ChatScreen(
