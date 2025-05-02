@@ -340,9 +340,9 @@ fun InboxScreen(
 
                                 }
                                 1 -> {
-                                    val conversations = remember { mutableStateListOf<Conversation>().apply { addAll(conversationState.conversations) } }
 
                                     if (conversationState.conversations.isEmpty()){
+                                        val conversations = conversationState.conversations
                                         LazyColumn(
                                             modifier = Modifier
                                                 .fillMaxSize()
@@ -356,10 +356,10 @@ fun InboxScreen(
                                                 SwipeableListItem(
                                                     isRevealed = conversation.isOptionsRevealed,
                                                     onExpanded = {
-                                                        conversations[index] = conversation.copy(isOptionsRevealed = true)
+                                                        //conversations[index] = conversation.copy(isOptionsRevealed = true)
                                                     },
                                                     onCollapsed = {
-                                                        conversations[index] = conversation.copy(isOptionsRevealed = false)
+                                                       //conversations[index] = conversation.copy(isOptionsRevealed = false)
                                                     },
                                                     actions = {
                                                         ConversationActionButton(
@@ -369,7 +369,8 @@ fun InboxScreen(
                                                                     "Contact ${conversation.id} was deleted.",
                                                                     Toast.LENGTH_SHORT
                                                                 ).show()
-                                                                conversations.remove(conversation)
+                                                                //conversations.remove(conversation)
+                                                                //TODO: call viewModel to remove chat
                                                             },
                                                             icon = Icons.Outlined.Delete,
                                                             iconColor = dgenRed,

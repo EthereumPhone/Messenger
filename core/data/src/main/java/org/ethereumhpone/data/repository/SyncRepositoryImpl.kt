@@ -8,12 +8,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import org.ethereumhpone.common.compat.TelephonyCompat
 import org.ethereumhpone.common.extensions.map
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.util.PhoneNumberUtils
@@ -42,7 +40,6 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.xmtp.android.library.ConsentState
 import org.xmtp.android.library.Conversation
-import org.xmtp.android.library.Group
 import org.xmtp.android.library.SendOptions
 import org.xmtp.android.library.codecs.ContentTypeAttachment
 import org.xmtp.android.library.codecs.ContentTypeReactionV2
@@ -168,8 +165,6 @@ class SyncRepositoryImpl @Inject constructor(
             syncJob.join()
 
             client.conversations.list().forEach { conversation ->
-
-
                 // recipients
                 launch {
                     //TODO: Add refs to contacts
@@ -278,15 +273,41 @@ class SyncRepositoryImpl @Inject constructor(
 
                     var conversation: Conversation? = null
 
+                    // recipients
+                    launch {
+
+
+                    }
+
+
                     // stream chats
                     launch {
                         client.conversations.stream().collect { conversation ->
-                            val members = conversation.members().map { it.inboxId }
+                            // recipients portion
 
-                            val refs = members.map { inboxId ->
+                            //TODO: Add refs to contacts
+                            val members = conversation.members()
+
+                            val recipientEntities = members.map { member ->
+                                RecipientEntity(
+                                    inboxId = member.inboxId,
+                                    address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
+                                    ens = null,
+                                    contactLookupKey = null // TODO: Get contact lookupKeys
+                                )
+                            }
+                            recipientDao.insertRecipients(recipientEntities)
+
+
+                            val inboxIds = conversation.members().map { it.inboxId }
+
+                            val refs = inboxIds.map { inboxId ->
                                 ConversationRecipientCrossRef(conversation.id, inboxId)
                             }
                             conversationDao.insertConversationMemberCrossRefs(refs)
+
+
+                            // conversation portion
 
                             val (id, title, createdAt, archived, consentState) = when (conversation.type) {
                                 Conversation.Type.DM -> {
@@ -315,7 +336,7 @@ class SyncRepositoryImpl @Inject constructor(
                             val conversationEntity = ConversationEntity(
                                 id = id as String,
                                 title = title as String?,
-                                members = members,
+                                members = inboxIds,
                                 createdAt = createdAt as Long,
                                 archived = archived as Boolean,
                                 unknown = consentState == ConsentState.UNKNOWN,
