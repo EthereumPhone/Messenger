@@ -85,7 +85,7 @@ interface ConversationDao {
     @Upsert
     fun upsertConversation(conversationEntity: ConversationEntity)
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversation(conversationEntity: ConversationEntity)
 
     @Upsert

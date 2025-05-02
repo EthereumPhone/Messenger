@@ -321,7 +321,7 @@ class SyncRepositoryImpl @Inject constructor(
                                 clientInbox = client.inboxId
                             )
 
-                            conversationDao.upsertConversation(conversationEntity)
+                            conversationDao.insertConversation(conversationEntity)
                         }
                     }
 
@@ -333,6 +333,8 @@ class SyncRepositoryImpl @Inject constructor(
                     launch {
                         client.conversations.streamAllMessages().collect { message ->
                             val isMe = client.inboxId == message.senderInboxId
+
+                            Log.d("incoming MESSAGE id", message.id)
 
                             val template = MessageEntity(
                                 id = message.id,

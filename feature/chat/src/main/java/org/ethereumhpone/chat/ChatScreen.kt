@@ -10,10 +10,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -22,69 +19,39 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import org.ethereumhpone.chat.components.message.MessageItem
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
-import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -92,13 +59,11 @@ import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
-import org.ethereumhpone.chat.components.ImageSelectionScreen
 import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
+import org.ethereumhpone.chat.components.message.MessageItem
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
-import org.ethereumhpone.chat.util.testMessage
-import org.ethereumhpone.chat.util.truncateToDate
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.components.TimeHeader
@@ -116,7 +81,7 @@ fun ChatRoute(
     onBackClick: () -> Unit,
     chatViewModel: ChatViewModel = hiltViewModel(),
     mediaViewModel: MediaViewModel = hiltViewModel()
-){
+) {
     val videoPlayer = mediaViewModel.exoPlayer
     val messagesUiState by chatViewModel.messagesState.collectAsStateWithLifecycle()
     val contacts by chatViewModel.contacts.collectAsStateWithLifecycle()
@@ -125,7 +90,7 @@ fun ChatRoute(
     //val tokenBalance by chatViewModel.ethBalance.collectAsStateWithLifecycle()
     val chainName by chatViewModel.chainName.collectAsStateWithLifecycle()
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
-   // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
+    // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
 
     val selectedMessaged by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
 
@@ -157,7 +122,8 @@ fun ChatRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
+@OptIn(
+    ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
     ExperimentalFoundationApi::class
 )
 @Composable
@@ -205,6 +171,8 @@ fun ChatScreen(
     var shouldRotate = remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
 
+
+
     val keyboardController = LocalSoftwareKeyboardController.current
 
     BackHandler(showOverlay.value || (WindowInsets.isImeVisible && !showBottomSheet)) {
@@ -216,14 +184,13 @@ fun ChatScreen(
         }
     }
 
-    val chatConversion = when(converstation){
+    val chatConversion = when (converstation) {
         ConversationUiState.Loading -> null
         is ConversationUiState.Success -> converstation.conversation
     }
 
     // variables for ui
     var currentActions by remember { mutableStateOf(Actions.IDLE) }
-    val messages = remember { mutableStateListOf<Message>() }
     val visibleMap = remember { mutableStateMapOf<String, MutableState<Boolean>>() }
     val isFirstLoad = remember { mutableStateOf(true) }
     val listState = rememberLazyListState()
@@ -232,37 +199,6 @@ fun ChatScreen(
     // variables for Chatbottombar
     var hasMultipleLines = remember { mutableStateOf(false) }
     val expand = remember { mutableStateOf(false) }
-
-    // if message state change -> updates list
-    LaunchedEffect(messageUiState) {
-        when (messageUiState) {
-            is MessageUiState.Success -> {
-                val incoming = messageUiState.messageEntities.sortedBy {truncateToDate(it.date) }
-                messages.apply {
-                    clear()
-                    addAll(incoming)
-                }
-                if (isFirstLoad.value) {
-                    // Erstbefüllung: alle existierenden auf true
-                    incoming.forEach { msg ->
-                        visibleMap[msg.id] = mutableStateOf(true)
-                    }
-                    isFirstLoad.value = false
-                } else {
-                    // Nur new IDs auf false setzen
-                    incoming.map { it.id }
-                        .filterNot { visibleMap.containsKey(it) }
-                        .forEach { newId ->
-                            visibleMap[newId] = mutableStateOf(false)
-                        }
-                }
-            }
-            else -> { /* Loading oder Fehler: nix tun */ }
-        }
-    }
-
-
-
 
 
 
@@ -310,18 +246,12 @@ fun ChatScreen(
     var showContact by remember { mutableStateOf(false) }
 
 
-
-
-
-
-
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .imePadding()
-    ){
-        Scaffold (
+    ) {
+        Scaffold(
             topBar = {
                 ChatTopAppBar(
                     chatConversion?.title.toString(),
@@ -364,29 +294,41 @@ fun ChatScreen(
         ) { paddingValues ->
 
 
-            Box(modifier= Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-            ){
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
 
-                when(messageUiState) {
+                when (messageUiState) {
                     is MessageUiState.Success -> {
+                        val messages = messageUiState.messageEntities
+
+                        LaunchedEffect(messages.size) {
+                            if (messages.isNotEmpty()) {
+                                scrollState.scrollToItem(messages.lastIndex)
+                            }
+                        }
+
                         LazyColumn(
                             state = scrollState,
-                            modifier = Modifier.fillMaxSize(),
-
+                            modifier = Modifier.fillMaxSize()
                         ) {
 
                             messages.forEachIndexed { index, message ->
 
-                                val prevAuthor = messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
+                                val prevAuthor =
+                                    messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
                                 val isFirstMessageByAuthor = prevAuthor != message.recipient.id
 
-                                val prevDate = messages.getOrNull(messages.indexOf(message) - 1)?.date
-                                val newprevDate = prevDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
-                                val nextDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
+                                val prevDate =
+                                    messages.getOrNull(messages.indexOf(message) - 1)?.date
+                                val newprevDate =
+                                    prevDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
+                                val nextDate =
+                                    message.date.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
 
-                                if (newprevDate != nextDate){
+                                if (newprevDate != nextDate) {
                                     item {
                                         TimeHeader(message.date)
                                     }
@@ -395,47 +337,36 @@ fun ChatScreen(
                                 item {
 
                                     //check if a message is already visible
-                                    val isVisible = visibleMap.getOrPut(message.id) { mutableStateOf(false) }
+                                    val isVisible =
+                                        visibleMap.getOrPut(message.id) { mutableStateOf(false) }
 
                                     //Animated the message
-                                    AnimatedVisibility(
-                                        visible = isVisible.value,
-                                        enter = scaleIn(
-                                            initialScale = 0f,
-                                            transformOrigin = if(message.isMe) TransformOrigin(1f, 1f) else TransformOrigin(0f, 1f),
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessLow
-                                            )
-                                        ) + fadeIn(tween(300)),
-                                        exit = fadeOut() + scaleOut(),
-                                        modifier = Modifier.animateItemPlacement(animationSpec = tween(durationMillis = 300))
 
-                                    ) {
-                                        //TODO: add Transaction Messages
-                                        MessageItem(
-                                            onAuthorClick = { },
-                                            msg = message,
-                                            composablePositionState = composablePositionState,
-                                            player = videoPlayer,
-                                            onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
-                                            onLongClick = {},//{ onFocusedMessageUpdate(message) },
-                                            name = "${message.recipient.contact?.name}", //TODO FIX THIS
-                                            isSelected = selectedMessagesMap.contains(message),
-                                            selectMode = selectMode,
-                                            isXMTP = true,
-                                            onSelect = { selectedMessage ->
-                                                // invert boolean or add
-                                                selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
-                                                    isChecked?.let { !it } ?: true
-                                                }
-                                            },
-                                            onDoubleClick = { selectMode.value = !selectMode.value },
-                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                            isGroup = chatConversion?.isGroup == true,
-                                            isVisible = isVisible.value
-                                        )
-                                    }
+                                    MessageItem(
+                                        onAuthorClick = { },
+                                        msg = message,
+                                        composablePositionState = composablePositionState,
+                                        player = videoPlayer,
+                                        onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
+                                        onLongClick = {},//{ onFocusedMessageUpdate(message) },
+                                        name = "${message.recipient.contact?.name}", //TODO FIX THIS
+                                        isSelected = selectedMessagesMap.contains(message),
+                                        selectMode = selectMode,
+                                        isXMTP = true,
+                                        onSelect = { selectedMessage ->
+                                            // invert boolean or add
+                                            selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
+                                                isChecked?.let { !it } ?: true
+                                            }
+                                        },
+                                        onDoubleClick = {
+                                            selectMode.value = !selectMode.value
+                                        },
+                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                        isGroup = chatConversion?.isGroup == true,
+                                        isVisible = isVisible.value
+                                    )
+
                                 }
                             }
                         }
@@ -510,8 +441,8 @@ fun ChatScreen(
                 Modifier
                     .fillMaxSize()
                     .background(dgenBlack)
-            ){
-                when(currentActions){
+            ) {
+                when (currentActions) {
                     Actions.IDLE -> {}
                     Actions.SEND -> {
                         //if (chatConversion != null) {
@@ -529,6 +460,7 @@ fun ChatScreen(
 
                         //}
                     }
+
                     Actions.PHOTO -> {
                         //TODO: Fix Imagepicker
                         /*
@@ -542,9 +474,11 @@ fun ChatScreen(
                         )
                          */
                     }
+
                     Actions.VIDEO -> {
                         //TODO: add Videopicker
                     }
+
                     Actions.CONTACT -> {
                         chatConversion?.isGroup?.let {
                             OverlayContactScreen(
@@ -553,7 +487,7 @@ fun ChatScreen(
                                     showPicker = false
                                     showOverlay.value = false
                                 },
-                                onDone = {  },
+                                onDone = { },
                                 title = chatConversion.title.toString(),
                                 isGroup = it
                             )
@@ -562,9 +496,6 @@ fun ChatScreen(
                 }
             }
         }
-
-
-
 
 
     }
@@ -578,12 +509,12 @@ private fun getImageUri(context: Context, bitmap: Bitmap): Uri? {
     return Uri.parse(path)
 }
 
-enum class Actions{
+enum class Actions {
     IDLE, SEND, PHOTO, VIDEO, CONTACT
 }
 
 
-fun chainIdToReadableName(chainId: Int): String = when(chainId) {
+fun chainIdToReadableName(chainId: Int): String = when (chainId) {
     1 -> "Ethereum Mainnet"
     11155111 -> "Ethereum Sepolia"
     10 -> "Optimism Mainnet"
@@ -601,8 +532,9 @@ fun isValidTransactionMessage(message: String): Boolean {
 
 data class TransactionDetails(val amount: String, val url: String, val chainId: Int)
 
-fun  extractTransactionDetails(message: String): TransactionDetails? {
-    val regex = """^Sent (\d+(\.\d+)?) ETH: (https://[a-zA-Z0-9.-]+/tx/0x[a-fA-F0-9]{64})$""".toRegex()
+fun extractTransactionDetails(message: String): TransactionDetails? {
+    val regex =
+        """^Sent (\d+(\.\d+)?) ETH: (https://[a-zA-Z0-9.-]+/tx/0x[a-fA-F0-9]{64})$""".toRegex()
     val matchResult = regex.find(message) ?: return null
 
     val (amount, _, url) = matchResult.destructured
@@ -729,7 +661,7 @@ private fun PreviewChatScreen() {
 private fun PreviewGroupChatScreen() {
 
 
-    val now  = Instant.parse("2025-04-17T12:00:00Z")
+    val now = Instant.parse("2025-04-17T12:00:00Z")
     val messageUiState = MessageUiState.Success(generateTestGroupMessages())
 
     val recipientMe = Recipient(
@@ -755,30 +687,45 @@ private fun PreviewGroupChatScreen() {
             )
         )
     )
-    val convo = ConversationUiState.Success(Conversation(
-        id = "3",
-        title = "🏀 Game Plan",
-        recipients = listOf(
-            recipientMe,
-            Recipient(
-                id = "userB",
-                address = "0xDeF456HodlGuyWallet",
-                ens = "hodl.eth",
-                contact = Contact("lk2", "Bob", null, "0x456")
+    val convo = ConversationUiState.Success(
+        Conversation(
+            id = "3",
+            title = "🏀 Game Plan",
+            recipients = listOf(
+                recipientMe,
+                Recipient(
+                    id = "userB",
+                    address = "0xDeF456HodlGuyWallet",
+                    ens = "hodl.eth",
+                    contact = Contact("lk2", "Bob", null, "0x456")
+                ),
+                Recipient(
+                    id = "userC",
+                    address = "0xDeF456JoeGuy",
+                    ens = "Joe.eth",
+                    contact = Contact("lk2", "Joe", null, "0x474")
+                )
             ),
-            Recipient(
-                id = "userC",
-                address = "0xDeF456JoeGuy",
-                ens = "Joe.eth",
-                contact = Contact("lk2", "Joe", null, "0x474")
-            )
-        ),
-        draft = "Need to reply...",
-        lastMessage = Message("17","thread3x3",recipientMe,now-(51*60).seconds,now-(51*60).seconds,true,DeliveryStatus.PUBLISHED,null,false,emptyList(),emptyList(),"Got it! And I’ll post some stories tagging Freedom Factory later."),
-        pinned = true,
-        clientInbox = "inbox3",
-        isGroup = true
-    ))
+            draft = "Need to reply...",
+            lastMessage = Message(
+                "17",
+                "thread3x3",
+                recipientMe,
+                now - (51 * 60).seconds,
+                now - (51 * 60).seconds,
+                true,
+                DeliveryStatus.PUBLISHED,
+                null,
+                false,
+                emptyList(),
+                emptyList(),
+                "Got it! And I’ll post some stories tagging Freedom Factory later."
+            ),
+            pinned = true,
+            clientInbox = "inbox3",
+            isGroup = true
+        )
+    )
 
 
 
