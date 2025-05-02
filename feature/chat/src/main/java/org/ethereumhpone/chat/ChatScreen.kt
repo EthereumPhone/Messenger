@@ -253,7 +253,7 @@ fun ChatScreen(
         Scaffold(
             topBar = {
                 ChatTopAppBar(
-                    chatConversion?.title.toString(),
+                    chatConversion?.getHeader() ?: "",
                     recipientUiState = recipientUiState,
                     onTitleClicked = {
                         currentActions = Actions.CONTACT

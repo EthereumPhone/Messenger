@@ -17,12 +17,14 @@ data class Conversation(
     val isOptionsRevealed: Boolean = false,
     private val clientInbox: String
 ) {
-    fun getHeader(): String =
-        title.takeIf { !it.isNullOrBlank() }
-            ?: recipients.firstOrNull()?.contact?.name
-            ?: recipients.firstOrNull()?.ens
-            ?: recipients.firstOrNull()?.address
-            ?: ""
+    fun getHeader(): String {
+        title?.takeIf { it.isNotBlank() }?.let { return it }
+
+        return recipients.firstOrNull()?.run {
+            listOfNotNull(contact?.name, ens, address)
+                .firstOrNull { it.isNotBlank() }
+        } ?: ""
+    }
 
 
     fun getSummary(): String {

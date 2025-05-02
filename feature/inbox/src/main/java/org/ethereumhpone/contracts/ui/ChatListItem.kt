@@ -43,7 +43,7 @@ fun ChatListInfo(
     subheader: String = "Subheader",
     lastPerson: String = "",
     unReadMessagesAmount: Int = 1,
-    time: Date,//"0:00AM",
+    time: Date?,//"0:00AM",
     isGroup: Boolean = false,
     readConversation: Boolean = false,
     onClick: () -> Unit = {}, //threadId long -> String
