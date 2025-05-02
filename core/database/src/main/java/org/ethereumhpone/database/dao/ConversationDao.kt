@@ -82,14 +82,9 @@ interface ConversationDao {
     @Update
     fun updateConversation(conversationEntity: ConversationEntity)
 
-    @Upsert
-    fun upsertConversation(conversationEntity: ConversationEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversation(conversationEntity: ConversationEntity)
-
-    @Upsert
-    fun upsertConversations(conversationEntities: List<ConversationEntity>)
 
     @Delete
     fun deleteConversation(conversationEntities: List<ConversationEntity>)
