@@ -31,6 +31,7 @@ data class Conversation(
         val messageBody = lastMessage?.body.orEmpty()
 
         return when {
+            messageBody.isEmpty() -> ""
             recipients.size == 2 -> messageBody
             lastMessage?.isMe == true -> messageBody
             else -> {

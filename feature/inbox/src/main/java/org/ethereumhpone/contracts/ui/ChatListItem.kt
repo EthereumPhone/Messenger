@@ -41,7 +41,6 @@ import java.time.Instant as JavaInstant
 fun ChatListInfo(
     header: String = "Header",
     subheader: String = "Subheader",
-    lastPerson: String = "",
     unReadMessagesAmount: Int = 1,
     time: Instant?,//"0:00AM",
     isGroup: Boolean = false,
@@ -81,7 +80,7 @@ fun ChatListInfo(
 
             )
             Text(
-                text = if(isGroup) "$lastPerson: $subheader" else subheader,
+                text = subheader,
                 style = TextStyle(
                     fontFamily = PitagonsSans,
                     color = if(readConversation) dgenTurqoise.copy(0.5f) else dgenTurqoise,
@@ -162,7 +161,7 @@ fun PreviewContactItem(){
         onClick = { Toast.makeText(context, "onClick", Toast.LENGTH_SHORT).show() },
         header = "Alex Lynn",
         subheader = "The dGEN1 is sick!!!",
-        time = Instant.DISTANT_PAST,
+        time = now,
         isGroup = false,
     )
 }

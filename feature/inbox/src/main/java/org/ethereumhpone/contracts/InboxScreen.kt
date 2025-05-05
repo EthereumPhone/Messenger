@@ -292,9 +292,8 @@ fun InboxScreen(
                                                     ChatListInfo(
                                                         //TODO: Improve group identification
                                                         isGroup = conversation.recipients.size > 1,
-                                                        lastPerson = conversation.lastMessage?.recipient?.contact?.name.toString(),
                                                         header = conversation.getHeader(),
-                                                        subheader = conversation.lastMessage?.body.toString(),
+                                                        subheader = conversation.getSummary(),
                                                         time = conversation.lastMessage?.date,
                                                         readConversation = conversation.lastMessage?.seen == true,
                                                         onClick = { conversationClicked(conversation.id) },
@@ -383,9 +382,8 @@ fun InboxScreen(
                                                     ChatListInfo(
                                                         //TODO: Improve group identification
                                                         isGroup = conversation.recipients.size > 1,
-                                                        lastPerson = conversation.lastMessage?.recipient?.contact?.name.toString(),
                                                         header = conversation.getHeader(),
-                                                        subheader = conversation.lastMessage?.body.toString(),
+                                                        subheader = conversation.getSummary(),
                                                         time = conversation.lastMessage?.date,
                                                         readConversation = conversation.lastMessage?.seen == true,
                                                         onClick = { conversationClicked(conversation.id) },
