@@ -1,6 +1,7 @@
 package org.ethereumhpone.data.repository
 
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
@@ -81,6 +82,8 @@ class ConversationRepositoryImpl @Inject constructor(
                     address = identity.identifier
                 )
 
+                //
+                Log.d("HELLO THERE", "IM HERERERER")
                 recipientDao.insertRecipients(listOf(recipientEntity))
                 conversationDao.insertConversation(conversationEntity)
                 conversationDao.insertConversationMemberCrossRefs(

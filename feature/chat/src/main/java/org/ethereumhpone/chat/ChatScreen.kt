@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +21,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
@@ -52,6 +56,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.dgenBlack
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -272,7 +277,6 @@ fun ChatScreen(
                     onSendClick = { text ->
                         if (text.isNotBlank()) {
                             onSendMessageClicked(text)
-                            coroutineScope.launch { scrollState.animateScrollToItem(0) }
                         }
 
                         attachments.clear()
@@ -299,13 +303,17 @@ fun ChatScreen(
                     .padding(paddingValues)
             ) {
 
+                //TODO: refactor ALL of this
+
                 when (messageUiState) {
                     is MessageUiState.Success -> {
                         val messages = messageUiState.messageEntities
 
-                        LaunchedEffect(messages.size) {
+                        //TODO: This will force a scroll everytime state changes.
+                        // This means the chat will be forced down, even if not wanted (i.e. reading old messages).
+                        LaunchedEffect(messages) {
                             if (messages.isNotEmpty()) {
-                                scrollState.scrollToItem(messages.lastIndex)
+                                scrollState.animateScrollToItem(scrollState.layoutInfo.totalItemsCount)
                             }
                         }
 
@@ -313,47 +321,36 @@ fun ChatScreen(
                             state = scrollState,
                             modifier = Modifier.fillMaxSize()
                         ) {
+                            itemsIndexed(
+                                items = messages,
+                                key = { _, message -> message.id }
+                            ) { index, message ->
 
-                            messages.forEachIndexed { index, message ->
-
-                                val prevAuthor =
-                                    messages.getOrNull(messages.indexOf(message) - 1)?.recipient?.id
+                                val prevMessage = messages.getOrNull(index - 1)
+                                val prevAuthor = prevMessage?.recipient?.id
                                 val isFirstMessageByAuthor = prevAuthor != message.recipient.id
 
-                                val prevDate =
-                                    messages.getOrNull(messages.indexOf(message) - 1)?.date
-                                val newprevDate =
-                                    prevDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
-                                val nextDate =
-                                    message.date.toLocalDateTime(TimeZone.currentSystemDefault())?.date;
+                                val prevDate = prevMessage?.date?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
+                                val currentDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault()).date
 
-                                if (newprevDate != nextDate) {
-                                    item {
+                                //Log.d("List index", index.toString())
+                                Column {
+                                    if (prevDate != currentDate) {
                                         TimeHeader(message.date)
                                     }
-                                }
-
-                                item {
-
-                                    //check if a message is already visible
-                                    val isVisible =
-                                        visibleMap.getOrPut(message.id) { mutableStateOf(false) }
-
-                                    //Animated the message
 
                                     MessageItem(
                                         onAuthorClick = { },
                                         msg = message,
                                         composablePositionState = composablePositionState,
                                         player = videoPlayer,
-                                        onPrepareVideo = { it -> },//{ onPrepareVideo(it) },
-                                        onLongClick = {},//{ onFocusedMessageUpdate(message) },
-                                        name = "${message.recipient.contact?.name}", //TODO FIX THIS
+                                        onPrepareVideo = { /* your logic */ },
+                                        onLongClick = { /* your logic */ },
+                                        name = "${message.recipient.contact?.name}",
                                         isSelected = selectedMessagesMap.contains(message),
                                         selectMode = selectMode,
                                         isXMTP = true,
                                         onSelect = { selectedMessage ->
-                                            // invert boolean or add
                                             selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
                                                 isChecked?.let { !it } ?: true
                                             }
@@ -363,9 +360,8 @@ fun ChatScreen(
                                         },
                                         isFirstMessageByAuthor = isFirstMessageByAuthor,
                                         isGroup = chatConversion?.isGroup == true,
-                                        isVisible = isVisible.value
+                                        isVisible = true
                                     )
-
                                 }
                             }
                         }
