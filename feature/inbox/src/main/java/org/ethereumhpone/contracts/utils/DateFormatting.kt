@@ -46,7 +46,7 @@ fun formatInstant(instant: Instant): String {
     }
 
     return when {
-        dateTime.date == now.date -> dateTime.time.toString()  // returns HH:mm:ss.SSS
+        dateTime.date == now.date -> "%02d:%02d".format(dateTime.hour, dateTime.minute)  // returns HH:mm
         dateTime.year == now.year -> "%02d.%02d".format(dateTime.monthNumber, dateTime.dayOfMonth)
         else -> "%04d.%02d.%02d".format(dateTime.year, dateTime.monthNumber, dateTime.dayOfMonth)
     }
