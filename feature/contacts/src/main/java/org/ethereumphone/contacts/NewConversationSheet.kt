@@ -310,11 +310,8 @@ internal fun ConversationSheet(
                                 } else {
                                     items(queryResultUiState.contactEntities) { contact ->
                                         // add onCLick behaviour
-                                        Column(modifier = Modifier.background(Color.Red)
-                                            .clickable {
-                                                Toast.makeText(context, "addreses: ${contact.toString()} ", Toast.LENGTH_SHORT).show()
-                                                onContactsSelected(listOf(contact))
-                                            }
+                                        Column(modifier = Modifier
+                                            .clickable { onContactsSelected(listOf(contact)) }
                                         ) {
                                             Text(
                                                 text = contact.name,
