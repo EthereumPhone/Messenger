@@ -14,11 +14,8 @@ import org.ethereumphone.model.Recipient
 data class CompositeConversation(
     @Embedded
     val conversationEntity: ConversationEntity,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "threadId",
-        entity = MessageEntity::class,
-    )
+    
+    @Embedded(prefix = "message_")
     val lastMessageEntity: MessageEntity?,
 
     @Relation(

@@ -20,20 +20,28 @@ interface ConversationDao {
     @Query("""
     SELECT 
         conversation.*,
-        message.id AS message_id,
-        message.threadId AS message_threadId,
-        message.date AS message_date,
-        message.body AS message_body
-        -- Add all other MessageEntity fields here with 'message_' prefix
+        latest_msg.id AS message_id,
+        latest_msg.threadId AS message_threadId,
+        latest_msg.date AS message_date,
+        latest_msg.body AS message_body,
+        latest_msg.senderInboxId AS message_senderInboxId,
+        COALESCE(latest_msg.read, 0) AS message_read,
+        latest_msg.dateSent AS message_dateSent,
+        COALESCE(latest_msg.seen, 0) AS message_seen,
+        COALESCE(latest_msg.locked, 0) AS message_locked,
+        latest_msg.replyReference AS message_replyReference,
+        latest_msg.seenDate AS message_seenDate,
+        latest_msg.deliveryStatus AS message_deliveryStatus,
+        COALESCE(latest_msg.isMe, 0) AS message_isMe
     FROM conversation
-    LEFT JOIN message 
-        ON message.id = (
-            SELECT id FROM message 
-            WHERE threadId = conversation.id 
-            ORDER BY date DESC 
-            LIMIT 1
+    LEFT JOIN (
+        SELECT * FROM message m
+        WHERE m.dateSent = (
+            SELECT MAX(dateSent) FROM message 
+            WHERE threadId = m.threadId
         )
-        WHERE conversation.id = :id
+    ) AS latest_msg ON conversation.id = latest_msg.threadId
+    WHERE conversation.id = :id
     """)
     fun getConversation(id: String): Flow<CompositeConversation?>
 
@@ -41,19 +49,29 @@ interface ConversationDao {
     @Query("""
     SELECT 
         conversation.*,
-        message.id AS message_id,
-        message.threadId AS message_threadId,
-        message.date AS message_date,
-        message.body AS message_body
-        -- Add all other MessageEntity fields here with 'message_' prefix
+        latest_msg.id AS message_id,
+        latest_msg.threadId AS message_threadId,
+        latest_msg.date AS message_date,
+        latest_msg.body AS message_body,
+        latest_msg.senderInboxId AS message_senderInboxId,
+        COALESCE(latest_msg.read, 0) AS message_read,
+        latest_msg.dateSent AS message_dateSent,
+        COALESCE(latest_msg.seen, 0) AS message_seen,
+        COALESCE(latest_msg.locked, 0) AS message_locked,
+        latest_msg.replyReference AS message_replyReference,
+        latest_msg.seenDate AS message_seenDate,
+        latest_msg.deliveryStatus AS message_deliveryStatus,
+        COALESCE(latest_msg.isMe, 0) AS message_isMe
     FROM conversation
-    LEFT JOIN message 
-        ON message.id = (
-            SELECT id FROM message 
-            WHERE threadId = conversation.id 
-            ORDER BY date DESC 
-            LIMIT 1
-        )
+    LEFT JOIN (
+        SELECT m.* FROM message m
+        INNER JOIN (
+            SELECT threadId, MAX(dateSent) AS max_date
+            FROM message
+            GROUP BY threadId
+        ) grouped ON m.threadId = grouped.threadId AND m.dateSent = grouped.max_date
+    ) AS latest_msg ON conversation.id = latest_msg.threadId
+    ORDER BY CASE WHEN latest_msg.dateSent IS NULL THEN 0 ELSE 1 END DESC, latest_msg.dateSent DESC
     """)
     fun getConversations(): Flow<List<CompositeConversation>>
 
