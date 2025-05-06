@@ -93,6 +93,7 @@ fun NewConversationSheet(
         onDismiss = onDismiss
     )
 
+    val context = LocalContext.current
     // handles navigation and displaying of error
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
@@ -103,7 +104,9 @@ fun NewConversationSheet(
 
                 is UiEvent.ShowError -> {
                     // You can show a snackbar here if needed
-                    // scaffoldState.snackbarHostState.showSnackbar(event.message)
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+
+                     //scaffoldState.snackbarHostState.showSnackbar(event.message)
                 }
             }
         }
@@ -266,7 +269,7 @@ internal fun ConversationSheet(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .clickable {
-
+                                                        onContactsSelected(listOf(it.lookupKey))
                                                     }
                                             ) {
                                                 Text(

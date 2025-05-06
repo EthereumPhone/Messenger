@@ -1,9 +1,11 @@
 package org.ethereumphone.contacts
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -75,30 +77,32 @@ class ContactViewModel @Inject constructor(
 
 
     fun getOrCreateConversation(contacts: List<String>) {
-        val normalizedIdentifiers = contacts
-            .filter { it.isNotBlank() }
-            .map { it.normalizedString() }
+        viewModelScope.launch(Dispatchers.IO) {
+            val normalizedIdentifiers = contacts
+                .filter { it.isNotBlank() }
+                .map { it.normalizedString() }
 
-        val addresses = normalizedIdentifiers.map { contact ->
-            when {
-                contact.isPotentialENSDomain() -> {
-                    val result = ensResolver.getAddress(ENSName(contact))
+            val addresses = normalizedIdentifiers.map { contact ->
+                when {
+                    contact.isPotentialENSDomain() -> {
+                        val result = ensResolver.getAddress(ENSName(contact))
 
-                    if (result == null) {
-                        _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
-                        return
+                        if (result == null) {
+                            _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
+                            return@launch
+                        }
+                        Log.d("TEST", result.toString())
+                        result.toString().normalizedString()
                     }
-                    result.toString().normalizedString()
-                }
-                contact.isValidEthAddress() -> contact
-                else -> {
-                    _uiEvent.tryEmit(UiEvent.ShowError("The provided identifier is not valid"))
-                    return
+                    contact.isValidEthAddress() -> contact
+                    else -> {
+                        _uiEvent.tryEmit(UiEvent.ShowError("The provided identifier is not valid"))
+                        return@launch
+                    }
                 }
             }
-        }
 
-        viewModelScope.launch {
+            Log.d("CURRENT ADDRESS", addresses.first().toString())
             conversationRepository.createConversation(addresses).collectLatest { result ->
                 when (result) {
                     is Result.Success -> {
