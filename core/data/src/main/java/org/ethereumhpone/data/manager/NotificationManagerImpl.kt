@@ -35,8 +35,6 @@ class NotificationManagerImpl @Inject constructor(
     private val messengerPreferences: MessengerPreferences,
     private val permissionManager: PermissionManager,
     private val conversationRepository: ConversationRepository,
-    private val messageRepository: MessageRepository,
-    private val phoneNumberUtils: PhoneNumberUtils
 ): org.ethereumhpone.domain.manager.NotificationManager {
 
     companion object {
@@ -76,16 +74,6 @@ class NotificationManagerImpl @Inject constructor(
          */
 
 
-        //val conversation = conversationRepository.getConversation(threadId).first() ?: return
-
-
-        /*
-        val lastRecipient = conversation.lastMessage?.let { lastMessage ->
-            conversation.recipients.find { recipient ->
-                phoneNumberUtils.compare(recipient.address, lastMessage.address)
-            }
-        } ?: conversation.recipients.firstOrNull()
-
 
         val contentPI = contentPendingIntent(context, threadId.toInt())
 
@@ -94,7 +82,7 @@ class NotificationManagerImpl @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
 
-
+        /*
         val notification = NotificationCompat.Builder(context, getChannelIdForNotification(threadId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             //.setColor(colors.theme(lastRecipient).theme)  // Uncomment and adjust if you have theming
@@ -109,11 +97,8 @@ class NotificationManagerImpl @Inject constructor(
             .setContentTitle(lastRecipient?.getDisplayName() ?: lastRecipient?.address)  // Use recipient's name, fallback to a default string
             .setContentText(conversation.lastMessage?.body ?: "")  // Show the message content
 
-
         notificationManager.notify(threadId.toInt(), notification.build())
          */
-
-
     }
 
     override fun notifyFailed(threadId: String) {

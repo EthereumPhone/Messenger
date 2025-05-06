@@ -29,6 +29,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+
     <application
         android:name=".MessengerApplication"
         android:allowBackup="true"
@@ -79,7 +80,7 @@
         </activity>
 
         <service
-            android:name="MyForegroundService"
+            android:name="org.ethereumhpone.data.services.XmtpMessageStreamService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync"

@@ -274,9 +274,11 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun startStream() = coroutineScope {
         xmtpClientManager.clientState.collectLatest { clientState ->
-            val client = xmtpClientManager.client
+
             when(clientState) {
                 is XmtpClientManager.ClientState.Ready -> {
+                    val client = xmtpClientManager.client
+
 
                     var conversation: Conversation? = null
 
