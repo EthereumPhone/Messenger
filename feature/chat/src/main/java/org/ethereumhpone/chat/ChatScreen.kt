@@ -158,6 +158,7 @@ fun ChatScreen(
 ) {
 
 
+
     val context = LocalContext.current
 
     //handle focus
@@ -309,11 +310,22 @@ fun ChatScreen(
                     is MessageUiState.Success -> {
                         val messages = messageUiState.messageEntities
 
-                        //TODO: This will force a scroll everytime state changes.
-                        // This means the chat will be forced down, even if not wanted (i.e. reading old messages).
+                        var initialScrollDone by remember { mutableStateOf(false) }
+
+                        // handles scroll logic.
                         LaunchedEffect(messages) {
                             if (messages.isNotEmpty()) {
-                                scrollState.animateScrollToItem(scrollState.layoutInfo.totalItemsCount)
+                                val lastVisibleItemIndex = scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                                val totalItemsCount = scrollState.layoutInfo.totalItemsCount
+
+                                if (!initialScrollDone) {
+                                    scrollState.animateScrollToItem(totalItemsCount)
+                                    initialScrollDone = true
+                                }
+
+                                if (lastVisibleItemIndex != null && lastVisibleItemIndex >= totalItemsCount - 2) {
+                                    scrollState.animateScrollToItem(totalItemsCount)
+                                }
                             }
                         }
 
