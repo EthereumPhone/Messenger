@@ -49,6 +49,9 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(project(":core:model"))
 
+    implementation(libs.ens)
+    implementation(libs.model)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)

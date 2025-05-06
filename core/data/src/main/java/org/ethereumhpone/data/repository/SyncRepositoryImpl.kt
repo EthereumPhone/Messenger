@@ -38,6 +38,9 @@ import org.ethereumhpone.domain.mapper.ContactGroupMemberCursor
 import org.ethereumhpone.domain.model.LogTimeHandler
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
+import org.kethereum.ens.ENS
+import org.kethereum.*
+import org.kethereum.model.Address
 import org.xmtp.android.library.ConsentState
 import org.xmtp.android.library.Conversation
 import org.xmtp.android.library.SendOptions
@@ -73,6 +76,7 @@ class SyncRepositoryImpl @Inject constructor(
     private val recipientDao: RecipientDao,
     private val phoneNumberDao: PhoneNumberDao,
     private val syncLogDao: SyncLogDao,
+    private val ensResolver: ENS,
     private val logTimeHandler: LogTimeHandler
 ): SyncRepository {
     private val _isSyncing = MutableStateFlow(false)
@@ -170,11 +174,14 @@ class SyncRepositoryImpl @Inject constructor(
                     //TODO: Add refs to contacts
                     val members = conversation.members()
 
+
                     val recipientEntities = members.map { member ->
+                        val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                        val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
                         RecipientEntity(
                             inboxId = member.inboxId,
-                            address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
-                            ens = null,
+                            address = address,
+                            ens = ensAddress,
                             contactLookupKey = null // TODO: Get contact lookupKeys
                         )
                     }

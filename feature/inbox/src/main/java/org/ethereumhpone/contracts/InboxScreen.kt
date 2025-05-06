@@ -153,7 +153,7 @@ fun InboxScreen(
             .fillMaxSize()
             .background(dgenBlack)
     ) {
-        Column() {
+        Column {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
