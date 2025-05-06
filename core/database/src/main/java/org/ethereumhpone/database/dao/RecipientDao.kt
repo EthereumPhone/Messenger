@@ -42,7 +42,7 @@ interface RecipientDao {
     @Upsert
     suspend fun upsertRecipient(recipientEntity: RecipientEntity)
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRecipients(recipientEntities: List<RecipientEntity>)
 
     @Upsert
