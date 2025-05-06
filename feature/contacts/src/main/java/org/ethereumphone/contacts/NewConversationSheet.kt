@@ -88,10 +88,7 @@ fun NewConversationSheet(
     val queryResultUiState by viewModel.queryResultUiState.collectAsStateWithLifecycle()
     ConversationSheet(
         queryResultUiState = queryResultUiState,
-        onContactsSelected = {
-            viewModel.getOrCreateConversation(it)
-            // navigate to chat if conversation exists
-        },
+        onContactsSelected = viewModel::getOrCreateConversation,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
         onDismiss = onDismiss
     )
@@ -118,7 +115,7 @@ fun NewConversationSheet(
 @Composable
 internal fun ConversationSheet(
     queryResultUiState: QueryResultUiState,
-    onContactsSelected: (List<ContactEntity>) -> Unit,
+    onContactsSelected: (List<String>) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -267,25 +264,31 @@ internal fun ConversationSheet(
                                 if(textState.text.isNotEmpty()){
                                     queryResultUiState.manualContactEntity?.let {
                                         item {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
 
-                                            Text(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                text = "write to ${it.lookupKey}",
-                                                overflow = TextOverflow.Ellipsis,
-                                                style = TextStyle(
-                                                    fontFamily = PitagonsSans,
-                                                    color = dgenTurqoise,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 20.sp,
-                                                    lineHeight = 20.sp,
-                                                    letterSpacing = 0.sp,
-                                                    textDecoration = TextDecoration.None
+                                                    }
+                                            ) {
+                                                Text(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    text = "write to ${it.lookupKey}",
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    style = TextStyle(
+                                                        fontFamily = PitagonsSans,
+                                                        color = dgenTurqoise,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontSize = 20.sp,
+                                                        lineHeight = 20.sp,
+                                                        letterSpacing = 0.sp,
+                                                        textDecoration = TextDecoration.None
+                                                    )
                                                 )
-                                            )
+                                            }
                                         }
                                     }
                                 }
-
 
 
                                 if (queryResultUiState.contactEntities.isEmpty()) {
@@ -311,7 +314,7 @@ internal fun ConversationSheet(
                                     items(queryResultUiState.contactEntities) { contact ->
                                         // add onCLick behaviour
                                         Column(modifier = Modifier
-                                            .clickable { onContactsSelected(listOf(contact)) }
+                                            .clickable { onContactsSelected(listOf(contact.ethAddress ?: "")) }
                                         ) {
                                             Text(
                                                 text = contact.name,
@@ -355,7 +358,7 @@ internal fun ConversationSheet(
                     queryResultUiState = queryResultUiState,
                     onSearchQueryChanged = onSearchQueryChanged,
                     onBackClick = { multiSelectMode = false },
-                    onContactsSelected = onContactsSelected
+                    onContactsSelected = {  } //TODO: add logic back when groups are supported
                 )
             }
         }

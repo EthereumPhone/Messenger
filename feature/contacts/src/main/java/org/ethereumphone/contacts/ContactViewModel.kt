@@ -18,6 +18,8 @@ import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
+import org.kethereum.eip137.model.ENSName
+import org.kethereum.ens.ENS
 import javax.inject.Inject
 
 @HiltViewModel
@@ -25,7 +27,8 @@ class ContactViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val contactRepository: ContactRepository,
     private val phoneNumberUtils: PhoneNumberUtils,
-    private val conversationRepository: ConversationRepository
+    private val conversationRepository: ConversationRepository,
+    private val ensResolver: ENS
 ): ViewModel() {
 
     val searchQuery = savedStateHandle.getStateFlow(key = SEARCH_QUERY, initialValue = "")
@@ -71,8 +74,29 @@ class ContactViewModel @Inject constructor(
     }
 
 
-    fun getOrCreateConversation(contacts: List<ContactEntity>) {
-        val addresses = contacts.mapNotNull { it.ethAddress }
+    fun getOrCreateConversation(contacts: List<String>) {
+        val normalizedIdentifiers = contacts
+            .filter { it.isNotBlank() }
+            .map { it.normalizedString() }
+
+        val addresses = normalizedIdentifiers.map { contact ->
+            when {
+                contact.isPotentialENSDomain() -> {
+                    val result = ensResolver.getAddress(ENSName(contact))
+
+                    if (result == null) {
+                        _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
+                        return
+                    }
+                    result.toString().normalizedString()
+                }
+                contact.isValidEthAddress() -> contact
+                else -> {
+                    _uiEvent.tryEmit(UiEvent.ShowError("The provided identifier is not valid"))
+                    return
+                }
+            }
+        }
 
         viewModelScope.launch {
             conversationRepository.createConversation(addresses).collectLatest { result ->
@@ -130,3 +154,5 @@ sealed interface QueryResultUiState {
 
 
 private const val SEARCH_QUERY = "searchQuery"
+
+fun String.isPotentialENSDomain() = this.split(".").filter { it.isNotBlank() }.size > 1
