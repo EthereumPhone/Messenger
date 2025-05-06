@@ -20,27 +20,29 @@ interface ConversationDao {
     @Query("""
     SELECT 
         conversation.*,
-        latest_msg.id AS message_id,
-        latest_msg.threadId AS message_threadId,
-        latest_msg.date AS message_date,
-        latest_msg.body AS message_body,
-        latest_msg.senderInboxId AS message_senderInboxId,
-        COALESCE(latest_msg.read, 0) AS message_read,
-        latest_msg.dateSent AS message_dateSent,
-        COALESCE(latest_msg.seen, 0) AS message_seen,
-        COALESCE(latest_msg.locked, 0) AS message_locked,
-        latest_msg.replyReference AS message_replyReference,
-        latest_msg.seenDate AS message_seenDate,
-        latest_msg.deliveryStatus AS message_deliveryStatus,
-        COALESCE(latest_msg.isMe, 0) AS message_isMe
+        m.id AS message_id,
+        m.threadId AS message_threadId,
+        m.date AS message_date,
+        m.body AS message_body,
+        m.senderInboxId AS message_senderInboxId,
+        COALESCE(m.read, 0) AS message_read,
+        m.dateSent AS message_dateSent,
+        COALESCE(m.seen, 0) AS message_seen,
+        COALESCE(m.locked, 0) AS message_locked,
+        m.replyReference AS message_replyReference,
+        m.seenDate AS message_seenDate,
+        m.deliveryStatus AS message_deliveryStatus,
+        COALESCE(m.isMe, 0) AS message_isMe
     FROM conversation
     LEFT JOIN (
-        SELECT * FROM message m
-        WHERE m.dateSent = (
-            SELECT MAX(dateSent) FROM message 
-            WHERE threadId = m.threadId
+        SELECT message.* 
+        FROM message
+        WHERE (message.threadId, message.dateSent) IN (
+            SELECT m.threadId, MAX(m.dateSent)
+            FROM message m
+            GROUP BY m.threadId
         )
-    ) AS latest_msg ON conversation.id = latest_msg.threadId
+    ) AS m ON conversation.id = m.threadId
     WHERE conversation.id = :id
     """)
     fun getConversation(id: String): Flow<CompositeConversation?>
@@ -49,29 +51,30 @@ interface ConversationDao {
     @Query("""
     SELECT 
         conversation.*,
-        latest_msg.id AS message_id,
-        latest_msg.threadId AS message_threadId,
-        latest_msg.date AS message_date,
-        latest_msg.body AS message_body,
-        latest_msg.senderInboxId AS message_senderInboxId,
-        COALESCE(latest_msg.read, 0) AS message_read,
-        latest_msg.dateSent AS message_dateSent,
-        COALESCE(latest_msg.seen, 0) AS message_seen,
-        COALESCE(latest_msg.locked, 0) AS message_locked,
-        latest_msg.replyReference AS message_replyReference,
-        latest_msg.seenDate AS message_seenDate,
-        latest_msg.deliveryStatus AS message_deliveryStatus,
-        COALESCE(latest_msg.isMe, 0) AS message_isMe
+        m.id AS message_id,
+        m.threadId AS message_threadId,
+        m.date AS message_date,
+        m.body AS message_body,
+        m.senderInboxId AS message_senderInboxId,
+        COALESCE(m.read, 0) AS message_read,
+        m.dateSent AS message_dateSent,
+        COALESCE(m.seen, 0) AS message_seen,
+        COALESCE(m.locked, 0) AS message_locked,
+        m.replyReference AS message_replyReference,
+        m.seenDate AS message_seenDate,
+        m.deliveryStatus AS message_deliveryStatus,
+        COALESCE(m.isMe, 0) AS message_isMe
     FROM conversation
     LEFT JOIN (
-        SELECT m.* FROM message m
-        INNER JOIN (
-            SELECT threadId, MAX(dateSent) AS max_date
-            FROM message
-            GROUP BY threadId
-        ) grouped ON m.threadId = grouped.threadId AND m.dateSent = grouped.max_date
-    ) AS latest_msg ON conversation.id = latest_msg.threadId
-    ORDER BY CASE WHEN latest_msg.dateSent IS NULL THEN 0 ELSE 1 END DESC, latest_msg.dateSent DESC
+        SELECT message.* 
+        FROM message
+        WHERE (message.threadId, message.dateSent) IN (
+            SELECT m.threadId, MAX(m.dateSent)
+            FROM message m
+            GROUP BY m.threadId
+        )
+    ) AS m ON conversation.id = m.threadId
+    ORDER BY CASE WHEN m.dateSent IS NULL THEN 0 ELSE 1 END DESC, COALESCE(m.dateSent, 0) DESC
     """)
     fun getConversations(): Flow<List<CompositeConversation>>
 
