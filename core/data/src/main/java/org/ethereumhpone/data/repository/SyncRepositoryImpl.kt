@@ -382,6 +382,7 @@ class SyncRepositoryImpl @Inject constructor(
                                 ?.let { messageDao.upsertMessages(listOf(it)) }
 
 
+                            /* //TODO: Fix: Read-Receipt get displayed as normal message
                             // automatically send readReceipt for active conversation
                             if (!isMe && activeConversationManager.getActiveConversation() == message.conversationId) {
                                 if (conversation != null) {
@@ -407,6 +408,8 @@ class SyncRepositoryImpl @Inject constructor(
                                     }
                                 }
                             }
+                             */
+
                         }
                     }
 
