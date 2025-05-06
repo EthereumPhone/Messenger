@@ -232,7 +232,7 @@ internal fun ConversationSheet(
                         when(queryResultUiState) {
                             is QueryResultUiState.Loading -> {}
                             is QueryResultUiState.Success -> {
-
+                                /*
                                 stickyHeader {
                                     Column(
                                         modifier = Modifier
@@ -240,7 +240,6 @@ internal fun ConversationSheet(
                                             .background(dgenBlack)
                                             .padding(vertical = 8.dp)
                                     ) {
-
                                         Text(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -257,10 +256,9 @@ internal fun ConversationSheet(
                                                 fontSize = 20.sp
                                             )
                                         )
-
                                     }
                                 }
-
+                                */
                                 if(textState.text.isNotEmpty()){
                                     queryResultUiState.manualContactEntity?.let {
                                         item {
