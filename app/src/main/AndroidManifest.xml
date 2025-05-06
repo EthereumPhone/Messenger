@@ -82,7 +82,7 @@
         <service
             android:name="org.ethereumhpone.data.services.XmtpMessageStreamService"
             android:enabled="true"
-            android:exported="false"
+            android:exported="true"
             android:foregroundServiceType="dataSync"
             />
         <receiver android:name=".MyBootReceiver" android:enabled="true" android:exported="true">
