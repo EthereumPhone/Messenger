@@ -493,14 +493,16 @@ fun InboxScreen(
                                             Color.Transparent
                                         )
                                     )
-                                ))
+                                )
+                            )
                         }
 
                         Spacer(modifier = Modifier
                             .fillMaxWidth()
                             .height(24.dp)
                             .align(Alignment.BottomCenter)
-                            .background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
+                            .background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack)))
+                        )
 
                     }
                 }
