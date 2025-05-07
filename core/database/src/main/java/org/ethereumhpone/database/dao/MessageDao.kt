@@ -21,7 +21,10 @@ interface MessageDao {
 
     @Transaction
     @Query("SELECT * FROM message where id == :id")
-    fun getMessage(id: String): Flow<CompositeMessage?>
+    fun getCompositeMessage(id: String): Flow<CompositeMessage?>
+
+    @Query("SELECT * FROM message where id == :id")
+    fun getMessage(id: String): Flow<MessageEntity?>
 
     @Query("SELECT * FROM message WHERE seen = 0 ORDER BY date")
     suspend fun getUnreadUnseenMessages(): List<MessageEntity>
@@ -44,11 +47,18 @@ interface MessageDao {
 
     @Query("""
         UPDATE message
-        SET seenDate = :seenDate
+        SET seenDate = :seenDate AND seen = 1 AND read = 1
         WHERE seenDate = 0 AND :seenDate >= dateSent
     """
     )
     suspend fun updateMessageSeenDate(seenDate: Long)
+
+    @Query("""
+        UPDATE message
+        SET seen = 1 AND read = 1
+        WHERE threadId = :threadId
+    """)
+    suspend fun markAllRead(threadId: String)
 
 
     @Upsert

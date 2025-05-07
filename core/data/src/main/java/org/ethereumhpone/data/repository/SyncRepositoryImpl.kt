@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.ethereumhpone.common.extensions.map
@@ -43,7 +44,6 @@ import org.kethereum.*
 import org.kethereum.model.Address
 import org.xmtp.android.library.ConsentState
 import org.xmtp.android.library.Conversation
-import org.xmtp.android.library.SendOptions
 import org.xmtp.android.library.codecs.ContentTypeAttachment
 import org.xmtp.android.library.codecs.ContentTypeReactionV2
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
@@ -51,7 +51,6 @@ import org.xmtp.android.library.codecs.ContentTypeRemoteAttachment
 import org.xmtp.android.library.codecs.ContentTypeReply
 import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
-import org.xmtp.android.library.codecs.ReadReceipt
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.proto.message.contents.Content
@@ -249,22 +248,33 @@ class SyncRepositoryImpl @Inject constructor(
                     messages.chunked(10) { messageChunk ->
                         launch {
 
-                            val parsedMessages = messageChunk.map { msg ->
-
-                                val template = MessageEntity(
+                            val parsedMessages = messageChunk.mapNotNull { msg ->
+                                val baseMessage = MessageEntity(
                                     id = msg.id,
                                     threadId = msg.conversationId,
                                     senderInboxId = msg.senderInboxId,
-                                    date = msg.sentAtNs / 1_000_000, // conver to millis
+                                    date = msg.sentAtNs / 1_000_000, // convert to millis
                                     dateSent = msg.sentAtNs / 1_000_000,
                                     deliveryStatus = msg.deliveryStatus,
                                     isMe = msg.senderInboxId == client.inboxId,
                                     replyReference = null,
                                     body = msg.body
                                 )
-                                processContent(template, msg.encodedContent.type, msg.content())
+
+                                val processed = processContent(baseMessage, msg.encodedContent.type, msg.content())
+
+                                processed?.let { newMessage ->
+                                    val existingMessage = messageDao.getMessage(msg.id).firstOrNull()
+                                    existingMessage?.let {
+                                        newMessage.copy(
+                                            seen = it.seen,
+                                            read = it.read
+                                        )
+                                    } ?: newMessage
+                                }
                             }
-                            messageDao.insertMessages(parsedMessages.filterNotNull())
+
+                            messageDao.insertMessages(parsedMessages)
                         }
                     }
                 }
@@ -278,15 +288,7 @@ class SyncRepositoryImpl @Inject constructor(
             when(clientState) {
                 is XmtpClientManager.ClientState.Ready -> {
                     val client = xmtpClientManager.client
-
-
-                    var conversation: Conversation? = null
-
-                    // recipients
-                    launch {
-
-
-                    }
+                    val activeConversation = activeConversationManager.getActiveConversation()
 
 
                     // stream chats
@@ -298,10 +300,14 @@ class SyncRepositoryImpl @Inject constructor(
                             val members = conversation.members()
 
                             val recipientEntities = members.map { member ->
+                                //TODO: Might fire too often.
+                                val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                                val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
+
                                 RecipientEntity(
                                     inboxId = member.inboxId,
                                     address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
-                                    ens = null,
+                                    ens = ensAddress,
                                     contactLookupKey = null // TODO: Get contact lookupKeys
                                 )
                             }
@@ -380,8 +386,19 @@ class SyncRepositoryImpl @Inject constructor(
                                 dateSent = message.sentAtNs / 1_000_000,
                             )
 
-                            processContent(template, message.encodedContent.type, message.content())
-                                ?.let { messageDao.upsertMessages(listOf(it)) }
+                            val processedMessage = processContent(template, message.encodedContent.type, message.content())
+                            if (processedMessage != null) {
+                                //TODO: Might be overkill
+                                val localMessage = messageDao.getMessage(message.id).firstOrNull()
+                                val updatedMessage = localMessage?.let {
+                                    processedMessage.copy(
+                                        seen = it.seen,
+                                        read = it.read
+                                    )
+                                } ?: processedMessage
+
+                                messageDao.upsertMessages(listOf(updatedMessage))
+                            }
 
 
                             /* //TODO: Fix: Read-Receipt get displayed as normal message

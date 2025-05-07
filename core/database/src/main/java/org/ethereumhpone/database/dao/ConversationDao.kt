@@ -77,6 +77,38 @@ interface ConversationDao {
 
     @Transaction
     @Query("""
+    SELECT 
+        conversation.*,
+        COALESCE(latest_msg.id, '') AS message_id,
+        COALESCE(latest_msg.threadId, '') AS message_threadId,
+        COALESCE(latest_msg.date, 0) AS message_date,
+        COALESCE(latest_msg.body, '') AS message_body,
+        COALESCE(latest_msg.senderInboxId, '') AS message_senderInboxId,
+        COALESCE(latest_msg.read, 0) AS message_read,
+        COALESCE(latest_msg.dateSent, 0) AS message_dateSent,
+        COALESCE(latest_msg.seen, 0) AS message_seen,
+        COALESCE(latest_msg.locked, 0) AS message_locked,
+        COALESCE(latest_msg.replyReference, '') AS message_replyReference,
+        COALESCE(latest_msg.seenDate, 0) AS message_seenDate,
+        COALESCE(latest_msg.deliveryStatus, 0) AS message_deliveryStatus,
+        COALESCE(latest_msg.isMe, 0) AS message_isMe
+    FROM conversation
+    INNER JOIN message ON conversation.id = message.threadId AND message.seen = 0
+    LEFT JOIN (
+        SELECT m.* FROM message m
+        INNER JOIN (
+            SELECT threadId, MAX(dateSent) AS max_date
+            FROM message
+            GROUP BY threadId
+        ) grouped ON m.threadId = grouped.threadId AND m.dateSent = grouped.max_date
+    ) AS latest_msg ON conversation.id = latest_msg.threadId
+    GROUP BY conversation.id
+    ORDER BY CASE WHEN latest_msg.dateSent IS NULL THEN 0 ELSE 1 END DESC, latest_msg.dateSent DESC
+    """)
+    fun getConversationsWithUnseenMessages(): Flow<List<CompositeConversation>>
+
+    @Transaction
+    @Query("""
         SELECT 
             c.*,
             COALESCE(m.id, '') AS message_id,
