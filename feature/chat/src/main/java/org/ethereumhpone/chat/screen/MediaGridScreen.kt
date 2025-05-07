@@ -53,6 +53,7 @@ fun MediaGridScreen(
     selectAllMedia: () -> Unit,
     clearSelections: () -> Unit,
     refreshSelection: () -> Unit,
+    onSelectedItems: () -> Unit,
     onBack: () -> Unit,
 ) {
 
@@ -202,8 +203,9 @@ fun MediaGridScreen(
 
                 dgenButton(
                     onClick = {
-                        Toast.makeText(context,"Select ${selectedUris.size} items", Toast.LENGTH_SHORT).show()
-                        refreshSelection()
+                        //Toast.makeText(context,"Select ${selectedUris.size} items", Toast.LENGTH_SHORT).show()
+                        //refreshSelection()
+                        onSelectedItems
                     },
                     text = "Select ${selectedAmount} items"
                 )
