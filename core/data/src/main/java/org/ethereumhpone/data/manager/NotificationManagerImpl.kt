@@ -35,6 +35,7 @@ class NotificationManagerImpl @Inject constructor(
     private val messengerPreferences: MessengerPreferences,
     private val permissionManager: PermissionManager,
     private val conversationRepository: ConversationRepository,
+    private val messageRepository: MessageRepository
 ): org.ethereumhpone.domain.manager.NotificationManager {
 
     companion object {
@@ -52,18 +53,15 @@ class NotificationManagerImpl @Inject constructor(
         context.ensureNotificationChannelExists()
     }
 
-    override suspend fun update(threadId: Long) {
+    override suspend fun update(threadId: String) {
 
-        // if check if notifications are disabled
-        if(!notifications(threadId)) {
-            return
-        }
+        // check if notifications are disabled
+        if(!notifications(threadId)) return
 
-        if(!permissionManager.hasNotifications()) {
-            return
-        }
+        // check permissions
+        if(!permissionManager.hasNotifications()) return
 
-        /*
+
         val messages = messageRepository.getUnreadUnseenMessages(threadId)
 
         if (messages.isEmpty()) {
@@ -71,7 +69,9 @@ class NotificationManagerImpl @Inject constructor(
             notificationManager.cancel(threadId.toInt() + 100000)
             return
         }
-         */
+
+
+        val title = ""
 
 
 
@@ -82,7 +82,7 @@ class NotificationManagerImpl @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
 
-        /*
+
         val notification = NotificationCompat.Builder(context, getChannelIdForNotification(threadId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             //.setColor(colors.theme(lastRecipient).theme)  // Uncomment and adjust if you have theming
@@ -92,23 +92,23 @@ class NotificationManagerImpl @Inject constructor(
             .setAutoCancel(true)
             .setContentIntent(contentPI)
             .setDeleteIntent(seenPI)
-            .setWhen(conversation.lastMessage?.date ?: System.currentTimeMillis())
+            //.setWhen(conversation.lastMessage?.date ?: System.currentTimeMillis())
             .setVibrate(VIBRATE_PATTERN)
-            .setContentTitle(lastRecipient?.getDisplayName() ?: lastRecipient?.address)  // Use recipient's name, fallback to a default string
-            .setContentText(conversation.lastMessage?.body ?: "")  // Show the message content
+            //.setContentTitle(lastRecipient?.getDisplayName() ?: lastRecipient?.address)  // Use recipient's name, fallback to a default string
+            //.setContentText(conversation.lastMessage?.body ?: "")  // Show the message content
 
         notificationManager.notify(threadId.toInt(), notification.build())
-         */
+
     }
 
     override fun notifyFailed(threadId: String) {
         TODO("Not yet implemented")
     }
 
-    override suspend fun createNotificationChannel(threadId: Long) {
+    override suspend fun createNotificationChannel(threadId: String) {
 
         val channel = when(threadId) {
-            0L -> NotificationChannel(
+            "0" -> NotificationChannel(
                 DEFAULT_CHANNEL_ID,
                 "default",
                 NotificationManager.IMPORTANCE_HIGH
@@ -136,9 +136,9 @@ class NotificationManagerImpl @Inject constructor(
         notificationManager.createNotificationChannel(channel)
     }
 
-    override fun buildNotificationChannelId(threadId: Long): String {
+    override fun buildNotificationChannelId(threadId: String): String {
         return when (threadId) {
-            0L -> DEFAULT_CHANNEL_ID
+            "0" -> DEFAULT_CHANNEL_ID
             else -> "notifications_$threadId"
         }
     }
@@ -147,7 +147,7 @@ class NotificationManagerImpl @Inject constructor(
         TODO("Not yet implemented")
     }
 
-    private fun getNotificationChannel(threadId: Long): NotificationChannel? {
+    private fun getNotificationChannel(threadId: String): NotificationChannel? {
         val channelId = buildNotificationChannelId(threadId)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -158,7 +158,7 @@ class NotificationManagerImpl @Inject constructor(
         return null
     }
 
-    private fun getChannelIdForNotification(threadId: Long): String {
+    private fun getChannelIdForNotification(threadId: String): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return getNotificationChannel(threadId)?.id ?: DEFAULT_CHANNEL_ID
         }
@@ -166,12 +166,12 @@ class NotificationManagerImpl @Inject constructor(
         return DEFAULT_CHANNEL_ID
     }
 
-    private suspend fun notifications(threadId: Long = 0): Boolean {
+    private suspend fun notifications(threadId: String = "0"): Boolean {
         val threads = messengerPreferences.prefs.first().threadNotificationsId
         val default = threads[NOTIFICATIONS_KEY] ?: true
 
         return when(threadId) {
-            0L -> default
+            "0" -> default
             else -> threads["$THREAD_NOTIFICATIONS_KEY$threadId"] ?: default
         }
     }

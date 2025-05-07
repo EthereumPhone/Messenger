@@ -23,7 +23,7 @@ interface MessageDao {
     @Query("SELECT * FROM message where id == :id")
     fun getMessage(id: String): Flow<CompositeMessage?>
 
-    @Query("SELECT * FROM message WHERE seen = 0 AND read = 0 ORDER BY date")
+    @Query("SELECT * FROM message WHERE seen = 0 ORDER BY date")
     suspend fun getUnreadUnseenMessages(): List<MessageEntity>
 
     @Query("SELECT * FROM message WHERE seen = 0")

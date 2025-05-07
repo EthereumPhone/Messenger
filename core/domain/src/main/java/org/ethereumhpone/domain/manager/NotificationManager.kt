@@ -4,13 +4,13 @@ import androidx.core.app.NotificationCompat
 
 interface NotificationManager {
 
-    suspend fun update(threadId: Long)
+    suspend fun update(threadId: String)
 
     fun notifyFailed(threadId: String)
 
-    suspend fun createNotificationChannel(threadId: Long = 0L)
+    suspend fun createNotificationChannel(threadId: String = "0")
 
-    fun buildNotificationChannelId(threadId: Long): String
+    fun buildNotificationChannelId(threadId: String): String
 
     fun getNotificationForBackup(): NotificationCompat.Builder
 

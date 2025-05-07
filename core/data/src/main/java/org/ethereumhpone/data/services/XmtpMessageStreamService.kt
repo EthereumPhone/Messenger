@@ -59,10 +59,7 @@ class XmtpMessageStreamService : Service() {
             coroutineScope.launch {
                 val preferences = messengerPreferences.prefs.first()
 
-
-
                 println("xmtp prefs" + preferences.shouldHideOnboarding)
-
                 try {
 
                     if (preferences.shouldHideOnboarding) {
