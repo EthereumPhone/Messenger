@@ -18,6 +18,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.SpaceMono
@@ -31,6 +34,12 @@ fun dgenButton(
     onClick: () -> Unit,
     text: String,
     enable: Boolean = true,
+    backgroundColor: Color = dgenTurqoise,
+    fontColor: Color = dgenOcean,
+    fontSize: TextUnit = 16.sp,
+    horizontalPadding: Dp = 16.dp,
+    verticalPadding: Dp = 4.dp,
+
 ){
     val buttonAlpha by animateFloatAsState(
         if (enable) 1f else 0.35f,
@@ -38,7 +47,7 @@ fun dgenButton(
     )
 
     Surface(
-        color = dgenTurqoise,
+        color = backgroundColor,
         shape = CircleShape,
         modifier = modifier
             .alpha(buttonAlpha)
@@ -49,28 +58,32 @@ fun dgenButton(
             }
     ){
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
                 text = text.uppercase(),
-                color = dgenOcean,
+                color = fontColor,
                 style = TextStyle(
                     fontFamily = SpaceMono,
                     color = dgenWhite,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 16.sp,
-                    lineHeight = 16.sp,
+                    fontSize = fontSize,
+                    lineHeight = fontSize,
                     letterSpacing = 0.sp,
                     textDecoration = TextDecoration.None
                 ),
-                modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
 
     }
 }
 
+@Preview
+@Composable
+fun DgenButtonPreview(){
+    dgenButton(onClick = {}, text = "GRANT PERMISSION")
+}
 
 @Composable
 fun dgenTextButton(
@@ -78,6 +91,10 @@ fun dgenTextButton(
     onClick: () -> Unit,
     text: String,
     enable: Boolean = true,
+    fontColor: Color = dgenTurqoise,
+    fontSize: TextUnit = 16.sp,
+    horizontalPadding: Dp = 16.dp,
+    verticalPadding: Dp = 4.dp,
 ){
     val buttonAlpha by animateFloatAsState(
         if (enable) 1f else 0.35f,
@@ -96,22 +113,21 @@ fun dgenTextButton(
             }
     ){
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
                 text = text.uppercase(),
-                color = dgenTurqoise,
+                color = fontColor,
                 style = TextStyle(
                     fontFamily = SpaceMono,
                     color = dgenWhite,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 16.sp,
-                    lineHeight = 16.sp,
+                    fontSize = fontSize,
+                    lineHeight = fontSize,
                     letterSpacing = 0.sp,
                     textDecoration = TextDecoration.None
                 ),
-                modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
 
