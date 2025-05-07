@@ -40,8 +40,8 @@ class XmtpMessageStreamService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
 
+            println("xmtp started forground service")
 
-            xmtpClientManager.createClient(walletSDK, context)
 
             // 1) build notification (must exist before you call startForeground)
             val notification = NotificationCompat.Builder(this, "xmtp_channel")
@@ -59,8 +59,16 @@ class XmtpMessageStreamService : Service() {
             coroutineScope.launch {
                 val preferences = messengerPreferences.prefs.first()
 
+
+
+                println("xmtp prefs" + preferences.shouldHideOnboarding)
+
                 try {
+
                     if (preferences.shouldHideOnboarding) {
+                        xmtpClientManager.createClient(walletSDK, context)
+
+
                         syncRepository.startStream()
 
                     }

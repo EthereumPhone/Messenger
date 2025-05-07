@@ -82,17 +82,7 @@ class MainActivity : ComponentActivity() {
         var uiState: MainActivityUiState by mutableStateOf(MainActivityUiState.Loading)
 
 
-        NotificationChannel(
-            "xmtp_channel",
-            "XMTP Message Stream",
-            NotificationManager.IMPORTANCE_LOW
-        ).also { channel ->
-            getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
-        }
 
-        Intent(this, XmtpMessageStreamService::class.java)
-            .also { ContextCompat.startForegroundService(this, it) }
 
         //update ui state
 
