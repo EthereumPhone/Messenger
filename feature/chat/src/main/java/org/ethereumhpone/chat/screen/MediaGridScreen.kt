@@ -1,0 +1,221 @@
+package org.ethereumhpone.chat.screen
+
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import org.ethereumhpone.chat.components.media.MediaThumbnail
+import org.ethereumhpone.chat.util.GalleryMedia
+import org.ethereumphone.dgenlibrary.components.dgenButton
+import org.ethereumphone.dgenlibrary.components.dgenTextButton
+import org.ethereumhpone.chat.R
+
+@Composable
+fun MediaGridScreen(
+    mediaItems: List<GalleryMedia>,
+    onMediaClick: (GalleryMedia) -> Unit,
+    isInSelectionMode: Boolean = false,
+    selectedItems: Set<GalleryMedia> = emptySet(),
+    selectedUris: List<Uri>,
+    toggleSelectionMode: () -> Unit,
+    selectAllMedia: () -> Unit,
+    clearSelections: () -> Unit,
+    refreshSelection: () -> Unit,
+    onBack: () -> Unit,
+) {
+
+    val context = LocalContext.current
+    var selectedAll by remember { mutableStateOf(false) }
+    val selectAllColor by animateColorAsState(
+        if (selectedAll) dgenTurqoise else dgenTurqoise.copy(0.5f),
+        tween(300),
+        label = "color"
+    )
+
+    var selectedAmount by remember { mutableStateOf(0) }
+
+
+    Box(modifier = Modifier.fillMaxSize()){
+        Column(
+            modifier = Modifier
+                .background(dgenBlack)
+                .fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .background(dgenBlack)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier,
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            painter = painterResource(R.drawable.backicon),
+                            contentDescription = "BackButton",
+                            modifier = Modifier.size(24.dp),
+                            tint = dgenTurqoise
+                        )
+                    }
+                }
+                Crossfade(isInSelectionMode, modifier = Modifier) { isSelectionOn ->
+                    if(isSelectionOn){
+                        Row (
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ){
+                            dgenTextButton(
+                                onClick = {
+                                    selectedAll = true
+                                    selectAllMedia()
+                                },
+                                text = "Select All",
+                                fontColor = selectAllColor
+                            )
+                            dgenButton(
+                                onClick = toggleSelectionMode,
+                                text = "Close"
+                            )
+                        }
+                    } else {
+                        Row (
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ){
+                            dgenButton(
+                                onClick = toggleSelectionMode,
+                                text = "Select"
+                            )
+                        }
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(dgenBlack)
+            ) {
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(dgenBlack),
+                    columns = GridCells.Adaptive(minSize = 120.dp),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    items(mediaItems) { item ->
+                        MediaThumbnail(
+                            mediaItem = item,
+                            onClick = {
+                                onMediaClick(item)
+                                if(selectedItems.contains(item)){
+                                    selectedAmount--
+                                }else{
+                                    selectedAmount++
+                                }
+                                refreshSelection()
+                            },
+                            isInSelectionMode = isInSelectionMode,
+                            isSelected = selectedItems.contains(item)
+                        )
+                    }
+                }
+
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(16.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(dgenBlack, Color.Transparent)
+                            )
+                        )
+                        .align(Alignment.TopCenter)
+                )
+
+                // 3) the bottom fade
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(16.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, dgenBlack)
+                            )
+                        )
+                        .align(Alignment.BottomCenter)
+                )
+            }
+        }
+        AnimatedVisibility(
+            isInSelectionMode && selectedItems.isNotEmpty(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 48.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                // Example actions for selected items
+
+                dgenButton(
+                    onClick = {
+                        Toast.makeText(context,"Select ${selectedUris.size} items", Toast.LENGTH_SHORT).show()
+                        refreshSelection()
+                    },
+                    text = "Select ${selectedAmount} items"
+                )
+
+                dgenButton(
+                    onClick = {
+                        selectedAll = false
+                        clearSelections()
+                    },
+                    text = "Clear"
+                )
+            }
+        }
+    }
+}
