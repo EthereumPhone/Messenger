@@ -20,7 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.example.dgenlibrary.ui.theme.dgenOcean
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import org.ethereumhpone.chat.util.GalleryMedia
+import org.ethereumhpone.chat.util.MediaType
 
 @Composable
 fun MediaThumbnail(

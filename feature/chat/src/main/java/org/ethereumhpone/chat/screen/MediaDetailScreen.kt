@@ -35,8 +35,10 @@ import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ui.StyledPlayerView
+import org.ethereumhpone.chat.components.media.VideoPage
 import org.ethereumhpone.chat.util.GalleryMedia
 import org.ethereumhpone.chat.util.MediaType
+import org.ethereumhpone.chat.R
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -83,7 +85,7 @@ fun MediaDetailScreen(
         ){
             IconButton(onClick = onBack) {
                 Icon(
-                    painter = painterResource(R.drawable.),
+                    painter = painterResource(R.drawable.backicon),
                     contentDescription = "BackButton",
                     modifier = Modifier.size(24.dp),
                     tint = dgenTurqoise
