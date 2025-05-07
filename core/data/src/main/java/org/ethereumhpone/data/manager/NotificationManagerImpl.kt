@@ -25,6 +25,7 @@ import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumphone.model.Conversation
 import javax.inject.Inject
+import kotlin.math.abs
 
 private const val TARGET_ACTIVITY_NAME = "org.ethereumhpone.messenger.MainActivity"
 private const val DEFAULT_CHANNEL_ID = "dgen1_messenger"
@@ -56,7 +57,6 @@ class NotificationManagerImpl @Inject constructor(
     }
 
     override suspend fun update(threadId: String) {
-
         println("xmtp notification started")
 
         // check if notifications are disabled
@@ -65,13 +65,11 @@ class NotificationManagerImpl @Inject constructor(
         // check permissions
         if(!permissionManager.hasNotifications()) return
 
-
         val unreadConversations = conversationRepository.getUnreadConversations().first()
 
         if (unreadConversations.isEmpty()) {
-            //notificationManager.cancel(threadId.toInt())
-            //notificationManager.cancel(threadId.toInt() + 100000)
-            //return
+            // No unread conversations to notify about
+            return
         }
 
         val latestConversation = unreadConversations.maxBy { conversation -> conversation.lastMessage!!.dateSent.toEpochMilliseconds() }
@@ -88,18 +86,20 @@ class NotificationManagerImpl @Inject constructor(
             latestConversation.getSummary()
         }
 
-        val contentPI = contentPendingIntent(context, threadId.toInt())
+        // Use a consistent notification ID derived from the threadId
+        val notificationId = getNotificationIdFromThreadId(threadId)
+        
+        val contentPI = contentPendingIntent(context, threadId)
 
         val seenIntent = Intent(context, MarkSeenReceiver::class.java).putExtra("threadId", threadId)
-        val seenPI = PendingIntent.getBroadcast(context, threadId.toInt(), seenIntent,
+        val seenRequestCode = getRequestCodeFromThreadId(threadId)
+        val seenPI = PendingIntent.getBroadcast(context, seenRequestCode, seenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
 
         println("xmtp notification building")
 
         val notification = NotificationCompat.Builder(context, DEFAULT_CHANNEL_ID)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            //.setColor(colors.theme(lastRecipient).theme)  // Uncomment and adjust if you have theming
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setSmallIcon(R.drawable.ic_sms_light)
             .setNumber(unreadConversations.size)
@@ -108,13 +108,24 @@ class NotificationManagerImpl @Inject constructor(
             .setDeleteIntent(seenPI)
             .setWhen(latestConversation.lastMessage?.dateSent?.toEpochMilliseconds() ?: System.currentTimeMillis())
             .setVibrate(VIBRATE_PATTERN)
-            .setContentTitle(header)  // Use recipient's name, fallback to a default string
-            .setContentText(subheader)  // Show the message content
-
+            .setContentTitle(header)
+            .setContentText(subheader)
 
         println("xmtp notification sending")
-        notificationManager.notify(0, notification.build())
+        notificationManager.notify(notificationId, notification.build())
+    }
 
+    // Helper function to generate a consistent notification ID from a threadId string
+    private fun getNotificationIdFromThreadId(threadId: String): Int {
+        // Use string hashCode which is consistent for the same string
+        // Make sure it's positive by taking absolute value
+        return abs(threadId.hashCode())
+    }
+    
+    // Helper function to generate a consistent request code from a threadId string
+    private fun getRequestCodeFromThreadId(threadId: String): Int {
+        // Make it different from the notification ID by adding a constant
+        return abs(threadId.hashCode() + 1000)
     }
 
     override fun notifyFailed(threadId: String) {
@@ -122,7 +133,7 @@ class NotificationManagerImpl @Inject constructor(
     }
 
     override suspend fun createNotificationChannel(threadId: String) {
-// Create the NotificationChannel, but only on API 26+ because
+        // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is not in the Support Library.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "xmtp messenger"
@@ -192,7 +203,7 @@ private fun Context.ensureNotificationChannelExists() {
 }
 
 
-private fun contentPendingIntent(context: Context, threadId: Int): PendingIntent? {
+private fun contentPendingIntent(context: Context, threadId: String): PendingIntent? {
     // Resolve the main launcher activity
     val packageManager = context.packageManager
     val intent = Intent(Intent.ACTION_MAIN).apply {
@@ -205,10 +216,13 @@ private fun contentPendingIntent(context: Context, threadId: Int): PendingIntent
     // Ensure we found the launcher activity
     val launcherActivityClassName = resolveInfo?.activityInfo?.name ?: return null
 
+    // Generate a consistent request code from the threadId
+    val requestCode = abs(threadId.hashCode())
+
     // Create the PendingIntent with the resolved launcher activity
     return PendingIntent.getActivity(
         context,
-        NOTIFICATION_REQUEST_CODE,
+        requestCode,
         Intent().apply {
             action = Intent.ACTION_VIEW
             setClassName(context.packageName, launcherActivityClassName)
