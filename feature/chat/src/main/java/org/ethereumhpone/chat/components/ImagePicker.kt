@@ -8,6 +8,12 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,6 +28,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -35,6 +42,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,10 +50,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,113 +73,167 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.dgenBlack
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.ethereumhpone.chat.MediaViewModel
+import org.ethereumhpone.chat.screen.MediaDetailScreen
+import org.ethereumhpone.chat.screen.MediaGridScreen
+import org.ethereumhpone.chat.screen.PermissionScreen
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageSelectionScreen(
+    viewModel: MediaViewModel = viewModel(),
     attachments: List<Attachment>,
     onToggleAttachment: (Attachment) -> Unit,
-    onDone: () -> Unit
+    onSelectedItems: () -> Unit,
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val readPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-        Manifest.permission.READ_MEDIA_IMAGES
-    else
-        Manifest.permission.READ_EXTERNAL_STORAGE
+    val mediaItems by viewModel.mediaItems.collectAsState()
+    val selectedIndex by viewModel.selectedMediaIndex.collectAsState()
+    val selectedMedia by viewModel.selectedMedia.collectAsState()
+    val isInSelectionMode by viewModel.isInSelectionMode.collectAsState()
+    val selectedMediaItems by viewModel.selectedMediaItems.collectAsState()
+    val selectedUris by remember { derivedStateOf { viewModel.selectedUris } }
 
-    var hasPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, readPerm) ==
-                    PackageManager.PERMISSION_GRANTED
-        )
-    }
-    val permLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> hasPermission = granted }
 
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .background(dgenBlack)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            IconButton(onClick = onDone) {
-                Icon(
-                    painter = painterResource(R.drawable.backicon),
-                    contentDescription = "BackButton",
-                    modifier = Modifier.size(24.dp),
-                    tint = dgenTurqoise
-                )
-            }
-            Text(
-                text = "SELECT MEDIA",
-                style = TextStyle(
-                    fontFamily = PitagonsSans,
-                    color = dgenTurqoise,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 24.sp,
-                    lineHeight = 24.sp,
-                    letterSpacing = 0.sp,
-                    textDecoration = TextDecoration.None
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .widthIn(min = 10.dp, max = 250.dp)
-                ,
-            )
-            Spacer(Modifier.size(24.dp))
+    // Permission state
+    var hasPermission by remember { mutableStateOf(true) }
+    var openMediaDetail by remember { mutableStateOf(false) }
 
+    // Check if permission is already granted
+    LaunchedEffect(Unit) {
+        hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_MEDIA_IMAGES
+            ) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.READ_MEDIA_VIDEO
+                    ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
         }
-        CustomImagePicker(
-            attachments = attachments,
-            onToggleAttachment = onToggleAttachment
-        )
-    }
 
-    /*
-    if (!hasPermission) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text("Permission required to load attachments")
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { permLauncher.launch(readPerm) }) {
-                Text("Grant Permission")
-            }
+        if (hasPermission) {
+            viewModel.loadMediaFromDevice(context.contentResolver)
         }
     }
-    else {
-        Column(Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = { Text("Select Media") },
-                actions = {
-                    IconButton(onClick = onDone) {
-                        Icon(Icons.Default.Close, contentDescription = "Done")
+
+    // Permission launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions[Manifest.permission.READ_MEDIA_IMAGES] == true &&
+                    permissions[Manifest.permission.READ_MEDIA_VIDEO] == true
+        } else {
+            permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
+        }
+
+        if (hasPermission) {
+            viewModel.loadMediaFromDevice(context.contentResolver)
+        }
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .imePadding()
+    ) {
+        if(!hasPermission){
+            PermissionScreen {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.READ_MEDIA_IMAGES,
+                            Manifest.permission.READ_MEDIA_VIDEO
+                        )
+                    )
+                } else {
+                    permissionLauncher.launch(
+                        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    )
+                }
+            }
+        } else{
+            AnimatedContent(
+                mediaItems.isEmpty(),
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300, 300)) togetherWith
+                            fadeOut(animationSpec = tween(300))
+                }
+            ) { isMediaEmpty ->
+                if (!isMediaEmpty){
+                    Crossfade(
+                        openMediaDetail,//selectedMedia != null,
+                        animationSpec = tween(300, 300)
+                        /*transitionSpec = {
+                            fadeIn(animationSpec = tween(300, 300)) togetherWith
+                                    fadeOut(animationSpec = tween(300))
+                        }*/
+                    ) { isMediaSelected ->
+                        if (!isMediaSelected) {
+                            MediaGridScreen(
+                                mediaItems = mediaItems,
+                                onMediaClick = {
+
+                                    openMediaDetail = true
+                                    viewModel.selectMedia(it)
+                                },
+                                isInSelectionMode = isInSelectionMode,
+                                selectedItems = selectedMediaItems,
+                                toggleSelectionMode = viewModel::toggleSelectionMode,
+                                selectAllMedia = viewModel::selectAllMedia,
+                                onBack = onBack,
+                                clearSelections = viewModel::clearSelections,
+                                refreshSelection = viewModel::refreshSelection,
+                                selectedUris = selectedUris,
+                                onSelectedItems = {
+
+                                }
+                            )
+                        } else {
+                            MediaDetailScreen(
+                                onBack      = {
+                                    openMediaDetail = false
+                                    coroutineScope.launch {
+                                        delay(500)            // wait half a second
+                                        viewModel.clearSelectedMedia()
+                                    }
+                                },
+                                onNext      = { viewModel.navigateToNextMedia() },
+                                onPrevious  = { viewModel.navigateToPreviousMedia() },
+                                allMedia    = mediaItems,
+                                currentIndex= selectedIndex
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
-            )
-            CustomImagePicker(
-                attachments = attachments,
-                onToggleAttachment = onToggleAttachment
-            )
+            }
         }
     }
-     */
-
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -265,7 +330,9 @@ fun CustomImagePicker(
                 }
                 if (attachment in attachments) {
                     Box(
-                        Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.4f))
+                        Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.4f))
                     )
                     Icon(
                         Icons.Default.CheckCircle,
