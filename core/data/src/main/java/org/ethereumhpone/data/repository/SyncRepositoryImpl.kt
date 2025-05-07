@@ -373,9 +373,6 @@ class SyncRepositoryImpl @Inject constructor(
                     launch {
                         client.conversations.streamAllMessages().collect { message ->
 
-
-                            notificationManager.update(message.id)
-
                             val isMe = client.inboxId == message.senderInboxId
 
                             Log.d("incoming MESSAGE id", message.id)
@@ -404,6 +401,7 @@ class SyncRepositoryImpl @Inject constructor(
                                 } ?: processedMessage
 
                                 messageDao.upsertMessages(listOf(updatedMessage))
+                                notificationManager.update(message.id)
                             }
 
 

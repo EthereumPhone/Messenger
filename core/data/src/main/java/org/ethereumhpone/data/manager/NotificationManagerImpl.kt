@@ -11,6 +11,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat.getSystemService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
@@ -26,7 +27,7 @@ import org.ethereumphone.model.Conversation
 import javax.inject.Inject
 
 private const val TARGET_ACTIVITY_NAME = "org.ethereumhpone.messenger.MainActivity"
-private const val DEFAULT_CHANNEL_ID = "notifications_default"
+private const val DEFAULT_CHANNEL_ID = "dgen1_messenger"
 private const val DEEP_LINK_SCHEME_AND_HOST = "https://www.ethereumhpone.messenger.org"
 private const val CHAT_PATH = "chat"
 private const val NOTIFICATION_REQUEST_CODE = 0
@@ -68,9 +69,9 @@ class NotificationManagerImpl @Inject constructor(
         val unreadConversations = conversationRepository.getUnreadConversations().first()
 
         if (unreadConversations.isEmpty()) {
-            notificationManager.cancel(threadId.toInt())
-            notificationManager.cancel(threadId.toInt() + 100000)
-            return
+            //notificationManager.cancel(threadId.toInt())
+            //notificationManager.cancel(threadId.toInt() + 100000)
+            //return
         }
 
         val latestConversation = unreadConversations.maxBy { conversation -> conversation.lastMessage!!.dateSent.toEpochMilliseconds() }
@@ -96,7 +97,7 @@ class NotificationManagerImpl @Inject constructor(
 
         println("xmtp notification building")
 
-        val notification = NotificationCompat.Builder(context, getChannelIdForNotification(threadId))
+        val notification = NotificationCompat.Builder(context, DEFAULT_CHANNEL_ID)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             //.setColor(colors.theme(lastRecipient).theme)  // Uncomment and adjust if you have theming
             .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -112,7 +113,7 @@ class NotificationManagerImpl @Inject constructor(
 
 
         println("xmtp notification sending")
-        notificationManager.notify(threadId.toInt(), notification.build())
+        notificationManager.notify(0, notification.build())
 
     }
 
@@ -121,34 +122,18 @@ class NotificationManagerImpl @Inject constructor(
     }
 
     override suspend fun createNotificationChannel(threadId: String) {
-
-        val channel = when(threadId) {
-            "0" -> NotificationChannel(
-                DEFAULT_CHANNEL_ID,
-                "default",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                enableLights(true)
-                lightColor = Color.WHITE
-                enableVibration(true)
-                vibrationPattern = VIBRATE_PATTERN
+// Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is not in the Support Library.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "xmtp messenger"
+            val descriptionText = "xmtp messenger notification"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(DEFAULT_CHANNEL_ID, name, importance).apply {
+                description = descriptionText
             }
-
-            else -> {
-                //val conversation = conversationRepository.getConversation(threadId).single() ?: return
-                val channelId = buildNotificationChannelId(threadId)
-                val title = "test" //conversation.title
-                NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_HIGH).apply {
-                    enableLights(true)
-                    lightColor = Color.WHITE
-                    enableVibration(true)
-                    vibrationPattern = VIBRATE_PATTERN
-                    lockscreenVisibility = 1 //TODO: CHANGE
-                }
-            }
+            // Register the channel with the system.
+            notificationManager.createNotificationChannel(channel)
         }
-
-        notificationManager.createNotificationChannel(channel)
     }
 
     override fun buildNotificationChannelId(threadId: String): String {
