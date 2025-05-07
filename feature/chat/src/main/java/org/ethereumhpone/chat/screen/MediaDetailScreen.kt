@@ -71,7 +71,6 @@ fun MediaDetailScreen(
         }
     }
 
-
     var isVideoPlaying by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -136,6 +135,10 @@ fun MediaDetailScreen(
 
                 when (pageMediaItem.type) {
                     MediaType.IMAGE -> {
+
+                        /*LaunchedEffect(page) {
+                            isVideoPlaying = false
+                        }*/
                         Image(
                             painter = rememberAsyncImagePainter(pageMediaItem.uri),
                             contentDescription = pageMediaItem.name,
@@ -144,6 +147,7 @@ fun MediaDetailScreen(
                         )
                     }
                     MediaType.VIDEO -> {
+                        //isVideoPlaying = true
                         VideoPage(
                             uri = pageMediaItem.uri,
                             onIsPlayingChanged = { playing ->
@@ -164,56 +168,6 @@ fun MediaDetailScreen(
                         }
                     }
                 }
-            }
-
-            // Navigation controls overlaid on content
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .align(Alignment.Center),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                AnimatedVisibility(!isVideoPlaying) {
-                    IconButton(
-                        onClick = onPrevious,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color = Color.Transparent,
-                                shape = CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Previous",
-                            tint = dgenTurqoise
-                        )
-                    }
-                }
-                AnimatedVisibility(!isVideoPlaying) {
-                    IconButton(
-                        onClick = onNext,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color = Color.Transparent,
-                                shape = CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = "Next",
-                            tint = dgenTurqoise
-                        )
-                    }
-                }
-
-
-                // Spacer(modifier = Modifier.weight(1f))
-
-
             }
         }
 
