@@ -12,6 +12,7 @@ import android.graphics.Color
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.single
 import org.ethereumhpone.data.R
@@ -21,6 +22,7 @@ import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.data.util.PhoneNumberUtils
+import org.ethereumphone.model.Conversation
 import javax.inject.Inject
 
 private const val TARGET_ACTIVITY_NAME = "org.ethereumhpone.messenger.MainActivity"
@@ -35,7 +37,6 @@ class NotificationManagerImpl @Inject constructor(
     private val messengerPreferences: MessengerPreferences,
     private val permissionManager: PermissionManager,
     private val conversationRepository: ConversationRepository,
-    private val messageRepository: MessageRepository
 ): org.ethereumhpone.domain.manager.NotificationManager {
 
     companion object {
@@ -55,6 +56,8 @@ class NotificationManagerImpl @Inject constructor(
 
     override suspend fun update(threadId: String) {
 
+        println("xmtp notification started")
+
         // check if notifications are disabled
         if(!notifications(threadId)) return
 
@@ -62,18 +65,27 @@ class NotificationManagerImpl @Inject constructor(
         if(!permissionManager.hasNotifications()) return
 
 
-        val messages = messageRepository.getUnreadUnseenMessages(threadId)
+        val unreadConversations = conversationRepository.getUnreadConversations().first()
 
-        if (messages.isEmpty()) {
+        if (unreadConversations.isEmpty()) {
             notificationManager.cancel(threadId.toInt())
             notificationManager.cancel(threadId.toInt() + 100000)
             return
         }
 
+        val latestConversation = unreadConversations.maxBy { conversation -> conversation.lastMessage!!.dateSent.toEpochMilliseconds() }
 
-        val title = ""
+        val header = if (unreadConversations.size > 1) {
+            "new messages"
+        } else {
+            latestConversation.getHeader()
+        }
 
-
+        val subheader = if (unreadConversations.size > 1) {
+            "press to view"
+        } else {
+            latestConversation.getSummary()
+        }
 
         val contentPI = contentPendingIntent(context, threadId.toInt())
 
@@ -82,21 +94,24 @@ class NotificationManagerImpl @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
 
+        println("xmtp notification building")
 
         val notification = NotificationCompat.Builder(context, getChannelIdForNotification(threadId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             //.setColor(colors.theme(lastRecipient).theme)  // Uncomment and adjust if you have theming
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setSmallIcon(R.drawable.ic_sms_light)
-            .setNumber(messages.size)
+            .setNumber(unreadConversations.size)
             .setAutoCancel(true)
             .setContentIntent(contentPI)
             .setDeleteIntent(seenPI)
-            //.setWhen(conversation.lastMessage?.date ?: System.currentTimeMillis())
+            .setWhen(latestConversation.lastMessage?.dateSent?.toEpochMilliseconds() ?: System.currentTimeMillis())
             .setVibrate(VIBRATE_PATTERN)
-            //.setContentTitle(lastRecipient?.getDisplayName() ?: lastRecipient?.address)  // Use recipient's name, fallback to a default string
-            //.setContentText(conversation.lastMessage?.body ?: "")  // Show the message content
+            .setContentTitle(header)  // Use recipient's name, fallback to a default string
+            .setContentText(subheader)  // Show the message content
 
+
+        println("xmtp notification sending")
         notificationManager.notify(threadId.toInt(), notification.build())
 
     }

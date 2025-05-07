@@ -33,6 +33,7 @@ import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
+import org.ethereumhpone.domain.manager.NotificationManager
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
 import org.ethereumhpone.domain.mapper.ContactGroupMemberCursor
@@ -76,7 +77,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val phoneNumberDao: PhoneNumberDao,
     private val syncLogDao: SyncLogDao,
     private val ensResolver: ENS,
-    private val logTimeHandler: LogTimeHandler
+    private val logTimeHandler: LogTimeHandler,
+    private val notificationManager: NotificationManager
 ): SyncRepository {
     private val _isSyncing = MutableStateFlow(false)
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
@@ -370,6 +372,10 @@ class SyncRepositoryImpl @Inject constructor(
 
                     launch {
                         client.conversations.streamAllMessages().collect { message ->
+
+
+                            notificationManager.update(message.id)
+
                             val isMe = client.inboxId == message.senderInboxId
 
                             Log.d("incoming MESSAGE id", message.id)

@@ -20,7 +20,7 @@ class MarkReadReceiver @Inject constructor(
 
         CoroutineScope(Dispatchers.IO).launch {
             //messageRepository.markRead(threadId)
-            notificationManager.update(threadId)
+            //notificationManager.update(threadId)
         }
     }
 }

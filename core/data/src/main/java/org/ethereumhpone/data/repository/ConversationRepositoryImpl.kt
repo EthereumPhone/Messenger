@@ -40,6 +40,10 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.getConversation(conversationId)
             .map { it?.toExternalModel() }
 
+    override fun getUnreadConversations(): Flow<List<Conversation>> =
+        conversationDao.getConversationsWithUnseenMessages()
+            .map { it.map(CompositeConversation::toExternalModel) }
+
     override fun createConversation(addresses: List<String>): Flow<Result<Conversation>> = flow {
         val recipients = recipientDao.getRecipientsByAddress(addresses).first()
         val inboxIds = recipients.map { it.inboxId }
