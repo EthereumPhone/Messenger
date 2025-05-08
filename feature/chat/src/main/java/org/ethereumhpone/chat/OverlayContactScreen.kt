@@ -1,7 +1,9 @@
 package org.ethereumhpone.chat
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -30,6 +32,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -54,9 +57,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +72,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
@@ -93,15 +99,24 @@ import com.example.dgenlibrary.ui.theme.dgenRed
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import com.example.dgenlibrary.ui.theme.dgenWhite
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.OldSchoolThickCursorTextField
+import org.ethereumhpone.chat.components.TransationLog
+import org.ethereumhpone.chat.components.media.MediaThumbnail
+import org.ethereumhpone.chat.screen.MediaDetailScreen
+import org.ethereumhpone.chat.screen.MediaGridScreen
+import org.ethereumhpone.chat.screen.TransactionLogScreen
 import org.ethereumhpone.chat.util.abbreviateNumber
 import org.ethereumhpone.chat.util.formatAddress
 import org.ethereumhpone.chat.util.formatSmart
 import org.ethereumhpone.chat.util.generateRandomTransfers
+import org.ethereumhpone.chat.util.urisToAttachments
+import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.dgenlibrary.components.verticalScrollBarForLazyGrid
+import org.ethereumphone.model.Recipient
 import org.ethosmobile.components.library.models.TransferItem
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
@@ -111,17 +126,24 @@ import java.util.Locale
 @Composable
 fun OverlayContactScreen(
     onBackClick: () -> Unit,
-    onDone: () -> Unit,
-    title: String,
+    title: String = "",
+    selectedIndex: Int = -1,
+    media: List<Uri> = emptyList(),
+    transactions: List<TransferItem> = emptyList(),
+    recipientUiState: RecipientUiState,
+    deleteGroup: () -> Unit = {},
+    leaveGroup: () -> Unit = {},
+    deleteContact: () -> Unit = {},
+    deleteMember: (Recipient?) -> Unit = {},
+    next: () -> Unit = {},
+    prev: () -> Unit = {},
+    select: (Int) -> Unit = {},
     isGroup: Boolean = true
 ) {
 
+    val context = LocalContext.current
     //TODO: Replace it with real media
-    //emptyList<TransferItem>()//
-    var mediaList = remember { mutableStateListOf("","","","","","","","","","","","",) }
-
     //TODO: Replace it with real transfers
-    var txList = generateRandomTransfers().reversed()
 
     var showAction by remember { mutableStateOf(false)}
     var showConfirmation by remember { mutableStateOf(false)}
@@ -131,8 +153,19 @@ fun OverlayContactScreen(
     val scrollState = rememberLazyListState()
     val gridscrollState = rememberLazyGridState()
 
+    val members = when(recipientUiState){
+        RecipientUiState.Error -> emptyList()
+        RecipientUiState.Loading -> emptyList()
+        is RecipientUiState.Success -> recipientUiState.recipients
+    }
 
 
+    var selectedMember: Recipient? by remember { mutableStateOf<Recipient?>(null) }
+    var openMediaDetail by remember { mutableStateOf(false) }
+    var coroutinescope = rememberCoroutineScope()
+
+
+    val attachments = urisToAttachments(context, media)
 
     Box(
         Modifier
@@ -163,7 +196,7 @@ fun OverlayContactScreen(
                         ) {
                             ContactSection(
                                 title = "MEDIA",
-                                amount = mediaList.size, //TODO: count real media objects
+                                amount = media.size, //TODO: count real media objects
                                 onDone = {
                                     action = ContactActions.MEDIA
                                     showAction = true
@@ -171,7 +204,7 @@ fun OverlayContactScreen(
                             )
                             ContactSection(
                                 title = "TRANSACTIONS",
-                                amount = txList.size, //TODO: count real TXs
+                                amount = transactions.size, //TODO: count real TXs
                                 onDone = {
                                     action = ContactActions.TX
                                     showAction = true
@@ -188,7 +221,6 @@ fun OverlayContactScreen(
                         ) {
                             when(isGroup){
                                 true -> {
-
                                     Column(
                                         modifier = Modifier.padding(top = 0.dp),
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -211,10 +243,10 @@ fun OverlayContactScreen(
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                             )
+
                                             //If user ist Admin
                                             // TODO: Add if user is admin conditinal
-
-                                            Text(
+                                            /*Text(
                                                 modifier = Modifier.pointerInput(Unit){
                                                     detectTapGestures {
                                                         editMode = !editMode
@@ -232,60 +264,28 @@ fun OverlayContactScreen(
                                                 ),
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
-                                            )
+                                            )*/
                                         }
                                         Column(
-                                            modifier = Modifier
-                                                .background(dgenBlack)
-                                            ,
+                                            modifier = Modifier.background(dgenBlack),
                                             verticalArrangement = Arrangement.spacedBy(16.dp)
                                         ) {
-
-                                            //TODO: Add real members
-                                            MemberItem("member.eth",{},editMode,true)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-                                            MemberItem("member.eth",{
-                                                confirmation = ContactConfirmation.DELETEMEMEBER
-                                                showConfirmation = true
-                                            },editMode,false)
-
-
-
+                                            members.forEach { member->
+                                                MemberItem(
+                                                    member.ens.toString(),
+                                                    onClick = {
+                                                        confirmation = ContactConfirmation.DELETEMEMEBER
+                                                        showConfirmation = true
+                                                        selectedMember = member
+                                                    },
+                                                    editMode = editMode,
+                                                    isAdmin = false //TODO: add admin value
+                                                )
+                                            }
                                         }
                                     }
                                     //TODO: if user is admin enable to delete Group
-                                    Text("DELETE GROUP",
+                                    /*Text("DELETE GROUP",
                                         style = TextStyle(
                                             fontFamily = SpaceMono,
                                             color = dgenRed,
@@ -306,7 +306,7 @@ fun OverlayContactScreen(
 
                                                 }
                                             },
-                                    )
+                                    )*/
 
                                     Text("LEAVE GROUP",
                                         style = TextStyle(
@@ -322,9 +322,9 @@ fun OverlayContactScreen(
                                             .fillMaxWidth()
                                             .pointerInput(Unit) {
                                                 detectTapGestures {
-                                                    confirmation =
-                                                        ContactConfirmation.LEAVEGROUP
+                                                    confirmation = ContactConfirmation.LEAVEGROUP
                                                     showConfirmation = true
+                                                    //TODO: Add leave group feature
                                                 }
                                             },
                                     )
@@ -344,7 +344,7 @@ fun OverlayContactScreen(
                                             )
                                         )
                                         Text(
-                                            text = "member.eth",
+                                            text = members[0].ens.toString(),
                                             style = TextStyle(
                                                 fontFamily = PitagonsSans,
                                                 color = dgenTurqoise,
@@ -356,7 +356,8 @@ fun OverlayContactScreen(
                                             )
                                         )
                                     }
-                                    Column(modifier = Modifier.fillMaxWidth(),verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    //TODO: Add phone number
+                                    /*Column(modifier = Modifier.fillMaxWidth(),verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                         Text(
                                             text= "PHONE NUMBER",
                                             style = TextStyle(
@@ -370,7 +371,7 @@ fun OverlayContactScreen(
                                             )
                                         )
                                         Text(
-                                            text= "+1234567890",
+                                            text= members[0].ens.toString(), //TODO: add phone number - currently not possible
                                             style = TextStyle(
                                                 fontFamily = PitagonsSans,
                                                 color = dgenTurqoise,
@@ -381,7 +382,7 @@ fun OverlayContactScreen(
                                                 textDecoration = TextDecoration.None
                                             )
                                         )
-                                    }
+                                    }*/
 
                                     Text("DELETE CONTACT",
                                         style = TextStyle(
@@ -401,7 +402,9 @@ fun OverlayContactScreen(
                                                         ContactConfirmation.DELETECONTACT
                                                     showConfirmation = true
                                                 }
-                                            }, )
+                                            },
+
+                                        )
                                 }
                             }
                         }
@@ -415,52 +418,75 @@ fun OverlayContactScreen(
                     // MEDIA or TRANSACTION
                     when(action){
                         ContactActions.MEDIA -> {
-                            LazyVerticalGrid(
-                                state = gridscrollState,
-                                modifier = Modifier
-                                    .verticalScrollBarForLazyGrid(gridscrollState)
-                                    .fillMaxSize()
-                                    .padding(horizontal = 32.dp),
-                                columns = GridCells.Fixed(3), // 3 columns
-                                //columns = GridCells.Adaptive(minSize = 120.dp), // Minimum size of each card
-                                contentPadding = PaddingValues(20.dp), // Padding around the grid
-                                horizontalArrangement = Arrangement.spacedBy(20.dp), // Horizontal spacing between cards
-                                verticalArrangement = Arrangement.spacedBy(20.dp)
-                            ) {
-                                //TODO: Add Images
-                                items(12) {
-                                    Spacer(modifier= Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(1f)
-                                        .background(dgenTurqoise.copy(0.15f)))
+
+                            Crossfade(
+                                openMediaDetail
+                            ) { openDetail ->
+                                if(!openDetail){
+                                    /*LazyVerticalGrid(
+                                        state = gridscrollState,
+                                        modifier = Modifier
+                                            .verticalScrollBarForLazyGrid(gridscrollState)
+                                            .fillMaxSize()
+                                            .padding(horizontal = 32.dp),
+                                        columns = GridCells.Fixed(3), // 3 columns
+                                        //columns = GridCells.Adaptive(minSize = 120.dp), // Minimum size of each card
+                                        contentPadding = PaddingValues(20.dp), // Padding around the grid
+                                        horizontalArrangement = Arrangement.spacedBy(20.dp), // Horizontal spacing between cards
+                                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                                    ) {
+                                        //TODO: Add Images
+                                        items(media) { item ->
+                                            if(isVideoUri(context, item)){
+                                                MediaThumbnail(
+                                                    attachment = Attachment.Video(item),
+                                                    onClick = { },
+                                                    isInSelectionMode = false,
+                                                    isSelected = false
+                                                )
+                                            } else {
+                                                MediaThumbnail(
+                                                    attachment = Attachment.Image(item),
+                                                    onClick = { },
+                                                    isInSelectionMode = false,
+                                                    isSelected = false
+                                                )
+                                            }
+
+                                        }
+                                    }*/
+                                    MediaGridScreen(
+                                        mediaItems = attachments,
+                                        onMediaClick = { att ->
+                                            select(attachments.indexOf(att))
+                                            openMediaDetail = true
+                                        },
+                                        isInSelectionMode = false,
+                                        onBack = { showAction = false }
+                                    )
+                                }
+                                else {
+                                    MediaDetailScreen(
+                                        onBack = {
+                                            openMediaDetail = false
+                                            coroutinescope.launch {
+                                                delay(500)
+                                                select(-1)
+                                            }
+                                        },
+                                        onNext = next,
+                                        onPrevious = prev,
+                                        allMedia = attachments,
+                                        currentIndex = selectedIndex
+                                    )
                                 }
                             }
                         }
                         ContactActions.TX -> {
-
-                            LazyColumn(
-                                state= scrollState,
-                                modifier = Modifier
-                                    // Apply the scrollbar first
-                                    .fillMaxSize()
-                                    .padding(start = 32.dp, end = 0.dp, top = 0.dp)
-                                    .verticalLazyListScrollbar(scrollState),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                item {
-                                    Spacer(Modifier.height(8.dp))
-                                }
-
-                                items(txList) { transfer ->
-                                    //TODO: Add real tx's
-                                    TXLog(logEntry = transfer)
-                                }
-
-
-                                item {
-                                    Spacer(Modifier.height(16.dp))
-                                }
-                            }
+                            TransactionLogScreen(
+                                scrollState,
+                                transactions
+                            )
                         }
                     }
             }
@@ -568,7 +594,7 @@ fun OverlayContactScreen(
                                         detectTapGestures {
                                             showConfirmation = false
                                             //TODO: Delete
-                                            onDone()
+                                            deleteGroup()
                                         }
                                     },
                                     style = TextStyle(
@@ -604,7 +630,7 @@ fun OverlayContactScreen(
                         ) {
 
                             //TODO: Delete Random Member
-                            Text("Do you want to remove ${"Random Member"} from the group?",
+                            Text("Do you want to remove ${selectedMember?.contact?.name} from the group?",
                                 style =
                                     TextStyle(
                                         textAlign = TextAlign.Center,
@@ -620,11 +646,11 @@ fun OverlayContactScreen(
                                     .padding(horizontal = 12.dp)
                                     .fillMaxWidth()
                             )
-                            Text("REMOVE ${"Random Member"}",
+                            Text("REMOVE ${selectedMember?.contact?.name}",
                                 modifier = Modifier.pointerInput(Unit){
                                     detectTapGestures {
                                         showConfirmation = false
-                                        onDone()
+                                        deleteMember(selectedMember)
                                     }
                                 },
                                 style = TextStyle(
@@ -682,7 +708,7 @@ fun OverlayContactScreen(
                                 modifier = Modifier.pointerInput(Unit){
                                     detectTapGestures {
                                         showConfirmation = false
-                                        onDone()
+                                        leaveGroup()
                                     }
                                 },
                                 style = TextStyle(
@@ -739,7 +765,7 @@ fun OverlayContactScreen(
                                 modifier = Modifier.pointerInput(Unit){
                                     detectTapGestures {
                                         showConfirmation = false
-                                        onDone()
+                                        deleteContact()
                                     }
                                 },
                                 style = TextStyle(
@@ -903,115 +929,7 @@ fun MemberItem(
     }
 }
 
-@Composable
-fun TXLog(
-    logoUrl: String = "",
-    logEntry : TransferItem
-) {
-    val decimalFormat = DecimalFormat("0.00").apply {
-        decimalFormatSymbols = DecimalFormatSymbols(Locale.US) // Forces the decimal point
-    }
 
-    //formating
-    val fromValue = if(logEntry.from.takeLast(4) == ".eth"){
-        logEntry.from
-    } else {
-        formatAddress(logEntry.from)
-    }
-
-    val toValue = if(logEntry.to.takeLast(4) == ".eth"){
-        logEntry.to
-    } else {
-        formatAddress(logEntry.to)
-    }
-
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-
-        if(logoUrl != ""){
-            //                TODO: Add Async Images
-
-//                    AsyncImage(
-//                        modifier = Modifier.padding(bottom = 2.dp).clip(CircleShape).size(32.dp),
-//                        model = "https://example.com/image.jpg",
-//                        contentDescription = "Translated description of what the image contains"
-//                    )
-
-        }else{
-            Image(
-                modifier = Modifier.size(24.dp),
-                painter = painterResource(org.ethereumhpone.chat.R.drawable.unknown_token),
-                contentDescription = "Ethereum"
-            )
-        }
-
-        //if the tx was sending something
-        if (logEntry.userSent) {
-
-            Text(
-                buildAnnotatedString {
-                    //append("Sent ")
-                    append("${abbreviateNumber(logEntry.value.toDouble())} ${logEntry.asset}")
-
-                    withStyle(
-                        style = SpanStyle(
-                            fontFamily = SpaceMono,
-                            color = dgenTurqoise,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            letterSpacing = 0.sp,
-                            textDecoration = TextDecoration.None
-                        )
-                    ) {
-                        append(" TO ")
-                    }
-
-                    append(toValue)
-                },
-                fontFamily = PitagonsSans,
-                color = dgenWhite,
-                fontWeight = FontWeight.Medium,
-                fontSize = 18.sp,
-                letterSpacing = 0.sp,
-                textDecoration = TextDecoration.None
-            )
-        }
-        else{
-            Text(
-
-                buildAnnotatedString {
-                    append("${abbreviateNumber(logEntry.value.toDouble())} ${logEntry.asset}")
-
-                    withStyle(style = SpanStyle(
-                        fontFamily = SpaceMono,
-                        color = dgenTurqoise,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        letterSpacing = 0.sp,
-                        textDecoration = TextDecoration.None
-                    )
-                    ) {
-                        append(" FROM ")
-                    }
-
-                    append(fromValue)
-                },
-                fontFamily = PitagonsSans,
-                color = dgenWhite,
-                fontWeight = FontWeight.Medium,
-                fontSize = 18.sp,
-                letterSpacing = 0.sp,
-                textDecoration = TextDecoration.None
-            )
-
-        }
-    }
-
-
-}
 
 
 
@@ -1019,7 +937,7 @@ fun TXLog(
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 fun OverlayContactScreenPreview(){
     OverlayContactScreen(
-        {}, {},
-        title = "TEST"
+        onBackClick = { },
+        recipientUiState = RecipientUiState.Success(emptyList())
     )
 }
