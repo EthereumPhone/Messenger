@@ -101,6 +101,8 @@ fun ChatRoute(
     val isInSelectionMode by mediaViewModel.isInSelectionMode.collectAsState()
     val selectedSet by mediaViewModel.selectedSet.collectAsState()*/
 
+    val selectedIndex by mediaViewModel.selectedIndex.collectAsState()
+
 
     ChatScreen(
         messageUiState = messagesUiState,
@@ -124,6 +126,11 @@ fun ChatRoute(
         onRemoveSelectedMessage = chatViewModel::removeSelectedMessage,
         onOpenContact = chatViewModel::onOpenContact,
         onAddSelectedMessage = chatViewModel::addSelectedMessage,
+        selectedIndex = selectedIndex,
+        nextMedia = mediaViewModel::next,
+        prevMedia = mediaViewModel::prev,
+        selectMedia = mediaViewModel::select ,
+
     )
 }
 
@@ -155,10 +162,11 @@ fun ChatScreen(
     onPrepareVideo: (Uri) -> Unit,
     onRemoveSelectedMessage: (Message) -> Unit,
     onAddSelectedMessage: (Message) -> Unit,
+    selectedIndex: Int = -1,
+    nextMedia: () -> Unit = {},
+    prevMedia: () -> Unit = {},
+    selectMedia: (Int) -> Unit = {},
 ) {
-
-
-
     val context = LocalContext.current
 
     //handle focus
@@ -168,7 +176,6 @@ fun ChatScreen(
     //gets offset of message composable
     val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
 
-
     val selectMode = remember { mutableStateOf(false) }
     val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
 
@@ -176,8 +183,6 @@ fun ChatScreen(
 
     var shouldRotate = remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
-
-
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -476,11 +481,9 @@ fun ChatScreen(
                             onSelectedItems = {  },
                         )*/
                     }
-
                     Actions.VIDEO -> {
                         //TODO: add Videopicker
                     }
-
                     Actions.CONTACT -> {
                         chatConversion?.isGroup?.let {
                             OverlayContactScreen(
@@ -489,9 +492,19 @@ fun ChatScreen(
                                     showPicker = false
                                     showOverlay.value = false
                                 },
-                                onDone = { },
                                 title = chatConversion.title.toString(),
-                                isGroup = it
+                                isGroup = it,
+                                media = media,
+                                transactions = emptyList(), //TODO: Add Transaction
+                                recipientUiState = recipientUiState,
+                                deleteGroup= {},
+                                leaveGroup = {},
+                                deleteContact= {},
+                                deleteMember= {},
+                                selectedIndex = selectedIndex,
+                                prev = prevMedia,
+                                next = nextMedia,
+                                select = selectMedia
                             )
                         }
                     }
