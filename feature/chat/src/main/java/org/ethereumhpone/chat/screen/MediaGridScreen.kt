@@ -50,12 +50,13 @@ fun MediaGridScreen(
     mediaItems: List<Attachment>,
     onMediaClick: (Attachment) -> Unit,
     isInSelectionMode: Boolean = false,
+    enableSelection: Boolean = true,
     selectedItems: Set<Attachment> = emptySet(),
-    toggleSelectionMode: () -> Unit,
-    selectAllMedia: () -> Unit,
-    clearSelections: () -> Unit,
-    onSelectionDone: () -> Unit,
-    onBack: () -> Unit,
+    toggleSelectionMode: () -> Unit = {},
+    selectAllMedia: () -> Unit = {},
+    clearSelections: () -> Unit = {},
+    onSelectionDone: () -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var selectedAll by remember { mutableStateOf(false) }
@@ -86,35 +87,36 @@ fun MediaGridScreen(
                     )
                 }
 
+                if(enableSelection){
+                    Crossfade(isInSelectionMode, modifier = Modifier.width(225.dp).animateContentSize()) { selectionOn ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (selectionOn) {
+                                dgenTextButton(
+                                    onClick = {
+                                        selectedAll = true
+                                        selectAllMedia()
+                                    },
+                                    text = "Select All",
+                                    fontColor = selectAllColor
+                                )
+                                dgenButton(
+                                    onClick = toggleSelectionMode,
+                                    text = "Close"
+                                )
+                            } else {
 
-                Crossfade(isInSelectionMode, modifier = Modifier.width(225.dp).animateContentSize()) { selectionOn ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (selectionOn) {
-                            dgenTextButton(
-                                onClick = {
-                                    selectedAll = true
-                                    selectAllMedia()
-                                },
-                                text = "Select All",
-                                fontColor = selectAllColor
-                            )
-                            dgenButton(
-                                onClick = toggleSelectionMode,
-                                text = "Close"
-                            )
-                        } else {
-
-                            dgenButton(
-                                onClick = toggleSelectionMode,
-                                text = "Select"
-                            )
+                                dgenButton(
+                                    onClick = toggleSelectionMode,
+                                    text = "Select"
+                                )
+                            }
                         }
-                    }
 
+                    }
                 }
             }
 
