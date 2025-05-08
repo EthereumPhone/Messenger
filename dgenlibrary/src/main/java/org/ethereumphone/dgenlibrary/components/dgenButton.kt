@@ -52,7 +52,7 @@ fun dgenButton(
         modifier = modifier
             .alpha(buttonAlpha)
             .pointerInput(Unit) {
-                detectTapGestures {
+                 detectTapGestures {
                     onClick()
                 }
             }

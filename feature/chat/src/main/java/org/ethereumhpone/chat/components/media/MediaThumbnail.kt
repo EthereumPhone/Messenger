@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -20,39 +21,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.example.dgenlibrary.ui.theme.dgenGray
 import com.example.dgenlibrary.ui.theme.dgenOcean
 import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import org.ethereumhpone.chat.util.GalleryMedia
 import org.ethereumhpone.chat.util.MediaType
+import org.ethereumhpone.domain.model.Attachment
 
 @Composable
 fun MediaThumbnail(
-    mediaItem: GalleryMedia,
-    onClick: () -> Unit,
-    isInSelectionMode: Boolean = false,
-    isSelected: Boolean = false
+    attachment: Attachment,
+    onClick: ()->Unit,
+    isInSelectionMode: Boolean,
+    isSelected: Boolean
 ) {
-    Box(
-        modifier = Modifier
-            .padding(4.dp)
-            .aspectRatio(1f)
-            .clickable(onClick = onClick)
-            .then(
-                if (isSelected) {
-                    Modifier.border(width = 3.dp, color = dgenTurqoise)
-                } else {
-                    Modifier
-                }
-            )
-    ) {
+    val uri = when(attachment){
+        is Attachment.Image -> attachment.getUri()
+        is Attachment.Video -> attachment.getUri()
+        is Attachment.Contact -> TODO()
+    }
+    Box(modifier=Modifier.padding(4.dp).aspectRatio(1f).clickable(onClick=onClick)
+        .then(if(isSelected) Modifier.border(3.dp, dgenTurqoise) else Modifier)){
         Image(
-            painter = rememberAsyncImagePainter(mediaItem.uri),
-            contentDescription = mediaItem.name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            painter=rememberAsyncImagePainter(uri),
+            contentDescription=null,
+            contentScale=ContentScale.Crop,
+            modifier=Modifier.fillMaxSize()
         )
-
-        if (mediaItem.type == MediaType.VIDEO) {
+        if(attachment is Attachment.Video){
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -72,32 +68,11 @@ fun MediaThumbnail(
                 )
             }
         }
-
-        // Selection indicator
-        if (isInSelectionMode) {
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .size(24.dp)
-                    .align(Alignment.TopEnd)
-                    .background(
-                        color = if (isSelected)
-                            dgenTurqoise
-                        else
-                            dgenOcean.copy(alpha = 0.7f),
-                        shape = CircleShape
-                    )
-            ) {
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint = dgenOcean,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .align(Alignment.Center)
-                    )
-                }
+        if(isInSelectionMode){
+            Box(modifier=Modifier.size(24.dp).align(Alignment.TopEnd).offset(-8.dp,8.dp).background(
+                if(isSelected) dgenTurqoise else dgenOcean, CircleShape
+            )){
+                if(isSelected) Icon(Icons.Default.Check,null,modifier=Modifier.align(Alignment.Center))
             }
         }
     }

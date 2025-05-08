@@ -64,6 +64,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
+import org.ethereumhpone.chat.components.ImageSelectionScreen
 import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.MessageItem
@@ -279,9 +280,7 @@ fun ChatScreen(
                         if (text.isNotBlank()) {
                             onSendMessageClicked(text)
                         }
-
                         attachments.clear()
-
                     },
                     hasMultipleLines = hasMultipleLines,
                     expand = expand,
@@ -436,7 +435,6 @@ fun ChatScreen(
             }
         )
 
-
         //TODO: Fix Action Picker
         AnimatedVisibility(
             visible = showPicker,
@@ -467,19 +465,17 @@ fun ChatScreen(
 
                         //}
                     }
-
                     Actions.PHOTO -> {
-                        //TODO: Fix Imagepicker
-                        /*
-                        ImageSelectionScreen(
+                        //TODO: Remove the MediaViewModel
+                        /*ImageSelectionScreen(
                             attachments = attachments,
                             onToggleAttachment = { attachment ->
                                 if (attachment in attachments) attachments.remove(attachment)
                                 else attachments.add(attachment)
                             },
-                            onDone = { showPicker = false }
-                        )
-                         */
+                            onBack = { showPicker = false },
+                            onSelectedItems = {  },
+                        )*/
                     }
 
                     Actions.VIDEO -> {
