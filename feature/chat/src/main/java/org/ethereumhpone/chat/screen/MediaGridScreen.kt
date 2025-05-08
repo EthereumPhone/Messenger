@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -83,12 +85,15 @@ fun MediaGridScreen(
                         tint = dgenTurqoise
                     )
                 }
-                Crossfade(isInSelectionMode) { selectionOn ->
-                    if (selectionOn) {
-                        Row(
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+
+
+                Crossfade(isInSelectionMode, modifier = Modifier.width(225.dp).animateContentSize()) { selectionOn ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (selectionOn) {
                             dgenTextButton(
                                 onClick = {
                                     selectedAll = true
@@ -101,13 +106,15 @@ fun MediaGridScreen(
                                 onClick = toggleSelectionMode,
                                 text = "Close"
                             )
+                        } else {
+
+                            dgenButton(
+                                onClick = toggleSelectionMode,
+                                text = "Select"
+                            )
                         }
-                    } else {
-                        dgenButton(
-                            onClick = toggleSelectionMode,
-                            text = "Select"
-                        )
                     }
+
                 }
             }
 
