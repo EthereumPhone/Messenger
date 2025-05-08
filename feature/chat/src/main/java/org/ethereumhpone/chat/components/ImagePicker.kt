@@ -93,13 +93,13 @@ fun ImageSelectionScreen(
     viewModel: MediaViewModel = viewModel(),
     attachments: List<Attachment>,
     onToggleAttachment: (Attachment) -> Unit,
-    onSelectedItems: () -> Unit,
+    onSelectedItems: (Int) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val mediaItems by viewModel.mediaItems.collectAsState()
+    val mediaItems by viewModel.mediaItems.collectAsState() //TODO: Replace with attachments
     val selectedIndex by viewModel.selectedIndex.collectAsState()
-    val selectedAttachment by viewModel.selectedAttachment.collectAsState()
+    //val selectedAttachment by viewModel.selectedAttachment.collectAsState()
     val isInSelectionMode by viewModel.isInSelectionMode.collectAsState()
     val selectedSet by viewModel.selectedSet.collectAsState()
 
@@ -151,7 +151,7 @@ fun ImageSelectionScreen(
                     permissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
                 }
             }
-        } else if (mediaItems.isEmpty()) {
+        } else if (mediaItems.isEmpty()) { //TODO: Replace with attachments
             // Loading indicator
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -162,14 +162,16 @@ fun ImageSelectionScreen(
             ) { openDetail ->
                 if(!openDetail){
                     MediaGridScreen(
-                        mediaItems = mediaItems,
+                        mediaItems = mediaItems, //TODO: Replace with attachments
                         onMediaClick = { att ->
                             if (isInSelectionMode) {
                                 // in “Select” mode, tapping toggles the item in the set
-                                viewModel.toggleSelect(att)
+                                viewModel.toggleSelect(att) //TODO: Remove
+                                onToggleAttachment(att)
                             } else {
                                 // otherwise open detail view
-                                viewModel.select(mediaItems.indexOf(att))
+                                viewModel.select(mediaItems.indexOf(att)) //TODO: Remove
+                                onSelectedItems(mediaItems.indexOf(att))
                                 hasDetailBeenOpened = true
                             }
                             //viewModel.select(mediaItems.indexOf(att))
@@ -179,8 +181,8 @@ fun ImageSelectionScreen(
                         toggleSelectionMode = { viewModel.toggleSelectionMode() },
                         selectAllMedia = { viewModel.selectAll() },
                         clearSelections = { viewModel.clearSelection() },
-                        refreshSelection = {},
-                        onBack = {}
+                        onBack = onBack,
+                        onSelectionDone = {}
                     )
                 }
                 else {

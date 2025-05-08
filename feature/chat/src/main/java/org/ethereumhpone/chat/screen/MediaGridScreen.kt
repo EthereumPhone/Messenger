@@ -54,7 +54,7 @@ fun MediaGridScreen(
     toggleSelectionMode: () -> Unit,
     selectAllMedia: () -> Unit,
     clearSelections: () -> Unit,
-    refreshSelection: () -> Unit,
+    onSelectionDone: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -133,7 +133,6 @@ fun MediaGridScreen(
                             attachment = item,
                             onClick = {
                                 onMediaClick(item)
-                                refreshSelection()
                             },
                             isInSelectionMode = isInSelectionMode,
                             isSelected = selectedItems.contains(item)
@@ -182,8 +181,8 @@ fun MediaGridScreen(
             ) {
                 dgenButton(
                     onClick = {
-                        Toast.makeText(context, "Select ${selectedItems.size} items", Toast.LENGTH_SHORT).show()
-                        refreshSelection()
+                        Toast.makeText(context, "onSelectionDone clicked", Toast.LENGTH_SHORT).show() // Select ${selectedItems.size} items
+                        onSelectionDone()
                     },
                     text = "Select ${selectedItems.size} items"
                 )
