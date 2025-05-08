@@ -41,34 +41,28 @@ import org.ethereumhpone.chat.util.GalleryMedia
 import org.ethereumphone.dgenlibrary.components.dgenButton
 import org.ethereumphone.dgenlibrary.components.dgenTextButton
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.domain.model.Attachment
 
 @Composable
 fun MediaGridScreen(
-    mediaItems: List<GalleryMedia>,
-    onMediaClick: (GalleryMedia) -> Unit,
+    mediaItems: List<Attachment>,
+    onMediaClick: (Attachment) -> Unit,
     isInSelectionMode: Boolean = false,
-    selectedItems: Set<GalleryMedia> = emptySet(),
-    selectedUris: List<Uri>,
+    selectedItems: Set<Attachment> = emptySet(),
     toggleSelectionMode: () -> Unit,
     selectAllMedia: () -> Unit,
     clearSelections: () -> Unit,
     refreshSelection: () -> Unit,
-    onSelectedItems: () -> Unit,
     onBack: () -> Unit,
 ) {
-
     val context = LocalContext.current
     var selectedAll by remember { mutableStateOf(false) }
     val selectAllColor by animateColorAsState(
-        if (selectedAll) dgenTurqoise else dgenTurqoise.copy(0.5f),
-        tween(300),
-        label = "color"
+        if (selectedAll) dgenTurqoise else dgenTurqoise.copy(alpha = 0.5f),
+        tween(300)
     )
 
-    var selectedAmount by remember { mutableStateOf(0) }
-
-
-    Box(modifier = Modifier.fillMaxSize()){
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .background(dgenBlack)
@@ -82,26 +76,19 @@ fun MediaGridScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier,
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            painter = painterResource(R.drawable.backicon),
-                            contentDescription = "BackButton",
-                            modifier = Modifier.size(24.dp),
-                            tint = dgenTurqoise
-                        )
-                    }
+                IconButton(onClick = onBack) {
+                    Icon(
+                        painter = painterResource(R.drawable.backicon),
+                        contentDescription = "Back",
+                        tint = dgenTurqoise
+                    )
                 }
-                Crossfade(isInSelectionMode, modifier = Modifier) { isSelectionOn ->
-                    if(isSelectionOn){
-                        Row (
-                            modifier = Modifier.fillMaxWidth(),
+                Crossfade(isInSelectionMode) { selectionOn ->
+                    if (selectionOn) {
+                        Row(
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
-                        ){
+                        ) {
                             dgenTextButton(
                                 onClick = {
                                     selectedAll = true
@@ -116,16 +103,10 @@ fun MediaGridScreen(
                             )
                         }
                     } else {
-                        Row (
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ){
-                            dgenButton(
-                                onClick = toggleSelectionMode,
-                                text = "Select"
-                            )
-                        }
+                        dgenButton(
+                            onClick = toggleSelectionMode,
+                            text = "Select"
+                        )
                     }
                 }
             }
@@ -136,22 +117,15 @@ fun MediaGridScreen(
                     .background(dgenBlack)
             ) {
                 LazyVerticalGrid(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(dgenBlack),
                     columns = GridCells.Adaptive(minSize = 120.dp),
-                    contentPadding = PaddingValues(4.dp)
+                    contentPadding = PaddingValues(4.dp),
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     items(mediaItems) { item ->
                         MediaThumbnail(
-                            mediaItem = item,
+                            attachment = item,
                             onClick = {
                                 onMediaClick(item)
-                                if(selectedItems.contains(item)){
-                                    selectedAmount--
-                                }else{
-                                    selectedAmount++
-                                }
                                 refreshSelection()
                             },
                             isInSelectionMode = isInSelectionMode,
@@ -160,38 +134,38 @@ fun MediaGridScreen(
                     }
                 }
 
-
+                // top fade
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(16.dp)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(dgenBlack, Color.Transparent)
+                                listOf(dgenBlack, Color.Transparent)
                             )
                         )
                         .align(Alignment.TopCenter)
                 )
-
-                // 3) the bottom fade
+                // bottom fade
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(16.dp)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, dgenBlack)
+                                listOf(Color.Transparent, dgenBlack)
                             )
                         )
                         .align(Alignment.BottomCenter)
                 )
             }
         }
+
         AnimatedVisibility(
-            isInSelectionMode && selectedItems.isNotEmpty(),
+            visible = isInSelectionMode && selectedItems.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.BottomCenter),
+                .align(Alignment.BottomCenter)
         ) {
             Row(
                 modifier = Modifier
@@ -199,17 +173,13 @@ fun MediaGridScreen(
                     .padding(bottom = 48.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Example actions for selected items
-
                 dgenButton(
                     onClick = {
-                        //Toast.makeText(context,"Select ${selectedUris.size} items", Toast.LENGTH_SHORT).show()
-                        //refreshSelection()
-                        onSelectedItems
+                        Toast.makeText(context, "Select ${selectedItems.size} items", Toast.LENGTH_SHORT).show()
+                        refreshSelection()
                     },
-                    text = "Select ${selectedAmount} items"
+                    text = "Select ${selectedItems.size} items"
                 )
-
                 dgenButton(
                     onClick = {
                         selectedAll = false
