@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -39,6 +40,7 @@ import org.ethereumhpone.chat.components.media.VideoPage
 import org.ethereumhpone.chat.util.GalleryMedia
 import org.ethereumhpone.chat.util.MediaType
 import org.ethereumhpone.chat.R
+import org.ethereumhpone.domain.model.Attachment
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -46,25 +48,18 @@ fun MediaDetailScreen(
     onBack: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
-    allMedia: List<GalleryMedia>,
+    allMedia: List<Attachment>,
     currentIndex: Int
 ) {
     val context = LocalContext.current
     val pagerState = rememberPagerState(initialPage = currentIndex) { allMedia.size }
 
-    // Keep external state updated with the pager
+    // Sync external navigation with pager
     LaunchedEffect(pagerState.currentPage) {
         if (pagerState.currentPage != currentIndex) {
-            // We need to update the current media based on the pager position
-            if (pagerState.currentPage > currentIndex) {
-                onNext()
-            } else if (pagerState.currentPage < currentIndex) {
-                onPrevious()
-            }
+            if (pagerState.currentPage > currentIndex) onNext() else onPrevious()
         }
     }
-
-    // Update pager when external state changes
     LaunchedEffect(currentIndex) {
         if (pagerState.currentPage != currentIndex) {
             pagerState.animateScrollToPage(currentIndex)
@@ -81,12 +76,11 @@ fun MediaDetailScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
-        ){
+        ) {
             IconButton(onClick = onBack) {
                 Icon(
                     painter = painterResource(R.drawable.backicon),
-                    contentDescription = "BackButton",
-                    modifier = Modifier.size(24.dp),
+                    contentDescription = "Back",
                     tint = dgenTurqoise
                 )
             }
@@ -100,62 +94,42 @@ fun MediaDetailScreen(
                     lineHeight = 24.sp,
                     letterSpacing = 0.sp,
                     textDecoration = TextDecoration.None
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .widthIn(min = 10.dp, max = 250.dp)
+                )
             )
-            IconButton(onClick = {  }) {
+            IconButton(modifier = Modifier.alpha(0f), onClick = { /* More actions */ }) {
                 Icon(
                     imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "BackButton",
-                    modifier = Modifier.size(24.dp),
-                    tint = dgenTurqoise
+                    contentDescription = "More",
+                    tint = Color.Transparent
                 )
             }
-            //Spacer(modifier = Modifier.weight(1f))
-
-            // Additional actions for the media item could go here
-            // For example, share, delete, etc.
-
         }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .background(dgenBlack)
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier
-                    .background(dgenBlack)
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) { page ->
-                val pageMediaItem = allMedia[page]
-
-                when (pageMediaItem.type) {
-                    MediaType.IMAGE -> {
-
-                        /*LaunchedEffect(page) {
-                            isVideoPlaying = false
-                        }*/
+                when (val item = allMedia[page]) {
+                    is Attachment.Image -> {
                         Image(
-                            painter = rememberAsyncImagePainter(pageMediaItem.uri),
-                            contentDescription = pageMediaItem.name,
+                            painter = rememberAsyncImagePainter(item.getUri()),
+                            contentDescription = null,
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
-                    MediaType.VIDEO -> {
-                        //isVideoPlaying = true
+                    is Attachment.Video -> {
                         VideoPage(
-                            uri = pageMediaItem.uri,
-                            onIsPlayingChanged = { playing ->
-                                isVideoPlaying = playing
-                            },
+                            video = item,
+                            onIsPlayingChanged = { playing -> isVideoPlaying = playing },
                             modifier = Modifier
                         )
-                        // now you can react to `playing`, e.g. overlay a play icon
                         if (!isVideoPlaying) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
@@ -167,9 +141,10 @@ fun MediaDetailScreen(
                             )
                         }
                     }
+
+                    is Attachment.Contact -> TODO()
                 }
             }
         }
-
     }
 }
