@@ -1,6 +1,7 @@
-package org.ethereumhpone.chat.components
+package org.ethereumhpone.chat.screen
 
 import android.Manifest
+import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.pm.PackageManager
 import android.os.Build
@@ -53,27 +54,34 @@ import com.example.dgenlibrary.ui.theme.dgenBlack
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.MediaViewModel
-import org.ethereumhpone.chat.screen.MediaDetailScreen
-import org.ethereumhpone.chat.screen.MediaGridScreen
-import org.ethereumhpone.chat.screen.PermissionScreen
 import org.ethereumhpone.domain.model.Attachment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageSelectionScreen(
-    viewModel: MediaViewModel = viewModel(),
-    attachments: List<Attachment>,
+    //viewModel: MediaViewModel = viewModel(),
     showImages: Boolean = true,
-    onToggleAttachment: (Attachment) -> Unit,
-    onSelectedItems: (Int) -> Unit,
+    loadMedia: (ContentResolver) -> Unit,
+    toggleSelect: (Attachment) -> Unit,
+    selectAttachment: (Int) -> Unit,
+    clearSelection: () -> Unit,
+    toggleSelectionMode: () -> Unit,
+    selectAll: () -> Unit,
+    next: () -> Unit,
+    prev: () -> Unit,
+    mediaItems: List<Attachment>,
+    selectedIndex: Int,
+    selectedSet: Set<Attachment>,
+    isInSelectionMode: Boolean,
+
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val mediaItems by viewModel.mediaItems.collectAsState() //TODO: Replace with attachments
-    val selectedIndex by viewModel.selectedIndex.collectAsState()
+    //val mediaItems by viewModel.mediaItems.collectAsState() //TODO: Replace with attachments
+    //val selectedIndex by viewModel.selectedIndex.collectAsState()
     //val selectedAttachment by viewModel.selectedAttachment.collectAsState()
-    val isInSelectionMode by viewModel.isInSelectionMode.collectAsState()
-    val selectedSet by viewModel.selectedSet.collectAsState()
+    //val isInSelectionMode by viewModel.isInSelectionMode.collectAsState()
+    //val selectedSet by viewModel.selectedSet.collectAsState()
 
     // Permission state
     var hasPermission by remember { mutableStateOf(false) }
@@ -104,7 +112,7 @@ fun ImageSelectionScreen(
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ) == PackageManager.PERMISSION_GRANTED
         }
-        if (hasPermission) viewModel.loadMedia(context.contentResolver)
+        if (hasPermission) loadMedia(context.contentResolver)
     }
 
     // Launcher for permission request
@@ -112,7 +120,7 @@ fun ImageSelectionScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
         hasPermission = results.values.all { it }
-        if (hasPermission) viewModel.loadMedia(context.contentResolver)
+        if (hasPermission) loadMedia(context.contentResolver)
     }
 
     Box(modifier = Modifier.fillMaxSize().imePadding().background(dgenBlack)) {
@@ -144,21 +152,21 @@ fun ImageSelectionScreen(
                         onMediaClick = { att ->
                             if (isInSelectionMode) {
                                 // in “Select” mode, tapping toggles the item in the set
-                                viewModel.toggleSelect(att) //TODO: Remove
-                                onToggleAttachment(att)
+                                //viewModel.toggleSelect(att) //TODO: Remove
+                                toggleSelect(att)
                             } else {
                                 // otherwise open detail view
-                                viewModel.select(filtered.indexOf(att)) //TODO: Remove
-                                onSelectedItems(filtered.indexOf(att))
+                                //viewModel.select(filtered.indexOf(att)) //TODO: Remove
+                                selectAttachment(filtered.indexOf(att))
                                 hasDetailBeenOpened = true
                             }
                             //viewModel.select(mediaItems.indexOf(att))
                         },
                         isInSelectionMode = isInSelectionMode,
                         selectedItems = selectedSet,
-                        toggleSelectionMode = { viewModel.toggleSelectionMode() },
-                        selectAllMedia = { viewModel.selectAll() },
-                        clearSelections = { viewModel.clearSelection() },
+                        toggleSelectionMode = toggleSelectionMode,
+                        selectAllMedia = selectAll,
+                        clearSelections = clearSelection,
                         onBack = onBack,
                         onSelectionDone = {}
                     )
@@ -169,12 +177,11 @@ fun ImageSelectionScreen(
                             hasDetailBeenOpened = false
                             coroutinescope.launch {
                                 delay(500)
-                                viewModel.select(-1)
+                                selectAttachment(-1)
                             }
-
                         },
-                        onNext = { viewModel.next() },
-                        onPrevious = { viewModel.prev() },
+                        onNext = next,
+                        onPrevious = prev,
                         allMedia = filtered,
                         currentIndex = selectedIndex
                     )

@@ -74,8 +74,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 ): ViewModel() {
 
 
-
-
     // nav arguments
     private val threadId = ThreadIdArgs(savedStateHandle).threadId ?: ""
     private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
