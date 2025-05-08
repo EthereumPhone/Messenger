@@ -18,36 +18,44 @@ import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerView
+import org.ethereumhpone.domain.model.Attachment
 
 @Composable
 fun VideoPage(
-    uri: Uri,
+    video: Attachment.Video,
     modifier: Modifier = Modifier,
     aspect: Float = 16f/9f,
     onIsPlayingChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
+    val uri = video.getUri()
 
     // build & configure ExoPlayer once per URI
     val exoPlayer = remember(uri) {
         ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(uri))
-            prepare()
-            playWhenReady = true
+            if (uri != null){
+                setMediaItem(MediaItem.fromUri(uri))
+                prepare()
+                playWhenReady = true
 
-            // notify parent immediately of the initial state
-            onIsPlayingChanged(isPlaying)
+                // notify parent immediately of the initial state
+                onIsPlayingChanged(isPlaying)
 
-            addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlayingNow: Boolean) {
-                    onIsPlayingChanged(isPlayingNow)
-                }
-            })
+                addListener(object : Player.Listener {
+                    override fun onIsPlayingChanged(isPlayingNow: Boolean) {
+                        onIsPlayingChanged(isPlayingNow)
+                    }
+                })
+            }
+
         }
     }
 
     DisposableEffect(uri) {
-        onDispose { exoPlayer.release() }
+        onDispose {
+            onIsPlayingChanged(false)
+            exoPlayer.release()
+        }
     }
 
     Box(
@@ -61,9 +69,7 @@ fun VideoPage(
             factory = { ctx ->
                 StyledPlayerView(ctx).apply {
                     player = exoPlayer
-                    //useController = true
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    //resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 }
             },
             modifier = Modifier.matchParentSize()
