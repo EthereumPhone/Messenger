@@ -3,55 +3,35 @@ package org.ethereumhpone.chat.components
 import android.Manifest
 import android.content.ContentUris
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircleOutline
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -65,19 +45,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.MediaViewModel
@@ -85,13 +57,13 @@ import org.ethereumhpone.chat.screen.MediaDetailScreen
 import org.ethereumhpone.chat.screen.MediaGridScreen
 import org.ethereumhpone.chat.screen.PermissionScreen
 import org.ethereumhpone.domain.model.Attachment
-import org.ethereumphone.dgenlibrary.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageSelectionScreen(
     viewModel: MediaViewModel = viewModel(),
     attachments: List<Attachment>,
+    showImages: Boolean = true,
     onToggleAttachment: (Attachment) -> Unit,
     onSelectedItems: (Int) -> Unit,
     onBack: () -> Unit
@@ -108,6 +80,12 @@ fun ImageSelectionScreen(
     var hasDetailBeenOpened by remember { mutableStateOf(false) }
 
     var coroutinescope = rememberCoroutineScope()
+
+    val filtered = if (showImages) {
+        mediaItems.filterIsInstance<Attachment.Image>()
+    } else {
+        mediaItems.filterIsInstance<Attachment.Video>()
+    }
 
     // Check permissions on launch
     LaunchedEffect(Unit) {
@@ -151,7 +129,7 @@ fun ImageSelectionScreen(
                     permissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
                 }
             }
-        } else if (mediaItems.isEmpty()) { //TODO: Replace with attachments
+        } else if (filtered.isEmpty()) { //TODO: Replace with attachments
             // Loading indicator
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -162,7 +140,7 @@ fun ImageSelectionScreen(
             ) { openDetail ->
                 if(!openDetail){
                     MediaGridScreen(
-                        mediaItems = mediaItems, //TODO: Replace with attachments
+                        mediaItems = filtered, //TODO: Replace with attachments
                         onMediaClick = { att ->
                             if (isInSelectionMode) {
                                 // in “Select” mode, tapping toggles the item in the set
@@ -170,8 +148,8 @@ fun ImageSelectionScreen(
                                 onToggleAttachment(att)
                             } else {
                                 // otherwise open detail view
-                                viewModel.select(mediaItems.indexOf(att)) //TODO: Remove
-                                onSelectedItems(mediaItems.indexOf(att))
+                                viewModel.select(filtered.indexOf(att)) //TODO: Remove
+                                onSelectedItems(filtered.indexOf(att))
                                 hasDetailBeenOpened = true
                             }
                             //viewModel.select(mediaItems.indexOf(att))
@@ -197,7 +175,7 @@ fun ImageSelectionScreen(
                         },
                         onNext = { viewModel.next() },
                         onPrevious = { viewModel.prev() },
-                        allMedia = mediaItems,
+                        allMedia = filtered,
                         currentIndex = selectedIndex
                     )
                 }
