@@ -28,6 +28,7 @@ import kotlin.collections.toMutableSet
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import org.ethereumhpone.domain.model.Attachment
 
 
 internal const val VideoUriArg = "videoUris"
@@ -38,195 +39,79 @@ class MediaViewModel @Inject constructor(
     val exoPlayer: ExoPlayer
 ): ViewModel()  {
 
-    private val _selectedUris = mutableStateListOf<Uri>()
-    val selectedUris: List<Uri> get() = _selectedUris
+    private val _items = MutableStateFlow<List<Attachment>>(emptyList())
+    val mediaItems: StateFlow<List<Attachment>> = _items
 
-    // Media items as StateFlow
-    private val _mediaItems = MutableStateFlow<List<GalleryMedia>>(emptyList())
-    val mediaItems: StateFlow<List<GalleryMedia>> = _mediaItems
+    private val _selectedIndex = MutableStateFlow(-1)
+    val selectedIndex: StateFlow<Int> = _selectedIndex
 
-    // Currently selected media index
-    private val _selectedMediaIndex = MutableStateFlow(-1)
-    val selectedMediaIndex: StateFlow<Int> = _selectedMediaIndex
+    val selectedAttachment: StateFlow<Attachment?> = combine(_items, _selectedIndex) { list, idx ->
+        list.getOrNull(idx)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // Derived currently selected media (or null)
-    val selectedMedia: StateFlow<GalleryMedia?> = combine(
-        _mediaItems,
-        _selectedMediaIndex
-    ) { items, index ->
-        items.getOrNull(index)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = null
-    )
+    private val _selectionMode = MutableStateFlow(false)
+    val isInSelectionMode: StateFlow<Boolean> = _selectionMode
 
-    // Multi-selection set
-    private val _selectedMediaItems = MutableStateFlow<Set<GalleryMedia>>(emptySet())
-    val selectedMediaItems: StateFlow<Set<GalleryMedia>> = _selectedMediaItems
+    private val _selectedSet = MutableStateFlow<Set<Attachment>>(emptySet())
+    val selectedSet: StateFlow<Set<Attachment>> = _selectedSet
 
-    // Selection mode flag
-    private val _isInSelectionMode = MutableStateFlow(false)
-    val isInSelectionMode: StateFlow<Boolean> = _isInSelectionMode
-
-    // Load media asynchronously
-    fun loadMediaFromDevice(contentResolver: ContentResolver) {
+    fun loadMedia(resolver: ContentResolver) {
         viewModelScope.launch {
-            _mediaItems.value = loadMediaItems(contentResolver)
+            _items.value = fetchAttachments(resolver)
         }
     }
 
-    fun selectMedia(item: GalleryMedia) {
-        if (_isInSelectionMode.value) {
-            toggleItemSelection(item)
-        } else {
-            val index = _mediaItems.value.indexOf(item)
-            if (index != -1) _selectedMediaIndex.value = index
-        }
-    }
-
-    fun navigateToNextMedia() {
-        _mediaItems.value.takeIf { it.isNotEmpty() }?.let {
-            _selectedMediaIndex.value = (_selectedMediaIndex.value + 1) % it.size
-        }
-    }
-
-    fun navigateToPreviousMedia() {
-        _mediaItems.value.takeIf { it.isNotEmpty() }?.let { items ->
-            _selectedMediaIndex.value = if (_selectedMediaIndex.value <= 0)
-                items.lastIndex
-            else
-                _selectedMediaIndex.value - 1
-        }
-    }
-
-    fun toggleSelectionMode() {
-        _isInSelectionMode.value = !_isInSelectionMode.value
-        if (!_isInSelectionMode.value) _selectedMediaItems.value = emptySet()
-    }
-
-    fun toggleItemSelection(item: GalleryMedia) {
-        val current = _selectedMediaItems.value.toMutableSet()
-        if (current.remove(item).not()) current.add(item)
-        _selectedMediaItems.value = current
-        if (current.isEmpty()) _isInSelectionMode.value = false
-    }
-
-    fun selectAllMedia() {
-        _selectedMediaItems.value = _mediaItems.value.toSet()
-    }
-
-    fun clearSelections() {
-        _selectedMediaItems.value = emptySet()
-    }
-
-    fun clearSelectedMedia() {
-        _selectedMediaIndex.value = -1
-    }
-
-    fun refreshSelection() {
-        _selectedUris.apply {
-            clear()
-            addAll(_selectedMediaItems.value.map { it.uri })
-        }
-    }
-
-    // Get URIs from selected items
-    fun getSelectedMediaUris(): List<Uri> =
-        _selectedMediaItems.value.map { it.uri }
-
-    private suspend fun loadMediaItems(contentResolver: ContentResolver): List<GalleryMedia> {
-        return withContext(Dispatchers.IO) {
-            val mediaItems = mutableListOf<GalleryMedia>()
-
-            // Query for images
-            val imageProjection = arrayOf(
-                MediaStore.Images.Media._ID,
-                MediaStore.Images.Media.DISPLAY_NAME,
-                MediaStore.Images.Media.DATE_ADDED
-            )
-
-            val imageSelection = "${MediaStore.Images.Media.SIZE} > 0"
-
-            val imageQueryUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    private suspend fun fetchAttachments(resolver: ContentResolver): List<Attachment> =
+        withContext(Dispatchers.IO) {
+            val output = mutableListOf<Attachment>()
+            // Images
+            val imgProj = arrayOf(MediaStore.Images.Media._ID, MediaStore.Images.Media.MIME_TYPE, MediaStore.Images.Media.DATE_ADDED)
+            val imgUri = if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.Q)
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-            } else {
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            }
+            else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
 
-            contentResolver.query(
-                imageQueryUri,
-                imageProjection,
-                imageSelection,
-                null,
-                "${MediaStore.Images.Media.DATE_ADDED} DESC"
-            )?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
-
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idColumn)
-                    val name = cursor.getString(nameColumn)
-                    val dateAdded = cursor.getLong(dateAddedColumn)
-
-                    val contentUri = ContentUris.withAppendedId(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        id
-                    )
-
-                    val item = GalleryMedia(id, contentUri, name, MediaType.IMAGE, dateAdded)
-                    mediaItems.add(item)
+            resolver.query(imgUri, imgProj, "${MediaStore.Images.Media.SIZE}>0", null,
+                "${MediaStore.Images.Media.DATE_ADDED} DESC")?.use { cursor ->
+                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+                val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+                val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+                while(cursor.moveToNext()){
+                    val id = cursor.getLong(idCol)
+                    val mime = cursor.getString(mimeCol)
+                    val date = cursor.getLong(dateCol)
+                    val contentUri = ContentUris.withAppendedId(imgUri, id)
+                    output += Attachment.Image(contentUri, null, date) //TODO: Add MIME Detection
                 }
             }
-
-            // Query for videos
-            val videoProjection = arrayOf(
-                MediaStore.Video.Media._ID,
-                MediaStore.Video.Media.DISPLAY_NAME,
-                MediaStore.Video.Media.DATE_ADDED
-            )
-
-            val videoSelection = "${MediaStore.Video.Media.SIZE} > 0"
-
-            val videoQueryUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Videos
+            val vidProj = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.DURATION, MediaStore.Video.Media.DATE_ADDED)
+            val vidUri = if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.Q)
                 MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-            } else {
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-            }
+            else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
 
-            contentResolver.query(
-                videoQueryUri,
-                videoProjection,
-                videoSelection,
-                null,
-                "${MediaStore.Video.Media.DATE_ADDED} DESC"
-            )?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
-                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
-                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
-
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idColumn)
-                    val name = cursor.getString(nameColumn)
-                    val dateAdded = cursor.getLong(dateAddedColumn)
-
-                    val contentUri = ContentUris.withAppendedId(
-                        MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                        id
-                    )
-
-                    val item = GalleryMedia(id, contentUri, name, MediaType.VIDEO, dateAdded)
-                    mediaItems.add(item)
+            resolver.query(vidUri, vidProj, "${MediaStore.Video.Media.SIZE}>0", null,
+                "${MediaStore.Video.Media.DATE_ADDED} DESC")?.use { cursor->
+                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                val durCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+                val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+                while(cursor.moveToNext()){
+                    val id = cursor.getLong(idCol)
+                    val dur = cursor.getLong(durCol)
+                    val date = cursor.getLong(dateCol)
+                    val contentUri = ContentUris.withAppendedId(vidUri, id)
+                    output += Attachment.Video(contentUri, dur, date)
                 }
             }
-
-            // Sort all items by date added
-            mediaItems.sortByDescending { it.dateAdded }
-            mediaItems
+            output
         }
-    }
 
+    fun select(idx: Int) { _selectedIndex.value = idx }
+    fun next() { _items.value.takeIf { it.isNotEmpty() }?.let { _selectedIndex.value = (_selectedIndex.value+1)%it.size } }
+    fun prev() { _items.value.takeIf{it.isNotEmpty()}?.let{ _selectedIndex.value = if(_selectedIndex.value<=0) it.lastIndex else _selectedIndex.value-1 } }
+    fun toggleSelectionMode() { _selectionMode.value = !_selectionMode.value; if(!_selectionMode.value) _selectedSet.value=emptySet() }
+    fun toggleSelect(att: Attachment) { val s=_selectedSet.value.toMutableSet(); if(!s.remove(att)) s+=att; _selectedSet.value=s; if(s.isEmpty()) _selectionMode.value=false }
+    fun selectAll() { _selectedSet.value=_items.value.toSet() }
+    fun clearSelection() { _selectedSet.value=emptySet() }
 
     init {
         exoPlayer.prepare()

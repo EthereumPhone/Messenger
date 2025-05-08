@@ -98,18 +98,18 @@ fun ImageSelectionScreen(
 ) {
     val context = LocalContext.current
     val mediaItems by viewModel.mediaItems.collectAsState()
-    val selectedIndex by viewModel.selectedMediaIndex.collectAsState()
-    val selectedMedia by viewModel.selectedMedia.collectAsState()
+    val selectedIndex by viewModel.selectedIndex.collectAsState()
+    val selectedAttachment by viewModel.selectedAttachment.collectAsState()
     val isInSelectionMode by viewModel.isInSelectionMode.collectAsState()
-    val selectedMediaItems by viewModel.selectedMediaItems.collectAsState()
-    val selectedUris by remember { derivedStateOf { viewModel.selectedUris } }
-
+    val selectedSet by viewModel.selectedSet.collectAsState()
 
     // Permission state
-    var hasPermission by remember { mutableStateOf(true) }
-    var openMediaDetail by remember { mutableStateOf(false) }
+    var hasPermission by remember { mutableStateOf(false) }
+    var hasDetailBeenOpened by remember { mutableStateOf(false) }
 
-    // Check if permission is already granted
+    var coroutinescope = rememberCoroutineScope()
+
+    // Check permissions on launch
     LaunchedEffect(Unit) {
         hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
@@ -126,36 +126,19 @@ fun ImageSelectionScreen(
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ) == PackageManager.PERMISSION_GRANTED
         }
-
-        if (hasPermission) {
-            viewModel.loadMediaFromDevice(context.contentResolver)
-        }
+        if (hasPermission) viewModel.loadMedia(context.contentResolver)
     }
 
-    // Permission launcher
+    // Launcher for permission request
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions[Manifest.permission.READ_MEDIA_IMAGES] == true &&
-                    permissions[Manifest.permission.READ_MEDIA_VIDEO] == true
-        } else {
-            permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
-        }
-
-        if (hasPermission) {
-            viewModel.loadMediaFromDevice(context.contentResolver)
-        }
+    ) { results ->
+        hasPermission = results.values.all { it }
+        if (hasPermission) viewModel.loadMedia(context.contentResolver)
     }
 
-    val coroutineScope = rememberCoroutineScope()
-
-
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .imePadding()
-    ) {
-        if(!hasPermission){
+    Box(modifier = Modifier.fillMaxSize().imePadding().background(dgenBlack)) {
+        if (!hasPermission) {
             PermissionScreen {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     permissionLauncher.launch(
@@ -165,71 +148,56 @@ fun ImageSelectionScreen(
                         )
                     )
                 } else {
-                    permissionLauncher.launch(
-                        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    )
+                    permissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
                 }
             }
-        } else{
-            AnimatedContent(
-                mediaItems.isEmpty(),
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(300, 300)) togetherWith
-                            fadeOut(animationSpec = tween(300))
+        } else if (mediaItems.isEmpty()) {
+            // Loading indicator
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            Crossfade(
+                hasDetailBeenOpened
+            ) { openDetail ->
+                if(!openDetail){
+                    MediaGridScreen(
+                        mediaItems = mediaItems,
+                        onMediaClick = { att ->
+                            if (isInSelectionMode) {
+                                // in “Select” mode, tapping toggles the item in the set
+                                viewModel.toggleSelect(att)
+                            } else {
+                                // otherwise open detail view
+                                viewModel.select(mediaItems.indexOf(att))
+                                hasDetailBeenOpened = true
+                            }
+                            //viewModel.select(mediaItems.indexOf(att))
+                        },
+                        isInSelectionMode = isInSelectionMode,
+                        selectedItems = selectedSet,
+                        toggleSelectionMode = { viewModel.toggleSelectionMode() },
+                        selectAllMedia = { viewModel.selectAll() },
+                        clearSelections = { viewModel.clearSelection() },
+                        refreshSelection = {},
+                        onBack = {}
+                    )
                 }
-            ) { isMediaEmpty ->
-                if (!isMediaEmpty){
-                    Crossfade(
-                        openMediaDetail,//selectedMedia != null,
-                        animationSpec = tween(300, 300)
-                        /*transitionSpec = {
-                            fadeIn(animationSpec = tween(300, 300)) togetherWith
-                                    fadeOut(animationSpec = tween(300))
-                        }*/
-                    ) { isMediaSelected ->
-                        if (!isMediaSelected) {
-                            MediaGridScreen(
-                                mediaItems = mediaItems,
-                                onMediaClick = {
+                else {
+                    MediaDetailScreen(
+                        onBack = {
+                            hasDetailBeenOpened = false
+                            coroutinescope.launch {
+                                delay(500)
+                                viewModel.select(-1)
+                            }
 
-                                    openMediaDetail = true
-                                    viewModel.selectMedia(it)
-                                },
-                                isInSelectionMode = isInSelectionMode,
-                                selectedItems = selectedMediaItems,
-                                toggleSelectionMode = viewModel::toggleSelectionMode,
-                                selectAllMedia = viewModel::selectAllMedia,
-                                onBack = onBack,
-                                clearSelections = viewModel::clearSelections,
-                                refreshSelection = viewModel::refreshSelection,
-                                selectedUris = selectedUris,
-                                onSelectedItems = {
-
-                                }
-                            )
-                        } else {
-                            MediaDetailScreen(
-                                onBack      = {
-                                    openMediaDetail = false
-                                    coroutineScope.launch {
-                                        delay(500)            // wait half a second
-                                        viewModel.clearSelectedMedia()
-                                    }
-                                },
-                                onNext      = { viewModel.navigateToNextMedia() },
-                                onPrevious  = { viewModel.navigateToPreviousMedia() },
-                                allMedia    = mediaItems,
-                                currentIndex= selectedIndex
-                            )
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                        },
+                        onNext = { viewModel.next() },
+                        onPrevious = { viewModel.prev() },
+                        allMedia = mediaItems,
+                        currentIndex = selectedIndex
+                    )
                 }
             }
         }
