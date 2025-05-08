@@ -1,5 +1,7 @@
 package org.ethereumhpone.messenger
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.role.RoleManager
 import android.content.Intent
 import android.database.ContentObserver
@@ -18,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.KeyUtil
 import org.ethereumhpone.data.manager.XmtpClientManager
+import org.ethereumhpone.data.services.XmtpMessageStreamService
 import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.NetworkManager
@@ -76,6 +80,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         var uiState: MainActivityUiState by mutableStateOf(MainActivityUiState.Loading)
+
+
+
 
         //update ui state
 
@@ -144,7 +151,7 @@ class MainActivity : ComponentActivity() {
             }
 
             syncRepository.syncXmtp()
-            syncRepository.startStream()
+            //syncRepository.startStream()
         }
 
         var inputAddress: String? = null

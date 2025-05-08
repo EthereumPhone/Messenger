@@ -111,6 +111,13 @@ object AppModule {
     }
 
 
+    @Singleton
+    @Provides
+    fun provideCoroutineScope(
+    ): XMTPConversationHandler {
+        return XMTPConversationHandler()
+    }
+
 
 }
 

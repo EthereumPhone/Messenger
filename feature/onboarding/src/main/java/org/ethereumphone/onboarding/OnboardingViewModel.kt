@@ -74,10 +74,11 @@ class OnboardingViewModel @Inject constructor(
                     }
 
                     xmtpClientManager.createClient(walletSDK , context)
+
+                    _syncState.value = SyncState.Success
                 } catch (exception: Exception) {
                     _syncState.value = SyncState.Error(exception.localizedMessage ?: "Error")
                 }
-                _syncState.value = SyncState.Success
             }
         }
     }

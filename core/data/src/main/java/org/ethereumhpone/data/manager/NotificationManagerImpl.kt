@@ -11,7 +11,9 @@ import android.content.Intent
 import android.graphics.Color
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat.getSystemService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.single
 import org.ethereumhpone.data.R
@@ -21,10 +23,12 @@ import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.data.util.PhoneNumberUtils
+import org.ethereumphone.model.Conversation
 import javax.inject.Inject
+import kotlin.math.abs
 
 private const val TARGET_ACTIVITY_NAME = "org.ethereumhpone.messenger.MainActivity"
-private const val DEFAULT_CHANNEL_ID = "notifications_default"
+private const val DEFAULT_CHANNEL_ID = "dgen1_messenger"
 private const val DEEP_LINK_SCHEME_AND_HOST = "https://www.ethereumhpone.messenger.org"
 private const val CHAT_PATH = "chat"
 private const val NOTIFICATION_REQUEST_CODE = 0
@@ -35,8 +39,6 @@ class NotificationManagerImpl @Inject constructor(
     private val messengerPreferences: MessengerPreferences,
     private val permissionManager: PermissionManager,
     private val conversationRepository: ConversationRepository,
-    private val messageRepository: MessageRepository,
-    private val phoneNumberUtils: PhoneNumberUtils
 ): org.ethereumhpone.domain.manager.NotificationManager {
 
     companion object {
@@ -54,106 +56,100 @@ class NotificationManagerImpl @Inject constructor(
         context.ensureNotificationChannelExists()
     }
 
-    override suspend fun update(threadId: Long) {
+    override suspend fun update(threadId: String) {
+        println("xmtp notification started")
 
-        // if check if notifications are disabled
-        if(!notifications(threadId)) {
+        // check if notifications are disabled
+        if(!notifications(threadId)) return
+
+        // check permissions
+        if(!permissionManager.hasNotifications()) return
+
+        val unreadConversations = conversationRepository.getUnreadConversations().first()
+
+        if (unreadConversations.isEmpty()) {
+            // No unread conversations to notify about
             return
         }
 
-        if(!permissionManager.hasNotifications()) {
-            return
+        val latestConversation = unreadConversations.maxBy { conversation -> conversation.lastMessage!!.dateSent.toEpochMilliseconds() }
+
+        val header = if (unreadConversations.size > 1) {
+            "new messages"
+        } else {
+            latestConversation.getHeader()
         }
 
-        /*
-        val messages = messageRepository.getUnreadUnseenMessages(threadId)
-
-        if (messages.isEmpty()) {
-            notificationManager.cancel(threadId.toInt())
-            notificationManager.cancel(threadId.toInt() + 100000)
-            return
+        val subheader = if (unreadConversations.size > 1) {
+            "press to view"
+        } else {
+            latestConversation.getSummary()
         }
-         */
 
-
-        //val conversation = conversationRepository.getConversation(threadId).first() ?: return
-
-
-        /*
-        val lastRecipient = conversation.lastMessage?.let { lastMessage ->
-            conversation.recipients.find { recipient ->
-                phoneNumberUtils.compare(recipient.address, lastMessage.address)
-            }
-        } ?: conversation.recipients.firstOrNull()
-
-
-        val contentPI = contentPendingIntent(context, threadId.toInt())
+        // Use a consistent notification ID derived from the threadId
+        val notificationId = getNotificationIdFromThreadId(threadId)
+        
+        val contentPI = contentPendingIntent(context, threadId)
 
         val seenIntent = Intent(context, MarkSeenReceiver::class.java).putExtra("threadId", threadId)
-        val seenPI = PendingIntent.getBroadcast(context, threadId.toInt(), seenIntent,
+        val seenRequestCode = getRequestCodeFromThreadId(threadId)
+        val seenPI = PendingIntent.getBroadcast(context, seenRequestCode, seenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
+        println("xmtp notification building")
 
-
-        val notification = NotificationCompat.Builder(context, getChannelIdForNotification(threadId))
+        val notification = NotificationCompat.Builder(context, DEFAULT_CHANNEL_ID)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            //.setColor(colors.theme(lastRecipient).theme)  // Uncomment and adjust if you have theming
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setSmallIcon(R.drawable.ic_sms_light)
-            .setNumber(messages.size)
+            .setNumber(unreadConversations.size)
             .setAutoCancel(true)
             .setContentIntent(contentPI)
             .setDeleteIntent(seenPI)
-            .setWhen(conversation.lastMessage?.date ?: System.currentTimeMillis())
+            .setWhen(latestConversation.lastMessage?.dateSent?.toEpochMilliseconds() ?: System.currentTimeMillis())
             .setVibrate(VIBRATE_PATTERN)
-            .setContentTitle(lastRecipient?.getDisplayName() ?: lastRecipient?.address)  // Use recipient's name, fallback to a default string
-            .setContentText(conversation.lastMessage?.body ?: "")  // Show the message content
+            .setContentTitle(header)
+            .setContentText(subheader)
 
+        println("xmtp notification sending")
+        notificationManager.notify(notificationId, notification.build())
+    }
 
-        notificationManager.notify(threadId.toInt(), notification.build())
-         */
-
-
+    // Helper function to generate a consistent notification ID from a threadId string
+    private fun getNotificationIdFromThreadId(threadId: String): Int {
+        // Use string hashCode which is consistent for the same string
+        // Make sure it's positive by taking absolute value
+        return abs(threadId.hashCode())
+    }
+    
+    // Helper function to generate a consistent request code from a threadId string
+    private fun getRequestCodeFromThreadId(threadId: String): Int {
+        // Make it different from the notification ID by adding a constant
+        return abs(threadId.hashCode() + 1000)
     }
 
     override fun notifyFailed(threadId: String) {
         TODO("Not yet implemented")
     }
 
-    override suspend fun createNotificationChannel(threadId: Long) {
-
-        val channel = when(threadId) {
-            0L -> NotificationChannel(
-                DEFAULT_CHANNEL_ID,
-                "default",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                enableLights(true)
-                lightColor = Color.WHITE
-                enableVibration(true)
-                vibrationPattern = VIBRATE_PATTERN
+    override suspend fun createNotificationChannel(threadId: String) {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is not in the Support Library.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "xmtp messenger"
+            val descriptionText = "xmtp messenger notification"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(DEFAULT_CHANNEL_ID, name, importance).apply {
+                description = descriptionText
             }
-
-            else -> {
-                //val conversation = conversationRepository.getConversation(threadId).single() ?: return
-                val channelId = buildNotificationChannelId(threadId)
-                val title = "test" //conversation.title
-                NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_HIGH).apply {
-                    enableLights(true)
-                    lightColor = Color.WHITE
-                    enableVibration(true)
-                    vibrationPattern = VIBRATE_PATTERN
-                    lockscreenVisibility = 1 //TODO: CHANGE
-                }
-            }
+            // Register the channel with the system.
+            notificationManager.createNotificationChannel(channel)
         }
-
-        notificationManager.createNotificationChannel(channel)
     }
 
-    override fun buildNotificationChannelId(threadId: Long): String {
+    override fun buildNotificationChannelId(threadId: String): String {
         return when (threadId) {
-            0L -> DEFAULT_CHANNEL_ID
+            "0" -> DEFAULT_CHANNEL_ID
             else -> "notifications_$threadId"
         }
     }
@@ -162,7 +158,7 @@ class NotificationManagerImpl @Inject constructor(
         TODO("Not yet implemented")
     }
 
-    private fun getNotificationChannel(threadId: Long): NotificationChannel? {
+    private fun getNotificationChannel(threadId: String): NotificationChannel? {
         val channelId = buildNotificationChannelId(threadId)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -173,7 +169,7 @@ class NotificationManagerImpl @Inject constructor(
         return null
     }
 
-    private fun getChannelIdForNotification(threadId: Long): String {
+    private fun getChannelIdForNotification(threadId: String): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return getNotificationChannel(threadId)?.id ?: DEFAULT_CHANNEL_ID
         }
@@ -181,12 +177,12 @@ class NotificationManagerImpl @Inject constructor(
         return DEFAULT_CHANNEL_ID
     }
 
-    private suspend fun notifications(threadId: Long = 0): Boolean {
+    private suspend fun notifications(threadId: String = "0"): Boolean {
         val threads = messengerPreferences.prefs.first().threadNotificationsId
         val default = threads[NOTIFICATIONS_KEY] ?: true
 
         return when(threadId) {
-            0L -> default
+            "0" -> default
             else -> threads["$THREAD_NOTIFICATIONS_KEY$threadId"] ?: default
         }
     }
@@ -207,7 +203,7 @@ private fun Context.ensureNotificationChannelExists() {
 }
 
 
-private fun contentPendingIntent(context: Context, threadId: Int): PendingIntent? {
+private fun contentPendingIntent(context: Context, threadId: String): PendingIntent? {
     // Resolve the main launcher activity
     val packageManager = context.packageManager
     val intent = Intent(Intent.ACTION_MAIN).apply {
@@ -220,10 +216,13 @@ private fun contentPendingIntent(context: Context, threadId: Int): PendingIntent
     // Ensure we found the launcher activity
     val launcherActivityClassName = resolveInfo?.activityInfo?.name ?: return null
 
+    // Generate a consistent request code from the threadId
+    val requestCode = abs(threadId.hashCode())
+
     // Create the PendingIntent with the resolved launcher activity
     return PendingIntent.getActivity(
         context,
-        NOTIFICATION_REQUEST_CODE,
+        requestCode,
         Intent().apply {
             action = Intent.ACTION_VIEW
             setClassName(context.packageName, launcherActivityClassName)

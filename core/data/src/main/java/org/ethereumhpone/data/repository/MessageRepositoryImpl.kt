@@ -6,7 +6,6 @@ import android.content.Context
 import androidx.media3.common.util.Log
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -44,7 +43,7 @@ class MessageRepositoryImpl @Inject constructor(
             .map { message -> message.map { it.toExternalMessage() } }
 
     override fun getMessage(id: String): Flow<Message?> =
-        messageDao.getMessage(id)
+        messageDao.getCompositeMessage(id)
             .map { it?.toExternalMessage() }
 
 
@@ -139,7 +138,9 @@ class MessageRepositoryImpl @Inject constructor(
                     body = body.orEmpty(),
                     deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
                     isMe = true,
-                    replyReference = replyReference.orEmpty()
+                    replyReference = replyReference.orEmpty(),
+                    seen = true,
+                    read = true
                 )
 
                 launch { messageDao.upsertMessages(listOf(messageEntity)) }
