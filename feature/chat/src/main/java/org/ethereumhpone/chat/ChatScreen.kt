@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -33,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -46,10 +48,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.dgenBlack
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -64,7 +68,9 @@ import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumphone.dgenlibrary.components.GoToBottomFab
 import org.ethereumphone.dgenlibrary.components.TimeHeader
+import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
@@ -253,7 +259,15 @@ fun ChatScreen(
     }
 
 
-    var showContact by remember { mutableStateOf(false) }
+    // boolean for GoToBottomFab
+    val showFab by remember {
+        derivedStateOf {
+            val info = scrollState.layoutInfo
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+            // totalItemsCount includes headers/footers too; -1 to get max index
+            lastVisible < (info.totalItemsCount - 1)
+        }
+    }
 
 
     Box(
@@ -332,52 +346,72 @@ fun ChatScreen(
                             }
                         }
 
-                        LazyColumn(
-                            state = scrollState,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            itemsIndexed(
-                                items = messages,
-                                key = { _, message -> message.id }
-                            ) { index, message ->
+                        Box(modifier = Modifier.fillMaxSize()){
+                            LazyColumn(
+                                state = scrollState,
+                                modifier = Modifier.fillMaxSize().verticalLazyListScrollbar(scrollState)
+                            ) {
+                                itemsIndexed(
+                                    items = messages,
+                                    key = { _, message -> message.id }
+                                ) { index, message ->
 
-                                val prevMessage = messages.getOrNull(index - 1)
-                                val prevAuthor = prevMessage?.recipient?.id
-                                val isFirstMessageByAuthor = prevAuthor != message.recipient.id
+                                    val prevMessage = messages.getOrNull(index - 1)
+                                    val prevAuthor = prevMessage?.recipient?.id
+                                    val isFirstMessageByAuthor = prevAuthor != message.recipient.id
 
-                                val prevDate = prevMessage?.date?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
-                                val currentDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                    val prevDate = prevMessage?.date?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
+                                    val currentDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault()).date
 
-                                //Log.d("List index", index.toString())
-                                Column {
-                                    if (prevDate != currentDate) {
-                                        TimeHeader(message.date)
+                                    //Log.d("List index", index.toString())
+                                    Column {
+                                        if (prevDate != currentDate) {
+                                            TimeHeader(message.date)
+                                        }
+
+                                        MessageItem(
+                                            onAuthorClick = { },
+                                            msg = message,
+                                            composablePositionState = composablePositionState,
+                                            player = videoPlayer,
+                                            onPrepareVideo = { /* your logic */ },
+                                            onLongClick = { /* your logic */ },
+                                            name = "${message.recipient.contact?.name}",
+                                            isSelected = selectedMessagesMap.contains(message),
+                                            selectMode = selectMode,
+                                            isXMTP = true,
+                                            onSelect = { selectedMessage ->
+                                                selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
+                                                    isChecked?.let { !it } ?: true
+                                                }
+                                            },
+                                            onDoubleClick = {
+                                                selectMode.value = !selectMode.value
+                                            },
+                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                                            isGroup = chatConversion?.isGroup == true,
+                                            isVisible = true
+                                        )
                                     }
-
-                                    MessageItem(
-                                        onAuthorClick = { },
-                                        msg = message,
-                                        composablePositionState = composablePositionState,
-                                        player = videoPlayer,
-                                        onPrepareVideo = { /* your logic */ },
-                                        onLongClick = { /* your logic */ },
-                                        name = "${message.recipient.contact?.name}",
-                                        isSelected = selectedMessagesMap.contains(message),
-                                        selectMode = selectMode,
-                                        isXMTP = true,
-                                        onSelect = { selectedMessage ->
-                                            selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
-                                                isChecked?.let { !it } ?: true
-                                            }
-                                        },
-                                        onDoubleClick = {
-                                            selectMode.value = !selectMode.value
-                                        },
-                                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                        isGroup = chatConversion?.isGroup == true,
-                                        isVisible = true
-                                    )
                                 }
+                            }
+
+                            AnimatedVisibility(
+                                visible = showFab,
+                                enter = fadeIn(tween(300)),
+                                exit = fadeOut(tween(300)),
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .offset(-32.dp,-64.dp)
+                            ) {
+                                GoToBottomFab(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            val lastIndex = messages.lastIndex
+                                            scrollState.animateScrollToItem(lastIndex)
+                                        }
+                                    }
+                                )
                             }
                         }
                     }
