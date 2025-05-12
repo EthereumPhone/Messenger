@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -27,6 +28,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -36,6 +40,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -47,12 +52,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
+import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.dgenBlack
+import com.example.dgenlibrary.ui.theme.dgenTurqoise
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -69,6 +81,7 @@ import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.components.GoToBottomFab
+import org.ethereumphone.dgenlibrary.components.NewMessagesDivider
 import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
@@ -270,6 +283,8 @@ fun ChatScreen(
     }
 
 
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -346,6 +361,11 @@ fun ChatScreen(
                             }
                         }
 
+                        //Variables for the new messages UI
+
+                        var seenCount by remember { mutableIntStateOf(messages.size) }
+                        val newCount = (messages.size - seenCount).coerceAtLeast(0)
+
                         Box(modifier = Modifier.fillMaxSize()){
                             LazyColumn(
                                 state = scrollState,
@@ -365,6 +385,10 @@ fun ChatScreen(
 
                                     //Log.d("List index", index.toString())
                                     Column {
+                                        if (index == seenCount && newCount > 0) {
+                                            NewMessagesDivider(count = newCount)
+                                        }
+
                                         if (prevDate != currentDate) {
                                             TimeHeader(message.date)
                                         }
@@ -412,6 +436,45 @@ fun ChatScreen(
                                         }
                                     }
                                 )
+                            }
+
+                            AnimatedVisibility(
+                                visible = showFab && (newCount > 0),
+                                enter = fadeIn(tween(300)),
+                                exit = fadeOut(tween(300)),
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+
+                            ) {
+                                Surface(
+                                    color = dgenTurqoise,
+                                    shape = CircleShape,
+                                    elevation = 6.dp,
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(top = 16.dp)
+                                        .clickable {
+                                            // jump to the divider
+                                            coroutineScope.launch {
+                                                scrollState.animateScrollToItem(seenCount)
+                                            }
+                                        }
+                                ) {
+                                    Text(
+                                        text = "$newCount new message${if (newCount > 1) "s" else ""}".uppercase(),
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                                        style = TextStyle(
+                                            fontFamily = SpaceMono,
+                                            color = dgenBlack,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            lineHeight = 14.sp,
+                                            letterSpacing = 1.sp,
+                                            textDecoration = TextDecoration.None,
+                                            textAlign = TextAlign.Center
+                                        ),
+                                    )
+                                }
                             }
                         }
                     }
