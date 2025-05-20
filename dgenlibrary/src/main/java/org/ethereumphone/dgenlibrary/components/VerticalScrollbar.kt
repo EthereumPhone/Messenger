@@ -33,7 +33,8 @@ fun Modifier.verticalLazyListScrollbar(
     scrollBarTrackColor: Color = dgenOcean,
     scrollBarColor: Color = dgenTurqoise,
     scrollBarCornerRadius: Float = 4f,
-    endPadding: Float = 32f
+    endPadding: Float = 32f,
+    fixed: Boolean = false
 ): Modifier {
     val coroutineScope = rememberCoroutineScope()
     var isScrolling by remember { mutableStateOf(false) }
@@ -44,6 +45,8 @@ fun Modifier.verticalLazyListScrollbar(
         targetValue = targetAlpha,
         animationSpec = tween(durationMillis = 250, easing = LinearEasing)
     )
+
+    val fixedalpha = 1f
 
     LaunchedEffect(lazyListState.isScrollInProgress) {
         if (lazyListState.isScrollInProgress) {
@@ -89,7 +92,7 @@ fun Modifier.verticalLazyListScrollbar(
             // 4️⃣ Draw the scrollbar track
             if (showScrollBarTrack) {
                 drawRoundRect(
-                    color = scrollBarTrackColor.copy(alpha = alpha),
+                    color = scrollBarTrackColor.copy(alpha = if (fixed) fixedalpha else alpha),
                     cornerRadius = CornerRadius(scrollBarCornerRadius),
                     topLeft = Offset(size.width - endPadding,32.dp.toPx()),
                     size = Size(width.toPx(), trackHeight)
@@ -98,7 +101,7 @@ fun Modifier.verticalLazyListScrollbar(
 
             // 5️⃣ Draw the scrollbar thumb
             drawRoundRect(
-                color = scrollBarColor.copy(alpha = alpha),
+                color = scrollBarColor.copy(alpha = if (fixed) fixedalpha else alpha),
                 cornerRadius = CornerRadius(scrollBarCornerRadius),
                 topLeft = Offset(size.width - endPadding, 32.dp.toPx() + targetScrollBarOffset),
                 size = Size(width.toPx(), thumbHeight)

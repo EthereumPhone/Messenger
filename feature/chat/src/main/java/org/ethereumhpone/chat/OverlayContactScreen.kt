@@ -186,7 +186,7 @@ fun OverlayContactScreen(
                 LazyColumn(
                     state = scrollState,
                     modifier = Modifier
-                        .verticalLazyListScrollbar(scrollState)
+                        .verticalLazyListScrollbar(scrollState,fixed=true)
                         .fillMaxSize()
                         .padding(top = 32.dp, end = 32.dp, start = 32.dp)
                 ){

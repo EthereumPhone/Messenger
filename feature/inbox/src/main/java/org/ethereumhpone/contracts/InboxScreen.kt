@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -90,6 +91,7 @@ import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.contacts.NewConversationSheet
 import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.components.SwipeableListItem
+import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
@@ -147,6 +149,8 @@ fun InboxScreen(
     val contactsPermissionState = rememberMultiplePermissionsState(permissions = contactsPermissionsToRequest)
 
     var showNewConversationSheet by remember { mutableStateOf(false) }
+
+    val lazylist = rememberLazyListState()
 
     Box(
         Modifier
@@ -253,7 +257,9 @@ fun InboxScreen(
                                         val conversations = conversationState.conversations
 
                                         LazyColumn(
+                                            state = lazylist,
                                             modifier = Modifier
+                                                .verticalLazyListScrollbar(lazylist, fixed = true)
                                                 .fillMaxSize()
                                         ) {
                                             item{
@@ -343,7 +349,9 @@ fun InboxScreen(
                                     if (conversationState.conversations.isEmpty()){
                                         val conversations = conversationState.conversations
                                         LazyColumn(
+                                            state = lazylist,
                                             modifier = Modifier
+                                                .verticalLazyListScrollbar(lazylist, fixed = true)
                                                 .fillMaxSize()
                                         ) {
                                             item{

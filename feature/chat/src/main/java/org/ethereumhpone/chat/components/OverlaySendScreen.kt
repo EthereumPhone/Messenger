@@ -181,7 +181,7 @@ fun OverlaySendScreen(
                     LazyColumn(
                         state= scrollState,
                         modifier = Modifier
-                            .verticalLazyListScrollbar(scrollState) // Apply the scrollbar first
+                            .verticalLazyListScrollbar(scrollState, fixed=true) // Apply the scrollbar first
                             .fillMaxSize()
                             .background(dgenBlack)
                         ,
@@ -197,7 +197,7 @@ fun OverlaySendScreen(
                                 name = "\$TOKEN $index",
                                 balance = 1.2,
                                 fiatamount=645.0,
-                                modifier = Modifier.padding(horizontal = 32.dp).pointerInput(Unit){
+                                modifier = Modifier.padding(start = 32.dp, end = 40.dp).pointerInput(Unit){
                                     detectTapGestures {
                                         token = "TOKEN$index"// TODO: add token name
                                         readyToSend = true

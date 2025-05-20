@@ -26,7 +26,7 @@ fun TransactionLogScreen(
             // Apply the scrollbar first
             .fillMaxSize()
             .padding(start = 32.dp, end = 0.dp, top = 0.dp)
-            .verticalLazyListScrollbar(scrollState),
+            .verticalLazyListScrollbar(scrollState,fixed= true),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
