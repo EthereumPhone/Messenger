@@ -35,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -59,12 +60,14 @@ import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.contacts.components.CreateGroupSheet
 import org.ethereumphone.contacts.components.NewConversationHeader
 import org.ethereumphone.contacts.components.SelectMembersSheet
+import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
 
 
 @Composable
 fun NewConversationSheet(
     onDismiss: () -> Unit,
     onConversationCreated: (String) -> Unit,
+    primaryColor: Color,
     viewModel: ContactViewModel = hiltViewModel()
 ) {
     val queryResultUiState by viewModel.queryResultUiState.collectAsStateWithLifecycle()
@@ -72,7 +75,8 @@ fun NewConversationSheet(
         queryResultUiState = queryResultUiState,
         onContactsSelected = viewModel::getOrCreateConversation,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        primaryColor = primaryColor
     )
 
     val context = LocalContext.current
@@ -103,6 +107,7 @@ internal fun ConversationSheet(
     onContactsSelected: (List<String>) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onDismiss: () -> Unit,
+    primaryColor: Color
 ) {
     val context = LocalContext.current
 
@@ -141,9 +146,10 @@ internal fun ConversationSheet(
                         .fillMaxSize()
                         .padding(start = 12.dp, end = 12.dp, bottom = 24.dp) // fab size 64.dp
                 ) {
-                    NewConversationHeader(
-                        title = "NEW CONVERSATION",
-                        onBackClick = onDismiss
+                    SecondaryScreenHeader(
+                        title = "NEW CONVERSATION".uppercase(),
+                        primaryColor = primaryColor,
+                        onDismiss = onDismiss,
                     )
 
 
@@ -373,7 +379,8 @@ fun previewContactSheet() {
         queryResultUiState,
         {},
         {},
-        {}
+        {},
+        Color.Red
     )
 }
 
@@ -391,6 +398,7 @@ fun previewNoContactsContactSheet() {
         {},
         {},
         {},
+        Color.Red
     )
 }
 

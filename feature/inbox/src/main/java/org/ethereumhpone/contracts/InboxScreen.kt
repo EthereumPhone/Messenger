@@ -475,6 +475,7 @@ fun InboxScreen(
         ) {
             NewConversationSheet(
                 onDismiss = { showNewConversationSheet = false },
+                primaryColor = primaryColor,
                 onConversationCreated = {
                     showNewConversationSheet = false
                     //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!
