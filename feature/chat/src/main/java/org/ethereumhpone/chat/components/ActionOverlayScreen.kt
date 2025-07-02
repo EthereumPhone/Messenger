@@ -1,9 +1,5 @@
 package org.ethereumhpone.chat.components
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.net.Uri
-import android.provider.MediaStore
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
@@ -48,10 +44,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
-import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import kotlinx.coroutines.delay
-import java.io.ByteArrayOutputStream
 
 @Composable
 fun ActionOverlayScreen(

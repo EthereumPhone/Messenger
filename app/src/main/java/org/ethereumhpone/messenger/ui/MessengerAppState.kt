@@ -73,12 +73,19 @@ class MessengerAppState(
             initialValue = false
         )
 
+    // The onboarding screen should be displayed when either:
+    // 1. The user has not chosen to hide it yet (first app launch), OR
+    // 2. The user has not enabled XMTP support (`useXmtp` is still false).
+    // This ensures that users who skipped XMTP setup will continue to see the onboarding
+    // until they finish the process, while users who completed it will no longer be prompted.
     val shouldShowOnboarding = messengerPreferences.prefs
-        .map { !it.shouldHideOnboarding }
+        .map { !it.shouldHideOnboarding || !it.useXmtp }
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = false
+            // Default to `true` so that a fresh install immediately shows the onboarding
+            // without briefly flashing the conversations screen.
+            initialValue = true
         )
 
 

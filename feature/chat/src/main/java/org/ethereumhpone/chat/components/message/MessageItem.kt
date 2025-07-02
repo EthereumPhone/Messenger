@@ -55,7 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenWhite
+import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.ChatItemBubbleV3
 import org.ethereumhpone.chat.components.message.parts.MediaBinder

@@ -1,16 +1,12 @@
 package org.ethereumhpone.chat.screen
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -25,20 +21,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.rememberAsyncImagePainter
 import com.example.dgenlibrary.ui.theme.PitagonsSans
-import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.ui.StyledPlayerView
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumhpone.chat.components.media.VideoPage
-import org.ethereumhpone.chat.util.GalleryMedia
-import org.ethereumhpone.chat.util.MediaType
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.domain.model.Attachment
 

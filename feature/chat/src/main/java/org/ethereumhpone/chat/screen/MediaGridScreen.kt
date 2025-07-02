@@ -1,6 +1,5 @@
 package org.ethereumhpone.chat.screen
 
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -36,10 +34,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumhpone.chat.components.media.MediaThumbnail
-import org.ethereumhpone.chat.util.GalleryMedia
 import org.ethereumphone.dgenlibrary.components.dgenButton
 import org.ethereumphone.dgenlibrary.components.dgenTextButton
 import org.ethereumhpone.chat.R

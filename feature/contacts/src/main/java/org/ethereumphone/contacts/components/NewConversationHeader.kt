@@ -20,7 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 
 @Composable
 fun NewConversationHeader(

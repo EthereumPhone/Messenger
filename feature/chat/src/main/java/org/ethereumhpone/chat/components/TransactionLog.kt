@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
-import com.example.dgenlibrary.ui.theme.dgenWhite
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumhpone.chat.util.abbreviateNumber
 import org.ethereumhpone.chat.util.formatAddress
 import org.ethosmobile.components.library.models.TransferItem

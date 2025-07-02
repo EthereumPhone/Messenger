@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,8 +35,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -47,7 +44,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,27 +63,21 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.ethosmobile.components.library.theme.Colors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.dgenlibrary.ui.theme.DgenTheme
+import org.ethereumphone.dgenlibrary.theme.DgenTheme
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenGreen
-import com.example.dgenlibrary.ui.theme.dgenRed
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenRed
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethosmobile.components.library.theme.Fonts
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.time.Instant as JavaInstant
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.datetime.Instant
 import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.contracts.ui.ConversationActionButton
-import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.contacts.NewConversationSheet
 import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.components.SwipeableListItem

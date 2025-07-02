@@ -1,5 +1,6 @@
 package org.ethereumphone.dgenlibrary.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -24,9 +25,9 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenOcean
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
-import com.example.dgenlibrary.ui.theme.dgenWhite
+import org.ethereumphone.dgenlibrary.theme.dgenOcean
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenWhite
 
 @Composable
 fun dgenButton(
@@ -36,10 +37,9 @@ fun dgenButton(
     enable: Boolean = true,
     backgroundColor: Color = dgenTurqoise,
     fontColor: Color = dgenOcean,
-    fontSize: TextUnit = 16.sp,
-    horizontalPadding: Dp = 16.dp,
-    verticalPadding: Dp = 4.dp,
-
+    fontSize: TextUnit = 20.sp,
+    horizontalPadding: Dp = 24.dp,
+    verticalPadding: Dp = 1.dp,
 ){
     val buttonAlpha by animateFloatAsState(
         if (enable) 1f else 0.35f,
@@ -51,6 +51,7 @@ fun dgenButton(
         shape = CircleShape,
         modifier = modifier
             .alpha(buttonAlpha)
+            .animateContentSize()
             .pointerInput(Unit) {
                  detectTapGestures {
                     onClick()
@@ -66,8 +67,7 @@ fun dgenButton(
                 color = fontColor,
                 style = TextStyle(
                     fontFamily = SpaceMono,
-                    color = dgenWhite,
-                    fontWeight = FontWeight.Normal,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = fontSize,
                     lineHeight = fontSize,
                     letterSpacing = 0.sp,
@@ -92,9 +92,9 @@ fun dgenTextButton(
     text: String,
     enable: Boolean = true,
     fontColor: Color = dgenTurqoise,
-    fontSize: TextUnit = 16.sp,
+    fontSize: TextUnit = 20.sp,
     horizontalPadding: Dp = 16.dp,
-    verticalPadding: Dp = 4.dp,
+    verticalPadding: Dp = 1.dp,
 ){
     val buttonAlpha by animateFloatAsState(
         if (enable) 1f else 0.35f,
@@ -121,7 +121,6 @@ fun dgenTextButton(
                 color = fontColor,
                 style = TextStyle(
                     fontFamily = SpaceMono,
-                    color = dgenWhite,
                     fontWeight = FontWeight.Normal,
                     fontSize = fontSize,
                     lineHeight = fontSize,

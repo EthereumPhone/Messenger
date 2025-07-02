@@ -21,8 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.dgenlibrary.ui.theme.dgenOcean
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenOcean
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 
 @Composable
 fun CheckBox(

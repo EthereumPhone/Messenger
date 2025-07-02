@@ -15,9 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenOcean
-import com.example.dgenlibrary.ui.theme.dgenRed
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 
 @Composable
 fun NewMessagesDivider(count: Int) {
@@ -27,7 +25,7 @@ fun NewMessagesDivider(count: Int) {
             .fillMaxWidth()
             .padding(vertical = 16.dp, horizontal = 32.dp)
     ) {
-        Divider(Modifier.weight(1f),thickness= 1.dp,dgenTurqoise.copy(0.5f))
+        Divider(Modifier.weight(1f),thickness= 1.dp, dgenTurqoise.copy(0.5f))
         Text(
             text = "$count new message${if (count > 1) "s" else ""}".uppercase(),
             style = TextStyle(
@@ -41,7 +39,7 @@ fun NewMessagesDivider(count: Int) {
             ),
             modifier = Modifier.padding(horizontal = 8.dp)
         )
-        Divider(Modifier.weight(1f),thickness= 1.dp,dgenTurqoise.copy(0.5f))
+        Divider(Modifier.weight(1f),thickness= 1.dp, dgenTurqoise.copy(0.5f))
     }
 }
 

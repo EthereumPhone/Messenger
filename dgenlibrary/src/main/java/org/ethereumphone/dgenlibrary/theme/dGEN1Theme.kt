@@ -1,4 +1,5 @@
-package com.example.dgenlibrary.ui.theme
+package org.ethereumphone.dgenlibrary.theme
+
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -11,12 +12,26 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.TextUnit
+import com.example.dgenlibrary.ui.theme.IconButtonSize
+import com.example.dgenlibrary.ui.theme.IconSize
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.body1_fontSize
+import com.example.dgenlibrary.ui.theme.body2_fontSize
+import com.example.dgenlibrary.ui.theme.button_fontSize
+import com.example.dgenlibrary.ui.theme.header0_fontSize
+import com.example.dgenlibrary.ui.theme.header1_fontSize
+import com.example.dgenlibrary.ui.theme.header2_fontSize
+import com.example.dgenlibrary.ui.theme.header3_fontSize
+import com.example.dgenlibrary.ui.theme.label_fontSize
 
 @Immutable
 data class DgenColors(
     val dgenBlack: Color,
     val dgenWhite: Color,
     val dgenGray: Color,
+    val dgenGunMetal: Color,
     val dgenRed: Color,
     val dgenDarkBlack: Color,
     val dgenGreen: Color,
@@ -50,7 +65,14 @@ data class DgenElevation(
 data class DgenDimension(
     val IconSize: Dp,
     val IconButtonSize: Dp,
-
+    val LabelFontSize: TextUnit,
+    val ButtonFontSize: TextUnit,
+    val Body1FontSize: TextUnit,
+    val Body2FontSize: TextUnit,
+    val Header3FontSize: TextUnit,
+    val Header2FontSize: TextUnit,
+    val Header1FontSize: TextUnit,
+    val Header0FontSize: TextUnit,
 )
 
 
@@ -59,6 +81,7 @@ val LocalCustomColors = staticCompositionLocalOf {
         dgenBlack = Color.Unspecified,
         dgenWhite = Color.Unspecified,
         dgenGray = Color.Unspecified,
+        dgenGunMetal = Color.Unspecified,
         dgenRed = Color.Unspecified,
         dgenDarkBlack = Color.Unspecified,
         dgenGreen = Color.Unspecified,
@@ -91,7 +114,15 @@ val LocalCustomElevation = staticCompositionLocalOf {
 val LocalCustomDimension = staticCompositionLocalOf {
     DgenDimension(
         IconSize = Dp.Unspecified,
-        IconButtonSize = Dp.Unspecified
+        IconButtonSize = Dp.Unspecified,
+        LabelFontSize = TextUnit.Unspecified,
+        ButtonFontSize = TextUnit.Unspecified,
+        Body1FontSize = TextUnit.Unspecified,
+        Body2FontSize = TextUnit.Unspecified,
+        Header3FontSize = TextUnit.Unspecified,
+        Header2FontSize = TextUnit.Unspecified,
+        Header1FontSize = TextUnit.Unspecified,
+        Header0FontSize = TextUnit.Unspecified,
     )
 }
 
@@ -100,10 +131,12 @@ fun DgenTheme(
     /* ... */
     content: @Composable () -> Unit
 ) {
+
     val customColors = DgenColors(
         dgenBlack = dgenBlack,
         dgenWhite = dgenWhite,
         dgenGray = dgenGray,
+        dgenGunMetal = dgenGunMetal,
         dgenRed = dgenRed,
         dgenDarkBlack = dgenDarkBlack,
         dgenGreen = dgenGreen,
@@ -118,8 +151,8 @@ fun DgenTheme(
             fontFamily = PitagonsSans,
             color = dgenWhite,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 128.sp,
-            lineHeight = 128.sp,
+            fontSize = header0_fontSize,
+            lineHeight = header0_fontSize,
             letterSpacing = 0.sp,
             textDecoration = TextDecoration.None
         ),
@@ -127,8 +160,8 @@ fun DgenTheme(
             fontFamily = PitagonsSans,
             color = dgenWhite,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 72.sp,
-            lineHeight = 72.sp,
+            fontSize = header1_fontSize,
+            lineHeight = header1_fontSize,
             letterSpacing = 0.sp,
             textDecoration = TextDecoration.None
         ),
@@ -136,8 +169,8 @@ fun DgenTheme(
             fontFamily = PitagonsSans,
             color = dgenWhite,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 48.sp,
-            lineHeight = 48.sp,
+            fontSize = header2_fontSize,
+            lineHeight = header2_fontSize,
             letterSpacing = 0.sp,
             textDecoration = TextDecoration.None
         ),
@@ -145,8 +178,8 @@ fun DgenTheme(
             fontFamily = PitagonsSans,
             color = dgenWhite,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 40.sp,
-            lineHeight = 40.sp,
+            fontSize = header3_fontSize,
+            lineHeight = header3_fontSize,
             letterSpacing = 0.sp,
             textDecoration = TextDecoration.None
         ),
@@ -154,8 +187,8 @@ fun DgenTheme(
             fontFamily = PitagonsSans,
             color = dgenWhite,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 32.sp,
-            lineHeight = 32.sp,
+            fontSize = body2_fontSize,
+            lineHeight = body2_fontSize,
             letterSpacing = 0.sp,
             textDecoration = TextDecoration.None
         ),
@@ -163,8 +196,8 @@ fun DgenTheme(
             fontFamily = PitagonsSans,
             color = dgenWhite,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 24.sp,
-            lineHeight = 24.sp,
+            fontSize = body1_fontSize,
+            lineHeight = body1_fontSize,
             letterSpacing = 0.sp,
             textDecoration = TextDecoration.None
         ),
@@ -172,18 +205,18 @@ fun DgenTheme(
             fontFamily = PitagonsSans,
             color = dgenBlack,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 24.sp,
-            lineHeight = 24.sp,
+            fontSize = button_fontSize,
+            lineHeight = button_fontSize,
             letterSpacing = 0.sp,
             textDecoration = TextDecoration.None
         ),
         label = TextStyle(
             fontFamily = SpaceMono,
-            color = dgenWhite,
-            fontWeight = FontWeight.Normal,
-            fontSize = 16.sp,
-            lineHeight = 16.sp,
-            letterSpacing = 0.sp,
+            color = dgenTurqoise,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = label_fontSize,
+            lineHeight = label_fontSize,
+            letterSpacing = 1.sp,
             textDecoration = TextDecoration.None
         ),
     )
@@ -194,7 +227,15 @@ fun DgenTheme(
 
     val customDimension = DgenDimension(
         IconSize = IconSize,
-        IconButtonSize = IconButtonSize
+        IconButtonSize = IconButtonSize,
+        LabelFontSize = label_fontSize,
+        ButtonFontSize = button_fontSize,
+        Body1FontSize = body1_fontSize,
+        Body2FontSize = body2_fontSize,
+        Header3FontSize = header3_fontSize,
+        Header2FontSize = header2_fontSize,
+        Header1FontSize = header1_fontSize,
+        Header0FontSize = header0_fontSize,
     )
 
     CompositionLocalProvider(

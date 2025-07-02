@@ -1,26 +1,19 @@
 package org.ethereumhpone.chat
 
 
-import android.graphics.Color
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import org.ethereumphone.model.Contact
 import org.ethereumhpone.chat.components.message.MessageItem
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,8 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -52,12 +43,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenOcean
-import com.example.dgenlibrary.ui.theme.dgenOrche
-import com.example.dgenlibrary.ui.theme.dgenRed
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
-import kotlinx.coroutines.delay
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenOcean
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -67,7 +55,6 @@ import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumphone.dgenlibrary.components.GoToBottomFab
 import org.ethereumphone.dgenlibrary.components.NewMessagesDivider
-import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message

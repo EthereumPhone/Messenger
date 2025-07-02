@@ -94,8 +94,12 @@ class OnboardingViewModel @Inject constructor(
 
     fun hideOnboarding(useXmtp: Boolean) {
         viewModelScope.launch {
+            // Persist the user's XMTP preference
             messengerPreferences.setUseXmtp(useXmtp)
-            messengerPreferences.setShouldHideOnboarding(true)
+
+            // Only hide the onboarding screen permanently once the user has completed
+            // the XMTP setup. If they skipped, keep showing it on next launch.
+            messengerPreferences.setShouldHideOnboarding(useXmtp)
         }
     }
 }

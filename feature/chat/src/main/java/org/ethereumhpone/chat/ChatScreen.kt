@@ -63,8 +63,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -75,7 +75,6 @@ import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.MessageItem
-import org.ethereumhpone.chat.screen.ImageSelectionScreen
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.database.model.ContactEntity

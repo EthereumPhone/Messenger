@@ -1,15 +1,11 @@
 package org.ethereumphone.onboarding
 
 import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,26 +15,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,16 +37,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.dgenlibrary.ui.theme.PitagonsSans
-import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.dgenBlack
-import com.example.dgenlibrary.ui.theme.dgenOcean
-import com.example.dgenlibrary.ui.theme.dgenTurqoise
-import com.example.dgenlibrary.ui.theme.dgenWhite
+import com.example.dgenlibrary.ui.theme.label_fontSize
+import com.example.dgenlibrary.ui.theme.neonOpacity
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenOcean
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.dgenlibrary.components.dgenButton
 import org.ethereumphone.dgenlibrary.components.dgenTextButton
+import org.ethereumphone.dgenlibrary.theme.DgenTheme
 
 @Composable
 fun OnboardingRoute(
@@ -66,6 +57,8 @@ fun OnboardingRoute(
 ) {
 
     val syncState by onboardingViewModel.syncState.collectAsState()
+
+
 
     OnboardingScreen(
         syncState = syncState,
@@ -87,13 +80,21 @@ fun OnboardingScreen(
     onStartSync: () -> Unit,
     onFinishOnboarding: (useXmtp: Boolean) -> Unit,
 ) {
-
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val pageContent = OnboardingPageContent.entries
 
     val pagerState = rememberPagerState(
         pageCount = { OnboardingPageContent.entries.size},
     )
+
+
+    LaunchedEffect(Unit) {
+        SystemColorManager.refresh(context)
+    }
+
+    val primaryColor = SystemColorManager.primaryColor
+    val secondaryColor = SystemColorManager.secondaryColor
 
 
     when(syncState) {
@@ -122,7 +123,7 @@ fun OnboardingScreen(
         state = pagerState,
         userScrollEnabled = false
     ) {
-        PagerContent(pageContent[pagerState.currentPage]
+        PagerContent(pageContent[pagerState.currentPage], primaryColor
         ) {
             when(pagerState.currentPage) {
                 0 -> {
@@ -130,6 +131,8 @@ fun OnboardingScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         dgenButton(
+                            backgroundColor = primaryColor,
+                            fontColor = secondaryColor,
                             onClick = {
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(pagerState.currentPage + 1)
@@ -141,6 +144,7 @@ fun OnboardingScreen(
                         )
 
                         dgenTextButton(
+                            fontColor = primaryColor,
                             onClick = { onFinishOnboarding(false) },
                             text = "Skip"
                         )
@@ -172,6 +176,7 @@ fun OnboardingScreen(
 @Composable
 private fun PagerContent(
     pagerContent: OnboardingPageContent,
+    primaryColor: Color,
     extraContent: @Composable () -> Unit
 ) {
     Column(
@@ -183,10 +188,10 @@ private fun PagerContent(
             text = pagerContent.title,
             style = TextStyle(
                 fontFamily = PitagonsSans,
-                color = dgenTurqoise,
+                color = primaryColor,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 32.sp,
-                lineHeight = 32.sp,
+                fontSize = 40.sp,
+                lineHeight = 40.sp,
                 letterSpacing = 0.sp,
                 textDecoration = TextDecoration.None
             ),
@@ -196,16 +201,26 @@ private fun PagerContent(
 
         Text(
             text = pagerContent.description,
+//            style = TextStyle(
+//                fontFamily = PitagonsSans,
+//                color = dgenTurqoise,
+//                fontWeight = FontWeight.Normal,
+//                fontSize = 18.sp,
+//                lineHeight = 18.sp,
+//                letterSpacing = 0.sp,
+//                textDecoration = TextDecoration.None,
+//                textAlign = TextAlign.Center
+//            ),
             style = TextStyle(
                 fontFamily = PitagonsSans,
-                color = dgenTurqoise,
-                fontWeight = FontWeight.Normal,
-                fontSize = 18.sp,
-                lineHeight = 18.sp,
+                color = primaryColor.copy(neonOpacity),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
                 letterSpacing = 0.sp,
                 textDecoration = TextDecoration.None,
                 textAlign = TextAlign.Center
             ),
+            textAlign = TextAlign.Center,
             modifier = Modifier.width(350.dp).padding(top = 16.dp, bottom = 48.dp)
         )
         Spacer(Modifier.height(10.dp))

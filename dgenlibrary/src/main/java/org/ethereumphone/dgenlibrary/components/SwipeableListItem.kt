@@ -20,13 +20,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
-import com.example.dgenlibrary.ui.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 

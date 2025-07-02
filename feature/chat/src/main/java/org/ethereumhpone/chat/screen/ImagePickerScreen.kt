@@ -32,7 +32,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -48,12 +47,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.dgenlibrary.ui.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.ethereumhpone.chat.MediaViewModel
 import org.ethereumhpone.domain.model.Attachment
 
 @OptIn(ExperimentalMaterial3Api::class)

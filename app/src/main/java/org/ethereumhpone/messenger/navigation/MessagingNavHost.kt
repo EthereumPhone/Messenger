@@ -16,8 +16,8 @@ import org.ethereumhpone.contracts.navigation.conversationsGraph
 import org.ethereumhpone.contracts.navigation.conversationsGraphRoutePattern
 import org.ethereumhpone.contracts.navigation.navigateToConversations
 import org.ethereumhpone.messenger.ui.MessengerAppState
-import org.ethereumphone.onboarding.navigation.navigateToOnboarding
 import org.ethereumphone.onboarding.navigation.onboardingScreen
+import org.ethereumphone.onboarding.navigation.onboardingRoute
 
 @Composable
 fun MessagingNavHost(
@@ -30,17 +30,14 @@ fun MessagingNavHost(
     val navController = messengerAppState.navController
     val shouldShowOnboarding by messengerAppState.shouldShowOnboarding.collectAsState()
 
+    // Decide the starting destination based on the onboarding requirement.
+    val initialDestination = if (shouldShowOnboarding) onboardingRoute else conversationsGraphRoutePattern
 
     // If threadId is not null, navigate to the chat
     threadId?.let {
         LaunchedEffect(it) {
             navController.navigateToChatByThreadId(threadId = it.toString())
         }
-    }
-
-
-    if (shouldShowOnboarding) {
-        navController.navigateToOnboarding()
     }
 
     inputAddress?.let {
@@ -51,7 +48,7 @@ fun MessagingNavHost(
 
     NavHost(
         navController = navController,
-        startDestination = startDestination,
+        startDestination = initialDestination,
         modifier = modifier,
         enterTransition = {
             slideInHorizontally(
