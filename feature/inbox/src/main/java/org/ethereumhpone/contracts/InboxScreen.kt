@@ -1,6 +1,7 @@
 package org.ethereumhpone.contracts
 
 import android.Manifest
+import android.os.Build.VERSION.SDK_INT
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -72,6 +73,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import org.ethosmobile.components.library.theme.Colors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.ImageLoader
 import org.ethereumphone.dgenlibrary.theme.DgenTheme
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
@@ -94,7 +96,13 @@ import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
-
+import coil.compose.AsyncImage
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
+import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
+import org.ethereumphone.dgenlibrary.screens.EmptyConversationScreen
+import org.ethereumphone.dgenlibrary.screens.InformationScreen
+import org.ethereumphone.dgenlibrary.showDgenToast
 
 @Composable
 fun ContactRoute(
@@ -166,6 +174,18 @@ fun InboxScreen(
         SystemColorManager.refresh(context)
     }
 
+    val gifEnabledLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                if ( SDK_INT >= 28 ) {
+                    add(ImageDecoderDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }.build()
+    }
+
+
     Box(
         Modifier
             .fillMaxSize()
@@ -190,26 +210,15 @@ fun InboxScreen(
 
             when(conversationState) {
                 is ConversationUIState.Loading ->{
-                    Box(contentAlignment = Alignment.Center,modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Loading",
-                            fontSize = 14.sp,
-                            fontFamily = Fonts.INTER,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Colors.WHITE,
-                        )
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        DgenLoadingMatrix(activeLEDColor = primaryColor, unactiveLEDColor = secondaryColor)
                     }
                 }
                 is ConversationUIState.Empty ->{
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "No conversations",
-                            fontSize = 14.sp,
-                            fontFamily = Fonts.INTER,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Colors.WHITE,
-                        )
-                    }
+                    EmptyConversationScreen(
+                        gifEnabledLoader =gifEnabledLoader,
+                        primaryColor = primaryColor
+                    )
                 }
                 is ConversationUIState.Success -> {
                     val tabs = listOf("INBOX","REQUESTS")
@@ -231,7 +240,12 @@ fun InboxScreen(
                                         LazyColumn(
                                             state = lazylist,
                                             modifier = Modifier
-                                                .verticalLazyListScrollbar(lazylist, fixed = true)
+                                                .verticalLazyListScrollbar(
+                                                    lazylist,
+                                                    fixed = true,
+                                                    scrollBarTrackColor = secondaryColor,
+                                                    scrollBarColor = primaryColor
+                                                )
                                                 .fillMaxSize()
                                         ) {
                                             item{
@@ -251,16 +265,13 @@ fun InboxScreen(
                                                     actions = {
                                                         ConversationActionButton(
                                                             onClick = {
-                                                                Toast.makeText(
-                                                                    context,
-                                                                    "Contact ${conversation.id} was deleted.",
-                                                                    Toast.LENGTH_SHORT
-                                                                ).show()
+
+                                                                showDgenToast(context,"Contact ${conversation.id} was deleted.")
                                                                 //conversations.remove(conversation)
                                                                 //TODO: call viewModel
                                                             },
                                                             icon = Icons.Outlined.Delete,
-                                                            iconColor = dgenRed,
+                                                            iconColor = primaryColor,
                                                             iconSize = 48.dp,
                                                             modifier = Modifier.fillMaxHeight()
                                                         )
@@ -269,6 +280,7 @@ fun InboxScreen(
                                                 ) {
                                                     ChatListInfo(
                                                         //TODO: Improve group identification
+                                                        primaryColor = primaryColor,
                                                         isGroup = conversation.recipients.size > 1,
                                                         header = conversation.getHeader(),
                                                         subheader = conversation.getSummary(),
@@ -285,45 +297,26 @@ fun InboxScreen(
                                         }
                                     }
                                     else{
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Column(
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                                            ) {
-                                                Image(
-                                                    modifier = Modifier.size(82.dp),
-                                                    contentScale = ContentScale.Crop,
-                                                    painter = painterResource(id = org.ethereumhpone.contracts.R.drawable.outline_message_24),
-                                                    contentDescription = null,
-                                                    colorFilter = ColorFilter.tint(dgenTurqoise)
-                                                )
-                                                Text(text = "NO CONVERSATIONS",
-                                                    style = TextStyle(
-                                                        fontFamily = SpaceMono,
-                                                        color = dgenTurqoise,
-                                                        fontWeight = FontWeight.Normal,
-                                                        fontSize = 24.sp,
-                                                        letterSpacing = 0.sp,
-                                                        textDecoration = TextDecoration.None
-                                                    )
-                                                )
-
-                                            }
-                                        }
+                                        InformationScreen(
+                                            gifEnabledLoader = gifEnabledLoader,
+                                            primaryColor = primaryColor,
+                                            text = "NO CONVERSATIONS"
+                                        )
                                     }
 
                                 }
                                 1 -> {
 
-                                    if (conversationState.conversations.isEmpty()){
+                                    if (conversationState.conversations.isNotEmpty()){
                                         val conversations = conversationState.conversations
                                         LazyColumn(
                                             state = lazylist,
                                             modifier = Modifier
-                                                .verticalLazyListScrollbar(lazylist, fixed = true)
+                                                .verticalLazyListScrollbar(
+                                                    lazylist,
+                                                    fixed = true,
+                                                    scrollBarTrackColor = secondaryColor,
+                                                    scrollBarColor = primaryColor)
                                                 .fillMaxSize()
                                         ) {
                                             item{
@@ -367,6 +360,7 @@ fun InboxScreen(
                                                         time = conversation.lastMessage?.date,
                                                         readConversation = conversation.lastMessage?.seen == true,
                                                         onClick = { conversationClicked(conversation.id) },
+                                                        primaryColor = primaryColor
                                                     )
 
                                                 }
@@ -377,33 +371,11 @@ fun InboxScreen(
                                         }
                                     }
                                     else{
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Column(
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                                            ) {
-                                                Image(
-                                                    modifier = Modifier.size(82.dp),
-                                                    contentScale = ContentScale.Crop,
-                                                    painter = painterResource(id = org.ethereumhpone.contracts.R.drawable.outline_message_24),
-                                                    contentDescription = null,
-                                                    colorFilter = ColorFilter.tint(dgenTurqoise)
-                                                )
-                                                Text(text = "NO REQUESTS",
-                                                    style = TextStyle(
-                                                        fontFamily = SpaceMono,
-                                                        color = dgenTurqoise,
-                                                        fontWeight = FontWeight.Normal,
-                                                        fontSize = 24.sp,
-                                                        letterSpacing = 0.sp,
-                                                        textDecoration = TextDecoration.None
-                                                    )
-                                                )
-                                            }
-                                        }
+                                        InformationScreen(
+                                            gifEnabledLoader = gifEnabledLoader,
+                                            primaryColor = primaryColor,
+                                            text = "NO REQUESTS"
+                                        )
                                     }
                                 }
                             }
@@ -415,7 +387,7 @@ fun InboxScreen(
                             //TODO: Add AnimatedVisibilty with enums and make it a composable
                             TabRow(
                                 containerColor = dgenBlack,
-                                contentColor = dgenTurqoise,
+                                contentColor = primaryColor,
                                 modifier = Modifier
                                     .fillMaxWidth(),
                                 selectedTabIndex = pagerState.currentPage,
@@ -431,14 +403,14 @@ fun InboxScreen(
                             ) {
                                 tabs.forEachIndexed { index, s ->
                                     val fontColor by animateColorAsState(
-                                        if(pagerState.currentPage == index) dgenTurqoise else dgenTurqoise.copy(0.5f),
+                                        if(pagerState.currentPage == index) primaryColor else primaryColor.copy(0.5f),
                                         tween(300)
                                     )
                                     //TODO: Make a custom Tab
                                     Tab(
                                         modifier = Modifier,
-                                        selectedContentColor = dgenTurqoise,
-                                        unselectedContentColor = dgenTurqoise.copy(0.5f),
+                                        selectedContentColor = primaryColor,
+                                        unselectedContentColor = primaryColor.copy(0.5f),
                                         selected = pagerState.currentPage == index,
                                         onClick = {
                                             //tabIndex = index

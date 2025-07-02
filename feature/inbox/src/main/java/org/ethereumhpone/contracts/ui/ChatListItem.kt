@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -24,9 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
+import com.example.dgenlibrary.ui.theme.pulseOpacity
 import kotlinx.datetime.Instant
 import org.ethereumhpone.contracts.utils.printFormattedDateInfo
+import org.ethereumphone.dgenlibrary.theme.lazerCore
 
 
 @Composable
@@ -37,6 +39,7 @@ fun ChatListInfo(
     time: Instant?,//"0:00AM",
     isGroup: Boolean = false,
     readConversation: Boolean = false,
+    primaryColor: Color,
     onClick: () -> Unit = {}, //threadId long -> String
     modifier: Modifier = Modifier
 ) {
@@ -59,7 +62,7 @@ fun ChatListInfo(
                 text = header,
                 style = TextStyle(
                     fontFamily = PitagonsSans,
-                    color = if(readConversation) dgenTurqoise.copy(0.5f) else dgenTurqoise,
+                    color = if(readConversation) primaryColor.copy(pulseOpacity) else primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 24.sp,
                     lineHeight = 24.sp,
@@ -75,7 +78,7 @@ fun ChatListInfo(
                 text = subheader,
                 style = TextStyle(
                     fontFamily = PitagonsSans,
-                    color = if(readConversation) dgenTurqoise.copy(0.5f) else dgenTurqoise,
+                    color = if(readConversation) primaryColor.copy(pulseOpacity) else primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
                     lineHeight = 14.sp,
@@ -99,7 +102,7 @@ fun ChatListInfo(
                     text = it,
                     style = TextStyle(
                         fontFamily = SpaceMono,
-                        color = if(readConversation) dgenTurqoise.copy(0.5f) else dgenTurqoise,
+                        color = if(readConversation) primaryColor.copy(pulseOpacity) else primaryColor,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp,
                         lineHeight = 13.sp,
@@ -114,7 +117,7 @@ fun ChatListInfo(
                     if(!readConversation && isGroup)  {
                         Surface(
                             shape = CircleShape,
-                            color = dgenTurqoise,
+                            color = primaryColor,
                         ) {
                             Text(
                                 modifier = modifier.padding(horizontal = 4.dp, vertical = 1.dp),
@@ -155,5 +158,6 @@ fun PreviewContactItem(){
         subheader = "The dGEN1 is sick!!!",
         time = now,
         isGroup = false,
+        primaryColor = lazerCore,
     )
 }

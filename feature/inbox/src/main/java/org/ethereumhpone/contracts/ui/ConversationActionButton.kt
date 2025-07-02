@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
+import org.ethereumphone.dgenlibrary.theme.lazerCore
 
 
 @Composable
@@ -23,7 +24,7 @@ fun ConversationActionButton(
     backgroundColor: Color = Color.Transparent,
     contentDescription: String = "ConversationActionButton",
     icon: ImageVector,
-    iconColor: Color = dgenTurqoise,
+    iconColor: Color = lazerCore,
     iconSize: Dp = 32.dp
 ){
     IconButton(

@@ -72,6 +72,8 @@ dependencies {
     implementation(project(":dgenlibrary"))
     implementation(project(":feature:contacts"))
 
+    implementation("io.coil-kt:coil-compose:2.6.0")   // Compose image loading
+    implementation("io.coil-kt:coil-gif:2.6.0")       // GIF decoding
 
 
     implementation("androidx.core:core-ktx:1.12.0")
