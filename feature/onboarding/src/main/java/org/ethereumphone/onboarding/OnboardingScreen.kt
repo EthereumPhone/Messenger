@@ -46,6 +46,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.ethereumphone.dgenlibrary.SystemColorManager
+import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.dgenButton
 import org.ethereumphone.dgenlibrary.components.dgenTextButton
 import org.ethereumphone.dgenlibrary.theme.DgenTheme
@@ -153,10 +154,15 @@ fun OnboardingScreen(
 
 
                 }
-                1 -> DegenLoadingCircle()
+                1 -> DgenLoadingMatrix(
+                    unactiveLEDColor = secondaryColor,
+                    activeLEDColor = primaryColor
+                )
 
                 2,3 -> {
                     dgenButton(
+                        backgroundColor = primaryColor,
+                        fontColor = secondaryColor,
                         onClick = {
                             if (syncState is SyncState.Success) {
                                 onFinishOnboarding(true)
@@ -187,6 +193,7 @@ private fun PagerContent(
         Text(
             text = pagerContent.title,
             style = TextStyle(
+                textAlign = TextAlign.Center,
                 fontFamily = PitagonsSans,
                 color = primaryColor,
                 fontWeight = FontWeight.SemiBold,
@@ -229,46 +236,6 @@ private fun PagerContent(
     }
 }
 
-@Composable
-private fun DegenLoadingCircle() {
-
-    var activatedBox by remember { mutableIntStateOf(0) }
-
-    val alignments = listOf(
-        Alignment.CenterStart,
-        Alignment.TopStart,
-        Alignment.TopCenter,
-        Alignment.TopEnd,
-        Alignment.CenterEnd,
-        Alignment.BottomEnd,
-        Alignment.BottomCenter,
-        Alignment.BottomStart
-    )
-
-    Box(Modifier.size(120.dp)) {
-        Box(
-            Modifier
-                .align(Alignment.Center)
-                .size(30.dp)
-                .background(dgenOcean))
-        alignments.forEachIndexed { index, alignment ->
-
-            Box(
-                Modifier
-                    .align(alignment)
-                    .size(30.dp)
-                    .background(if (activatedBox == index) dgenTurqoise else dgenOcean)
-            )
-        }
-    }
-
-    LaunchedEffect(null) {
-        while (true) {
-            delay(100L)
-            activatedBox = (activatedBox + 1) % alignments.size
-        }
-    }
-}
 
 enum class OnboardingPageContent(
     val title: String,
