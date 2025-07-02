@@ -83,9 +83,10 @@ class MessengerAppState(
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            // Default to `true` so that a fresh install immediately shows the onboarding
-            // without briefly flashing the conversations screen.
-            initialValue = true
+            // Default to `null` while the preference is being loaded. This allows the UI layer
+            // to display a proper loading indicator instead of briefly showing the wrong
+            // destination.
+            initialValue = null
         )
 
 
