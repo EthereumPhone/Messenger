@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,15 +51,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -80,6 +85,8 @@ import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.contracts.ui.ConversationActionButton
 import org.ethereumphone.contacts.NewConversationSheet
 import org.ethereumphone.dgenlibrary.R
+import org.ethereumphone.dgenlibrary.SystemColorManager
+import org.ethereumphone.dgenlibrary.components.SearchHeader
 import org.ethereumphone.dgenlibrary.components.SwipeableListItem
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
@@ -97,6 +104,9 @@ fun ContactRoute(
 ) {
     val conversationState by viewModel.conversationState.collectAsStateWithLifecycle()
 
+    val primaryColor = SystemColorManager.primaryColor
+    val secondaryColor = SystemColorManager.secondaryColor
+
     InboxScreen(
         modifier = modifier,
         conversationState = conversationState,
@@ -108,6 +118,8 @@ fun ContactRoute(
             viewModel.setConversationAsRead(id, true)
             onConversationClick(id)
         },
+        primaryColor = primaryColor,
+        secondaryColor  = secondaryColor
     )
 }
 
@@ -122,6 +134,8 @@ fun InboxScreen(
     markAccepted: (String, Boolean) -> Unit,
     markArchived: (String, Boolean) -> Unit,
     resolveENS: (String) -> Unit,
+    primaryColor: Color,
+    secondaryColor: Color,
     modifier: Modifier = Modifier
 ) {
 
@@ -130,6 +144,12 @@ fun InboxScreen(
     val topBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
     val coroutineScope = rememberCoroutineScope()
+
+    val focusManager = LocalFocusManager.current
+    var searchValue by remember { mutableStateOf(TextFieldValue("")) }
+    var focusedSearch = remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
 
     val contactsPermissionsToRequest = listOf(
@@ -142,69 +162,31 @@ fun InboxScreen(
 
     val lazylist = rememberLazyListState()
 
+    LaunchedEffect(Unit) {
+        SystemColorManager.refresh(context)
+    }
+
     Box(
         Modifier
             .fillMaxSize()
             .background(dgenBlack)
     ) {
         Column {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .pointerInput(Unit) {
-                            detectTapGestures {
-                                //TODO: implement search
-                            }
-                        }
-                ){
-                    Icon(
-                        painter = painterResource(R.drawable.searchicon),
-                        contentDescription = "Search",
-                        tint = DgenTheme.colors.dgenTurqoise,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "SEARCH",
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            color = DgenTheme.colors.dgenTurqoise,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 20.sp,
-                            letterSpacing = 0.sp,
-                            textDecoration = TextDecoration.None
-                        )
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        //TODO: Add Convo
-                        showNewConversationSheet = true
-                    },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = dgenTurqoise
-                    ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Search",
-                        tint = DgenTheme.colors.dgenTurqoise,
-                        modifier = Modifier
-                            .size(32.dp)
-                    )
-                }
-
-
-            }
+            SearchHeader(
+                searchValue,
+                { new -> searchValue = new },
+                onClearValue = { searchValue = TextFieldValue("") },
+                focusManager = focusManager,
+                backgroundColor = dgenBlack,
+                onAddContact = {
+                    showNewConversationSheet = true
+                },
+                isSearchFocused = focusedSearch,
+                focusRequester= focusRequester,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                keyboardController = keyboardController
+            )
 
             when(conversationState) {
                 is ConversationUIState.Loading ->{
@@ -499,7 +481,14 @@ fun InboxScreen(
                             .fillMaxWidth()
                             .height(24.dp)
                             .align(Alignment.BottomCenter)
-                            .background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack)))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        dgenBlack
+                                    )
+                                )
+                            )
                         )
 
                     }
