@@ -109,4 +109,8 @@ dependencies {
     implementation(libs.model)
     implementation(libs.kotlinx.datetime)
 
+    implementation("io.coil-kt:coil-compose:2.6.0")   // Compose image loading
+    implementation("io.coil-kt:coil-gif:2.6.0")       // GIF decoding
+
+
 }

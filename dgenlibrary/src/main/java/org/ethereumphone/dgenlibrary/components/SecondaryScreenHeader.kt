@@ -33,22 +33,13 @@ fun SecondaryScreenHeader(
     onDismiss: () -> Unit,
 ){
     Row(
-        modifier = modifier.padding(end = 8.dp, start = 8.dp, top = 24.dp, bottom = 12.dp),
+        modifier = modifier.padding(end = 12.dp, start = 24.dp, top = 24.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onDismiss, modifier = Modifier.size(40.dp)) {
-            Icon(
-                painter = painterResource(R.drawable.backicon),
-                contentDescription = "Back Button",
-                tint = primaryColor,
-                modifier = Modifier.size(24.dp)
-            )
-        }
 
         Text(
             text = title,
-            textAlign = TextAlign.Center,
             style = TextStyle(
                 fontFamily = PitagonsSans,
                 color = primaryColor,
@@ -61,6 +52,13 @@ fun SecondaryScreenHeader(
             modifier = Modifier.weight(1f)
         )
 
-        Box(Modifier.size(40.dp))
+        IconButton(onClick = onDismiss, modifier = Modifier.size(40.dp)) {
+            Icon(
+                painter = painterResource(R.drawable.baseline_close_24),
+                contentDescription = "Back Button",
+                tint = primaryColor,
+                modifier = Modifier.size(32.dp)
+            )
+        }
     }
 }

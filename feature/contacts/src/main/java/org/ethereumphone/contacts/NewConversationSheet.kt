@@ -1,9 +1,11 @@
 package org.ethereumphone.contacts
 
+import android.os.Build.VERSION.SDK_INT
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -13,16 +15,22 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,12 +43,21 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,19 +65,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.ImageLoader
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.body1_fontSize
+import com.example.dgenlibrary.ui.theme.mediumEnterDuration
+import com.example.dgenlibrary.ui.theme.mediumExitDuration
+import com.example.dgenlibrary.ui.theme.pulseOpacity
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import kotlinx.coroutines.flow.collectLatest
 import org.ethereumhpone.chat.components.InputSelector
-import org.ethereumhpone.chat.components.OldSchoolThickCursorTextField
-import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.contacts.components.CreateGroupSheet
 import org.ethereumphone.contacts.components.NewConversationHeader
 import org.ethereumphone.contacts.components.SelectMembersSheet
 import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
+import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumphone.dgenlibrary.components.ActionButton
+import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
+import org.ethereumphone.dgenlibrary.screens.InformationScreen
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 
 
 @Composable
@@ -68,6 +95,7 @@ fun NewConversationSheet(
     onDismiss: () -> Unit,
     onConversationCreated: (String) -> Unit,
     primaryColor: Color,
+    secondaryColor: Color,
     viewModel: ContactViewModel = hiltViewModel()
 ) {
     val queryResultUiState by viewModel.queryResultUiState.collectAsStateWithLifecycle()
@@ -76,7 +104,8 @@ fun NewConversationSheet(
         onContactsSelected = viewModel::getOrCreateConversation,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
         onDismiss = onDismiss,
-        primaryColor = primaryColor
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor
     )
 
     val context = LocalContext.current
@@ -107,9 +136,16 @@ internal fun ConversationSheet(
     onContactsSelected: (List<String>) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onDismiss: () -> Unit,
-    primaryColor: Color
+    primaryColor: Color,
+    secondaryColor: Color,
 ) {
     val context = LocalContext.current
+
+    //variables for searchbar
+    var isSearchFocused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     var multiSelectMode by remember { mutableStateOf(false) }
     val selectedItems = remember { mutableStateListOf<ContactEntity>() }
@@ -124,6 +160,38 @@ internal fun ConversationSheet(
 
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
+    }
+
+    val animatedColor by animateColorAsState(
+        targetValue = if (isSearchFocused) secondaryColor else Color.Transparent,
+        animationSpec = tween(durationMillis = mediumEnterDuration),
+        label = "color"
+    )
+
+    // Lambda to clear the current search value and notify the change upstream
+    val onClearValue = {
+        textState = TextFieldValue()
+        onSearchQueryChanged("")
+    }
+
+    LaunchedEffect(isSearchFocused) {
+        if (isSearchFocused) {
+            focusRequester.requestFocus()
+        } else {
+            keyboardController?.hide()
+            focusManager.clearFocus()
+        }
+    }
+
+    val gifEnabledLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                if ( SDK_INT >= 28 ) {
+                    add(ImageDecoderDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }.build()
     }
 
     Box(
@@ -144,7 +212,7 @@ internal fun ConversationSheet(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = 12.dp, end = 12.dp, bottom = 24.dp) // fab size 64.dp
+                        .padding(bottom = 24.dp) // fab size 64.dp
                 ) {
                     SecondaryScreenHeader(
                         title = "NEW CONVERSATION".uppercase(),
@@ -158,197 +226,292 @@ internal fun ConversationSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ){
-                            AnimatedVisibility(
-                                textState.text.isBlank(),
-                                enter = fadeIn(tween(300)) + expandHorizontally(tween(300)),
-                                exit = fadeOut(tween(300)) + shrinkHorizontally(tween(300)),
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .drawBehind {
+                                    drawRoundRect(
+                                        cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
+                                        color = animatedColor,
+                                    )
+                                }
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.size(32.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.searchicon),
-                                    contentDescription = "Searching",
-                                    tint = dgenTurqoise.copy(alpha = 0.45f),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-
-                            OldSchoolThickCursorTextField(
-                                singleLine = true,
-                                maxFieldHeight = 50.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                value = textState,
-                                onValueChange = { newTextFieldValue ->
-                                    // Process the text to remove spaces after periods
-                                    val processedText = newTextFieldValue.text.replace(Regex("\\.\\s+"), ".")
-
-                                    // Create a new TextFieldValue with the processed text and updated selection
-                                    val newProcessedTextFieldValue = newTextFieldValue.copy(text = processedText)
-                                    textState = newProcessedTextFieldValue
-                                    onSearchQueryChanged(newProcessedTextFieldValue.text)
-                                },
-                                cursorHeight = 48f,
-                                placeholder = {
-                                        Text(
-                                            text = "Search name or phonenumber".uppercase(),
-                                            style = TextStyle(
-                                                fontFamily = SpaceMono,
-                                                color = dgenTurqoise.copy(alpha = 0.45f),
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 20.sp
-                                            )
-                                        )
-                                },
-                                textStyle = TextStyle(
-                                    fontFamily = PitagonsSans,
-                                    color = dgenWhite,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = 20.sp,
-                                    lineHeight = 20.sp,
-                                    letterSpacing = 0.sp,
-                                    textDecoration = TextDecoration.None
-                                ),
-                                cursorColor = dgenWhite,
-                            )
-
-                    }
-
-
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        when(queryResultUiState) {
-                            is QueryResultUiState.Loading -> {}
-                            is QueryResultUiState.Success -> {
-                                /*
-                                stickyHeader {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(dgenBlack)
-                                            .padding(vertical = 8.dp)
-                                    ) {
-                                        Text(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .pointerInput(Unit) {
-                                                    detectTapGestures {
-                                                        multiSelectMode = true
-                                                    }
-                                                },
-                                            text = "MAKE NEW GROUP",
-                                            style = TextStyle(
-                                                fontFamily = PitagonsSans,
-                                                color = dgenTurqoise,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 20.sp
-                                            )
-                                        )
-                                    }
-                                }
-                                */
-                                if(textState.text.isNotEmpty()){
-                                    queryResultUiState.manualContactEntity?.let {
-                                        item {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable {
-                                                        onContactsSelected(listOf(it.lookupKey))
-                                                    }
-                                            ) {
-                                                Text(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    text = "write to ${it.lookupKey}",
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    style = TextStyle(
-                                                        fontFamily = PitagonsSans,
-                                                        color = dgenTurqoise,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        fontSize = 20.sp,
-                                                        lineHeight = 20.sp,
-                                                        letterSpacing = 0.sp,
-                                                        textDecoration = TextDecoration.None
-                                                    )
-                                                )
+                                    painter = painterResource(org.ethereumphone.dgenlibrary.R.drawable.searchicon),
+                                    contentDescription = "Search",
+                                    tint = primaryColor,
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .pointerInput(Unit) {
+                                            detectTapGestures {
+                                                isSearchFocused = true
                                             }
                                         }
+                                )
+
+                            }
+
+
+                                DgenCursorSearchTextfield(
+                                    value = textState,
+                                    onValueChange = { newTextFieldValue ->
+                                        // Process the text to remove spaces after periods
+                                        val processedText =
+                                            newTextFieldValue.text.replace(Regex("\\.\\s+"), ".")
+
+                                        // Create a new TextFieldValue with the processed text and updated selection
+                                        val newProcessedTextFieldValue =
+                                            newTextFieldValue.copy(text = processedText)
+                                        textState = newProcessedTextFieldValue
+                                        onSearchQueryChanged(newProcessedTextFieldValue.text)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(focusRequester),
+                                    singleLine = true,
+                                    maxFieldHeight = 50.dp,
+                                    cursorColor = primaryColor,
+                                    cursorWidth = 16.dp,
+                                    cursorHeight = 48.dp,
+                                    textfieldFocusManager = focusManager,
+                                    onFocusChanged = { focused ->
+                                        isSearchFocused = focused
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            text = "Search name or phone number".uppercase(),
+                                            style = TextStyle(
+                                                fontFamily = SpaceMono,
+                                                color = primaryColor.copy(alpha = 0.45f),
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 20.sp
+                                            )
+                                        )
+                                    },
+                                    textStyle = TextStyle(
+                                        fontFamily = PitagonsSans,
+                                        color = dgenWhite,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 20.sp,
+                                        lineHeight = 20.sp,
+                                        letterSpacing = 0.sp,
+                                        textDecoration = TextDecoration.None
+                                    ),
+                                )
+
+
+                                androidx.compose.animation.AnimatedVisibility(
+                                    modifier = Modifier,
+                                    visible = isSearchFocused,
+                                    enter = fadeIn(animationSpec = tween(mediumEnterDuration)),
+                                    exit = fadeOut(animationSpec = tween(mediumExitDuration))
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .padding(end = 4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+
+                                        ActionButton(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .drawBehind {
+                                                    drawCircle(
+                                                        color = primaryColor,
+                                                    )
+                                                },
+                                            onClick = onClearValue,
+                                            icon = {
+                                                Icon(
+                                                    contentDescription = "Clear",
+                                                    imageVector = Icons.Rounded.Clear,
+                                                    tint = secondaryColor,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        )
+
                                     }
                                 }
+                            }
+                        }
 
 
-                                if (queryResultUiState.contactEntities.isEmpty()) {
+
+
+                    Box(
+                        Modifier.fillMaxSize()
+                    ) {
+
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            when(queryResultUiState) {
+                                is QueryResultUiState.Loading -> {
                                     item {
-                                        Box(modifier = Modifier
-                                            .fillParentMaxHeight(0.5f)
-                                            .fillParentMaxWidth(),
-                                            contentAlignment = Alignment.Center
+                                        Box(
+                                            Modifier.fillMaxSize()
                                         ) {
-                                            Text(
-                                                text = "No contacts available".uppercase(),
-                                                fontSize = 24.sp,
-                                                style = TextStyle(
-                                                    fontFamily = SpaceMono,
-                                                    color = dgenTurqoise,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 24.sp
-                                                )
+                                            DgenLoadingMatrix(
+                                                unactiveLEDColor = secondaryColor,
+                                                activeLEDColor = primaryColor
                                             )
                                         }
                                     }
-                                } else {
-                                    items(queryResultUiState.contactEntities) { contact ->
-                                        // add onCLick behaviour
-                                        Column(modifier = Modifier
-                                            .clickable { onContactsSelected(listOf(contact.ethAddress ?: "")) }
+                                }
+                                is QueryResultUiState.Success -> {
+                                    /*
+                                    stickyHeader {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(dgenBlack)
+                                                .padding(vertical = 8.dp)
                                         ) {
                                             Text(
-                                                text = contact.name,
-                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .pointerInput(Unit) {
+                                                        detectTapGestures {
+                                                            multiSelectMode = true
+                                                        }
+                                                    },
+                                                text = "MAKE NEW GROUP",
                                                 style = TextStyle(
                                                     fontFamily = PitagonsSans,
                                                     color = dgenTurqoise,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 22.sp,
-                                                    lineHeight = 22.sp,
-                                                    letterSpacing = 0.sp,
-                                                    textDecoration = TextDecoration.None
+                                                    fontSize = 20.sp
                                                 )
                                             )
-                                            if(contact.numbers.firstOrNull()?.address != null){
+                                        }
+                                    }
+                                    */
+                                    if(textState.text.isNotEmpty()){
+                                        queryResultUiState.manualContactEntity?.let {
+                                            item {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clickable {
+                                                            onContactsSelected(listOf(it.lookupKey))
+                                                        }
+                                                ) {
+                                                    Text(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        text = "write to ${it.lookupKey}",
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        style = TextStyle(
+                                                            fontFamily = PitagonsSans,
+                                                            color = dgenTurqoise,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            fontSize = 20.sp,
+                                                            lineHeight = 20.sp,
+                                                            letterSpacing = 0.sp,
+                                                            textDecoration = TextDecoration.None
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+
+                                    if (queryResultUiState.contactEntities.isEmpty()) {
+                                        item {
+                                            Box(modifier = Modifier
+                                                .fillParentMaxHeight(0.5f)
+                                                .fillParentMaxWidth(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                InformationScreen(
+                                                    gifEnabledLoader = gifEnabledLoader,
+                                                    primaryColor = primaryColor,
+                                                    text = "No contacts available"
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        item {
+                                            Spacer(modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(16.dp))
+                                        }
+                                        items(queryResultUiState.contactEntities) { contact ->
+                                            // add onCLick behaviour
+                                            Column(modifier = Modifier
+                                                .clickable { onContactsSelected(listOf(contact.ethAddress ?: "")) }
+                                            ) {
                                                 Text(
-                                                    text = contact.numbers.firstOrNull()?.address!!,
+                                                    text = contact.name,
                                                     overflow = TextOverflow.Ellipsis,
                                                     style = TextStyle(
                                                         fontFamily = PitagonsSans,
-                                                        color = dgenTurqoise.copy(0.45f),
+                                                        color = primaryColor,
                                                         fontWeight = FontWeight.SemiBold,
-                                                        fontSize = 16.sp,
-                                                        lineHeight = 16.sp,
+                                                        fontSize = 22.sp,
+                                                        lineHeight = 22.sp,
                                                         letterSpacing = 0.sp,
                                                         textDecoration = TextDecoration.None
-                                                    ),
-                                                    modifier = Modifier.fillMaxWidth()
+                                                    )
                                                 )
+                                                if(contact.numbers.firstOrNull()?.address != null){
+                                                    Text(
+                                                        text = contact.numbers.firstOrNull()?.address!!,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        style = TextStyle(
+                                                            fontFamily = PitagonsSans,
+                                                            color = primaryColor.copy(pulseOpacity),
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            fontSize = 16.sp,
+                                                            lineHeight = 16.sp,
+                                                            letterSpacing = 0.sp,
+                                                            textDecoration = TextDecoration.None
+                                                        ),
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .align(Alignment.TopCenter)
+                            .background(Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))))
+
+                        Spacer(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .align(Alignment.BottomCenter)
+                            .background(Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
+
                     }
                 }
             }
             else {
-                SelectMembersSheet(
-                    queryResultUiState = queryResultUiState,
-                    onSearchQueryChanged = onSearchQueryChanged,
-                    onBackClick = { multiSelectMode = false },
-                    onContactsSelected = {  } //TODO: add logic back when groups are supported
-                )
+                //TODO: Add group selection feature
+//                SelectMembersSheet(
+//                    queryResultUiState = queryResultUiState,
+//                    onSearchQueryChanged = onSearchQueryChanged,
+//                    onBackClick = { multiSelectMode = false },
+//                    onContactsSelected = {  } //TODO: add logic back when groups are supported,
+//                )
             }
         }
     }
@@ -380,6 +543,7 @@ fun previewContactSheet() {
         {},
         {},
         {},
+        Color.Red,
         Color.Red
     )
 }
@@ -398,6 +562,7 @@ fun previewNoContactsContactSheet() {
         {},
         {},
         {},
+        Color.Red,
         Color.Red
     )
 }

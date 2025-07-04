@@ -300,7 +300,7 @@ fun InboxScreen(
                                         InformationScreen(
                                             gifEnabledLoader = gifEnabledLoader,
                                             primaryColor = primaryColor,
-                                            text = "NO CONVERSATIONS"
+                                            text = "No Conversations"
                                         )
                                     }
 
@@ -374,7 +374,7 @@ fun InboxScreen(
                                         InformationScreen(
                                             gifEnabledLoader = gifEnabledLoader,
                                             primaryColor = primaryColor,
-                                            text = "NO REQUESTS"
+                                            text = "No requests"
                                         )
                                     }
                                 }
@@ -476,6 +476,7 @@ fun InboxScreen(
             NewConversationSheet(
                 onDismiss = { showNewConversationSheet = false },
                 primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
                 onConversationCreated = {
                     showNewConversationSheet = false
                     //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!

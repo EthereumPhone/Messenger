@@ -72,18 +72,6 @@ fun SearchHeader(
     secondaryColor: Color,
     keyboardController: SoftwareKeyboardController?
 ){
-    val animatedColor by animateColorAsState(
-        targetValue = if (isSearchFocused.value) secondaryColor else Color.Transparent,
-        animationSpec = tween(durationMillis = mediumEnterDuration),
-        label = "color"
-    )
-
-    val animatedPlaceholderColor by animateColorAsState(
-        targetValue = if (isSearchFocused.value) primaryColor.copy(pulseOpacity) else primaryColor,
-        animationSpec = tween(durationMillis = mediumEnterDuration),
-        label = "color"
-    )
-
     LaunchedEffect(isSearchFocused.value) {
         if (isSearchFocused.value) {
             focusRequester.requestFocus()
@@ -97,160 +85,62 @@ fun SearchHeader(
         modifier = Modifier.fillMaxWidth()
     ) {
 
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .background(backgroundColor)
-                .padding(start = 12.dp, end = 12.dp, top = 16.dp ,bottom = 8.dp)
-        ){
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .drawBehind {
-                        drawRoundRect(
-                            cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
-                            color = animatedColor,
-                        )
+        SearchHeaderBar(
+            searchValue = searchValue,
+            onValueChange = onValueChange,
+            onClearValue = onClearValue,
+            focusManager = focusManager,
+            backgroundColor = backgroundColor,
+            onAddContact = onAddContact,
+            isSearchFocused = isSearchFocused,
+            focusRequester = focusRequester,
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor,
+            actions = {
+                AnimatedContent(
+                    modifier = Modifier,
+                    targetState = isSearchFocused.value,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(mediumEnterDuration)) togetherWith
+                                fadeOut(animationSpec = tween(mediumExitDuration))
                     }
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Box(
-                    modifier = Modifier.size(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AnimatedContent(
-                        modifier = Modifier,
-                        targetState = isSearchFocused.value,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(mediumEnterDuration)) togetherWith
-                                    fadeOut(animationSpec = tween(mediumExitDuration))
-                        }
-                    ) { state ->
-                        if (state){
-                            Icon(
-                                painter = painterResource(R.drawable.backicon),
-                                contentDescription = "Back",
-                                tint = primaryColor,
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .pointerInput(true) {
-                                        detectTapGestures {
-                                            isSearchFocused.value = false
-                                        }
-                                    }
-                            )
-                        }
-                        else {
-                            Icon(
-                                painter = painterResource(R.drawable.searchicon),
-                                contentDescription = "Search",
-                                tint = primaryColor,
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .pointerInput(Unit) {
-                                        detectTapGestures {
-                                            isSearchFocused.value = true
-                                        }
-                                    }
-                            )
-                        }
-                    }
-                }
-
-                DgenCursorSearchTextfield(
-                    value = searchValue,
-                    onValueChange = onValueChange,
-                    textStyle = TextStyle(
-                        textAlign = TextAlign.Start,
-                        fontFamily = PitagonsSans,
-                        color = dgenWhite,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = body1_fontSize,
-                        lineHeight = 36.sp,
-                        letterSpacing = 0.sp,
-                        textDecoration = TextDecoration.None,
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester),
-                    onFocusChanged = { focused ->
-                        if (isSearchFocused.value != focused) {
-                            isSearchFocused.value = focused
-                        }
-                    },
-                    singleLine = true,
-                    cursorColor = primaryColor,
-                    cursorWidth = 16.dp,
-                    textfieldFocusManager = focusManager,
-                    placeholder = {
-                        Text(
-                            text = "SEARCH",
-                            style = TextStyle(
-                                fontFamily = SpaceMono,
-                                color = animatedPlaceholderColor,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 20.sp,
-                                letterSpacing = 0.sp,
-                                textDecoration = TextDecoration.None
-                            )
-                        )
-                    }
-                )
-
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .padding(end = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AnimatedContent(
-                        modifier = Modifier,
-                        targetState = isSearchFocused.value,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(mediumEnterDuration)) togetherWith
-                                    fadeOut(animationSpec = tween(mediumExitDuration))
-                        }
-                    ) { state ->
-                        if (state){
-                            ActionButton(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .drawBehind {
-                                        drawCircle(
-                                            color = primaryColor,
-                                        )
-                                    },
-                                onClick = onClearValue,
-                                icon = {
-                                    Icon(
-                                        contentDescription = "Clear",
-                                        imageVector = Icons.Rounded.Clear,
-                                        tint = secondaryColor,
-                                        modifier = Modifier.size(16.dp)
+                ) { state ->
+                    if (state) {
+                        ActionButton(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .drawBehind {
+                                    drawCircle(
+                                        color = primaryColor,
                                     )
-                                }
-                            )
-                        }
-                        else {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Add Contact",
-                                tint = primaryColor,
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .pointerInput(true) {
-                                        detectTapGestures {
-                                            onAddContact()
-                                        }
+                                },
+                            onClick = onClearValue,
+                            icon = {
+                                Icon(
+                                    contentDescription = "Clear",
+                                    imageVector = Icons.Rounded.Clear,
+                                    tint = secondaryColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Contact",
+                            tint = primaryColor,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .pointerInput(true) {
+                                    detectTapGestures {
+                                        onAddContact()
                                     }
-                            )
-                        }
+                                }
+                        )
                     }
                 }
             }
-        }
+        )
 
         Spacer(
             modifier = Modifier
@@ -258,5 +148,145 @@ fun SearchHeader(
                 .height(12.dp)
                 .background(Brush.verticalGradient(listOf(dgenBlack, Color.Transparent)))
         )
+    }
+}
+
+// New composable extracted from SearchHeader -------------------------------
+@Composable
+fun SearchHeaderBar(
+    searchValue: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    onClearValue: () -> Unit,
+    focusManager: FocusManager,
+    backgroundColor: Color,
+    onAddContact: () -> Unit,
+    isSearchFocused: MutableState<Boolean>,
+    focusRequester: FocusRequester,
+    primaryColor: Color,
+    secondaryColor: Color,
+    actions: @Composable () -> Unit
+) {
+    val animatedColor by animateColorAsState(
+        targetValue = if (isSearchFocused.value) secondaryColor else Color.Transparent,
+        animationSpec = tween(durationMillis = mediumEnterDuration),
+        label = "color"
+    )
+
+    val animatedPlaceholderColor by animateColorAsState(
+        targetValue = if (isSearchFocused.value) primaryColor.copy(pulseOpacity) else primaryColor,
+        animationSpec = tween(durationMillis = mediumEnterDuration),
+        label = "color"
+    )
+
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(backgroundColor)
+            .padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    drawRoundRect(
+                        cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
+                        color = animatedColor,
+                    )
+                }
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    modifier = Modifier,
+                    targetState = isSearchFocused.value,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(mediumEnterDuration)) togetherWith
+                                fadeOut(animationSpec = tween(mediumExitDuration))
+                    }
+                ) { state ->
+                    if (state) {
+                        Icon(
+                            painter = painterResource(R.drawable.backicon),
+                            contentDescription = "Back",
+                            tint = primaryColor,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .pointerInput(true) {
+                                    detectTapGestures {
+                                        isSearchFocused.value = false
+                                    }
+                                }
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.searchicon),
+                            contentDescription = "Search",
+                            tint = primaryColor,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .pointerInput(Unit) {
+                                    detectTapGestures {
+                                        isSearchFocused.value = true
+                                    }
+                                }
+                        )
+                    }
+                }
+            }
+
+            DgenCursorSearchTextfield(
+                value = searchValue,
+                onValueChange = onValueChange,
+                textStyle = TextStyle(
+                    textAlign = TextAlign.Start,
+                    fontFamily = PitagonsSans,
+                    color = dgenWhite,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = body1_fontSize,
+                    lineHeight = 36.sp,
+                    letterSpacing = 0.sp,
+                    textDecoration = TextDecoration.None,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester),
+                onFocusChanged = { focused ->
+                    if (isSearchFocused.value != focused) {
+                        isSearchFocused.value = focused
+                    }
+                },
+                singleLine = true,
+                cursorColor = primaryColor,
+                cursorWidth = 16.dp,
+                textfieldFocusManager = focusManager,
+                placeholder = {
+                    Text(
+                        text = "SEARCH",
+                        style = TextStyle(
+                            fontFamily = SpaceMono,
+                            color = animatedPlaceholderColor,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 20.sp,
+                            letterSpacing = 0.sp,
+                            textDecoration = TextDecoration.None
+                        )
+                    )
+                }
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .padding(end = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                actions()
+            }
+        }
     }
 }
