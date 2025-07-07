@@ -54,15 +54,43 @@ fun MediaGridScreen(
     clearSelections: () -> Unit = {},
     onSelectionDone: () -> Unit = {},
     onBack: () -> Unit = {},
+    primaryColor: Color,
+    secondaryColor: Color
 ) {
     val context = LocalContext.current
     var selectedAll by remember { mutableStateOf(false) }
     val selectAllColor by animateColorAsState(
-        if (selectedAll) dgenTurqoise else dgenTurqoise.copy(alpha = 0.5f),
+        if (selectedAll) primaryColor else primaryColor.copy(alpha = 0.5f),
         tween(300)
     )
+    var selectedMediaForPreview by remember { mutableStateOf<Attachment?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    selectedMediaForPreview?.let { initialMedia ->
+        MediaPreview(
+            mediaItems = mediaItems,
+            initialItem = initialMedia,
+            onBack = { selectedMediaForPreview = null },
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor,
+            onDelete = { attachment ->
+                val uriString = when (attachment) {
+                    is Attachment.Image -> attachment.getUri()
+                    is Attachment.Video -> attachment.getUri()
+                    is Attachment.Contact -> null
+                }
+                Toast.makeText(context, "Delete $uriString", Toast.LENGTH_SHORT).show()
+                selectedMediaForPreview = null
+            },
+            onShare = { attachment ->
+                val shareUriString = when (attachment) {
+                    is Attachment.Image -> attachment.getUri()
+                    is Attachment.Video -> attachment.getUri()
+                    is Attachment.Contact -> null
+                }
+                Toast.makeText(context, "Share $shareUriString", Toast.LENGTH_SHORT).show()
+            }
+        )
+    } ?: Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .background(dgenBlack)
@@ -80,7 +108,7 @@ fun MediaGridScreen(
                     Icon(
                         painter = painterResource(R.drawable.backicon),
                         contentDescription = "Back",
-                        tint = dgenTurqoise
+                        tint = primaryColor
                     )
                 }
 
@@ -98,21 +126,24 @@ fun MediaGridScreen(
                                         selectAllMedia()
                                     },
                                     text = "Select All",
-                                    fontColor = selectAllColor
+                                    fontColor = selectAllColor,
+                                    primaryColor = primaryColor
                                 )
                                 dgenButton(
                                     onClick = toggleSelectionMode,
-                                    text = "Close"
+                                    text = "Close",
+                                    backgroundColor = primaryColor,
+                                    fontColor = secondaryColor
                                 )
                             } else {
-
                                 dgenButton(
                                     onClick = toggleSelectionMode,
-                                    text = "Select"
+                                    text = "Select",
+                                    backgroundColor = primaryColor,
+                                    fontColor = secondaryColor
                                 )
                             }
                         }
-
                     }
                 }
             }
@@ -131,10 +162,16 @@ fun MediaGridScreen(
                         MediaThumbnail(
                             attachment = item,
                             onClick = {
-                                onMediaClick(item)
+                                if (isInSelectionMode) {
+                                    onMediaClick(item)
+                                } else {
+                                    selectedMediaForPreview = item
+                                }
                             },
                             isInSelectionMode = isInSelectionMode,
-                            isSelected = selectedItems.contains(item)
+                            isSelected = selectedItems.contains(item),
+                            primaryColor = primaryColor,
+                            secondaryColor = secondaryColor
                         )
                     }
                 }
@@ -183,14 +220,18 @@ fun MediaGridScreen(
                         Toast.makeText(context, "onSelectionDone clicked", Toast.LENGTH_SHORT).show() // Select ${selectedItems.size} items
                         onSelectionDone()
                     },
-                    text = "Select ${selectedItems.size} items"
+                    text = "Select ${selectedItems.size} items",
+                    backgroundColor = primaryColor,
+                    fontColor = secondaryColor
                 )
                 dgenButton(
                     onClick = {
                         selectedAll = false
                         clearSelections()
                     },
-                    text = "Clear"
+                    text = "Clear",
+                    backgroundColor = primaryColor,
+                    fontColor = secondaryColor
                 )
             }
         }

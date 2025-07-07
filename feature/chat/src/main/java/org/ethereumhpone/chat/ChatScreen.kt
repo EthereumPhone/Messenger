@@ -13,9 +13,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -49,6 +52,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -79,6 +84,8 @@ import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumphone.dgenlibrary.SystemColorManager
+import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.GoToBottomFab
 import org.ethereumphone.dgenlibrary.components.NewMessagesDivider
 import org.ethereumphone.dgenlibrary.components.TimeHeader
@@ -108,7 +115,8 @@ fun ChatRoute(
     val attachments by chatViewModel.attachments.collectAsStateWithLifecycle()
     // val ensAddress by chatViewModel.ensAddress.collectAsStateWithLifecycle()
 
-    val selectedMessaged by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
+    val selectedMessages by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
+    val selectMode by chatViewModel.selectMode.collectAsStateWithLifecycle()
 
     val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
 
@@ -120,6 +128,11 @@ fun ChatRoute(
     val selectedSet by mediaViewModel.selectedSet.collectAsState()*/
 
     val selectedIndex by mediaViewModel.selectedIndex.collectAsState()
+
+    val primaryColor = SystemColorManager.primaryColor
+    val secondaryColor = SystemColorManager.secondaryColor
+    val openGLColor = SystemColorManager.openGLColor
+
 
 
     ChatScreen(
@@ -133,7 +146,8 @@ fun ChatRoute(
         tokenBalance = 2.456, //tokenBalance,
         chainName = chainName,
         videoPlayer = videoPlayer,
-        //selectedMessaged = selectedMessaged,
+        selectedMessages = selectedMessages,
+        selectMode = selectMode,
         onSendEthClicked = { },
         onSendMessageClicked = chatViewModel::sendMessage,
         onDeleteMessage = chatViewModel::deleteMessage,
@@ -141,14 +155,16 @@ fun ChatRoute(
         onPrepareVideo = mediaViewModel::addVideoUri,
         onContactSelected = chatViewModel::parseContact,
         onToggleAttachment = chatViewModel::toggleAttachment,
-        onRemoveSelectedMessage = chatViewModel::removeSelectedMessage,
+        onToggleSelection = chatViewModel::toggleSelection,
         onOpenContact = chatViewModel::onOpenContact,
-        onAddSelectedMessage = chatViewModel::addSelectedMessage,
         selectedIndex = selectedIndex,
         nextMedia = mediaViewModel::next,
         prevMedia = mediaViewModel::prev,
-        selectMedia = mediaViewModel::select ,
-
+        selectMedia = mediaViewModel::select,
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor,
+        openGLColor = openGLColor,
+        clearSelection = chatViewModel::clearSelection
     )
 }
 
@@ -171,21 +187,30 @@ fun ChatScreen(
     chainName: String = "?",
     videoPlayer: Player? = null,
     onOpenContact: () -> Unit,
-    selectedMessaged: List<Message?> = emptyList(),
+    selectedMessages: List<Message> = emptyList(),
+    selectMode: Boolean = false,
     onContactSelected: (ContactEntity) -> Unit,
     onToggleAttachment: (Attachment) -> Unit,
     onSendMessageClicked: (String) -> Unit = {},
     onDeleteMessage: (String) -> Unit,
     onFocusedMessageUpdate: (Message) -> Unit,
     onPrepareVideo: (Uri) -> Unit,
-    onRemoveSelectedMessage: (Message) -> Unit,
-    onAddSelectedMessage: (Message) -> Unit,
+    onToggleSelection: (Message) -> Unit,
     selectedIndex: Int = -1,
     nextMedia: () -> Unit = {},
     prevMedia: () -> Unit = {},
     selectMedia: (Int) -> Unit = {},
+    primaryColor: Color,
+    openGLColor: Color,
+    secondaryColor: Color,
+    clearSelection: () -> Unit,
 ) {
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        SystemColorManager.refresh(context)
+    }
+
 
     //handle focus
     val showBottomSheet by remember { mutableStateOf(false) }
@@ -194,24 +219,35 @@ fun ChatScreen(
     //gets offset of message composable
     val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
 
-    val selectMode = remember { mutableStateOf(false) }
-    val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
 
     var showOverlay = remember { mutableStateOf(false) }
 
     var shouldRotate = remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
 
+    //for selecting images from gallery
+    val showPicker = remember { mutableStateOf(false) }
+
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    BackHandler(showOverlay.value || (WindowInsets.isImeVisible && !showBottomSheet)) {
-        if (showOverlay.value) {
-            showOverlay.value = false
-        } else {
-            focusManager.clearFocus()
-            keyboardController?.hide()
+    BackHandler(showOverlay.value || showPicker.value || (WindowInsets.isImeVisible && !showBottomSheet) || selectMode) {
+        when {
+            showOverlay.value -> {
+                showOverlay.value = false
+            }
+            showPicker.value -> {
+                showPicker.value = false
+            }
+            selectMode -> {
+                clearSelection()
+            }
+            else -> {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+            }
         }
     }
+
 
     val chatConversion = when (converstation) {
         ConversationUiState.Loading -> null
@@ -231,8 +267,7 @@ fun ChatScreen(
 
 
     //for selecting images from gallery
-    var showPicker by remember { mutableStateOf(false) }
-    val attachments = remember { mutableStateListOf<Attachment>() }
+    val selectedAttachments = remember { mutableStateListOf<Attachment>() }
 
 
     val launcher = rememberLauncherForActivityResult(
@@ -240,19 +275,19 @@ fun ChatScreen(
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val data = result.data
-            attachments.clear()
+            selectedAttachments.clear()
 
             data?.clipData?.let { clip ->
                 // multiple images
                 for (i in 0 until clip.itemCount) {
                     clip.getItemAt(i).uri?.let { uri ->
-                        attachments.add(Attachment.Image(uri = uri))
+                        selectedAttachments.add(Attachment.Image(uri = uri))
                     }
                 }
             }
             // single image
             data?.data?.let { uri ->
-                attachments.add(Attachment.Image(uri = uri))
+                selectedAttachments.add(Attachment.Image(uri = uri))
             }
         }
     }
@@ -264,10 +299,10 @@ fun ChatScreen(
         bitmap?.let {
             // convert to Uri and wrap
             getImageUri(context, it)?.let { uri ->
-                attachments += Attachment.Image(uri = uri, date = System.currentTimeMillis())
+                selectedAttachments += Attachment.Image(uri = uri, date = System.currentTimeMillis())
             }
         }
-        showPicker = true
+        showPicker.value = true
     }
 
 
@@ -296,23 +331,26 @@ fun ChatScreen(
                     recipientUiState = recipientUiState,
                     onTitleClicked = {
                         currentActions = Actions.CONTACT
-                        showPicker = true
+                        showPicker.value = true
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
                     },
-                    onBackClicked = navigateBackToConversations
+                    onBackClicked = navigateBackToConversations,
+                    primaryColor = primaryColor
                 )
             },
             bottomBar = {
                 ChatBottomAppBar(
-                    attachments = attachments,
+                    attachments = selectedAttachments,
                     onToggleAttachment = { att ->
-                        if (att in attachments) attachments.remove(att)
-                        else attachments.add(att)
+                        if (att in selectedAttachments) selectedAttachments.remove(att)
+                        else selectedAttachments.add(att)
                     },
                     onSendClick = { text ->
                         if (text.isNotBlank()) {
                             onSendMessageClicked(text)
                         }
-                        attachments.clear()
+                        selectedAttachments.clear()
                     },
                     hasMultipleLines = hasMultipleLines,
                     expand = expand,
@@ -322,7 +360,8 @@ fun ChatScreen(
                         showOverlay.value = true
                         focusManager.clearFocus()
                         keyboardController?.hide()
-                    }
+                    },
+                    primaryColor = primaryColor
                 )
             },
             containerColor = dgenBlack,
@@ -332,6 +371,12 @@ fun ChatScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {
+                            // dismiss keyboard when tapping outside text field
+                            focusManager.clearFocus()
+                        })
+                    }
                     .padding(paddingValues)
             ) {
 
@@ -365,117 +410,23 @@ fun ChatScreen(
                         var seenCount by remember { mutableIntStateOf(messages.size) }
                         val newCount = (messages.size - seenCount).coerceAtLeast(0)
 
-                        Box(modifier = Modifier.fillMaxSize()){
-                            LazyColumn(
-                                state = scrollState,
-                                modifier = Modifier.fillMaxSize().verticalLazyListScrollbar(scrollState)
-                            ) {
-                                itemsIndexed(
-                                    items = messages,
-                                    key = { _, message -> message.id }
-                                ) { index, message ->
-
-                                    val prevMessage = messages.getOrNull(index - 1)
-                                    val prevAuthor = prevMessage?.recipient?.id
-                                    val isFirstMessageByAuthor = prevAuthor != message.recipient.id
-
-                                    val prevDate = prevMessage?.date?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
-                                    val currentDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault()).date
-
-                                    //Log.d("List index", index.toString())
-                                    Column {
-                                        if (index == seenCount && newCount > 0) {
-                                            NewMessagesDivider(count = newCount)
-                                        }
-
-                                        if (prevDate != currentDate) {
-                                            TimeHeader(message.date)
-                                        }
-
-                                        MessageItem(
-                                            onAuthorClick = { },
-                                            msg = message,
-                                            composablePositionState = composablePositionState,
-                                            player = videoPlayer,
-                                            onPrepareVideo = { /* your logic */ },
-                                            onLongClick = { /* your logic */ },
-                                            name = "${message.recipient.contact?.name}",
-                                            isSelected = selectedMessagesMap.contains(message),
-                                            selectMode = selectMode,
-                                            isXMTP = true,
-                                            onSelect = { selectedMessage ->
-                                                selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
-                                                    isChecked?.let { !it } ?: true
-                                                }
-                                            },
-                                            onDoubleClick = {
-                                                selectMode.value = !selectMode.value
-                                            },
-                                            isFirstMessageByAuthor = isFirstMessageByAuthor,
-                                            isGroup = chatConversion?.isGroup == true,
-                                            isVisible = true
-                                        )
-                                    }
-                                }
-                            }
-
-                            AnimatedVisibility(
-                                visible = showFab,
-                                enter = fadeIn(tween(300)),
-                                exit = fadeOut(tween(300)),
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .offset(-32.dp,-64.dp)
-                            ) {
-                                GoToBottomFab(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            val lastIndex = messages.lastIndex
-                                            scrollState.animateScrollToItem(lastIndex)
-                                        }
-                                    }
-                                )
-                            }
-
-                            AnimatedVisibility(
-                                visible = showFab && (newCount > 0),
-                                enter = fadeIn(tween(300)),
-                                exit = fadeOut(tween(300)),
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-
-                            ) {
-                                Surface(
-                                    color = dgenTurqoise,
-                                    shape = CircleShape,
-                                    elevation = 6.dp,
-                                    modifier = Modifier
-                                        .align(Alignment.TopCenter)
-                                        .padding(top = 16.dp)
-                                        .clickable {
-                                            // jump to the divider
-                                            coroutineScope.launch {
-                                                scrollState.animateScrollToItem(seenCount)
-                                            }
-                                        }
-                                ) {
-                                    Text(
-                                        text = "$newCount new message${if (newCount > 1) "s" else ""}".uppercase(),
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-                                        style = TextStyle(
-                                            fontFamily = SpaceMono,
-                                            color = dgenBlack,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            lineHeight = 14.sp,
-                                            letterSpacing = 1.sp,
-                                            textDecoration = TextDecoration.None,
-                                            textAlign = TextAlign.Center
-                                        ),
-                                    )
-                                }
-                            }
-                        }
+                        MessageList(
+                            modifier = Modifier.fillMaxSize(),
+                            messages = messages,
+                            scrollState = scrollState,
+                            seenCount = seenCount,
+                            chatConversion = chatConversion,
+                            selectedMessages = selectedMessages,
+                            selectMode = remember { mutableStateOf(selectMode) },
+                            onToggleSelection = onToggleSelection,
+                            composablePositionState = composablePositionState,
+                            player = videoPlayer,
+                            onPrepareVideo = onPrepareVideo,
+                            primaryColor = primaryColor,
+                            secondaryColor = secondaryColor,
+                            openGLColor = openGLColor,
+                            onUpdateSeenCount = { seenCount = it }
+                        )
                     }
 
                     MessageUiState.Loading -> {
@@ -484,7 +435,10 @@ fun ChatScreen(
                                 .fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator()
+                            DgenLoadingMatrix(
+                                unactiveLEDColor = secondaryColor,
+                                activeLEDColor = primaryColor
+                            )
                         }
                     }
                 }
@@ -505,7 +459,6 @@ fun ChatScreen(
                     putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                 }
                 launcher.launch(intent)
-                //showPicker = true
                 showOverlay.value = false
             },
             openVideo = {
@@ -516,7 +469,6 @@ fun ChatScreen(
                 }
                 launcher.launch(intent)
 
-                //showPicker = true
                 showOverlay.value = false
             },
             openCamera = {
@@ -531,87 +483,34 @@ fun ChatScreen(
                 //cameraLauncher.launch(null)
                 //showOverlay.value = false
                 currentActions = Actions.SEND //set sending screen
-                showPicker = true
-            }
+                showPicker.value = true
+            },
+            primaryColor = primaryColor
         )
 
-        //TODO: Fix Action Picker
-        AnimatedVisibility(
-            visible = showPicker,
-            enter = fadeIn(animationSpec = tween(300)),
-            exit = fadeOut(animationSpec = tween(300)),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(dgenBlack)
-            ) {
-                when (currentActions) {
-                    Actions.IDLE -> {}
-                    Actions.SEND -> {
-                        //if (chatConversion != null) {
-
-                        OverlaySendScreen(
-                            onBackClick = {
-                                currentActions = Actions.IDLE
-                                showPicker = false
-                                showOverlay.value = false
-                            },
-                            onDone = {
-                                //TODO: Implement Sending
-                            },
-                        )
-
-                        //}
-                    }
-                    Actions.PHOTO -> {
-                        //TODO: Add ImageSelection
-                        /*ImageSelectionScreen(
-                            attachments = attachments,
-                            onToggleAttachment = { attachment ->
-                                if (attachment in attachments) attachments.remove(attachment)
-                                else attachments.add(attachment)
-                            },
-                            onBack = { showPicker = false },
-                            onSelectedItems = {  },
-                        )*/
-                    }
-                    Actions.VIDEO -> {
-                        //TODO: add Videopicker
-                    }
-                    Actions.CONTACT -> {
-                        chatConversion?.isGroup?.let {
-                            OverlayContactScreen(
-                                onBackClick = {
-                                    currentActions = Actions.IDLE
-                                    showPicker = false
-                                    showOverlay.value = false
-                                },
-                                title = chatConversion.title.toString(),
-                                isGroup = it,
-                                media = media,
-                                transactions = emptyList(), //TODO: Add Transaction
-                                recipientUiState = recipientUiState,
-                                deleteGroup= {},
-                                leaveGroup = {},
-                                deleteContact= {},
-                                deleteMember= {},
-                                selectedIndex = selectedIndex,
-                                prev = prevMedia,
-                                next = nextMedia,
-                                select = selectMedia
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-
+        ChatOverlays(
+            showPicker = showPicker.value,
+            currentActions = currentActions,
+            onActionSelected = { action, show ->
+                currentActions = action
+                showPicker.value = show
+            },
+            chatConversion = chatConversion,
+            recipientUiState = recipientUiState,
+            media = media,
+            selectedIndex = selectedIndex,
+            prevMedia = prevMedia,
+            nextMedia = nextMedia,
+            selectMedia = selectMedia,
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor
+        )
     }
 
 }
+
+
+
 
 private fun getImageUri(context: Context, bitmap: Bitmap): Uri? {
     val bytes = ByteArrayOutputStream()
@@ -668,102 +567,87 @@ fun extractTransactionDetails(message: String): TransactionDetails? {
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 private fun PreviewChatScreen() {
-
-
-    val now = Instant.parse("2025-04-17T12:23:05Z")
-
-    val messageUiState = MessageUiState.Success(generateTestMessages())
-    val recipientUiState = RecipientUiState.Success(
-        listOf(
-            Recipient(
-                id = "userB",
-                address = "0xDeF456HodlGuyWallet",
-                ens = "hodl.eth",
-                contact = Contact("lk2", "Bob", null, "0x456")
-            )
-        )
-    )
-    ChatScreen(
-        messageUiState = messageUiState,
-        recipientUiState = recipientUiState,
-        navigateBackToConversations = { },
-        tokenBalance = 2.456,
-        onSendEthClicked = { it -> },
-        converstation = ConversationUiState.Success(
-            Conversation(
-                id = "2",
-                title = null,
-                recipients = listOf(
-                    Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
-                ),
-                draft = null,
-                lastMessage = Message(
-                    id = "m2",
-                    threadId = "2",
-                    recipient = Recipient(
-                        "r2",
-                        "0x456",
-                        null,
-                        Contact("lk2", "Bob", null, "0x456")
-                    ),
-                    date = now,
-                    dateSent = now,
-                    seen = false,
-                    deliveryStatus = DeliveryStatus.PUBLISHED,
-                    replyReference = null,
-                    isMe = false,
-                    attachments = emptyList(),
-                    reactions = emptyList(),
-                    body = "See you tomorrow!"
-                ),
-                clientInbox = "inbox2"
-            )
-        ),
-        modifier = TODO(),
-        contactEntities = TODO(),
-        media = TODO(),
-        attachments = TODO(),
-        chainName = TODO(),
-        videoPlayer = TODO(),
-        onOpenContact = TODO(),
-        selectedMessaged = TODO(),
-        onContactSelected = TODO(),
-        onToggleAttachment = TODO(),
-        onSendMessageClicked = TODO(),
-        onDeleteMessage = TODO(),
-        onFocusedMessageUpdate = TODO(),
-        onPrepareVideo = TODO(),
-        onRemoveSelectedMessage = TODO(),
-        onAddSelectedMessage = TODO()
-    )
-    /*
-    ChatScreen(
-        messagesUiState = messageUiState,
-        recipients = listOf(
-            Recipient(
-                id = "userB",
-                address = "0xDeF456HodlGuyWallet",
-                ens = "hodl.eth",
-                contact = Contact("lk2", "Bob", null, "0x456")
-            )
-        ),
-        navigateBackToConversations={},
-        onPhoneClicked = {},
-        onSendEthClicked = {},
-        onOpenContact = {},
-        onContactSelected = {},
-        onToggleAttachment = {},
-        onSendMessageClicked = {},
-        onDeleteMessage = {},
-        onFocusedMessageUpdate = {},
-        onPrepareVideo = {},
-        onRemoveSelectedMessage = {},
-        onAddSelectedMessage = {},
-        videoPlayer = null
-    )
-     */
-
-
+    //
+    //
+    //    val now = Instant.parse("2025-04-17T12:23:05Z")
+    //
+    //    val messageUiState = MessageUiState.Success(generateTestMessages())
+    //    val recipientUiState = RecipientUiState.Success(
+    //        listOf(
+    //            Recipient(
+    //                id = "userB",
+    //                address = "0xDeF456HodlGuyWallet",
+    //                ens = "hodl.eth",
+    //                contact = Contact("lk2", "Bob", null, "0x456")
+    //            )
+    //        )
+    //    )
+    // //    ChatScreen(
+    // //        messageUiState = messageUiState,
+    // //        recipientUiState = recipientUiState,
+    // //        navigateBackToConversations = { },
+    // //        tokenBalance = 2.456,
+    // //        onSendEthClicked = { it -> },
+    // //        converstation = ConversationUiState.Success(
+    // //            Conversation(
+    // //                id = "2",
+    // //                title = null,
+    // //                recipients = listOf(
+    // //                    Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
+    // //                ),
+    // //                draft = null,
+    // //                lastMessage = Message(
+    // //                    id = "m2",
+    // //                    threadId = "2",
+    // //                    recipient = Recipient(
+    // //                        "r2",
+    // //                        "0x456",
+    // //                        null,
+    // //                        Contact("lk2", "Bob", null, "0x456")
+    // //                    ),
+    // //                    date = now,
+    // //                    dateSent = now,
+    // //                    seen = false,
+    // //                    deliveryStatus = DeliveryStatus.PUBLISHED,
+    // //                    replyReference = null,
+    // //                    isMe = false,
+    // //                    attachments = emptyList(),
+    // //                    reactions = emptyList(),
+    // //                    body = "See you tomorrow!"
+    // //                ),
+    // //                clientInbox = "inbox2"
+    // //            )
+    // //        ),
+    // //        onAddSelectedMessage = TODO()
+    // //    )
+    //    /*
+    //    ChatScreen(
+    //        messagesUiState = messageUiState,
+    //        recipients = listOf(
+    //            Recipient(
+    //                id = "userB",
+    //                address = "0xDeF456HodlGuyWallet",
+    //                ens = "hodl.eth",
+    //                contact = Contact("lk2", "Bob", null, "0x456")
+    //            )
+    //        ),
+    //        navigateBackToConversations={},
+    //        onPhoneClicked = {},
+    //        onSendEthClicked = {},
+    //        onOpenContact = {},
+    //        onContactSelected = {},
+    //        onToggleAttachment = {},
+    //        onSendMessageClicked = {},
+    //        onDeleteMessage = {},
+    //        onFocusedMessageUpdate = {},
+    //        onPrepareVideo = {},
+    //        onRemoveSelectedMessage = {},
+    //        onAddSelectedMessage = {},
+    //        videoPlayer = null
+    //    )
+    //     */
+    //
+    //
 }
 
 
@@ -772,124 +656,124 @@ private fun PreviewChatScreen() {
 private fun PreviewGroupChatScreen() {
 
 
-    val now = Instant.parse("2025-04-17T12:00:00Z")
-    val messageUiState = MessageUiState.Success(generateTestGroupMessages())
-
-    val recipientMe = Recipient(
-        id = "userA",
-        address = "0xAbC123CryptoBroWallet",
-        ens = "bro.eth",
-        contact = Contact("lk1", "Timothy", null, "0x423")
-    )
-
-    val recipientUiState = RecipientUiState.Success(
-        listOf(
-            Recipient(
-                id = "userB",
-                address = "0xDeF456HodlGuyWallet",
-                ens = "hodl.eth",
-                contact = Contact("lk2", "Bob", null, "0x456")
-            ),
-            Recipient(
-                id = "userC",
-                address = "0xDeF456JoeGuy",
-                ens = "Joe.eth",
-                contact = Contact("lk2", "Joe", null, "0x474")
-            )
-        )
-    )
-    val convo = ConversationUiState.Success(
-        Conversation(
-            id = "3",
-            title = "🏀 Game Plan",
-            recipients = listOf(
-                recipientMe,
-                Recipient(
-                    id = "userB",
-                    address = "0xDeF456HodlGuyWallet",
-                    ens = "hodl.eth",
-                    contact = Contact("lk2", "Bob", null, "0x456")
-                ),
-                Recipient(
-                    id = "userC",
-                    address = "0xDeF456JoeGuy",
-                    ens = "Joe.eth",
-                    contact = Contact("lk2", "Joe", null, "0x474")
-                )
-            ),
-            draft = "Need to reply...",
-            lastMessage = Message(
-                "17",
-                "thread3x3",
-                recipientMe,
-                now - (51 * 60).seconds,
-                now - (51 * 60).seconds,
-                true,
-                DeliveryStatus.PUBLISHED,
-                null,
-                false,
-                emptyList(),
-                emptyList(),
-                "Got it! And I’ll post some stories tagging Freedom Factory later."
-            ),
-            pinned = true,
-            clientInbox = "inbox3",
-            isGroup = true
-        )
-    )
-
-
-
-    ChatScreen(
-        messageUiState = messageUiState,
-        recipientUiState = recipientUiState,
-        navigateBackToConversations = { },
-        tokenBalance = 2.456,
-        onSendEthClicked = { it -> },
-        converstation = convo,
-        modifier = TODO(),
-        contactEntities = TODO(),
-        media = TODO(),
-        attachments = TODO(),
-        chainName = TODO(),
-        videoPlayer = TODO(),
-        onOpenContact = TODO(),
-        selectedMessaged = TODO(),
-        onContactSelected = TODO(),
-        onToggleAttachment = TODO(),
-        onSendMessageClicked = TODO(),
-        onDeleteMessage = TODO(),
-        onFocusedMessageUpdate = TODO(),
-        onPrepareVideo = TODO(),
-        onRemoveSelectedMessage = TODO(),
-        onAddSelectedMessage = TODO()
-    )
-    /*
-    ChatScreen(
-        messagesUiState = messageUiState,
-        recipients = listOf(
-            Recipient(
-                id = "userB",
-                address = "0xDeF456HodlGuyWallet",
-                ens = "hodl.eth",
-                contact = Contact("lk2", "Bob", null, "0x456")
-            )
-        ),
-        navigateBackToConversations={},
-        onPhoneClicked = {},
-        onSendEthClicked = {},
-        onOpenContact = {},
-        onContactSelected = {},
-        onToggleAttachment = {},
-        onSendMessageClicked = {},
-        onDeleteMessage = {},
-        onFocusedMessageUpdate = {},
-        onPrepareVideo = {},
-        onRemoveSelectedMessage = {},
-        onAddSelectedMessage = {},
-        videoPlayer = null
-    )
-     */
-
-
+    //    val now = Instant.parse("2025-04-17T12:00:00Z")
+    //    val messageUiState = MessageUiState.Success(generateTestGroupMessages())
+    //
+    //    val recipientMe = Recipient(
+    //        id = "userA",
+    //        address = "0xAbC123CryptoBroWallet",
+    //        ens = "bro.eth",
+    //        contact = Contact("lk1", "Timothy", null, "0x423")
+    //    )
+    //
+    //    val recipientUiState = RecipientUiState.Success(
+    //        listOf(
+    //            Recipient(
+    //                id = "userB",
+    //                address = "0xDeF456HodlGuyWallet",
+    //                ens = "hodl.eth",
+    //                contact = Contact("lk2", "Bob", null, "0x456")
+    //            ),
+    //            Recipient(
+    //                id = "userC",
+    //                address = "0xDeF456JoeGuy",
+    //                ens = "Joe.eth",
+    //                contact = Contact("lk2", "Joe", null, "0x474")
+    //            )
+    //        )
+    //    )
+    //    val convo = ConversationUiState.Success(
+    //        Conversation(
+    //            id = "3",
+    //            title = "🏀 Game Plan",
+    //            recipients = listOf(
+    //                recipientMe,
+    //                Recipient(
+    //                    id = "userB",
+    //                    address = "0xDeF456HodlGuyWallet",
+    //                    ens = "hodl.eth",
+    //                    contact = Contact("lk2", "Bob", null, "0x456")
+    //                ),
+    //                Recipient(
+    //                    id = "userC",
+    //                    address = "0xDeF456JoeGuy",
+    //                    ens = "Joe.eth",
+    //                    contact = Contact("lk2", "Joe", null, "0x474")
+    //                )
+    //            ),
+    //            draft = "Need to reply...",
+    //            lastMessage = Message(
+    //                "17",
+    //                "thread3x3",
+    //                recipientMe,
+    //                now - (51 * 60).seconds,
+    //                now - (51 * 60).seconds,
+    //                true,
+    //                DeliveryStatus.PUBLISHED,
+    //                null,
+    //                false,
+    //                emptyList(),
+    //                emptyList(),
+    //                "Got it! And I'll post some stories tagging Freedom Factory later."
+    //            ),
+    //            pinned = true,
+    //            clientInbox = "inbox3",
+    //            isGroup = true
+    //        )
+    //    )
+    //
+    //
+    //
+    // //    ChatScreen(
+    // //        messageUiState = messageUiState,
+    // //        recipientUiState = recipientUiState,
+    // //        navigateBackToConversations = { },
+    // //        tokenBalance = 2.456,
+    // //        onSendEthClicked = { it -> },
+    // //        converstation = convo,
+    // //        modifier = TODO(),
+    // //        contactEntities = TODO(),
+    // //        media = TODO(),
+    // //        attachments = TODO(),
+    // //        chainName = TODO(),
+    // //        videoPlayer = TODO(),
+    // //        onOpenContact = TODO(),
+    // //        selectedMessaged = TODO(),
+    // //        onContactSelected = TODO(),
+    // //        onToggleAttachment = TODO(),
+    // //        onSendMessageClicked = TODO(),
+    // //        onDeleteMessage = TODO(),
+    // //        onFocusedMessageUpdate = TODO(),
+    // //        onPrepareVideo = TODO(),
+    // //        onRemoveSelectedMessage = TODO(),
+    // //        onAddSelectedMessage = TODO()
+    // //    )
+    //    /*
+    //    ChatScreen(
+    //        messagesUiState = messageUiState,
+    //        recipients = listOf(
+    //            Recipient(
+    //                id = "userB",
+    //                address = "0xDeF456HodlGuyWallet",
+    //                ens = "hodl.eth",
+    //                contact = Contact("lk2", "Bob", null, "0x456")
+    //            )
+    //        ),
+    //        navigateBackToConversations={},
+    //        onPhoneClicked = {},
+    //        onSendEthClicked = {},
+    //        onOpenContact = {},
+    //        onContactSelected = {},
+    //        onToggleAttachment = {},
+    //        onSendMessageClicked = {},
+    //        onDeleteMessage = {},
+    //        onFocusedMessageUpdate = {},
+    //        onPrepareVideo = {},
+    //        onRemoveSelectedMessage = {},
+    //        onAddSelectedMessage = {},
+    //        videoPlayer = null
+    //    )
+    //     */
+    //
+    //
 }

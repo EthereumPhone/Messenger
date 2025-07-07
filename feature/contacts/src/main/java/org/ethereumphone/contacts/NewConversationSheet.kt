@@ -1,6 +1,7 @@
 package org.ethereumphone.contacts
 
 import android.os.Build.VERSION.SDK_INT
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -88,6 +89,7 @@ import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.screens.InformationScreen
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import org.ethereumphone.dgenlibrary.showDgenToast
 
 
 @Composable
@@ -399,12 +401,16 @@ internal fun ConversationSheet(
                                     }
                                     */
                                     if(textState.text.isNotEmpty()){
+                                        item {
+                                            Spacer(Modifier.fillMaxWidth().height(16.dp))
+                                        }
                                         queryResultUiState.manualContactEntity?.let {
                                             item {
                                                 Row(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
                                                         .clickable {
+                                                            showDgenToast(context, "Write to ${it.lookupKey}")
                                                             onContactsSelected(listOf(it.lookupKey))
                                                         }
                                                 ) {
@@ -414,7 +420,7 @@ internal fun ConversationSheet(
                                                         overflow = TextOverflow.Ellipsis,
                                                         style = TextStyle(
                                                             fontFamily = PitagonsSans,
-                                                            color = dgenTurqoise,
+                                                            color = primaryColor,
                                                             fontWeight = FontWeight.SemiBold,
                                                             fontSize = 20.sp,
                                                             lineHeight = 20.sp,
@@ -450,8 +456,18 @@ internal fun ConversationSheet(
                                         }
                                         items(queryResultUiState.contactEntities) { contact ->
                                             // add onCLick behaviour
-                                            Column(modifier = Modifier
-                                                .clickable { onContactsSelected(listOf(contact.ethAddress ?: "")) }
+                                            Column(
+                                                modifier = Modifier.clickable {
+                                                    contact.ethAddress?.let {
+                                                        onContactsSelected(listOf(it))
+                                                    } ?: run {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Selected contact has no Ethereum address",
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+                                                    }
+                                                }
                                             ) {
                                                 Text(
                                                     text = contact.name,
@@ -483,6 +499,11 @@ internal fun ConversationSheet(
                                                     )
                                                 }
                                             }
+                                        }
+                                        item {
+                                            Spacer(modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(16.dp))
                                         }
                                     }
                                 }

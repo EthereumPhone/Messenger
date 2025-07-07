@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.pulseOpacity
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
@@ -72,6 +73,7 @@ import org.ethereumhpone.chat.util.abbreviateNumber
 import org.ethereumhpone.chat.util.formatSmart
 import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
+import org.ethereumphone.dgenlibrary.theme.dgenOcean
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -81,6 +83,8 @@ import java.util.Locale
 fun OverlaySendScreen(
     onBackClick: () -> Unit,
     onDone: () -> Unit,
+    primaryColor: Color,
+    secondaryColor: Color
 ) {
 
     val scrollState = rememberLazyListState()
@@ -131,14 +135,14 @@ fun OverlaySendScreen(
                     painter = painterResource(R.drawable.backicon),
                     contentDescription = "BackButton",
                     modifier = Modifier.size(24.dp),
-                    tint = dgenTurqoise
+                    tint = primaryColor
                 )
             }
             Text(
                 text = title,
                 style = TextStyle(
                     fontFamily = PitagonsSans,
-                    color = dgenTurqoise,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 24.sp,
                     lineHeight = 24.sp,
@@ -156,7 +160,7 @@ fun OverlaySendScreen(
                     imageVector = Icons.Filled.MoreVert,
                     contentDescription = "BackButton",
                     modifier = Modifier.size(24.dp),
-                    tint = dgenTurqoise
+                    tint = primaryColor
                 )
             }
 
@@ -175,7 +179,11 @@ fun OverlaySendScreen(
                     LazyColumn(
                         state= scrollState,
                         modifier = Modifier
-                            .verticalLazyListScrollbar(scrollState, fixed=true) // Apply the scrollbar first
+                            .verticalLazyListScrollbar(
+                                scrollState, fixed = true,
+                                scrollBarTrackColor = secondaryColor,
+                                scrollBarColor = primaryColor,
+                            ) // Apply the scrollbar first
                             .fillMaxSize()
                             .background(dgenBlack)
                         ,
@@ -196,7 +204,8 @@ fun OverlaySendScreen(
                                         token = "TOKEN$index"// TODO: add token name
                                         readyToSend = true
                                     }
-                                }
+                                },
+                                primaryColor = primaryColor
                             )
                         }
                         item {
@@ -228,7 +237,7 @@ fun OverlaySendScreen(
                          text= "AMOUNT",
                          style = TextStyle(
                              fontFamily = SpaceMono,
-                             color = dgenTurqoise,
+                             color = primaryColor,
                              fontWeight = FontWeight.Normal,
                              fontSize = 16.sp,
                              lineHeight = 16.sp,
@@ -242,7 +251,7 @@ fun OverlaySendScreen(
                                  text = "0.0",
                                  style = TextStyle(
                                      fontFamily = PitagonsSans,
-                                     color = dgenTurqoise.copy(alpha = 0.45f),
+                                     color = primaryColor.copy(alpha = pulseOpacity),
                                      fontWeight = FontWeight.SemiBold,
                                      fontSize = 56.sp
                                  )
@@ -276,7 +285,7 @@ fun OverlaySendScreen(
                              append(abbreviateNumber(max))
                              withStyle(style = SpanStyle(
                                  fontFamily = PitagonsSans,
-                                 color = dgenTurqoise,
+                                 color = primaryColor,
                                  fontWeight = FontWeight.SemiBold,
                                  fontSize = 14.sp,
                                  letterSpacing = 0.sp,
@@ -289,7 +298,7 @@ fun OverlaySendScreen(
                          },
                          style = TextStyle(
                              fontFamily = PitagonsSans,
-                             color = dgenTurqoise,
+                             color = primaryColor,
                              fontWeight = FontWeight.SemiBold,
                              fontSize = 16.sp,
                              lineHeight = 16.sp,
@@ -304,7 +313,7 @@ fun OverlaySendScreen(
                          text= "TO",
                          style = TextStyle(
                              fontFamily = SpaceMono,
-                             color = dgenTurqoise,
+                             color = primaryColor,
                              fontWeight = FontWeight.Normal,
                              fontSize = 16.sp,
                              lineHeight = 16.sp,
@@ -318,7 +327,8 @@ fun OverlaySendScreen(
                              preselectedIndex = preselectedRecipient,
                              onSelectionChanged = {
 
-                             }
+                             },
+                             primaryColor = primaryColor
                          )
                          Spacer(modifier = Modifier.fillMaxWidth().height(12.dp).align(Alignment.TopCenter).background(
                              Brush.verticalGradient(listOf(dgenBlack,Color.Transparent))))
@@ -337,10 +347,10 @@ fun OverlaySendScreen(
              ) {
 
                      Text(text= "SEND".uppercase(),
-                         color = dgenTurqoise ,
+                         color = primaryColor ,
                          style = TextStyle(
                              fontFamily = SpaceMono,
-                             color = dgenTurqoise,
+                             color = primaryColor,
                              fontWeight = FontWeight.Bold,
                              fontSize = 24.sp,
                              lineHeight = 24.sp,
@@ -371,7 +381,8 @@ fun OverlaySendScreen(
 fun SelectableTextGrid(
     items: List<String>,
     preselectedIndex: Int = -1,
-    onSelectionChanged: (selectedIndex: Int) -> Unit = {}
+    onSelectionChanged: (selectedIndex: Int) -> Unit = {},
+    primaryColor: Color
 ) {
     // rememberSaveable if you want this to survive process death / config changes
     var selectedIndex by remember { mutableStateOf(preselectedIndex) }
@@ -391,8 +402,8 @@ fun SelectableTextGrid(
                 onClick = {
                     selectedIndex = index
                     onSelectionChanged(index)
-                }
-
+                },
+                primaryColor = primaryColor
             )
         }
     }
@@ -402,7 +413,8 @@ fun SelectableTextGrid(
 fun RecipientName(
     selected: Boolean,
     name: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    primaryColor: Color
 ){
     Text(
         modifier = Modifier.pointerInput(Unit){
@@ -415,7 +427,7 @@ fun RecipientName(
         overflow = TextOverflow.Ellipsis,
         style = TextStyle(
             fontFamily = SpaceMono,
-            color = dgenTurqoise.copy(alpha = if (selected) 1f else 0.45f),
+            color = primaryColor.copy(alpha = if (selected) 1f else 0.45f),
             fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp
         )
@@ -429,6 +441,7 @@ fun AvailableToken(
     name: String = "",
     balance: Double = 0.0,
     fiatamount: Double = 0.0,
+    primaryColor: Color
 ) {
     val decimalFormat = DecimalFormat("0.00").apply {
         decimalFormatSymbols = DecimalFormatSymbols(Locale.US) // Forces the decimal point
@@ -470,7 +483,7 @@ fun AvailableToken(
                 text = name,
                 style = TextStyle(
                     fontFamily = PitagonsSans,
-                    color = dgenTurqoise,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 24.sp,
                     lineHeight = 24.sp,
@@ -498,7 +511,7 @@ fun AvailableToken(
 
                     withStyle(style = SpanStyle(
                         fontFamily = PitagonsSans,
-                        color = dgenTurqoise.copy(0.7f),
+                        color = primaryColor.copy(0.7f),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
                         letterSpacing = 0.sp,
@@ -510,7 +523,7 @@ fun AvailableToken(
 
                 },
                 fontFamily = PitagonsSans,
-                color = dgenTurqoise,
+                color = primaryColor,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 24.sp,
                 lineHeight = 24.sp,
@@ -529,5 +542,8 @@ fun AvailableToken(
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 fun OverlaySendScreenPreview(){
-    OverlaySendScreen({},{})
+    OverlaySendScreen(
+        {}, {}, dgenTurqoise,
+        secondaryColor = dgenOcean
+    )
 }

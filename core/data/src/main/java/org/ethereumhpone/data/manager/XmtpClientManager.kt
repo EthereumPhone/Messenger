@@ -37,6 +37,7 @@ import java.security.SecureRandom
 import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.withContext
 
 @Singleton
 object XmtpClientManager {
@@ -150,7 +151,10 @@ class EOAWallet(val walletSDK: WalletSDK, val address: String) : SigningKey {
 
 
     override suspend fun sign(message: String): SignedData {
-        val signatureString = walletSDK.signMessage(message, 8453)
+        // Ensure signing is performed on the Main thread so that any UI-driven wallet prompts are shown properly
+        val signatureString = withContext(Dispatchers.Main) {
+            walletSDK.signMessage(message, 8453)
+        }
         val signatureBytes = signatureString.removePrefix("0x").chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
         return SignedData(signatureBytes)

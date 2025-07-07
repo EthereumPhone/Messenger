@@ -23,6 +23,8 @@ import org.xmtp.android.library.libxmtp.PublicIdentity
 import javax.inject.Inject
 import org.ethereumhpone.common.util.Result
 import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
+import org.kethereum.ens.ENS
+import org.kethereum.model.Address
 
 class ConversationRepositoryImpl @Inject constructor(
     private val context: Context,
@@ -31,6 +33,7 @@ class ConversationRepositoryImpl @Inject constructor(
     private val recipientDao: RecipientDao,
     private val messageDao: MessageDao,
     private val xmtpClientManager: XmtpClientManager,
+    private val ensResolver: ENS,
 ): ConversationRepository {
     override fun getConversations(): Flow<List<Conversation>> =
         conversationDao.getConversations()
@@ -46,6 +49,9 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override fun createConversation(addresses: List<String>): Flow<Result<Conversation>> = flow {
         val recipients = recipientDao.getRecipientsByAddress(addresses).first()
+        // Wait until XMTP client is ready before making any client calls to avoid IllegalStateException
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+        val client = xmtpClientManager.client
         val inboxIds = recipients.map { it.inboxId }
 
         val allRecipientsFound = inboxIds.size == addresses.size
@@ -54,7 +60,7 @@ class ConversationRepositoryImpl @Inject constructor(
                 PublicIdentity(kind = IdentityKind.ETHEREUM, identifier = it)
             }
 
-            val consentMap = xmtpClientManager.client.canMessage(identities)
+            val consentMap = client.canMessage(identities)
             val notAllowed = consentMap.filterValues { !it }
 
             if (notAllowed.isNotEmpty()) {
@@ -71,14 +77,14 @@ class ConversationRepositoryImpl @Inject constructor(
             // Handle direct message creation
             try {
                 val identity = identities.first()
-                val dm = xmtpClientManager.client.conversations.findOrCreateDmWithIdentity(identity)
+                val dm = client.conversations.findOrCreateDmWithIdentity(identity)
 
                 val conversationEntity = ConversationEntity(
                     id = dm.id,
                     title = null,
                     members = listOf(dm.peerInboxId),
                     createdAt = dm.createdAt.time,
-                    clientInbox = xmtpClientManager.client.inboxId
+                    clientInbox = client.inboxId
                 )
 
                 val recipientEntity = RecipientEntity(
@@ -120,7 +126,7 @@ class ConversationRepositoryImpl @Inject constructor(
 
         // Fallback: attempt to re-fetch or create DM
         val inboxId = inboxIds.first()
-        val dm = xmtpClientManager.client.conversations.findOrCreateDm(inboxId)
+        val dm = client.conversations.findOrCreateDm(inboxId)
         val conversation = conversationDao.getConversation(dm.id).first()
 
         if (conversation != null) {
@@ -131,12 +137,13 @@ class ConversationRepositoryImpl @Inject constructor(
                 title = null,
                 members = listOf(dm.peerInboxId),
                 createdAt = dm.createdAt.time,
-                clientInbox = xmtpClientManager.client.inboxId
+                clientInbox = client.inboxId
             )
             conversationDao.insertConversation(newConversation)
             emitAll(conversationDao.getConversation(dm.id).map { Result.Success(it!!.toExternalModel()) })
         }
     }
+
 
     override suspend fun updatePinnedConversation(id: String, pinned: Boolean) {
         conversationDao.updatePinnedStatus(id, pinned)
@@ -161,6 +168,3 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.deleteConversation(id)
     }
 }
-
-
-

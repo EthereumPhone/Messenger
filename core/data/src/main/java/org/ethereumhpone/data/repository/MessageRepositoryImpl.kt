@@ -102,51 +102,66 @@ class MessageRepositoryImpl @Inject constructor(
         xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
 
         val conversation = xmtpClientManager.client.conversations.findConversation(threadId)
-            ?: return@coroutineScope null
+        if (conversation == null) {
+            Log.e("MessageRepository", "Conversation not found for threadId: $threadId")
+            return@coroutineScope null
+        }
 
         when {
             attachments.isNotEmpty() -> {
                 // TODO: Handle attachments
+                Log.w("MessageRepository", "Attachments not yet supported")
                 null
             }
 
             reaction != null -> {
                 // TODO: Handle reaction
+                Log.w("MessageRepository", "Reactions not yet supported")
                 null
             }
 
             else -> {
-                val messageId = if (replyReference != null) {
-                    conversation.prepareMessage(
-                        Reply(
-                            reference = replyReference,
-                            content = body.orEmpty(),
-                            contentType = ContentTypeText
+                try {
+                    val messageId = if (replyReference != null) {
+                        conversation.prepareMessage(
+                            Reply(
+                                reference = replyReference,
+                                content = body.orEmpty(),
+                                contentType = ContentTypeText
+                            )
                         )
+                    } else {
+                        conversation.prepareMessage(body)
+                    }
+
+                    Log.d("MessageRepository", "Prepared message with ID: $messageId")
+
+                    val messageEntity = MessageEntity(
+                        id = messageId,
+                        threadId = threadId,
+                        dateSent = System.currentTimeMillis(),
+                        date = System.currentTimeMillis(),
+                        senderInboxId = xmtpClientManager.client.inboxId,
+                        body = body.orEmpty(),
+                        deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
+                        isMe = true,
+                        replyReference = replyReference,
+                        seen = true,
+                        read = true
                     )
-                } else {
-                    conversation.prepareMessage(body)
+
+                    // Save the message to database first
+                    messageDao.upsertMessages(listOf(messageEntity))
+                    
+                    // Then publish it
+                    conversation.publishMessages()
+                    Log.d("MessageRepository", "Message published successfully")
+
+                    messageId
+                } catch (e: Exception) {
+                    Log.e("MessageRepository", "Failed to send message", e)
+                    null
                 }
-
-                Log.d("MESSAGE ID", messageId)
-
-                val messageEntity = MessageEntity(
-                    id = messageId,
-                    threadId = threadId,
-                    dateSent = Instant.now().epochSecond,
-                    senderInboxId = xmtpClientManager.client.inboxId,
-                    body = body.orEmpty(),
-                    deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
-                    isMe = true,
-                    replyReference = replyReference.orEmpty(),
-                    seen = true,
-                    read = true
-                )
-
-                launch { messageDao.upsertMessages(listOf(messageEntity)) }
-                launch { conversation.publishMessages() }
-
-                messageId
             }
         }
     }

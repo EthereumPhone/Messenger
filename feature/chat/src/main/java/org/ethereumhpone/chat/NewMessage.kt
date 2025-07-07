@@ -99,208 +99,208 @@ fun NewMessagePreview(){
     NewMessage()
 }
 
-@Composable
-@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
-private fun PreviewTestScreen() {
-
-    val scrollState = rememberLazyListState()
-
-    val coroutineScope = rememberCoroutineScope()
-
-
-    val showFab by remember {
-        derivedStateOf {
-            val info = scrollState.layoutInfo
-            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
-            // totalItemsCount includes headers/footers too; -1 to get max index
-            lastVisible < (info.totalItemsCount - 1)
-        }
-    }
-
-    val now = Instant.parse("2025-04-17T12:23:05Z")
-
-    val messageUiState = MessageUiState.Success(generateTestMessages())
-
-    val recipientUiState = RecipientUiState.Success(
-        listOf(
-            Recipient(
-                id = "userB",
-                address = "0xDeF456HodlGuyWallet",
-                ens = "hodl.eth",
-                contact = Contact("lk2", "Bob", null, "0x456")
-            )
-        )
-    )
-
-    var testmessages by remember {
-        mutableStateOf(generateTestMessages().toMutableList())
-    }
-
-    // 2) Track how many have been "seen"
-    var seenCount by remember { mutableIntStateOf(testmessages.size) }
-    val newCount = (testmessages.size - seenCount).coerceAtLeast(0)
-
-
-
-    LaunchedEffect(scrollState, testmessages.size) {
-        snapshotFlow {
-            val lastIndex = scrollState.layoutInfo.totalItemsCount - 1
-            scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == lastIndex
-        }.distinctUntilChanged()
-            .collect { isAtBottom ->
-                if (isAtBottom) {
-                    seenCount = testmessages.size
-                }
-            }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()){
-
-        LazyColumn(
-            state = scrollState,
-            modifier = Modifier.fillMaxSize().verticalLazyListScrollbar(scrollState)
-        ) {
-            itemsIndexed(
-                items = testmessages.take(seenCount),
-                key = { _, message -> message.id }
-            ) { index, message ->
-
-                val prevMessage = testmessages.getOrNull(index - 1)
-                val prevAuthor = prevMessage?.recipient?.id
-                val isFirstMessageByAuthor = prevAuthor != message.recipient.id
-
-                val prevDate = prevMessage?.date?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
-                val currentDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault()).date
-
-                //Log.d("List index", index.toString())
-
-                val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
-                val selectMode = remember { mutableStateOf(false) }
-                val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
-                Column {
-                    if (prevDate != currentDate) {
-                        //TimeHeader(message.date)
-                        NewMessagesDivider(96)
-                    }
-
-                    MessageItem(
-                        onAuthorClick = { },
-                        msg = message,
-                        composablePositionState = composablePositionState,
-                        player = null,
-                        onPrepareVideo = { /* your logic */ },
-                        onLongClick = { /* your logic */ },
-                        name = "${message.recipient.contact?.name}",
-                        isSelected = selectedMessagesMap.contains(message),
-                        selectMode = selectMode,
-                        isXMTP = true,
-                        onSelect = { selectedMessage ->
-                            selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
-                                isChecked?.let { !it } ?: true
-                            }
-                        },
-                        onDoubleClick = {
-                            selectMode.value = !selectMode.value
-                        },
-                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-                        isGroup = false,
-                        isVisible = true
-                    )
-                }
-
-
-            }
-        }
-
-        AnimatedVisibility(
-            visible = showFab,
-            enter = fadeIn(tween(300)),
-            exit = fadeOut(tween(300)),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(-32.dp,-64.dp)
-        ) {
-            GoToBottomFab(
-                onClick = {
-                    coroutineScope.launch {
-                        val lastIndex = testmessages.lastIndex
-                        scrollState.animateScrollToItem(lastIndex)
-                    }
-                }
-            )
-        }
-
-        AnimatedVisibility(
-            visible = showFab && (newCount > 0),
-            enter = fadeIn(tween(300)),
-            exit = fadeOut(tween(300)),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-
-        ) {
-            Surface(
-                color = dgenTurqoise,
-                shape = CircleShape,
-                elevation = 6.dp,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 16.dp)
-                    .clickable {
-                        // jump to the divider
-                        coroutineScope.launch {
-                            scrollState.animateScrollToItem(seenCount)
-                        }
-                    }
-            ) {
-                Text(
-                    text = "$newCount new message${if (newCount > 1) "s" else ""}".uppercase(),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        color = dgenBlack,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        lineHeight = 14.sp,
-                        letterSpacing = 1.sp,
-                        textDecoration = TextDecoration.None,
-                        textAlign = TextAlign.Center
-                    ),
-                )
-            }
-        }
-
-        Button(
-            onClick = {
-                val nextId = (testmessages.size + 1).toLong()
-                testmessages = (testmessages +
-                        Message("2", "thread123",
-                            Recipient(
-                                id = "userB",
-                                address = "0xDeF456HodlGuyWallet",
-                                ens = "hodl.eth",
-                                contact = Contact("lk2", "Bob", null, "0x456")
-                            ),
-                            now - (59 * 60).seconds,
-                            now - (59 * 60).seconds,
-                            true,
-                            DeliveryStatus.PUBLISHED,
-                            null,
-                            false,
-                            emptyList(),
-                            emptyList(),
-                            "🚀🚀 New Message $nextId"))
-                    .toMutableList()
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-        ) {
-            Text("Simulate incoming")
-        }
-    }
-
-
-
-
-}
+//@Composable
+//@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
+//private fun PreviewTestScreen() {
+//
+//    val scrollState = rememberLazyListState()
+//
+//    val coroutineScope = rememberCoroutineScope()
+//
+//
+//    val showFab by remember {
+//        derivedStateOf {
+//            val info = scrollState.layoutInfo
+//            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+//            // totalItemsCount includes headers/footers too; -1 to get max index
+//            lastVisible < (info.totalItemsCount - 1)
+//        }
+//    }
+//
+//    val now = Instant.parse("2025-04-17T12:23:05Z")
+//
+//    val messageUiState = MessageUiState.Success(generateTestMessages())
+//
+//    val recipientUiState = RecipientUiState.Success(
+//        listOf(
+//            Recipient(
+//                id = "userB",
+//                address = "0xDeF456HodlGuyWallet",
+//                ens = "hodl.eth",
+//                contact = Contact("lk2", "Bob", null, "0x456")
+//            )
+//        )
+//    )
+//
+//    var testmessages by remember {
+//        mutableStateOf(generateTestMessages().toMutableList())
+//    }
+//
+//    // 2) Track how many have been "seen"
+//    var seenCount by remember { mutableIntStateOf(testmessages.size) }
+//    val newCount = (testmessages.size - seenCount).coerceAtLeast(0)
+//
+//
+//
+//    LaunchedEffect(scrollState, testmessages.size) {
+//        snapshotFlow {
+//            val lastIndex = scrollState.layoutInfo.totalItemsCount - 1
+//            scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == lastIndex
+//        }.distinctUntilChanged()
+//            .collect { isAtBottom ->
+//                if (isAtBottom) {
+//                    seenCount = testmessages.size
+//                }
+//            }
+//    }
+//
+//    Box(modifier = Modifier.fillMaxSize()){
+//
+//        LazyColumn(
+//            state = scrollState,
+//            modifier = Modifier.fillMaxSize().verticalLazyListScrollbar(scrollState)
+//        ) {
+//            itemsIndexed(
+//                items = testmessages.take(seenCount),
+//                key = { _, message -> message.id }
+//            ) { index, message ->
+//
+//                val prevMessage = testmessages.getOrNull(index - 1)
+//                val prevAuthor = prevMessage?.recipient?.id
+//                val isFirstMessageByAuthor = prevAuthor != message.recipient.id
+//
+//                val prevDate = prevMessage?.date?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
+//                val currentDate = message.date.toLocalDateTime(TimeZone.currentSystemDefault()).date
+//
+//                //Log.d("List index", index.toString())
+//
+//                val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
+//                val selectMode = remember { mutableStateOf(false) }
+//                val selectedMessagesMap = remember { mutableMapOf<Message, Boolean>() }
+//                Column {
+//                    if (prevDate != currentDate) {
+//                        //TimeHeader(message.date)
+//                        NewMessagesDivider(96)
+//                    }
+//
+//                    MessageItem(
+//                        onAuthorClick = { },
+//                        msg = message,
+//                        composablePositionState = composablePositionState,
+//                        player = null,
+//                        onPrepareVideo = { /* your logic */ },
+//                        onLongClick = { /* your logic */ },
+//                        name = "${message.recipient.contact?.name}",
+//                        isSelected = selectedMessagesMap.contains(message),
+//                        selectMode = selectMode,
+//                        isXMTP = true,
+//                        onSelect = { selectedMessage ->
+//                            selectedMessagesMap.compute(selectedMessage) { _, isChecked ->
+//                                isChecked?.let { !it } ?: true
+//                            }
+//                        },
+//                        onDoubleClick = {
+//                            selectMode.value = !selectMode.value
+//                        },
+//                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+//                        isGroup = false,
+//                        isVisible = true
+//                    )
+//                }
+//
+//
+//            }
+//        }
+//
+//        AnimatedVisibility(
+//            visible = showFab,
+//            enter = fadeIn(tween(300)),
+//            exit = fadeOut(tween(300)),
+//            modifier = Modifier
+//                .align(Alignment.BottomEnd)
+//                .offset(-32.dp,-64.dp)
+//        ) {
+////            GoToBottomFab(
+////                onClick = {
+////                    coroutineScope.launch {
+////                        val lastIndex = testmessages.lastIndex
+////                        scrollState.animateScrollToItem(lastIndex)
+////                    }
+////                }
+////            )
+//        }
+//
+//        AnimatedVisibility(
+//            visible = showFab && (newCount > 0),
+//            enter = fadeIn(tween(300)),
+//            exit = fadeOut(tween(300)),
+//            modifier = Modifier
+//                .align(Alignment.TopCenter)
+//
+//        ) {
+//            Surface(
+//                color = dgenTurqoise,
+//                shape = CircleShape,
+//                elevation = 6.dp,
+//                modifier = Modifier
+//                    .align(Alignment.TopCenter)
+//                    .padding(top = 16.dp)
+//                    .clickable {
+//                        // jump to the divider
+//                        coroutineScope.launch {
+//                            scrollState.animateScrollToItem(seenCount)
+//                        }
+//                    }
+//            ) {
+//                Text(
+//                    text = "$newCount new message${if (newCount > 1) "s" else ""}".uppercase(),
+//                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+//                    style = TextStyle(
+//                        fontFamily = SpaceMono,
+//                        color = dgenBlack,
+//                        fontWeight = FontWeight.Bold,
+//                        fontSize = 14.sp,
+//                        lineHeight = 14.sp,
+//                        letterSpacing = 1.sp,
+//                        textDecoration = TextDecoration.None,
+//                        textAlign = TextAlign.Center
+//                    ),
+//                )
+//            }
+//        }
+//
+//        Button(
+//            onClick = {
+//                val nextId = (testmessages.size + 1).toLong()
+//                testmessages = (testmessages +
+//                        Message("2", "thread123",
+//                            Recipient(
+//                                id = "userB",
+//                                address = "0xDeF456HodlGuyWallet",
+//                                ens = "hodl.eth",
+//                                contact = Contact("lk2", "Bob", null, "0x456")
+//                            ),
+//                            now - (59 * 60).seconds,
+//                            now - (59 * 60).seconds,
+//                            true,
+//                            DeliveryStatus.PUBLISHED,
+//                            null,
+//                            false,
+//                            emptyList(),
+//                            emptyList(),
+//                            "🚀🚀 New Message $nextId"))
+//                    .toMutableList()
+//            },
+//            modifier = Modifier
+//                .align(Alignment.BottomCenter)
+//                .padding(16.dp)
+//        ) {
+//            Text("Simulate incoming")
+//        }
+//    }
+//
+//
+//
+//
+//}
 

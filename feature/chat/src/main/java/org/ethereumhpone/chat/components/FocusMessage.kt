@@ -56,6 +56,7 @@ import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
@@ -155,7 +156,9 @@ fun FocusMessage(
             //isLastMessageByAuthor=isLastMessageByAuthor,
             onLongClick = onLongClick,
             videoPlayer = null,
-            onPlayVideo = {}
+            onPlayVideo = {},
+            primaryColor = SystemColorManager.openGLColor,
+            secondaryColor = SystemColorManager.secondaryColor
         )
 
        MessageActionList(isUserMe = isUserMe, message = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
@@ -184,6 +187,8 @@ fun FocusChatItemBubble(
     onLongClick: () -> Unit = {},
     authorClicked: (String) -> Unit = {},
     onDoubleClick: () -> Unit = {},
+    primaryColor: Color,
+    secondaryColor: Color,
 ) {
 
     //TODO: Add replies
@@ -202,27 +207,9 @@ fun FocusChatItemBubble(
         }
     }
 
-    val nogradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF8C7DF7),
-            Color(0xFF8C7DF7)
-        )
-    )
-
-    val reciepientcolor = Brush.verticalGradient(
-        colors = listOf(
-            Colors.DARK_GRAY,
-            Colors.DARK_GRAY
-        )
-    )
-
     val messageBrush = when(isUserMe){
-        true -> { //message from user
-            nogradient
-        }
-        false -> { //message not from user
-            reciepientcolor
-        }
+        true -> primaryColor
+        false -> secondaryColor
     }
 
 
@@ -230,7 +217,7 @@ fun FocusChatItemBubble(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier.clip(Bubbleshape)
             .background(
-                brush = messageBrush
+                color = messageBrush
             ),
 
         ){
@@ -313,6 +300,8 @@ fun FocusChatItemBubble(
             AuthorNameTimestamp(
                 message,
                 isUserMe = false,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
             )
 
 

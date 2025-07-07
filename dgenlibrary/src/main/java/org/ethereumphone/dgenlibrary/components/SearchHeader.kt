@@ -97,6 +97,7 @@ fun SearchHeader(
             primaryColor = primaryColor,
             secondaryColor = secondaryColor,
             actions = {
+
                 AnimatedContent(
                     modifier = Modifier,
                     targetState = isSearchFocused.value,

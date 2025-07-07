@@ -15,11 +15,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.ethereumphone.dgenlibrary.theme.dgenOcean
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun GoToBottomFab(
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    primaryColor: Color,
+    secondaryColor: Color
 ) {
 
     Surface(
@@ -29,13 +32,13 @@ fun GoToBottomFab(
             }
         },
         shape = CircleShape,
-        color = dgenOcean,
+        color = secondaryColor,
         elevation = 4.dp,
     ) {
         Icon(
             Icons.Outlined.ArrowDownward,
             contentDescription = "Downward Arrow",
-            tint = dgenTurqoise,
+            tint = primaryColor,
             modifier = Modifier.size(16.dp).padding(8.dp)
         )
     }
@@ -45,5 +48,8 @@ fun GoToBottomFab(
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 fun GoToBottomButtonPreview(){
-    GoToBottomFab()
+    GoToBottomFab(
+        primaryColor = dgenTurqoise,
+        secondaryColor = dgenOcean
+    )
 }

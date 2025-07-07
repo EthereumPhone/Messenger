@@ -70,7 +70,8 @@ fun ImageSelectionScreen(
     selectedIndex: Int,
     selectedSet: Set<Attachment>,
     isInSelectionMode: Boolean,
-
+    primaryColor: Color,
+    secondaryColor: Color,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -122,7 +123,10 @@ fun ImageSelectionScreen(
 
     Box(modifier = Modifier.fillMaxSize().imePadding().background(dgenBlack)) {
         if (!hasPermission) {
-            PermissionScreen {
+            PermissionScreen (
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                onRequestPermission = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     permissionLauncher.launch(
                         arrayOf(
@@ -133,7 +137,7 @@ fun ImageSelectionScreen(
                 } else {
                     permissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
                 }
-            }
+            })
         } else if (filtered.isEmpty()) { //TODO: Replace with attachments
             // Loading indicator
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -148,7 +152,7 @@ fun ImageSelectionScreen(
                         mediaItems = filtered, //TODO: Replace with attachments
                         onMediaClick = { att ->
                             if (isInSelectionMode) {
-                                // in “Select” mode, tapping toggles the item in the set
+                                // in "Select" mode, tapping toggles the item in the set
                                 //viewModel.toggleSelect(att) //TODO: Remove
                                 toggleSelect(att)
                             } else {
@@ -165,7 +169,9 @@ fun ImageSelectionScreen(
                         selectAllMedia = selectAll,
                         clearSelections = clearSelection,
                         onBack = onBack,
-                        onSelectionDone = {}
+                        onSelectionDone = {},
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor
                     )
                 }
                 else {
@@ -180,7 +186,9 @@ fun ImageSelectionScreen(
                         onNext = next,
                         onPrevious = prev,
                         allMedia = filtered,
-                        currentIndex = selectedIndex
+                        currentIndex = selectedIndex,
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor
                     )
                 }
             }

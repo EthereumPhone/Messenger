@@ -31,6 +31,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.KeyUtil
@@ -120,15 +121,9 @@ class MainActivity : ComponentActivity() {
         }
 
         if(!permissionManager.isDefaultSms()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val roleManager = this.getSystemService(RoleManager::class.java) as RoleManager
-                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
-                this.startActivityForResult(intent, 42389)
-            } else {
-                val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
-                intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, this.packageName)
-                this.startActivity(intent)
-            }
+            val roleManager = this.getSystemService(RoleManager::class.java) as RoleManager
+            val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
+            this.startActivityForResult(intent, 42389)
         }
 
         // checks if android db contacts have been changed and adds them to the database
@@ -148,6 +143,29 @@ class MainActivity : ComponentActivity() {
 
             if (keys != null) {
                 xmtpClientManager.createClient(walletSDK , this@MainActivity)
+                
+                // Start XMTP stream service if user has XMTP enabled
+                val preferences = messengerPreferences.prefs.first()
+                if (preferences.useXmtp) {
+                    // Create notification channel first
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val channel = NotificationChannel(
+                            "xmtp_channel",
+                            "XMTP Message Stream",
+                            NotificationManager.IMPORTANCE_LOW
+                        ).apply {
+                            description = "Listens for new XMTP messages"
+                            setShowBadge(false)
+                        }
+                        val notificationManager = getSystemService(NotificationManager::class.java)
+                        notificationManager.createNotificationChannel(channel)
+                    }
+                    
+                    // Start the service
+                    val serviceIntent = Intent(this@MainActivity, XmtpMessageStreamService::class.java)
+                    ContextCompat.startForegroundService(this@MainActivity, serviceIntent)
+                    Log.d("MainActivity", "Started XMTP stream service")
+                }
             }
 
 

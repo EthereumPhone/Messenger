@@ -158,126 +158,133 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncXmtp() = coroutineScope {
-        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }.let {
-            val client = xmtpClientManager.client
+        // Wait for the client to be ready
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+        
+        val client = xmtpClientManager.client
 
-            val syncJob = launch {
-                client.preferences.syncConsent()
-                val test = client.conversations.syncAllConversations()
+        val syncJob = launch {
+            client.preferences.syncConsent()
+            val test = client.conversations.syncAllConversations()
 
-                Log.d("PRINT STUIff", test.toString())
+            Log.d("SYNC XMTP", "Synced conversations: $test")
+        }
+        syncJob.join()
+
+        client.conversations.list().forEach { conversation ->
+            // recipients
+            launch {
+                //TODO: Add refs to contacts
+                val members = conversation.members()
+
+
+                val recipientEntities = members.map { member ->
+                    val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                    val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
+                    RecipientEntity(
+                        inboxId = member.inboxId,
+                        address = address,
+                        ens = ensAddress,
+                        contactLookupKey = null // TODO: Get contact lookupKeys
+                    )
+                }
+                recipientDao.insertRecipients(recipientEntities)
+
             }
-            syncJob.join()
 
-            client.conversations.list().forEach { conversation ->
-                // recipients
-                launch {
-                    //TODO: Add refs to contacts
-                    val members = conversation.members()
+            // conversation
+            launch {
+                val members = conversation.members().map { it.inboxId }
+
+                // refs
+                val refs = members.map { inboxId ->
+                    ConversationRecipientCrossRef(conversation.id, inboxId)
+                }
+                conversationDao.insertConversationMemberCrossRefs(refs)
 
 
-                    val recipientEntities = members.map { member ->
-                        val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
-                        val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
-                        RecipientEntity(
-                            inboxId = member.inboxId,
-                            address = address,
-                            ens = ensAddress,
-                            contactLookupKey = null // TODO: Get contact lookupKeys
+                val (id, title, createdAt, archived, consentState) = when (conversation.type) {
+                    Conversation.Type.DM -> {
+                        val dm = (conversation as Conversation.Dm).dm
+                        listOf(
+                            dm.id,
+                            null,
+                            dm.createdAt.time,
+                            false, // TODO: Add a way to fill this
+                            dm.consentState()
                         )
                     }
-                    recipientDao.insertRecipients(recipientEntities)
 
+                    Conversation.Type.GROUP -> {
+                        val group = (conversation as Conversation.Group).group
+                        listOf(
+                            group.id,
+                            group.name,
+                            group.createdAt.time,
+                            !group.isActive(),
+                            group.consentState()
+                        )
+                    }
                 }
 
-                // conversation
-                launch {
-                    val members = conversation.members().map { it.inboxId }
+                val conversationEntity = ConversationEntity(
+                    id = id as String,
+                    title = title as String?,
+                    members = members,
+                    createdAt = createdAt as Long,
+                    archived = archived as Boolean,
+                    unknown = consentState == ConsentState.UNKNOWN,
+                    blocked = consentState == ConsentState.DENIED,
+                    clientInbox = client.inboxId
+                )
 
-                    // refs
-                    val refs = members.map { inboxId ->
-                        ConversationRecipientCrossRef(conversation.id, inboxId)
-                    }
-                    conversationDao.insertConversationMemberCrossRefs(refs)
-
-
-                    val (id, title, createdAt, archived, consentState) = when (conversation.type) {
-                        Conversation.Type.DM -> {
-                            val dm = (conversation as Conversation.Dm).dm
-                            listOf(
-                                dm.id,
-                                null,
-                                dm.createdAt.time,
-                                false, // TODO: Add a way to fill this
-                                dm.consentState()
-                            )
-                        }
-
-                        Conversation.Type.GROUP -> {
-                            val group = (conversation as Conversation.Group).group
-                            listOf(
-                                group.id,
-                                group.name,
-                                group.createdAt.time,
-                                !group.isActive(),
-                                group.consentState()
-                            )
-                        }
-                    }
-
-                    val conversationEntity = ConversationEntity(
-                        id = id as String,
-                        title = title as String?,
-                        members = members,
-                        createdAt = createdAt as Long,
-                        archived = archived as Boolean,
-                        unknown = consentState == ConsentState.UNKNOWN,
-                        blocked = consentState == ConsentState.DENIED,
-                        clientInbox = client.inboxId
-                    )
-
-                    Log.d("INSERT CONVERSATION", id)
-                    conversationDao.insertConversation(conversationEntity)
+                Log.d("INSERT CONVERSATION", id)
+                conversationDao.insertConversation(conversationEntity)
 
 
-                }
+            }
 
 
-                // messages
-                launch {
-                    val messages = conversation.messagesWithReactions()
+            // messages
+            launch {
+                val messages = conversation.messagesWithReactions()
 
-                    messages.chunked(10) { messageChunk ->
-                        launch {
+                messages.chunked(10) { messageChunk ->
+                    launch {
 
-                            val parsedMessages = messageChunk.mapNotNull { msg ->
-                                val baseMessage = MessageEntity(
-                                    id = msg.id,
-                                    threadId = msg.conversationId,
-                                    senderInboxId = msg.senderInboxId,
-                                    date = msg.sentAtNs / 1_000_000, // convert to millis
-                                    dateSent = msg.sentAtNs / 1_000_000,
-                                    deliveryStatus = msg.deliveryStatus,
-                                    isMe = msg.senderInboxId == client.inboxId,
-                                    replyReference = null,
-                                    body = msg.body
-                                )
-
-                                val processed = processContent(baseMessage, msg.encodedContent.type, msg.content())
-
-                                processed?.let { newMessage ->
-                                    val existingMessage = messageDao.getMessage(msg.id).firstOrNull()
-                                    existingMessage?.let {
-                                        newMessage.copy(
-                                            seen = it.seen,
-                                            read = it.read
-                                        )
-                                    } ?: newMessage
-                                }
+                        val parsedMessages = messageChunk.mapNotNull { msg ->
+                            // Skip read receipts or empty text messages
+                            if (msg.encodedContent.type == ContentTypeReadReceipt || (msg.body.isNullOrBlank())) {
+                                messageDao.updateMessageSeenDate(msg.sentAtNs / 1_000_000)
+                                return@mapNotNull null
                             }
+                            
+                            val baseMessage = MessageEntity(
+                                id = msg.id,
+                                threadId = msg.conversationId,
+                                senderInboxId = msg.senderInboxId,
+                                date = msg.sentAtNs / 1_000_000, // convert from nanoseconds to milliseconds
+                                dateSent = msg.sentAtNs / 1_000_000, // convert from nanoseconds to milliseconds
+                                deliveryStatus = msg.deliveryStatus,
+                                isMe = msg.senderInboxId == client.inboxId,
+                                replyReference = null,
+                                body = msg.body
+                            )
 
-                            messageDao.insertMessages(parsedMessages)
+                            val processed = processContent(baseMessage, msg.encodedContent.type, msg.content())
+
+                            processed?.let { newMessage ->
+                                val existingMessage = messageDao.getMessage(msg.id).firstOrNull()
+                                existingMessage?.let {
+                                    newMessage.copy(
+                                        seen = it.seen,
+                                        read = it.read
+                                    )
+                                } ?: newMessage
+                            }
                         }
+
+                        messageDao.insertMessages(parsedMessages)
                     }
                 }
             }
@@ -376,6 +383,12 @@ class SyncRepositoryImpl @Inject constructor(
                             val isMe = client.inboxId == message.senderInboxId
 
                             Log.d("incoming MESSAGE id", message.id)
+                            
+                            // Skip read receipts or empty text messages
+                            if (message.encodedContent.type == ContentTypeReadReceipt || (message.body.isNullOrBlank())) {
+                                messageDao.updateMessageSeenDate(message.sentAtNs / 1_000_000)
+                                return@collect
+                            }
 
                             val template = MessageEntity(
                                 id = message.id,
@@ -385,8 +398,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 replyReference = null,
                                 deliveryStatus = message.deliveryStatus,
                                 isMe = isMe,
-                                date = message.sentAtNs / 1_000_000,
-                                dateSent = message.sentAtNs / 1_000_000,
+                                date = message.sentAtNs / 1_000_000, // convert from nanoseconds to milliseconds
+                                dateSent = message.sentAtNs / 1_000_000, // convert from nanoseconds to milliseconds
                             )
 
                             val processedMessage = processContent(template, message.encodedContent.type, message.content())
@@ -485,7 +498,13 @@ class SyncRepositoryImpl @Inject constructor(
             ContentTypeAttachment, ContentTypeRemoteAttachment -> {
                 null
             }
-            else -> messageEntity // assume plain text
+            else -> {
+                if(messageEntity.body.isBlank()) {
+                    // Empty text message likely a read receipt
+                    return null
+                }
+                messageEntity // assume plain text
+            }
         }
     }
 }

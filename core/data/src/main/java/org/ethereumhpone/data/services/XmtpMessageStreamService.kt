@@ -33,7 +33,7 @@ class XmtpMessageStreamService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        // nothing else needed if you use Hilt’s @AndroidEntryPoint
+        // nothing else needed if you use Hilt's @AndroidEntryPoint
     }
 
     @SuppressLint("ForegroundServiceType")
@@ -57,36 +57,27 @@ class XmtpMessageStreamService : Service() {
 
             // 3) kick off your coroutine
             coroutineScope.launch {
-                val preferences = messengerPreferences.prefs.first()
-
-                println("xmtp prefs" + preferences.shouldHideOnboarding)
                 try {
-
-                    if (preferences.shouldHideOnboarding) {
-                        xmtpClientManager.createClient(walletSDK, context)
-
-
-                        syncRepository.startStream()
-
-                    }
+                    println("xmtp starting stream service")
+                    syncRepository.startStream()
                 } catch (e: Exception) {
+                    println("xmtp stream error: ${e.message}")
                     e.printStackTrace()
                 }
-                // when you're ready to stop:
-                // stopForeground(true); stopSelf()
-
             }
             // if process dies, Android will recreate service and redeliver the intent
             return START_STICKY
         } catch (e: Exception) {
             e.printStackTrace()
-            return START_STICKY
+            return START_NOT_STICKY
         }
-
     }
 
-    override fun onBind(intent: Intent): IBinder? {
-        // we don’t support binding; return null
-        return null
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Cancel the coroutine scope to clean up resources
+        coroutineScope.launch { }
     }
 }

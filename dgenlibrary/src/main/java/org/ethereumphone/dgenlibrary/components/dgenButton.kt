@@ -35,8 +35,8 @@ fun dgenButton(
     onClick: () -> Unit,
     text: String,
     enable: Boolean = true,
-    backgroundColor: Color = dgenTurqoise,
-    fontColor: Color = dgenOcean,
+    backgroundColor: Color,
+    fontColor: Color,
     fontSize: TextUnit = 20.sp,
     horizontalPadding: Dp = 24.dp,
     verticalPadding: Dp = 1.dp,
@@ -82,7 +82,7 @@ fun dgenButton(
 @Preview
 @Composable
 fun DgenButtonPreview(){
-    dgenButton(onClick = {}, text = "GRANT PERMISSION")
+    dgenButton(onClick = {}, text = "GRANT PERMISSION", backgroundColor = dgenTurqoise, fontColor = dgenOcean)
 }
 
 @Composable
@@ -91,10 +91,11 @@ fun dgenTextButton(
     onClick: () -> Unit,
     text: String,
     enable: Boolean = true,
-    fontColor: Color = dgenTurqoise,
+    fontColor: Color,
     fontSize: TextUnit = 20.sp,
     horizontalPadding: Dp = 16.dp,
     verticalPadding: Dp = 1.dp,
+    primaryColor: Color
 ){
     val buttonAlpha by animateFloatAsState(
         if (enable) 1f else 0.35f,

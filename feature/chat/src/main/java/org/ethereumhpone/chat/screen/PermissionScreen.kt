@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,7 +23,7 @@ import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.components.dgenButton
 
 @Composable
-fun PermissionScreen(onRequestPermission: () -> Unit) {
+fun PermissionScreen(onRequestPermission: () -> Unit, primaryColor: Color, secondaryColor: Color) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -35,7 +36,7 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
             style = TextStyle(
                 textAlign = TextAlign.Center,
                 fontFamily = PitagonsSans,
-                color = dgenTurqoise,
+                color = primaryColor,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 24.sp,
                 letterSpacing = 0.sp,
@@ -47,7 +48,9 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
 
         dgenButton(
             onClick = onRequestPermission,
-            text = "Grant Permission"
+            text = "Grant Permission",
+            backgroundColor = secondaryColor,
+            fontColor = primaryColor
         )
 
     }
@@ -56,5 +59,9 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 fun PreviewPermissionScreen() {
-    PermissionScreen {}
+    PermissionScreen(
+        primaryColor = Color.Red,
+        secondaryColor = Color.Blue,
+        onRequestPermission = { }
+    )
 }

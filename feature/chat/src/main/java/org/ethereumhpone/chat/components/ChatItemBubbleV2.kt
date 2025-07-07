@@ -283,6 +283,8 @@ fun ChatItemBubbleV2(
             AuthorNameTimestamp(
                 messageEntity,
                 isUserMe = false,
+                primaryColor = Color.Red,
+                secondaryColor = Color.Blue,
             )
 
 

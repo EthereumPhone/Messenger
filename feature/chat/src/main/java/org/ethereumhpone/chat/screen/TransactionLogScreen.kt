@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.ethereumhpone.chat.components.TransationLog
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
@@ -18,7 +19,9 @@ import org.ethosmobile.components.library.models.TransferItem
 @Composable
 fun TransactionLogScreen(
     scrollState: LazyListState,
-    transactions: List<TransferItem> = emptyList()
+    transactions: List<TransferItem> = emptyList(),
+    primaryColor: Color,
+    secondaryColor: Color
 ){
     LazyColumn(
         state= scrollState,
@@ -26,7 +29,11 @@ fun TransactionLogScreen(
             // Apply the scrollbar first
             .fillMaxSize()
             .padding(start = 32.dp, end = 0.dp, top = 0.dp)
-            .verticalLazyListScrollbar(scrollState,fixed= true),
+            .verticalLazyListScrollbar(
+                scrollState, fixed = true,
+                scrollBarTrackColor = secondaryColor,
+                scrollBarColor = primaryColor,
+            ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {

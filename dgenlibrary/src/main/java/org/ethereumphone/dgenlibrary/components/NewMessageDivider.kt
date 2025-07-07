@@ -16,21 +16,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
+import androidx.compose.ui.graphics.Color
 
 @Composable
-fun NewMessagesDivider(count: Int) {
+fun NewMessagesDivider(
+    count: Int,
+    primaryColor: Color
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp, horizontal = 32.dp)
     ) {
-        Divider(Modifier.weight(1f),thickness= 1.dp, dgenTurqoise.copy(0.5f))
+        Divider(Modifier.weight(1f),thickness= 1.dp, primaryColor.copy(0.5f))
         Text(
             text = "$count new message${if (count > 1) "s" else ""}".uppercase(),
             style = TextStyle(
                 fontFamily = SpaceMono,
-                color = dgenTurqoise,
+                color = primaryColor,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 12.sp,
                 lineHeight = 12.sp,
@@ -39,12 +43,12 @@ fun NewMessagesDivider(count: Int) {
             ),
             modifier = Modifier.padding(horizontal = 8.dp)
         )
-        Divider(Modifier.weight(1f),thickness= 1.dp, dgenTurqoise.copy(0.5f))
+        Divider(Modifier.weight(1f),thickness= 1.dp, primaryColor.copy(0.5f))
     }
 }
 
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 fun NewMessagePreview(){
-    NewMessagesDivider(8)
+    NewMessagesDivider(8, primaryColor = dgenTurqoise)
 }

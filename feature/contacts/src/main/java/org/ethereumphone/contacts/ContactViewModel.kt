@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.ethereumhpone.common.util.Result
@@ -51,10 +52,11 @@ class ContactViewModel @Inject constructor(
                 QueryResultUiState.Success(null, contacts)
             } else {
                 // Generate a manual contact based on the query
-
-                //TODO: only show if possible ens or ethAddress?
-                //val manualContact = query.takeIf { it.isValidEns() || it.isValidEthAddress() }?.let { Contact(lookupKey = it, ethAddress = it) }
-                val manualContactEntity = ContactEntity(lookupKey = query, ethAddress = query)
+                val manualContactEntity = if (query.isValidEns() || query.isValidEthAddress()) {
+                    ContactEntity(lookupKey = query, ethAddress = query, name = query)
+                } else {
+                    null
+                }
 
                 // Filter contacts based on the query and add manual contact if present
                 val filteredContacts = contacts.filter { filterContact(it, query) }
@@ -78,31 +80,45 @@ class ContactViewModel @Inject constructor(
 
     fun getOrCreateConversation(contacts: List<String>) {
         viewModelScope.launch(Dispatchers.IO) {
-            val normalizedIdentifiers = contacts
+            val allContacts = contactRepository.getContacts().first()
+
+            val addresses = contacts
                 .filter { it.isNotBlank() }
-                .map { it.normalizedString() }
+                .map { contactIdentifier ->
+                    when {
+                        contactIdentifier.normalizedString().isValidEns() -> {
+                            val result = ensResolver.getAddress(ENSName(contactIdentifier.normalizedString()))
 
-            val addresses = normalizedIdentifiers.map { contact ->
-                when {
-                    contact.isPotentialENSDomain() -> {
-                        val result = ensResolver.getAddress(ENSName(contact))
-
-                        if (result == null) {
-                            _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
-                            return@launch
+                            if (result == null) {
+                                _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
+                                return@launch
+                            }
+                            Log.d("TEST", result.toString())
+                            result.toString().normalizedString()
                         }
-                        Log.d("TEST", result.toString())
-                        result.toString().normalizedString()
+                        contactIdentifier.normalizedString().isValidEthAddress() -> contactIdentifier.normalizedString()
+                        else -> {
+                            val foundContact = allContacts.find { c -> c.numbers.any { phoneNumberUtils.compare(it.address, contactIdentifier) } }
+                            foundContact?.ethAddress?.normalizedString() ?: run {
+                                _uiEvent.tryEmit(UiEvent.ShowError("No contact with an ETH address found for this number, or the number is not valid."))
+                                return@launch
+                            }
+                        }
                     }
-                    contact.isValidEthAddress() -> contact
-                    else -> {
-                        _uiEvent.tryEmit(UiEvent.ShowError("The provided identifier is not valid"))
-                        return@launch
-                    }
+
                 }
+
+            // Guard against empty address list to prevent crashes
+            if (addresses.isEmpty()) {
+                _uiEvent.tryEmit(UiEvent.ShowError("No valid Ethereum address found for the selected contact"))
+                return@launch
             }
 
-            Log.d("CURRENT ADDRESS", addresses.first().toString())
+            // Only log if there is at least one address
+            addresses.firstOrNull()?.let { firstAddress ->
+                Log.d("CURRENT ADDRESS", firstAddress)
+            }
+
             conversationRepository.createConversation(addresses).collectLatest { result ->
                 when (result) {
                     is Result.Success -> {
@@ -128,7 +144,7 @@ private fun filterContact(contactEntity: ContactEntity, query: String): Boolean 
 }
 
 
-private fun String.normalizedString(): String = this.replace(" ", "").lowercase()
+private fun String.normalizedString(): String = this.replace("\\s".toRegex(), "").lowercase()
 
 private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))
 
@@ -159,4 +175,3 @@ sealed interface QueryResultUiState {
 
 private const val SEARCH_QUERY = "searchQuery"
 
-fun String.isPotentialENSDomain() = this.split(".").filter { it.isNotBlank() }.size > 1

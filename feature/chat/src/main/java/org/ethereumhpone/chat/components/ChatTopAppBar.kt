@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -40,8 +41,10 @@ fun ChatTopAppBar(
     recipientUiState: RecipientUiState,
     onTitleClicked: () -> Unit,
     onBackClicked: () -> Unit,
+    primaryColor: Color,
     modifier: Modifier = Modifier,
-) {
+
+    ) {
     when(recipientUiState) {
         is RecipientUiState.Success -> {
             val recipients = recipientUiState.recipients
@@ -64,14 +67,14 @@ fun ChatTopAppBar(
                         painter = painterResource(R.drawable.backicon),
                         contentDescription = "BackButton",
                         modifier = modifier.size(24.dp),
-                        tint = dgenTurqoise
+                        tint = primaryColor
                     )
                 }
                 Text(
                     text = header,
                     style = TextStyle(
                         fontFamily = PitagonsSans,
-                        color = dgenTurqoise,
+                        color = primaryColor,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 24.sp,
                         lineHeight = 24.sp,
@@ -89,7 +92,7 @@ fun ChatTopAppBar(
                         imageVector = Icons.Filled.MoreVert,
                         contentDescription = "BackButton",
                         modifier = modifier.size(24.dp),
-                        tint = dgenTurqoise
+                        tint = primaryColor
                     )
                 }
 
@@ -119,5 +122,5 @@ fun PreviewChatTopAppBar() {
                 contact = Contact("lk2", "Bob", null, "0x456")
             )
         )
-    ), {}, {})
+    ), {}, {}, Color.Red)
 }

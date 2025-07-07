@@ -55,7 +55,8 @@ fun ActionOverlayScreen(
     openImage: () -> Unit,
     openVideo: () -> Unit,
     openSend: () -> Unit,
-    openCamera: () -> Unit
+    openCamera: () -> Unit,
+    primaryColor: Color
 ){
     AnimatedVisibility(
         visible = showOverlay.value,
@@ -169,7 +170,7 @@ fun ActionOverlayScreen(
                         text = "Camera",
                         style = TextStyle(
                             fontFamily = PitagonsSans,
-                            color = dgenTurqoise,
+                            color = primaryColor,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 40.sp,
                             letterSpacing = 0.sp,
@@ -185,7 +186,7 @@ fun ActionOverlayScreen(
                         text = "Photos",
                         style = TextStyle(
                             fontFamily = PitagonsSans,
-                            color = dgenTurqoise,
+                            color = primaryColor,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 40.sp,
                             letterSpacing = 0.sp,
@@ -201,7 +202,7 @@ fun ActionOverlayScreen(
                         text = "Videos",
                         style = TextStyle(
                             fontFamily = PitagonsSans,
-                            color = dgenTurqoise,
+                            color = primaryColor,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 40.sp,
                             letterSpacing = 0.sp,
@@ -217,7 +218,7 @@ fun ActionOverlayScreen(
                         text = "Send",
                         style = TextStyle(
                             fontFamily = PitagonsSans,
-                            color = dgenTurqoise,
+                            color = primaryColor,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 40.sp,
                             letterSpacing = 0.sp,
@@ -245,7 +246,7 @@ fun ActionOverlayScreen(
                         },
                         colors = IconButtonDefaults.iconButtonColors(
                             Color.Transparent,
-                            dgenTurqoise
+                            primaryColor
                         ),
                         modifier = Modifier.size(56.dp)
                     ) {
@@ -255,7 +256,7 @@ fun ActionOverlayScreen(
                                 rotationZ = rotation
                             },
                             imageVector = Icons.Outlined.Add,
-                            tint = dgenTurqoise,
+                            tint = primaryColor,
                             contentDescription = "collapse"
                         )
                     }

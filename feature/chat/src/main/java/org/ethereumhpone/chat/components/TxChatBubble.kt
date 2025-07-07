@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +56,8 @@ fun TxBubble(
     amount: Double = 0.0,
     token: String = "USD",
     isUserMe: Boolean,
+    primaryColor: Color,
+    secondaryColor: Color,
     sendingReceipient: Recipient,
     receivingReceipient: Recipient,
     onLongClick: () -> Unit = {},
@@ -69,14 +72,10 @@ fun TxBubble(
     val hasReply = hasReply
 
     val Bubbleshape = BubbleShape
-    val usergradient = dgenOcean
-
-    val reciepientcolor = Colors.DARK_GRAY
-
 
     val messageBrush = when(isUserMe){
-        true ->  usergradient
-        false -> reciepientcolor
+        true ->  primaryColor
+        false -> secondaryColor
     }
 
 
@@ -216,10 +215,12 @@ fun TxBubble(
             }
             AuthorNameTimestamp(
                 messageEntity,
-                isUserMe,
+                isUserMe = isUserMe,
                 modifier = Modifier
                     .padding(start = 16.dp, top = 4.dp)
-                    .fillMaxHeight()
+                    .fillMaxHeight(),
+                secondaryColor = secondaryColor,
+                primaryColor = primaryColor
             )
 
 
@@ -257,7 +258,9 @@ fun TxPreviewBubble(){
         receivingReceipient = recipientB,
         onDoubleClick = { },
         isGroup = true,
-        isFirstMessageByAuthor = false
+        isFirstMessageByAuthor = false,
+        primaryColor = Color.Red,
+        secondaryColor = Color.Blue,
     )
 
 }

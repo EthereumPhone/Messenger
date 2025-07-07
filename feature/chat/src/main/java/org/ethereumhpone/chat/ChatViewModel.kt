@@ -6,6 +6,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.provider.ContactsContract
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -37,6 +38,7 @@ import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.ConversationEntity
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.manager.PermissionManager
 import org.ethereumhpone.domain.model.Attachment
@@ -57,6 +59,9 @@ import org.kethereum.rpc.HttpEthereumRPC
 import java.math.BigDecimal
 import java.math.BigInteger
 import javax.inject.Inject
+import org.xmtp.android.library.codecs.ContentTypeReadReceipt
+import org.xmtp.android.library.codecs.ReadReceipt
+import org.xmtp.android.library.SendOptions
 
 
 @HiltViewModel
@@ -70,7 +75,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
-    private val context: Context
+    private val context: Context,
+    private val xmtpClientManager: XmtpClientManager
 ): ViewModel() {
 
 
@@ -145,18 +151,35 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     val attachments: StateFlow<Set<Attachment>> = _attachments
 
 
-    private val _selectedMessages = MutableStateFlow<MutableList<Message?>>(mutableListOf())
-    val selectedMessages: StateFlow<MutableList<Message?>> = _selectedMessages
+    private val _selectedMessages = MutableStateFlow<List<Message>>(emptyList())
+    val selectedMessages: StateFlow<List<Message>> = _selectedMessages
 
+    private val _selectMode = MutableStateFlow(false)
+    val selectMode: StateFlow<Boolean> = _selectMode
 
+    fun toggleSelection(message: Message) {
+        _selectedMessages.update { current ->
+            if (current.contains(message)) current - message else current + message
+        }
+        _selectMode.value = _selectedMessages.value.isNotEmpty()
+    }
 
+    fun clearSelection() {
+        _selectedMessages.value = emptyList()
+        _selectMode.value = false
+    }
 
+    // Updated individual add/remove helpers to reflect new list type
     fun removeSelectedMessage(message: Message) {
-        _selectedMessages.value.remove(message)
+        _selectedMessages.update { it - message }
+        _selectMode.value = _selectedMessages.value.isNotEmpty()
     }
     fun addSelectedMessage(message: Message) {
-        _selectedMessages.value.add(message)
+        _selectedMessages.update { it + message }
+        _selectMode.value = true
     }
+
+
 
 
     fun parseContact(contactEntity: ContactEntity) {
@@ -239,6 +262,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             conversation.collect { state ->
                 if (state is ConversationUiState.Success) {
                     activeConversationManager.setActiveConversation(state.conversation.id)
+                    // Send read receipt when entering the conversation
+                    sendReadReceipt(state.conversation.id)
                 }
             }
         }
@@ -427,6 +452,27 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             return Ezvcard.write(vcard).go() // Convert vCard to string
         }
         return null
+    }
+
+    private fun sendReadReceipt(conversationId: String) {
+        viewModelScope.launch {
+            try {
+                // Wait for client to be ready
+                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+                
+                val conversation = xmtpClientManager.client.conversations.findConversation(conversationId)
+                if (conversation != null) {
+                    // Send read receipt with current timestamp
+                    conversation.send(
+                        content = ReadReceipt,
+                        options = SendOptions(contentType = ContentTypeReadReceipt)
+                    )
+                    Log.d("ChatViewModel", "Sent read receipt for conversation: $conversationId")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to send read receipt", e)
+            }
+        }
     }
 }
 

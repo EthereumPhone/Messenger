@@ -38,7 +38,9 @@ fun MediaDetailScreen(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     allMedia: List<Attachment>,
-    currentIndex: Int
+    currentIndex: Int,
+    primaryColor: Color,
+    secondaryColor: Color
 ) {
     val context = LocalContext.current
     val pagerState = rememberPagerState(initialPage = currentIndex) { allMedia.size }
@@ -70,14 +72,14 @@ fun MediaDetailScreen(
                 Icon(
                     painter = painterResource(R.drawable.backicon),
                     contentDescription = "Back",
-                    tint = dgenTurqoise
+                    tint = primaryColor
                 )
             }
             Text(
                 text = "${currentIndex + 1} / ${allMedia.size}",
                 style = TextStyle(
                     fontFamily = PitagonsSans,
-                    color = dgenTurqoise,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 24.sp,
                     lineHeight = 24.sp,
@@ -123,7 +125,7 @@ fun MediaDetailScreen(
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Play",
-                                tint = Color.White,
+                                tint = primaryColor,
                                 modifier = Modifier
                                     .size(48.dp)
                                     .align(Alignment.Center)

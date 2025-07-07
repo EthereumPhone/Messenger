@@ -71,6 +71,11 @@ import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Recipient
 import org.ethosmobile.components.library.models.TransferItem
+import androidx.compose.ui.graphics.Color
+import com.example.dgenlibrary.ui.theme.button_fontSize
+import com.example.dgenlibrary.ui.theme.label_fontSize
+import org.ethereumphone.dgenlibrary.theme.dgenOcean
+import org.ethereumphone.dgenlibrary.theme.dgenWhite
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -88,7 +93,9 @@ fun OverlayContactScreen(
     next: () -> Unit = {},
     prev: () -> Unit = {},
     select: (Int) -> Unit = {},
-    isGroup: Boolean = true
+    isGroup: Boolean = true,
+    primaryColor: Color,
+    secondaryColor: Color
 ) {
 
     val context = LocalContext.current
@@ -136,7 +143,11 @@ fun OverlayContactScreen(
                 LazyColumn(
                     state = scrollState,
                     modifier = Modifier
-                        .verticalLazyListScrollbar(scrollState,fixed=true)
+                        .verticalLazyListScrollbar(
+                            scrollState, fixed = true,
+                            scrollBarTrackColor= secondaryColor,
+                            scrollBarColor= primaryColor,
+                        )
                         .fillMaxSize()
                         .padding(top = 32.dp, end = 32.dp, start = 32.dp)
                 ){
@@ -144,14 +155,16 @@ fun OverlayContactScreen(
                         Column(modifier = Modifier,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            ContactSection(
-                                title = "MEDIA",
-                                amount = media.size, //TODO: count real media objects
-                                onDone = {
-                                    action = ContactActions.MEDIA
-                                    showAction = true
-                                },
-                            )
+                            //TODO: add media
+//                            ContactSection(
+//                                title = "MEDIA",
+//                                amount = media.size, //TODO: count real media objects
+//                                onDone = {
+//                                    action = ContactActions.MEDIA
+//                                    showAction = true
+//                                },
+//                                primaryColor = primaryColor
+//                            )
                             ContactSection(
                                 title = "TRANSACTIONS",
                                 amount = transactions.size, //TODO: count real TXs
@@ -159,6 +172,7 @@ fun OverlayContactScreen(
                                     action = ContactActions.TX
                                     showAction = true
                                 },
+                                primaryColor = primaryColor
                             )
                         }
                     }
@@ -183,10 +197,10 @@ fun OverlayContactScreen(
                                                 text = "MEMBERS",
                                                 style = TextStyle(
                                                     fontFamily = SpaceMono,
-                                                    color = dgenTurqoise,
+                                                    color = primaryColor,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 20.sp,
-                                                    lineHeight = 20.sp,
+                                                    fontSize = button_fontSize,
+                                                    lineHeight = button_fontSize,
                                                     letterSpacing = 0.sp,
                                                     textDecoration = TextDecoration.None
                                                 ),
@@ -205,7 +219,7 @@ fun OverlayContactScreen(
                                                 text = if(editMode) "SAVE" else "EDIT",
                                                 style = TextStyle(
                                                     fontFamily = SpaceMono,
-                                                    color = if(editMode) dgenTurqoise else dgenTurqoise.copy(0.7f),
+                                                    color = if(editMode) primaryColor else primaryColor.copy(0.7f),
                                                     fontWeight = FontWeight.SemiBold,
                                                     fontSize = 14.sp,
                                                     lineHeight = 14.sp,
@@ -229,7 +243,8 @@ fun OverlayContactScreen(
                                                         selectedMember = member
                                                     },
                                                     editMode = editMode,
-                                                    isAdmin = false //TODO: add admin value
+                                                    isAdmin = false, //TODO: add admin value
+                                                    primaryColor = primaryColor
                                                 )
                                             }
                                         }
@@ -285,10 +300,10 @@ fun OverlayContactScreen(
                                             text = "ENS",
                                             style = TextStyle(
                                                 fontFamily = SpaceMono,
-                                                color = dgenTurqoise,
+                                                color = primaryColor,
                                                 fontWeight = FontWeight.SemiBold,
-                                                fontSize = 16.sp,
-                                                lineHeight = 16.sp,
+                                                fontSize = label_fontSize,
+                                                lineHeight = label_fontSize,
                                                 letterSpacing = 0.sp,
                                                 textDecoration = TextDecoration.None
                                             )
@@ -297,7 +312,7 @@ fun OverlayContactScreen(
                                             text = members[0].ens.toString(),
                                             style = TextStyle(
                                                 fontFamily = PitagonsSans,
-                                                color = dgenTurqoise,
+                                                color = dgenWhite,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 24.sp,
                                                 lineHeight = 24.sp,
@@ -312,7 +327,7 @@ fun OverlayContactScreen(
                                             text= "PHONE NUMBER",
                                             style = TextStyle(
                                                 fontFamily = SpaceMono,
-                                                color = dgenTurqoise,
+                                                color = primaryColor,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 16.sp,
                                                 lineHeight = 16.sp,
@@ -324,7 +339,7 @@ fun OverlayContactScreen(
                                             text= members[0].ens.toString(), //TODO: add phone number - currently not possible
                                             style = TextStyle(
                                                 fontFamily = PitagonsSans,
-                                                color = dgenTurqoise,
+                                                color = primaryColor,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 24.sp,
                                                 lineHeight = 24.sp,
@@ -346,6 +361,7 @@ fun OverlayContactScreen(
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .padding(top = 24.dp)
                                             .pointerInput(Unit) {
                                                 detectTapGestures {
                                                     confirmation =
@@ -412,7 +428,9 @@ fun OverlayContactScreen(
                                             openMediaDetail = true
                                         },
                                         isInSelectionMode = false,
-                                        onBack = { showAction = false }
+                                        onBack = { showAction = false },
+                                        primaryColor = primaryColor,
+                                        secondaryColor = secondaryColor
                                     )
                                 }
                                 else {
@@ -427,7 +445,9 @@ fun OverlayContactScreen(
                                         onNext = next,
                                         onPrevious = prev,
                                         allMedia = attachments,
-                                        currentIndex = selectedIndex
+                                        currentIndex = selectedIndex,
+                                        primaryColor = primaryColor,
+                                        secondaryColor = secondaryColor,
                                     )
                                 }
                             }
@@ -435,7 +455,9 @@ fun OverlayContactScreen(
                         ContactActions.TX -> {
                             TransactionLogScreen(
                                 scrollState,
-                                transactions
+                                transactions,
+                                secondaryColor = secondaryColor,
+                                primaryColor = primaryColor
                             )
                         }
                     }
@@ -464,14 +486,14 @@ fun OverlayContactScreen(
                     painter = painterResource(R.drawable.backicon),
                     contentDescription = "BackButton",
                     modifier = Modifier.size(24.dp),
-                    tint = dgenTurqoise
+                    tint = primaryColor
                 )
             }
             Text(
                 text = title,
                 style = TextStyle(
                     fontFamily = PitagonsSans,
-                    color = dgenTurqoise,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 24.sp,
                     lineHeight = 24.sp,
@@ -489,7 +511,7 @@ fun OverlayContactScreen(
                     imageVector = Icons.Filled.MoreVert,
                     contentDescription = "BackButton",
                     modifier = Modifier.size(24.dp),
-                    tint = dgenTurqoise
+                    tint = primaryColor
                 )
             }
 
@@ -528,7 +550,7 @@ fun OverlayContactScreen(
                                         TextStyle(
                                             textAlign = TextAlign.Center,
                                             fontFamily = PitagonsSans,
-                                            color = dgenTurqoise,
+                                            color = primaryColor,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = body1_fontSize,
                                             lineHeight = body1_fontSize,
@@ -585,7 +607,7 @@ fun OverlayContactScreen(
                                     TextStyle(
                                         textAlign = TextAlign.Center,
                                         fontFamily = PitagonsSans,
-                                        color = dgenTurqoise,
+                                        color = primaryColor,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = body1_fontSize,
                                         lineHeight = body1_fontSize,
@@ -643,7 +665,7 @@ fun OverlayContactScreen(
                                     TextStyle(
                                         textAlign = TextAlign.Center,
                                         fontFamily = PitagonsSans,
-                                        color = dgenTurqoise,
+                                        color = primaryColor,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = body1_fontSize,
                                         lineHeight = body1_fontSize,
@@ -700,7 +722,7 @@ fun OverlayContactScreen(
                                     TextStyle(
                                         textAlign = TextAlign.Center,
                                         fontFamily = PitagonsSans,
-                                        color = dgenTurqoise,
+                                        color = primaryColor,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = body1_fontSize,
                                         lineHeight = body1_fontSize,
@@ -753,10 +775,12 @@ fun ContactSection(
     title: String,
     amount: Int,
     onDone: () -> Unit,
+    primaryColor: Color
 ){
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 8.dp)
             .pointerInput(Unit) {
                 detectTapGestures {
                     if (amount > 0) {
@@ -778,7 +802,7 @@ fun ContactSection(
                     append(" ")
                     withStyle(style = SpanStyle(
                         fontFamily = SpaceMono,
-                        color = dgenTurqoise.copy(1f),
+                        color = primaryColor.copy(1f),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 20.sp,
                         letterSpacing = 0.sp,
@@ -790,7 +814,7 @@ fun ContactSection(
                 },
                 style = TextStyle(
                     fontFamily = SpaceMono,
-                    color = dgenTurqoise,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 20.sp,
                     lineHeight = 20.sp,
@@ -805,7 +829,7 @@ fun ContactSection(
             Icon(
                 modifier = Modifier.size(32.dp),
                 imageVector = Icons.Outlined.ChevronRight,
-                tint = dgenTurqoise,
+                tint = primaryColor,
                 contentDescription = "collapse"
             )
         }
@@ -820,7 +844,8 @@ fun MemberItem(
     title: String,
     onClick: () -> Unit,
     editMode: Boolean,
-    isAdmin: Boolean
+    isAdmin: Boolean,
+    primaryColor: Color
 ){
     Row(
         modifier = Modifier,
@@ -833,7 +858,7 @@ fun MemberItem(
                 if (isAdmin) {
                     withStyle(style = SpanStyle(
                         fontFamily = SpaceMono,
-                        color = dgenTurqoise.copy(0.7f),
+                        color = primaryColor.copy(0.7f),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 12.sp,
                         letterSpacing = 0.sp,
@@ -846,7 +871,7 @@ fun MemberItem(
             },
             style = TextStyle(
                 fontFamily = PitagonsSans,
-                color = dgenTurqoise,
+                color = primaryColor,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 20.sp,
                 letterSpacing = 0.sp,
@@ -888,6 +913,8 @@ fun MemberItem(
 fun OverlayContactScreenPreview(){
     OverlayContactScreen(
         onBackClick = { },
-        recipientUiState = RecipientUiState.Success(emptyList())
+        recipientUiState = RecipientUiState.Success(emptyList()),
+        primaryColor = dgenTurqoise,
+        secondaryColor = dgenOcean
     )
 }

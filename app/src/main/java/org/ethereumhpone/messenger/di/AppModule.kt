@@ -52,7 +52,17 @@ object AppModule {
     }
 
     fun chainIdToRPC(chainId: Int): String {
-        return "https://${chainIdToName(chainId)}.g.alchemy.com/v2/${chainToApiKey()}"
+        val apiKey = chainToApiKey()
+        return if (apiKey.isNullOrBlank()) {
+            // Fallback to a public RPC if the Alchemy key is missing to avoid runtime failures.
+            when (chainId) {
+                1 -> "https://cloudflare-eth.com"            // Mainnet
+                11155111 -> "https://ethereum-sepolia.publicnode.com" // Sepolia
+                else -> "https://cloudflare-eth.com" // Default to mainnet public RPC
+            }
+        } else {
+            "https://${chainIdToName(chainId)}.g.alchemy.com/v2/$apiKey"
+        }
     }
 
     @Provides

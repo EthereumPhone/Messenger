@@ -1,5 +1,6 @@
 package org.ethereumphone.dgenlibrary.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,9 +24,14 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toLocalDateTime
+import androidx.compose.ui.graphics.Color
 
 @Composable
-fun TimeHeader(timestamp: Instant) {
+fun TimeHeader(
+    timestamp: Instant,
+    primaryColor: Color,
+    secondaryColor: Color
+) {
     val formatted = formatTimestamp(timestamp)
 
     Box(
@@ -35,15 +41,16 @@ fun TimeHeader(timestamp: Instant) {
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = dgenWhite.copy(alpha = 0.1f)
+            shape = RoundedCornerShape(0.dp),
+            border = BorderStroke(1.dp,primaryColor),
+            color = secondaryColor
         ) {
             Text(
                 text = formatted.uppercase(),
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 style = TextStyle(
                     fontFamily = SpaceMono,
-                    color = dgenTurqoise,
+                    color = primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
                     lineHeight = 12.sp,

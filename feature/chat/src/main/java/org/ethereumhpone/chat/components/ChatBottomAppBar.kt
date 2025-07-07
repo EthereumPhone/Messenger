@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectTapGestures
 
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
@@ -38,10 +39,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -54,6 +57,8 @@ import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumphone.dgenlibrary.components.DgenCursorTextfield
+import com.example.dgenlibrary.ui.theme.pulseOpacity
 
 @Composable
 fun ChatBottomAppBar(
@@ -63,6 +68,7 @@ fun ChatBottomAppBar(
     hasMultipleLines: MutableState<Boolean> = mutableStateOf(false),
     expand: MutableState<Boolean> = mutableStateOf(false),
     openAction: () -> Unit,
+    primaryColor: Color
 ) {
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusManager = LocalFocusManager.current
@@ -110,14 +116,14 @@ fun ChatBottomAppBar(
                     onClick = openAction,
                     colors = IconButtonDefaults.iconButtonColors(
                         Color.Transparent,
-                        dgenTurqoise
+                        primaryColor
                     ),
                     modifier = Modifier.size(56.dp)
                 ) {
                     Icon(
                         modifier = Modifier.size(36.dp),
                         imageVector = Icons.Outlined.Add,
-                        tint = dgenTurqoise,
+                        tint = primaryColor,
                         contentDescription = "collapse"
                     )
                 }
@@ -127,16 +133,14 @@ fun ChatBottomAppBar(
                 Row(
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp,)
                 ) {
-                    OldSchoolThickCursorTextField(
+                    DgenCursorTextfield(
                         value = textState,
+                        cursorWidth = 14.dp,
+                        cursorHeight = 24.dp,
                         onValueChange = { value ->
                             textState = value
-                            // Handle Enter key to submit command
-                            /*if (value.text.contains("\n")) {
-                                val newCommand = value.text.replace("\n", "")
-                                commandHistory = commandHistory + newCommand
-                                currentCommand = TextFieldValue("")
-                            }*/
+                            // update multi-line state based on presence of line breaks
+                            hasMultipleLines.value = value.text.contains("\n")
                         },
                         textStyle = TextStyle(
                             fontFamily = PitagonsSans,
@@ -147,9 +151,24 @@ fun ChatBottomAppBar(
                             letterSpacing = 0.sp,
                             textDecoration = TextDecoration.None
                         ),
-                        hasMultipleLines = hasMultipleLines,
-                        cursorColor = dgenWhite,
-                        modifier = Modifier.fillMaxWidth()
+                        primaryColor = primaryColor,
+                        cursorColor = primaryColor,
+                        keyboardtype = KeyboardType.Text,
+                        placeholder = {
+                            androidx.compose.material3.Text(
+                                text = "Type a message",
+                                style = TextStyle(
+                                    fontFamily = PitagonsSans,
+                                    color = primaryColor.copy(pulseOpacity),
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 18.sp
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false,
+                        textfieldFocusManager = focusManager,
+                        dismissOnDone = false
                     )
                 }
 
@@ -175,7 +194,7 @@ fun ChatBottomAppBar(
                     },
                     colors = IconButtonDefaults.iconButtonColors(
                         Color.Transparent,
-                        dgenTurqoise
+                        primaryColor
                     ),
                     modifier = Modifier
                         .size(56.dp)
@@ -183,7 +202,7 @@ fun ChatBottomAppBar(
                     Icon(
                         modifier = Modifier.size(36.dp),
                         imageVector = ImageVector.vectorResource(R.drawable.sharp_send_24),
-                        tint = dgenTurqoise,
+                        tint = primaryColor,
                         contentDescription = "collapse"
                     )
                 }

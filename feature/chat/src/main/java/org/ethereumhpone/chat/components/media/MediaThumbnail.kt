@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
@@ -30,7 +31,9 @@ fun MediaThumbnail(
     attachment: Attachment,
     onClick: ()->Unit,
     isInSelectionMode: Boolean,
-    isSelected: Boolean
+    isSelected: Boolean,
+    primaryColor: Color,
+    secondaryColor: Color
 ) {
     val uri = when(attachment){
         is Attachment.Image -> attachment.getUri()
@@ -38,7 +41,7 @@ fun MediaThumbnail(
         is Attachment.Contact -> TODO()
     }
     Box(modifier=Modifier.padding(4.dp).aspectRatio(1f).clickable(onClick=onClick)
-        .then(if(isSelected) Modifier.border(3.dp, dgenTurqoise) else Modifier)){
+        .then(if(isSelected) Modifier.border(3.dp, primaryColor) else Modifier)){
         Image(
             painter=rememberAsyncImagePainter(uri),
             contentDescription=null,
@@ -51,14 +54,14 @@ fun MediaThumbnail(
                     .size(40.dp)
                     .align(Alignment.Center)
                     .background(
-                        color = dgenTurqoise.copy(alpha = 0.7f),
+                        color = primaryColor.copy(alpha = 0.7f),
                         shape = CircleShape
                     )
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
                     contentDescription = "Video",
-                    tint = dgenOcean,
+                    tint = secondaryColor,
                     modifier = Modifier
                         .size(24.dp)
                         .align(Alignment.Center)
@@ -67,7 +70,7 @@ fun MediaThumbnail(
         }
         if(isInSelectionMode){
             Box(modifier=Modifier.size(24.dp).align(Alignment.TopEnd).offset(-8.dp,8.dp).background(
-                if(isSelected) dgenTurqoise else dgenOcean, CircleShape
+                if(isSelected) primaryColor else secondaryColor, CircleShape
             )){
                 if(isSelected) Icon(Icons.Default.Check,null,modifier=Modifier.align(Alignment.Center))
             }

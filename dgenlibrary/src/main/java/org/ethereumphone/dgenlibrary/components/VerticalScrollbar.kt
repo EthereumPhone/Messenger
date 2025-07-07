@@ -29,8 +29,8 @@ fun Modifier.verticalLazyListScrollbar(
     lazyListState: LazyListState,
     width: Dp = 6.dp,
     showScrollBarTrack: Boolean = true,
-    scrollBarTrackColor: Color = dgenOcean,
-    scrollBarColor: Color = dgenTurqoise,
+    scrollBarTrackColor: Color,
+    scrollBarColor: Color,
     scrollBarCornerRadius: Float = 4f,
     endPadding: Float = 32f,
     fixed: Boolean = false
@@ -68,12 +68,17 @@ fun Modifier.verticalLazyListScrollbar(
             if (visibleItemsInfo.isEmpty() || totalItemsCount == 0) return@drawWithContent
 
             // 1️⃣ Fixed scrollbar track height
-            val trackHeight = size.height - 64.dp.toPx()
+            val trackHeight = (size.height - 64.dp.toPx()).coerceAtLeast(0f)
 
             // 2️⃣ Compute thumb height proportionally
             val visibleItemCount = visibleItemsInfo.size.toFloat()
-            val thumbHeight = (visibleItemCount / totalItemsCount) * trackHeight
-                .coerceAtLeast(40.dp.toPx()) // Ensuring a minimum thumb height
+            val minThumbHeight = 40.dp.toPx()
+            // When trackHeight is smaller than the minimum thumb size, clamp to trackHeight to avoid invalid range
+            val thumbHeight = if (trackHeight < minThumbHeight) {
+                trackHeight
+            } else {
+                ((visibleItemCount / totalItemsCount) * trackHeight).coerceIn(minThumbHeight, trackHeight)
+            }
 
             // 3️⃣ Compute scrollbar thumb position based on scroll progress
             val firstVisibleItem = lazyListState.firstVisibleItemIndex
@@ -85,8 +90,10 @@ fun Modifier.verticalLazyListScrollbar(
             val scrolledOffset = (firstVisibleItem * averageItemHeight) + firstItemOffset
 
             // Compute scrollbar thumb position and update animated target
-            targetScrollBarOffset = ((scrolledOffset / maxScrollOffset) * (trackHeight - thumbHeight))
-                .coerceIn(0f, trackHeight - thumbHeight)
+            val availableOffset = (trackHeight - thumbHeight).coerceAtLeast(0f)
+            val normalizedScroll = if (maxScrollOffset > 0) (scrolledOffset / maxScrollOffset) else 0f
+            targetScrollBarOffset = (normalizedScroll * availableOffset)
+                .coerceIn(0f, availableOffset)
 
             // 4️⃣ Draw the scrollbar track
             if (showScrollBarTrack) {
@@ -114,8 +121,8 @@ fun Modifier.verticalScrollBarForLazyGrid(
     gridState: LazyGridState,
     width: Dp = 6.dp,
     showScrollBarTrack: Boolean = true,
-    scrollBarTrackColor: Color = dgenOcean,
-    scrollBarColor: Color = dgenTurqoise,
+    scrollBarTrackColor: Color,
+    scrollBarColor: Color,
     scrollBarCornerRadius: Float = 4f,
     endPadding: Dp = 16.dp
 ): Modifier {
@@ -144,11 +151,15 @@ fun Modifier.verticalScrollBarForLazyGrid(
 
             if (visibleItems.isEmpty() || totalItemsCount == 0) return@drawWithContent
 
-            val trackHeight = size.height - 64.dp.toPx()
+            val trackHeight = (size.height - 64.dp.toPx()).coerceAtLeast(0f)
 
             val visibleItemCount = visibleItems.size.toFloat()
-            val thumbHeight = (visibleItemCount / totalItemsCount) * trackHeight
-                .coerceAtLeast(40.dp.toPx())
+            val minThumbHeight = 40.dp.toPx()
+            val thumbHeight = if (trackHeight < minThumbHeight) {
+                trackHeight
+            } else {
+                ((visibleItemCount / totalItemsCount) * trackHeight).coerceIn(minThumbHeight, trackHeight)
+            }
 
             val firstVisibleItem = gridState.firstVisibleItemIndex
             val firstItemOffset = gridState.firstVisibleItemScrollOffset

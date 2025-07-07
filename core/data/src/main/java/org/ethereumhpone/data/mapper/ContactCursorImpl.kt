@@ -5,6 +5,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
 import android.provider.ContactsContract
+import android.util.Log
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.database.model.PhoneNumber
 import org.ethereumhpone.domain.manager.PermissionManager
@@ -56,7 +57,7 @@ class ContactCursorImpl @Inject constructor(
 
         contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
-                return cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DATA15))
+                return cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DATA15))?.trim()
             }
         }
         return null
@@ -82,7 +83,15 @@ class ContactCursorImpl @Inject constructor(
             )),
             favourite = from.getInt(COLUMN_STARRED) != 0,
             lastUpdate = from.getLong(CONTACT_LAST_UPDATED),
-            ethAddress = getData15ForContact(from.getString(COLUMN_LOOKUP_KEY))
+            ethAddress = getData15ForContact(from.getString(COLUMN_LOOKUP_KEY)).also { data15 ->
+                if (!data15.isNullOrBlank()) {
+                    val displayName = from.getString(COLUMN_DISPLAY_NAME) ?: "(no name)"
+                    Log.d(
+                        "CONTACT_DATA15",
+                        "name: $displayName | lookupKey: ${from.getString(COLUMN_LOOKUP_KEY)} | data15: $data15"
+                    )
+                }
+            }
         )
     }
 

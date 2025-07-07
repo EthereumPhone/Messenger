@@ -58,6 +58,7 @@ import org.ethereumhpone.chat.components.message.ChatItemBubble
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.printFormattedDateInfo
 import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.core.ethOSButton
 import org.ethosmobile.components.library.theme.Colors
@@ -309,7 +310,9 @@ fun MessageDetailView(
                     onPlayVideo = { onPrepareVideo(it)},
                     onLongClick = { },
                     name = name,
-                    onDoubleClick = {  }
+                    onDoubleClick = {  },
+                    primaryColor = SystemColorManager.openGLColor,
+                    secondaryColor = SystemColorManager.secondaryColor
                 )
 
 

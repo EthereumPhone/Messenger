@@ -55,7 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import org.ethereumphone.dgenlibrary.theme.dgenWhite
+import com.example.dgenlibrary.ui.theme.pulseOpacity
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.ChatItemBubbleV3
 import org.ethereumhpone.chat.components.message.parts.MediaBinder
@@ -93,7 +93,10 @@ fun MessageItem(
     onSelect: (Message) -> Unit,
     isGroup: Boolean,
     onDoubleClick: () -> Unit,
-    isVisible: Boolean
+    isVisible: Boolean,
+    primaryColor: Color,
+    secondaryColor: Color,
+    openGLColor: Color
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
@@ -143,6 +146,9 @@ fun MessageItem(
                 onDoubleClick = onDoubleClick,
                 isGroup = isGroup,
                 isFirstMessageByAuthor = isFirstMessageByAuthor,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                openGLColor = openGLColor
             )
 
 
@@ -156,6 +162,8 @@ fun MessageItem(
 @Composable
 fun AuthorNameTimestamp(
     messageEntity: Message,
+    primaryColor: Color,
+    secondaryColor: Color,
     isUserMe: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -176,9 +184,8 @@ fun AuthorNameTimestamp(
             fontSize = 12.sp,
             fontFamily = SpaceMono,
             modifier = Modifier
-                .alignBy(LastBaseline)
-                .alpha(0.5f),
-            color = dgenWhite,
+                .alignBy(LastBaseline),
+            color = if (isUserMe) secondaryColor else primaryColor,
         )
 
         if (isUserMe){
@@ -188,10 +195,9 @@ fun AuthorNameTimestamp(
                 messageEntity.isFailedMessage() -> Icon(
                     imageVector = Icons.Rounded.Error,//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
-                    tint = dgenWhite,
+                    tint = secondaryColor,
                     modifier = Modifier
                         .size(16.dp)
-                        .alpha(0.5f)
                 )
 
                 /*
@@ -209,10 +215,9 @@ fun AuthorNameTimestamp(
                 messageEntity.isDelivered() -> Icon(
                     painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
                     contentDescription = "Go back",
-                    tint = dgenWhite,
+                    tint = secondaryColor,
                     modifier = Modifier
                         .size(16.dp)
-                        .alpha(0.5f)
                 )
             }
 
@@ -244,6 +249,8 @@ fun ChatItemBubble(
     onLongClick: () -> Unit = {},
     authorClicked: (String) -> Unit = {},
     onDoubleClick: () -> Unit = {},
+    primaryColor: Color,
+    secondaryColor: Color
 ) {
 
     val Bubbleshape = if(isUserMe) {
@@ -260,26 +267,9 @@ fun ChatItemBubble(
         }
     }
 
-    val nogradient = Color(0xFF8C7DF7)
-    val xmtpgradient = Color(0xFFF83C40)
-
-    val reciepientcolor = Colors.DARK_GRAY
-
     val messageBrush = when(isUserMe){
-        true -> { //message from user
-
-            //TODO: differentiate between xmtp & sms
-            if(true) {
-                 // no gradient
-                nogradient
-            } else {
-                xmtpgradient
-            }
-
-        }
-        false -> { //message not from user
-            reciepientcolor
-        }
+        true -> primaryColor
+        false -> secondaryColor
     }
 
 
@@ -365,7 +355,12 @@ fun ChatItemBubble(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            AuthorNameTimestamp(message,isUserMe)
+            AuthorNameTimestamp(
+                message,
+                isUserMe = isUserMe,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor
+            )
 
 
 
@@ -526,9 +521,9 @@ fun ConversationPreview() {
         ),
         Message(
             address = "me",
-            body = "Compose newbie: I’ve scourged the internet for tutorials about async data " +
-                    "loading but haven’t found any good ones " +
-                    "What’s the recommended way to load async data and emit composable widgets?",
+            body = "Compose newbie: I've scourged the internet for tutorials about async data " +
+                    "loading but haven't found any good ones " +
+                    "What's the recommended way to load async data and emit composable widgets?",
             subject = "8:03 PM"
         )
 
@@ -556,7 +551,9 @@ fun ConversationPreview() {
                     isUserMe = content.address == authorMe,
                     videoPlayer = null,
                     isFirstMessageByAuthor = isFirstMessageByAuthor,
-                    onPlayVideo = {}
+                    onPlayVideo = {},
+                    primaryColor = Color.Blue,
+                    secondaryColor = Color.LightGray
                 )
             }
 

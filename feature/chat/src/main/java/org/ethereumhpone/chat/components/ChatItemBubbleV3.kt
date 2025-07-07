@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.PitagonsSans
-import org.ethereumphone.dgenlibrary.theme.dgenOcean
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import kotlinx.datetime.Instant
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
@@ -37,7 +37,6 @@ import org.ethereumphone.model.Contact
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
-import org.ethosmobile.components.library.theme.Colors
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -57,7 +56,10 @@ fun ChatItemBubbleV3(
     onDoubleClick: () -> Unit = {},
     hasReply: Boolean = false,
     isGroup: Boolean,
-    isFirstMessageByAuthor: Boolean
+    isFirstMessageByAuthor: Boolean,
+    primaryColor: Color,
+    secondaryColor: Color,
+    openGLColor: Color
 ) {
 
     //TODO: Distinction between reply message and normal message
@@ -66,8 +68,8 @@ fun ChatItemBubbleV3(
     val Bubbleshape = BubbleShape
 
     val messageBrush = when(isUserMe){
-        true -> dgenOcean
-        false -> Colors.DARK_GRAY
+        true -> openGLColor
+        false -> secondaryColor
     }
 
     Column (
@@ -164,10 +166,12 @@ fun ChatItemBubbleV3(
             }
             AuthorNameTimestamp(
                 messageEntity,
-                isUserMe,
+                isUserMe = isUserMe,
                 modifier = Modifier
                     .padding(start = 16.dp, top = 4.dp)
-                    .fillMaxHeight()
+                    .fillMaxHeight(),
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor
             )
         }
 
@@ -204,7 +208,10 @@ fun ChatItemBubbleV3Preview(){
         name = recipientA.contact?.name.toString(),
         onDoubleClick = { },
         isGroup = true,
-        isFirstMessageByAuthor = false
+        isFirstMessageByAuthor = false,
+        primaryColor = Color.Blue,
+        secondaryColor = Color.LightGray,
+        openGLColor = Color.Green
     )
 
 }
