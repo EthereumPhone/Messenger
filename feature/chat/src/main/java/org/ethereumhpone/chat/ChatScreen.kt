@@ -207,11 +207,6 @@ fun ChatScreen(
 ) {
     val context = LocalContext.current
 
-    LaunchedEffect(Unit) {
-        SystemColorManager.refresh(context)
-    }
-
-
     //handle focus
     val showBottomSheet by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current

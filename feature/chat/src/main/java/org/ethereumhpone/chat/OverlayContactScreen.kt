@@ -714,7 +714,7 @@ fun OverlayContactScreen(
 
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(36.dp),
+                            verticalArrangement = Arrangement.spacedBy(24.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
 
@@ -733,7 +733,7 @@ fun OverlayContactScreen(
                                     ),
                                 modifier = Modifier
                                     .padding(horizontal = 12.dp)
-                                    .width(300.dp)
+                                    .width(350.dp)
                             )
                             Text("DELETE",
                                 modifier = Modifier

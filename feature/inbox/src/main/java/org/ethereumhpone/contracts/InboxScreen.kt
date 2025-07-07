@@ -170,10 +170,6 @@ fun InboxScreen(
 
     val lazylist = rememberLazyListState()
 
-    LaunchedEffect(Unit) {
-        SystemColorManager.refresh(context)
-    }
-
     val gifEnabledLoader = remember(context) {
         ImageLoader.Builder(context)
             .components {

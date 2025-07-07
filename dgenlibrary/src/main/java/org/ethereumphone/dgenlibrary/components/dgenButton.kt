@@ -38,7 +38,7 @@ fun dgenButton(
     backgroundColor: Color,
     fontColor: Color,
     fontSize: TextUnit = 20.sp,
-    horizontalPadding: Dp = 24.dp,
+    horizontalPadding: Dp = 16.dp,
     verticalPadding: Dp = 1.dp,
 ){
     val buttonAlpha by animateFloatAsState(

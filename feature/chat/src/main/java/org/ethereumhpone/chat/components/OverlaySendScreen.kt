@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -54,6 +55,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -65,13 +67,17 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.label_fontSize
 import com.example.dgenlibrary.ui.theme.pulseOpacity
+import com.example.dgenlibrary.ui.theme.smalllabel_fontSize
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumhpone.chat.util.abbreviateNumber
 import org.ethereumhpone.chat.util.formatSmart
 import org.ethereumphone.dgenlibrary.R
+import org.ethereumphone.dgenlibrary.components.DgenBasicTextfield
+import org.ethereumphone.dgenlibrary.components.TextToggle
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.dgenlibrary.theme.dgenOcean
 import java.text.DecimalFormat
@@ -92,6 +98,9 @@ fun OverlaySendScreen(
     var amount by remember { mutableStateOf(TextFieldValue()) }
     var to by remember { mutableStateOf(TextFieldValue())}
     var token by remember { mutableStateOf("")}
+    var useDollarAmount by remember { mutableStateOf(false) }
+    var dollarAmount by remember { mutableStateOf(TextFieldValue())}
+    var fiatPrice by remember { mutableStateOf(0.0) }
 
     var readyToSend by remember { mutableStateOf(false)}
     
@@ -195,13 +204,17 @@ fun OverlaySendScreen(
 
                         items(10) { index ->
                             //TODO: Add real tokens
+                            val tokenBalance = 1.2
+                            val tokenFiatPrice = 645.0
                             AvailableToken(
                                 name = "\$TOKEN $index",
-                                balance = 1.2,
-                                fiatamount=645.0,
+                                balance = tokenBalance,
+                                fiatamount= tokenFiatPrice,
                                 modifier = Modifier.padding(start = 32.dp, end = 40.dp).pointerInput(Unit){
                                     detectTapGestures {
                                         token = "TOKEN$index"// TODO: add token name
+                                        max = tokenBalance
+                                        fiatPrice = tokenFiatPrice
                                         readyToSend = true
                                     }
                                 },
@@ -232,76 +245,146 @@ fun OverlaySendScreen(
                  verticalArrangement = Arrangement.spacedBy(24.dp)
              ) {
                  Column(modifier = Modifier.fillMaxWidth()) {
-
-                     Text(
-                         text= "AMOUNT",
-                         style = TextStyle(
-                             fontFamily = SpaceMono,
-                             color = primaryColor,
-                             fontWeight = FontWeight.Normal,
-                             fontSize = 16.sp,
-                             lineHeight = 16.sp,
-                             letterSpacing = 0.sp,
-                             textDecoration = TextDecoration.None
-                         )
-                     )
-                     OldSchoolThickCursorTextField(
-                         placeholder = {
-                             Text(
-                                 text = "0.0",
-                                 style = TextStyle(
-                                     fontFamily = PitagonsSans,
-                                     color = primaryColor.copy(alpha = pulseOpacity),
-                                     fontWeight = FontWeight.SemiBold,
-                                     fontSize = 56.sp
-                                 )
+                     Row(
+                         modifier = Modifier.fillMaxWidth(),
+                         horizontalArrangement = Arrangement.SpaceBetween,
+                         verticalAlignment = Alignment.CenterVertically
+                     ) {
+                         Text(
+                             text = "AMOUNT",
+                             style = TextStyle(
+                                 fontFamily = SpaceMono,
+                                 color = primaryColor,
+                                 fontWeight = FontWeight.Normal,
+                                 fontSize = label_fontSize,
+                                 lineHeight = label_fontSize,
+                                 letterSpacing = 0.sp,
+                                 textDecoration = TextDecoration.None
                              )
-                         },
-                         value = amount,
-                         onValueChange = { value ->
-                             if (value.text.isNotEmpty() || value.text == "." || value.text.matches("-?\\d*(\\.\\d*)?".toRegex())) {
-                                 // If it's a valid format or empty, call onAmountChange with the text
-                                 amount = value
-                             }
+                         )
+                         TextToggle(
+                             textLeft = token.uppercase(),
+                             textRight = "$",
+                             onToggle = { useDollarAmount = !useDollarAmount },
+                             value = useDollarAmount,
+                             primaryColor = primaryColor
+                         )
+                     }
 
-                         },
-                         textStyle = TextStyle(
-                             fontFamily = PitagonsSans,
-                             color = dgenWhite,
-                             fontWeight = FontWeight.Normal,
-                             fontSize = 56.sp,
-                             lineHeight = 56.sp,
-                             letterSpacing = 0.sp,
-                             textDecoration = TextDecoration.None
-                         ),
-                         cursorWidth = 16f,
-                        cursorHeight = 100f,
-                         hasMultipleLines = remember { mutableStateOf(false) },
-                         cursorColor = dgenWhite,
-                         modifier = Modifier.fillMaxWidth()
-                     )
+                     Crossfade(
+                         targetState = useDollarAmount,
+                         animationSpec = tween(300),
+                     ) { isDollar ->
+                         if (isDollar) {
+                             DgenBasicTextfield(
+                                 placeholder = {
+                                     Text(
+                                         text = "$0.0",
+                                         style = TextStyle(
+                                             fontFamily = PitagonsSans,
+                                             color = primaryColor.copy(alpha = pulseOpacity),
+                                             fontWeight = FontWeight.SemiBold,
+                                             fontSize = 56.sp
+                                         )
+                                     )
+                                 },
+                                 value = dollarAmount,
+                                 onValueChange = { value ->
+                                     val text = value.text
+                                     // Allow only numbers and a single dot
+                                     if (text.isEmpty() || text.matches("^\\d*\\.?\\d*\$".toRegex())) {
+                                         dollarAmount = value
+                                     }
+                                 },
+                                 textStyle = TextStyle(
+                                     fontFamily = PitagonsSans,
+                                     color = dgenWhite,
+                                     fontWeight = FontWeight.SemiBold,
+                                     fontSize = 56.sp,
+                                     lineHeight = 56.sp,
+                                     letterSpacing = 0.sp,
+                                     textDecoration = TextDecoration.None
+                                 ),
+                                 maxLines = 1,
+                                 keyboardtype = KeyboardType.Decimal,
+                                 cursorWidth = 32.dp,
+                                 cursorColor = primaryColor,
+                                 isAnyFieldFocused = remember { mutableStateOf(false) },
+                                 modifier = Modifier.fillMaxWidth()
+                             )
+                         } else {
+                             DgenBasicTextfield(
+                                 placeholder = {
+                                     Text(
+                                         text = "0.0",
+                                         style = TextStyle(
+                                             fontFamily = PitagonsSans,
+                                             color = primaryColor.copy(alpha = pulseOpacity),
+                                             fontWeight = FontWeight.SemiBold,
+                                             fontSize = 56.sp
+                                         )
+                                     )
+                                 },
+                                 value = amount,
+                                 onValueChange = { value ->
+                                     val text = value.text
+                                     // Allow only numbers and a single dot, no commas or spaces
+                                     if (text.isEmpty() || text.matches("^\\d*\\.?\\d*\$".toRegex())) {
+                                         amount = value
+                                     }
+                                 },
+                                 textStyle = TextStyle(
+                                     fontFamily = PitagonsSans,
+                                     color = dgenWhite,
+                                     fontWeight = FontWeight.SemiBold,
+                                     fontSize = 56.sp,
+                                     lineHeight = 56.sp,
+                                     letterSpacing = 0.sp,
+                                     textDecoration = TextDecoration.None
+                                 ),
+                                 maxLines = 1,
+                                 keyboardtype = KeyboardType.Decimal,
+                                 cursorWidth = 32.dp,
+                                 cursorColor = primaryColor,
+                                 isAnyFieldFocused = remember { mutableStateOf(false) },
+                                 modifier = Modifier.fillMaxWidth()
+                             )
+                         }
+                     }
+                     val availableAmountText = if (useDollarAmount) {
+                         val dollarValue = max * fiatPrice
+                         val decimalFormat = DecimalFormat("0.00").apply {
+                             decimalFormatSymbols = DecimalFormatSymbols(Locale.US)
+                         }
+                         "$" + decimalFormat.format(dollarValue)
+                     } else {
+                         abbreviateNumber(max)
+                     }
                      Text(
                          text = buildAnnotatedString {
-                             append(abbreviateNumber(max))
+                             append(availableAmountText)
                              withStyle(style = SpanStyle(
                                  fontFamily = PitagonsSans,
                                  color = primaryColor,
                                  fontWeight = FontWeight.SemiBold,
-                                 fontSize = 14.sp,
+                                 fontSize = smalllabel_fontSize,
                                  letterSpacing = 0.sp,
                                  textDecoration = TextDecoration.None
                              )
                              ) {
-                                 append(" $token available")
+                                 if (useDollarAmount) {
+                                     append(" available")
+                                 } else {
+                                     append(" $token available")
+                                 }
                              }
-
                          },
                          style = TextStyle(
                              fontFamily = PitagonsSans,
                              color = primaryColor,
                              fontWeight = FontWeight.SemiBold,
-                             fontSize = 16.sp,
-                             lineHeight = 16.sp,
+                             fontSize = smalllabel_fontSize,
+                             lineHeight = smalllabel_fontSize,
                              letterSpacing = 0.sp,
                              textDecoration = TextDecoration.None
                          )
@@ -315,8 +398,8 @@ fun OverlaySendScreen(
                              fontFamily = SpaceMono,
                              color = primaryColor,
                              fontWeight = FontWeight.Normal,
-                             fontSize = 16.sp,
-                             lineHeight = 16.sp,
+                             fontSize = label_fontSize,
+                             lineHeight = label_fontSize,
                              letterSpacing = 0.sp,
                              textDecoration = TextDecoration.None
                          )
@@ -427,9 +510,9 @@ fun RecipientName(
         overflow = TextOverflow.Ellipsis,
         style = TextStyle(
             fontFamily = SpaceMono,
-            color = primaryColor.copy(alpha = if (selected) 1f else 0.45f),
+            color = primaryColor.copy(alpha = if (selected) 1f else pulseOpacity),
             fontWeight = FontWeight.SemiBold,
-            fontSize = 16.sp
+            fontSize = label_fontSize
         )
     )
 }

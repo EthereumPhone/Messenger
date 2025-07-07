@@ -185,7 +185,6 @@ fun Color.toAndroidColor(): Int {
 
 fun showDgenToast(context: Context, message: String, toastBackgroundColor: Color? = null, toastTextColor: Color? = null) {
     Handler(Looper.getMainLooper()).post {
-        SystemColorManager.refresh(context)
         val backgroundColor = toastBackgroundColor ?: SystemColorManager.secondaryColor
         val textColor = toastTextColor ?: SystemColorManager.primaryColor
         context.showCustomToast(
