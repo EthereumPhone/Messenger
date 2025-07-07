@@ -73,10 +73,6 @@ fun MessagingNavHost(
         }
     }
 
-    LaunchedEffect(Unit) {
-        SystemColorManager.refresh(context)
-    }
-
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
 
@@ -95,11 +91,10 @@ fun MessagingNavHost(
             ) {
                 // Ensure colors are up-to-date.
                 val context = androidx.compose.ui.platform.LocalContext.current
-                LaunchedEffect(Unit) { org.ethereumphone.dgenlibrary.SystemColorManager.refresh(context) }
 
                 DgenLoadingMatrix(
-                    unactiveLEDColor = primaryColor,
-                    activeLEDColor = secondaryColor
+                    unactiveLEDColor = secondaryColor,
+                    activeLEDColor = primaryColor
                 )
             }
         } else {

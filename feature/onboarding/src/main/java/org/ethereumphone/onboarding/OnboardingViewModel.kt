@@ -17,8 +17,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.ethereumhpone.data.manager.EOAWallet
-import org.ethereumhpone.data.manager.KeyUtil
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.NetworkManager
@@ -26,9 +24,10 @@ import org.ethereumhpone.domain.model.UserData
 import org.ethereumhpone.domain.model.XMTPPrivateKeyHandler
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.walletsdk.WalletSDK
-import org.xmtp.android.library.Client
-import uniffi.xmtpv3.GenericException
 import javax.inject.Inject
+import android.content.Intent
+import androidx.core.content.ContextCompat
+import org.ethereumhpone.data.services.XmtpMessageStreamService
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
@@ -45,9 +44,8 @@ class OnboardingViewModel @Inject constructor(
     val syncState: StateFlow<SyncState> = _syncState
 
     fun generateXMTP() {
-
-
         viewModelScope.launch(Dispatchers.IO) {
+            // Observe network connectivity first
             networkManager.isOnline.collectLatest { isOnline ->
                 if (!isOnline) {
                     _syncState.value = SyncState.Error("No internet connection found")
@@ -55,25 +53,13 @@ class OnboardingViewModel @Inject constructor(
                 }
 
                 try {
-                    val address = walletSDK.getAddress()
-                    val keyManager = KeyUtil(context)
-                    var keys = keyManager.retrieveKey(address)
+                    // Create the XMTP client – the library will trigger any required
+                    // wallet signature prompts ("Authenticate to inbox") the first time
+                    // it needs to generate or load keys.
+                    xmtpClientManager.createClient(walletSDK, context)
 
-                    // generate keys
-                    if(keys == null) {
-                        try {
-                            Client.create(
-                                account = EOAWallet(walletSDK, address),
-                                options = XmtpClientManager.clientOptions(context, address)
-                            )
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-
-                        keyManager.storeKey(walletSDK.getAddress(), "set")
-                    }
-
-                    xmtpClientManager.createClient(walletSDK , context)
+                    // Wait until the client reports it is ready before moving on
+                    xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
 
                     _syncState.value = SyncState.Success
                 } catch (exception: Exception) {
@@ -87,8 +73,12 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
             syncRepository.syncMessages()
-            syncRepository.startStream()
-
+            syncRepository.syncXmtp()
+            
+            // Start the XMTP stream service
+            //val serviceIntent = Intent(context, XmtpMessageStreamService::class.java)
+            //ContextCompat.startForegroundService(context, serviceIntent)
+            //Log.d("OnboardingViewModel", "Started XMTP stream service after first sync")
         }
     }
 

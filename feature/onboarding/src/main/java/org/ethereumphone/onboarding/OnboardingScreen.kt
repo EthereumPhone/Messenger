@@ -90,10 +90,6 @@ fun OnboardingScreen(
     )
 
 
-    LaunchedEffect(Unit) {
-        SystemColorManager.refresh(context)
-    }
-
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
 
@@ -147,7 +143,8 @@ fun OnboardingScreen(
                         dgenTextButton(
                             fontColor = primaryColor,
                             onClick = { onFinishOnboarding(false) },
-                            text = "Skip"
+                            text = "Skip",
+                            primaryColor = primaryColor
                         )
                     }
 
@@ -155,8 +152,8 @@ fun OnboardingScreen(
 
                 }
                 1 -> DgenLoadingMatrix(
-                    unactiveLEDColor = secondaryColor,
-                    activeLEDColor = primaryColor
+                    unactiveLEDColor = Color.Blue,
+                    activeLEDColor = Color.Green
                 )
 
                 2,3 -> {
