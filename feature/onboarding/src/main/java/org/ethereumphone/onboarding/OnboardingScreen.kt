@@ -50,6 +50,16 @@ import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.dgenButton
 import org.ethereumphone.dgenlibrary.components.dgenTextButton
 import org.ethereumphone.dgenlibrary.theme.DgenTheme
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
+import coil.ImageLoader
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
+import android.os.Build.VERSION.SDK_INT
+import org.ethereumphone.dgenlibrary.screens.InformationScreen
 
 @Composable
 fun OnboardingRoute(
@@ -58,11 +68,13 @@ fun OnboardingRoute(
 ) {
 
     val syncState by onboardingViewModel.syncState.collectAsState()
+    val isOnline by onboardingViewModel.isOnline.collectAsState(initial = true)
 
 
 
     OnboardingScreen(
         syncState = syncState,
+        isOnline = isOnline,
         onStartXmtp = onboardingViewModel::generateXMTP,
         onStartSync = onboardingViewModel::startFirstSync,
         onFinishOnboarding = {
@@ -77,6 +89,7 @@ fun OnboardingRoute(
 @Composable
 fun OnboardingScreen(
     syncState: SyncState,
+    isOnline: Boolean,
     onStartXmtp: () -> Unit,
     onStartSync: () -> Unit,
     onFinishOnboarding: (useXmtp: Boolean) -> Unit,
@@ -93,82 +106,114 @@ fun OnboardingScreen(
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
 
-
-    when(syncState) {
-        is SyncState.Success -> {
-            LaunchedEffect(Unit) {
-                val job = coroutineScope.async { onStartSync() }
-                job.await()
-                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+    // Build a Coil image loader that supports GIFs, required for InformationScreen animations
+    val gifEnabledLoader = remember(context) {
+        ImageLoader.Builder(context).components {
+            if (SDK_INT >= 28) {
+                add(ImageDecoderDecoder.Factory())
+            } else {
+                add(GifDecoder.Factory())
             }
-        }
-        is SyncState.Error -> {
-            LaunchedEffect(Unit) {
-                coroutineScope.launch {
-                    pagerState.scrollToPage(pageContent.size - 1) // error page
-                }
-            }
-        }
-        else -> {}
+        }.build()
     }
 
+    // Show the information screen whenever the device is offline, regardless of current sync state
+    val isOffline = !isOnline
 
-    HorizontalPager(
-        modifier = Modifier
-            .fillMaxHeight()
-            .background(dgenBlack),
-        state = pagerState,
-        userScrollEnabled = false
-    ) {
-        PagerContent(pageContent[pagerState.currentPage], primaryColor
-        ) {
-            when(pagerState.currentPage) {
-                0 -> {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        dgenButton(
-                            backgroundColor = primaryColor,
-                            fontColor = secondaryColor,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                    onStartXmtp()
-                                    delay(500)
-                                }
-                            },
-                            text = "Enable XMTP"
-                        )
-
-                        dgenTextButton(
-                            fontColor = primaryColor,
-                            onClick = { onFinishOnboarding(false) },
-                            text = "Skip",
-                            primaryColor = primaryColor
-                        )
+    AnimatedContent(
+        targetState = isOffline,
+        transitionSpec = {
+            fadeIn(animationSpec = tween(300, 300)) togetherWith
+                    fadeOut(animationSpec = tween(300))
+        },
+        modifier = Modifier.fillMaxHeight().background(dgenBlack)
+    ) { offline ->
+        if (offline) {
+            // Show an informational screen prompting the user to connect to the internet.
+            InformationScreen(
+                gifEnabledLoader = gifEnabledLoader,
+                primaryColor = primaryColor,
+                text = "Connect to the internet to proceed"
+            )
+        } else {
+            when(syncState) {
+                is SyncState.Success -> {
+                    LaunchedEffect(Unit) {
+                        val job = coroutineScope.async { onStartSync() }
+                        job.await()
+                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
                     }
-
-
-
                 }
-                1 -> DgenLoadingMatrix(
-                    unactiveLEDColor = Color.Blue,
-                    activeLEDColor = Color.Green
-                )
+                is SyncState.Error -> {
+                    LaunchedEffect(Unit) {
+                        coroutineScope.launch {
+                            pagerState.scrollToPage(pageContent.size - 1) // error page
+                        }
+                    }
+                }
+                else -> {}
+            }
 
-                2,3 -> {
-                    dgenButton(
-                        backgroundColor = primaryColor,
-                        fontColor = secondaryColor,
-                        onClick = {
-                            if (syncState is SyncState.Success) {
-                                onFinishOnboarding(true)
-                            } else {
-                                onFinishOnboarding(false)
+
+
+            HorizontalPager(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .background(dgenBlack),
+                state = pagerState,
+                userScrollEnabled = false
+            ) {
+                PagerContent(pageContent[pagerState.currentPage], primaryColor
+                ) {
+                    when(pagerState.currentPage) {
+                        0 -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                dgenButton(
+                                    backgroundColor = primaryColor,
+                                    fontColor = secondaryColor,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                            onStartXmtp()
+                                            delay(500)
+                                        }
+                                    },
+                                    text = "Enable XMTP"
+                                )
+
+                                dgenTextButton(
+                                    fontColor = primaryColor,
+                                    onClick = { onFinishOnboarding(false) },
+                                    text = "Skip",
+                                    primaryColor = primaryColor
+                                )
                             }
-                        },
-                        text = "Finish Setup"
-                    )
+
+
+
+                        }
+                        1 -> DgenLoadingMatrix(
+                            unactiveLEDColor = secondaryColor,
+                            activeLEDColor = primaryColor
+                        )
+
+                        2,3 -> {
+                            dgenButton(
+                                backgroundColor = primaryColor,
+                                fontColor = secondaryColor,
+                                onClick = {
+                                    if (syncState is SyncState.Success) {
+                                        onFinishOnboarding(true)
+                                    } else {
+                                        onFinishOnboarding(false)
+                                    }
+                                },
+                                text = "Finish Setup"
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -252,6 +297,6 @@ enum class OnboardingPageContent(
 @Composable
 fun previewOnboarding() {
     Column(Modifier.background(Color.Black)) {
-        OnboardingScreen(SyncState.Loading, {}, {}, {})
+        OnboardingScreen(SyncState.Loading, true, {}, {}, {})
     }
 }

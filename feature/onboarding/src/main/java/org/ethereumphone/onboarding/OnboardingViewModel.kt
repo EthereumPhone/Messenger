@@ -28,6 +28,7 @@ import javax.inject.Inject
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import org.ethereumhpone.data.services.XmtpMessageStreamService
+import kotlinx.coroutines.flow.Flow
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
@@ -39,6 +40,8 @@ class OnboardingViewModel @Inject constructor(
     private val networkManager: NetworkManager
 ): ViewModel() {
 
+    // Expose network connectivity status so the UI can react in real-time
+    val isOnline: Flow<Boolean> = networkManager.isOnline
 
     private val _syncState = MutableStateFlow<SyncState>(SyncState.Loading)
     val syncState: StateFlow<SyncState> = _syncState
