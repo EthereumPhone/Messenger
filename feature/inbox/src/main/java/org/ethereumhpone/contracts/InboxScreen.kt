@@ -242,7 +242,7 @@ fun InboxScreen(
                                             modifier = Modifier
                                                 .verticalLazyListScrollbar(
                                                     lazylist,
-                                                    fixed = true,
+                                                    endPadding = 64f,
                                                     scrollBarTrackColor = secondaryColor,
                                                     scrollBarColor = primaryColor
                                                 )

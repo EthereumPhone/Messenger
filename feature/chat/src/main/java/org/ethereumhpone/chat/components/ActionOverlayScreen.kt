@@ -166,54 +166,54 @@ fun ActionOverlayScreen(
                         .padding(horizontal = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
-                    Text(
-                        text = "Camera",
-                        style = TextStyle(
-                            fontFamily = PitagonsSans,
-                            color = primaryColor,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 40.sp,
-                            letterSpacing = 0.sp,
-                            textDecoration = TextDecoration.None
-                        ),
-                        modifier = Modifier.alpha(alpha4).pointerInput(Unit) {
-                            detectTapGestures{
-                                openCamera()
-                            }
-                        }
-                    )
-                    Text(
-                        text = "Photos",
-                        style = TextStyle(
-                            fontFamily = PitagonsSans,
-                            color = primaryColor,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 40.sp,
-                            letterSpacing = 0.sp,
-                            textDecoration = TextDecoration.None
-                        ),
-                        modifier = Modifier.alpha(alpha3).pointerInput(Unit) {
-                            detectTapGestures{
-                                openImage()
-                            }
-                        }
-                    )
-                    Text(
-                        text = "Videos",
-                        style = TextStyle(
-                            fontFamily = PitagonsSans,
-                            color = primaryColor,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 40.sp,
-                            letterSpacing = 0.sp,
-                            textDecoration = TextDecoration.None
-                        ),
-                        modifier = Modifier.alpha(alpha2).pointerInput(Unit) {
-                            detectTapGestures{
-                                openVideo()
-                            }
-                        }
-                    )
+//                    Text(
+//                        text = "Camera",
+//                        style = TextStyle(
+//                            fontFamily = PitagonsSans,
+//                            color = primaryColor,
+//                            fontWeight = FontWeight.SemiBold,
+//                            fontSize = 40.sp,
+//                            letterSpacing = 0.sp,
+//                            textDecoration = TextDecoration.None
+//                        ),
+//                        modifier = Modifier.alpha(alpha4).pointerInput(Unit) {
+//                            detectTapGestures{
+//                                openCamera()
+//                            }
+//                        }
+//                    )
+//                    Text(
+//                        text = "Photos",
+//                        style = TextStyle(
+//                            fontFamily = PitagonsSans,
+//                            color = primaryColor,
+//                            fontWeight = FontWeight.SemiBold,
+//                            fontSize = 40.sp,
+//                            letterSpacing = 0.sp,
+//                            textDecoration = TextDecoration.None
+//                        ),
+//                        modifier = Modifier.alpha(alpha3).pointerInput(Unit) {
+//                            detectTapGestures{
+//                                openImage()
+//                            }
+//                        }
+//                    )
+//                    Text(
+//                        text = "Videos",
+//                        style = TextStyle(
+//                            fontFamily = PitagonsSans,
+//                            color = primaryColor,
+//                            fontWeight = FontWeight.SemiBold,
+//                            fontSize = 40.sp,
+//                            letterSpacing = 0.sp,
+//                            textDecoration = TextDecoration.None
+//                        ),
+//                        modifier = Modifier.alpha(alpha2).pointerInput(Unit) {
+//                            detectTapGestures{
+//                                openVideo()
+//                            }
+//                        }
+//                    )
                     Text(
                         text = "Send",
                         style = TextStyle(

@@ -51,6 +51,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
@@ -94,7 +95,8 @@ fun ChatBottomAppBar(
     Column(
             Modifier
                 .fillMaxWidth()
-                .animateContentSize().background(dgenBlack)
+                .animateContentSize().background(Brush.verticalGradient(listOf(dgenBlack, Color.Transparent), startY = 90.0f,
+                    endY = 100.0f,))
                 .padding(vertical = 8.dp, horizontal = 16.dp)
                 .then(if (expand.value) Modifier.fillMaxHeight() else Modifier.heightIn(max= 250.dp)),
             verticalArrangement = Arrangement.Center
@@ -156,9 +158,9 @@ fun ChatBottomAppBar(
                         keyboardtype = KeyboardType.Text,
                         placeholder = {
                             androidx.compose.material3.Text(
-                                text = "Type a message",
+                                text = "Type a message".uppercase(),
                                 style = TextStyle(
-                                    fontFamily = PitagonsSans,
+                                    fontFamily = SpaceMono,
                                     color = primaryColor.copy(pulseOpacity),
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 18.sp

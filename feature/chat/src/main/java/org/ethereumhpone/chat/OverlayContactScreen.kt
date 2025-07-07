@@ -20,10 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -349,7 +351,7 @@ fun OverlayContactScreen(
                                         )
                                     }*/
 
-                                    Text("DELETE CONTACT",
+                                    Text("DELETE CONVERSATION",
                                         style = TextStyle(
                                             fontFamily = SpaceMono,
                                             color = dgenRed,
@@ -717,7 +719,7 @@ fun OverlayContactScreen(
                         ) {
 
                             //TODO: add leave group
-                            Text("Do you want to delete ${title} as a contact?",
+                            Text("Do you want to delete the conversation with ${title}?",
                                 style =
                                     TextStyle(
                                         textAlign = TextAlign.Center,
@@ -731,9 +733,31 @@ fun OverlayContactScreen(
                                     ),
                                 modifier = Modifier
                                     .padding(horizontal = 12.dp)
-                                    .fillMaxWidth()
+                                    .width(300.dp)
                             )
-                            Text("DELETE CONTACT",
+                            Text("DELETE",
+                                modifier = Modifier
+                                    .background(color = primaryColor, shape = CircleShape)
+                                    .padding(horizontal = 16.dp, vertical = 2.dp)
+                                    .pointerInput(Unit){
+                                    detectTapGestures {
+                                        showConfirmation = false
+                                        deleteContact()
+                                    }
+                                },
+                                style = TextStyle(
+                                    textAlign = TextAlign.Center,
+                                    fontFamily = SpaceMono,
+                                    color = secondaryColor,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = label_fontSize,
+                                    lineHeight = label_fontSize,
+                                    letterSpacing = 0.sp,
+                                    textDecoration = TextDecoration.None,
+                                )
+                            )
+
+                            Text("CANCEL",
                                 modifier = Modifier.pointerInput(Unit){
                                     detectTapGestures {
                                         showConfirmation = false
@@ -743,10 +767,10 @@ fun OverlayContactScreen(
                                 style = TextStyle(
                                     textAlign = TextAlign.Center,
                                     fontFamily = SpaceMono,
-                                    color = dgenRed,
+                                    color = primaryColor,
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 20.sp,
-                                    lineHeight = 20.sp,
+                                    fontSize = label_fontSize,
+                                    lineHeight =label_fontSize,
                                     letterSpacing = 0.sp,
                                     textDecoration = TextDecoration.None,
                                 )
