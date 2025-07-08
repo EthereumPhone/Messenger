@@ -1,16 +1,11 @@
-package com.core.terminalsdk
+package com.messenger.terminalsdk
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.view.MotionEvent
-import com.messenger.terminalsdk.LayoutRenderer
-import com.messenger.terminalsdk.MiniDisplayTouchHandler
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class TerminalSDK(private val context: Context) {

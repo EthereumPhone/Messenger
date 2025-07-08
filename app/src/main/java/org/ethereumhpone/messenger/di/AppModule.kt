@@ -132,9 +132,9 @@ object AppModule {
     @Singleton
     fun provideTerminalSDK(
         @ApplicationContext context: Context
-    ): com.core.terminalsdk.TerminalSDK? {
+    ): com.messenger.terminalsdk.TerminalSDK? {
         return try {
-            com.core.terminalsdk.TerminalSDK(context)
+            com.messenger.terminalsdk.TerminalSDK(context)
         } catch (e: Exception) {
             // If the underlying proxy class is not available on the device, gracefully fall back
             null

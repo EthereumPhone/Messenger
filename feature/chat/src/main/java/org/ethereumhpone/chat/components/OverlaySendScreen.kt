@@ -198,24 +198,11 @@ fun OverlaySendScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 24.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ){
-            IconButton(onClick = {
-                if(readyToSend){
-                    readyToSend = false
-                } else {
-                    onBackClick()
-                }
-            }) {
-                Icon(
-                    painter = painterResource(R.drawable.backicon),
-                    contentDescription = "BackButton",
-                    modifier = Modifier.size(24.dp),
-                    tint = primaryColor
-                )
-            }
+
             Text(
                 text = title,
                 style = TextStyle(
@@ -233,15 +220,21 @@ fun OverlaySendScreen(
                     .widthIn(min = 10.dp, max = 250.dp)
                 ,
             )
-            IconButton(modifier = Modifier.alpha(0f), onClick = {  }) {
+
+            IconButton(onClick = {
+                if(readyToSend){
+                    readyToSend = false
+                } else {
+                    onBackClick()
+                }
+            }) {
                 Icon(
-                    imageVector = Icons.Filled.MoreVert,
+                    painter = painterResource(R.drawable.baseline_close_24),
                     contentDescription = "BackButton",
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(32.dp),
                     tint = primaryColor
                 )
             }
-
         }
 
         AnimatedContent(
