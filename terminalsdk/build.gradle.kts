@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.messanger.terminalsdk"
+    namespace = "com.messenger.terminalsdk"
     compileSdk = 34
 
     defaultConfig {

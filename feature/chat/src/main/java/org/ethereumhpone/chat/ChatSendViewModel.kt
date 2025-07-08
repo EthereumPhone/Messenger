@@ -205,12 +205,8 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
         _sendTransactionTriggered.value = true
     }
 
-
-
-
-
-
     //-----------------------------SENDING--------------------------------
+
     /**
      * Call this function when the send screen is opened to secondary screen
      */
@@ -223,16 +219,16 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
                 if (terminalSDK?.isAvailable() == true) {
                     terminalSDK.displaySend(
                         sendTx = {
-                            Log.d("SendViewModel", "Send transaction touched on secondary screen - triggering send transaction")
+                            Log.d("ChatSendViewModel", "Send transaction touched on secondary screen - triggering send transaction")
                             triggerSendTransaction()
                         }
                     )
-                    Log.d("SendViewModel", "QR code displayed on secondary screen")
+                    Log.d("ChatSendViewModel", "QR code displayed on secondary screen")
                 } else {
-                    Log.w("SendViewModel", "TerminalSDK not available")
+                    Log.w("ChatSendViewModel", "TerminalSDK not available")
                 }
             } catch (e: Exception) {
-                Log.e("SendViewModel", "Error displaying QR code", e)
+                Log.e("ChatSendViewModel", "Error displaying QR code", e)
             }
         }
     }
@@ -245,12 +241,12 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
             try {
                 if (terminalSDK?.isAvailable() == true) {
                     terminalSDK.removeSend()
-                    Log.d("ChatViewModel", "Removed send from secondary screen")
+                    Log.d("ChatSendViewModel", "Removed send from secondary screen")
                 } else {
-                    Log.w("ChatViewModel", "TerminalSDK not available")
+                    Log.w("ChatSendViewModel", "TerminalSDK not available")
                 }
             } catch (e: Exception) {
-                Log.e("ChatViewModel", "Error removing Send", e)
+                Log.e("ChatSendViewModel", "Error removing Send", e)
             }
         }
     }

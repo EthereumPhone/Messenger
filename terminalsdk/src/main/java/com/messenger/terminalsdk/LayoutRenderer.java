@@ -1,4 +1,4 @@
-package com.messanger.terminalsdk;
+package com.messenger.terminalsdk;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -13,6 +13,7 @@ import android.graphics.Typeface;
 import androidx.core.content.res.ResourcesCompat;
 import android.graphics.PorterDuff;
 import android.widget.ImageView;
+import android.view.ViewGroup;
 
 public class LayoutRenderer {
 
@@ -23,7 +24,7 @@ public class LayoutRenderer {
     }
 
     /**
-     * Renders the send layout with custom text into a bitmap
+     * Renders the qr_or_send with custom text into a bitmap
      * @return A bitmap of size 428x142 pixels containing the rendered layout
      */
     public Bitmap renderSend() {
@@ -31,18 +32,19 @@ public class LayoutRenderer {
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.send_terminal_layout, null);
 
+        // Apply accent color to all interactive elements (icons + labels)
         int accentColor = getColorForRender();
 
-        //Tint icons
-        ImageView copyIcon = view.findViewById(R.id.send_icon);
-        if (copyIcon != null) {
-            copyIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
+        // Re-tint icons
+        ImageView sendIcon = view.findViewById(R.id.send_icon);
+        if (sendIcon != null) {
+            sendIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
         }
 
         // Re-color labels
-        TextView copyLabel = view.findViewById(R.id.send_label);
-        if (copyLabel != null) {
-            copyLabel.setTextColor(accentColor);
+        TextView sendLabel = view.findViewById(R.id.send_label);
+        if (sendLabel != null) {
+            sendLabel.setTextColor(accentColor);
         }
 
         // Measure and layout the view with exact dimensions (428x142 pixels)
@@ -62,7 +64,6 @@ public class LayoutRenderer {
 
         return bitmap;
     }
-
 
     /**
      * Iterate over all pixels and set any pixel that is not close to black to the provided color.

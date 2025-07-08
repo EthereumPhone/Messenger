@@ -3,8 +3,8 @@ package com.core.terminalsdk
 import android.content.Context
 import android.graphics.Bitmap
 import android.view.MotionEvent
-import com.messanger.terminalsdk.LayoutRenderer
-import com.messanger.terminalsdk.MiniDisplayTouchHandler
+import com.messenger.terminalsdk.LayoutRenderer
+import com.messenger.terminalsdk.MiniDisplayTouchHandler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -156,6 +156,7 @@ class TerminalSDK(private val context: Context) {
         resume(ID_STATUSBAR)
         destroyTouchHandler()
     }
+
 
 
     /**

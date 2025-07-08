@@ -1,4 +1,4 @@
-package com.messanger.terminalsdk
+package com.messenger.terminalsdk
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.messanger.terminalsdk.test", appContext.packageName)
+        assertEquals("com.messenger.terminalsdk.test", appContext.packageName)
     }
 }

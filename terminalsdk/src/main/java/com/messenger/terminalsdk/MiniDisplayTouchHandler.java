@@ -1,4 +1,4 @@
-package com.messanger.terminalsdk;
+package com.messenger.terminalsdk;
 
 import android.content.Context;
 import android.graphics.PixelFormat;

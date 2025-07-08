@@ -78,7 +78,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
-    private val terminalSDK: TerminalSDK?,
     private val context: Context,
     private val xmtpClientManager: XmtpClientManager
 ): ViewModel() {
