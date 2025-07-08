@@ -11,6 +11,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.core.terminalsdk.TerminalSDK
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ezvcard.Ezvcard
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -47,6 +49,7 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.usecase.SendMessage
+import org.ethereumphone.dgenlibrary.components.TransactionStatus
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Reaction
@@ -75,6 +78,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val messageRepository: MessageRepository,
     private val sendMessageUseCase: SendMessage,
     private var walletSDK: WalletSDK,
+    private val terminalSDK: TerminalSDK?,
     private val context: Context,
     private val xmtpClientManager: XmtpClientManager
 ): ViewModel() {
@@ -178,6 +182,13 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         _selectedMessages.update { it + message }
         _selectMode.value = true
     }
+
+    // Add send transaction trigger state
+    private val _sendTransactionTriggered = MutableStateFlow(false)
+    val sendTransactionTriggered: StateFlow<Boolean> = _sendTransactionTriggered.asStateFlow()
+
+    private val _transactionStatus = MutableStateFlow<TransactionStatus?>(null)
+    val transactionStatus: StateFlow<TransactionStatus?> = _transactionStatus.asStateFlow()
 
 
 
@@ -295,42 +306,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
 
-
-    //TODO: Make suspend
-
-    /*
-    fun sendEth(amount: Double) {
-        val chainIdLocked = currentChainId.value
-        val decimalFormat = DecimalFormat("#.###########", DecimalFormatSymbols(Locale.US).apply {
-            decimalSeparator = '.'
-        }
-        ) // Adjust the pattern as needed
-        println("Sending ${decimalFormat.format(amount)} ETH on Chain ${chainIdToReadableName(chainIdLocked)}")
-        walletSDK = WalletSDK(context, Web3j.build(HttpService(chainIdToRPC(chainIdLocked))))
-        recipientState.value?.contact?.ethAddress?.let {
-            CoroutineScope(Dispatchers.IO).launch {
-                val web3j = Web3j.build(HttpService(chainIdToRPC(chainIdLocked)))
-
-                val gasPrice = increaseByFivePercent(web3j.ethGasPrice().send().gasPrice)
-
-                val hash = walletSDK.sendTransaction(
-                    to = it,
-                    value = BigDecimal.valueOf(amount).times(BigDecimal.TEN.pow(18)).toString(),
-                    data = "",
-                    gasAmount = "21000",
-                    gasPrice = gasPrice.toString()
-                )
-
-                Log.d("ChatViewModel", "Transaction Hash: $hash")
-                if (hash.startsWith("0x")) {
-                    sendMessage("Sent ${decimalFormat.format(amount)} ETH: ${chainIdToEtherscan(chainIdLocked)}/tx/$hash")
-                }
-            }
-        }
-    }
-     */
-
-
     fun isAddress(address: String): Boolean {
         return isEthereumAddress(address)
     }
@@ -396,7 +371,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     fun sendMessage(
         messageBody: String = "",
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             sendMessageUseCase(
                 threadId = threadId,
                 body = messageBody,

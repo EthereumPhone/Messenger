@@ -14,6 +14,7 @@ import org.ethereumhpone.data.repository.ConversationRepositoryImpl
 import org.ethereumhpone.data.repository.MediaRepositoryImpl
 import org.ethereumhpone.data.repository.MessageRepositoryImpl
 import org.ethereumhpone.data.repository.SyncRepositoryImpl
+import org.ethereumhpone.data.repository.TokenRepositoryImpl
 import org.ethereumhpone.domain.blocking.BlockingClient
 import org.ethereumhpone.domain.manager.ActiveConversationManager
 import org.ethereumhpone.domain.manager.NetworkManager
@@ -24,6 +25,7 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
+import org.ethereumhpone.domain.repository.TokenRepository
 import javax.inject.Singleton
 
 
@@ -69,5 +71,9 @@ abstract class RepositoryModule{
     @Binds
     @Singleton
     abstract fun bindsNetworkManager(impl: NetworkManagerImpl): NetworkManager
+
+    @Binds
+    @Singleton
+    abstract fun bindTokenRepository(impl: TokenRepositoryImpl): TokenRepository
 
 }

@@ -1,9 +1,12 @@
+import java.util.Properties
+
 @Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.org.jetbrains.kotlin.serialization)
 }
 
 android {
@@ -15,6 +18,26 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        // Load secrets from local.properties
+        val properties = Properties()
+        properties.load(rootProject.file("local.properties").inputStream())
+
+        val alchemyApi = properties.getProperty("ALCHEMY_API") ?: ""
+        val tokenPriceApi = properties.getProperty("TOKEN_PRICE_API") ?: "fallback_value"
+        val bundlerApi = properties.getProperty("BUNDLER_API") ?: ""
+
+        buildConfigField("String", "ALCHEMY_API", "\"$alchemyApi\"")
+        buildConfigField("String", "TOKEN_PRICE_API", "\"$tokenPriceApi\"")
+        buildConfigField("String", "BUNDLER_API", "\"$bundlerApi\"")
+
+
+
+
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -74,6 +97,7 @@ dependencies {
     implementation(libs.walletsdk)
     implementation(libs.kotlin.serialization)
     implementation(libs.kotlinx.datetime)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
 
     implementation("com.vdurmont:emoji-java:5.1.1") // emoji parser

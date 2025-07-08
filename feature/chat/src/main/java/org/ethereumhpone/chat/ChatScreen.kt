@@ -343,7 +343,9 @@ fun ChatScreen(
                     },
                     onSendClick = { text ->
                         if (text.isNotBlank()) {
+                            println("Before send")
                             onSendMessageClicked(text)
+                            println("After send")
                         }
                         selectedAttachments.clear()
                     },
@@ -370,6 +372,7 @@ fun ChatScreen(
                         detectTapGestures(onTap = {
                             // dismiss keyboard when tapping outside text field
                             focusManager.clearFocus()
+                            keyboardController?.hide()
                         })
                     }
                     .padding(paddingValues)

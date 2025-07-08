@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import org.ethereumhpone.chat.components.OverlaySendScreen
+import org.ethereumhpone.chat.components.OverlaySendScreenRoute
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.model.Conversation
 
@@ -44,7 +45,7 @@ fun ChatOverlays(
             when (currentActions) {
                 Actions.IDLE -> {}
                 Actions.SEND -> {
-                    OverlaySendScreen(
+                    OverlaySendScreenRoute(
                         onBackClick = { onActionSelected(Actions.IDLE, false) },
                         onDone = {
                             //TODO: Implement Sending

@@ -3,7 +3,11 @@ package org.ethereumhpone.data.repository
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log as AndroidLog
 import androidx.media3.common.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -38,6 +42,7 @@ class MessageRepositoryImpl @Inject constructor(
     private val context: Context,
     private val xmtpClientManager: XmtpClientManager,
 ): MessageRepository {
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     override fun getMessages(threadId: String): Flow<List<Message>> =
         messageDao.getMessages(threadId)
             .map { message -> message.map { it.toExternalMessage() } }
@@ -97,31 +102,28 @@ class MessageRepositoryImpl @Inject constructor(
         replyReference: String?,
         attachments: List<Attachment>,
         reaction: Reaction?
-    ): String? = coroutineScope {
-        // Wait until the XMTP client is ready
-        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
-
+    ): String? {
         val conversation = xmtpClientManager.client.conversations.findConversation(threadId)
         if (conversation == null) {
             Log.e("MessageRepository", "Conversation not found for threadId: $threadId")
-            return@coroutineScope null
+            return null
         }
 
         when {
             attachments.isNotEmpty() -> {
                 // TODO: Handle attachments
                 Log.w("MessageRepository", "Attachments not yet supported")
-                null
+                return null
             }
 
             reaction != null -> {
                 // TODO: Handle reaction
                 Log.w("MessageRepository", "Reactions not yet supported")
-                null
+                return null
             }
 
             else -> {
-                try {
+                return try {
                     val messageId = if (replyReference != null) {
                         conversation.prepareMessage(
                             Reply(
@@ -133,8 +135,6 @@ class MessageRepositoryImpl @Inject constructor(
                     } else {
                         conversation.prepareMessage(body)
                     }
-
-                    Log.d("MessageRepository", "Prepared message with ID: $messageId")
 
                     val messageEntity = MessageEntity(
                         id = messageId,
@@ -150,16 +150,26 @@ class MessageRepositoryImpl @Inject constructor(
                         read = true
                     )
 
-                    // Save the message to database first
+                    // Save the message to database first for optimistic UI
                     messageDao.upsertMessages(listOf(messageEntity))
-                    
-                    // Then publish it
-                    conversation.publishMessages()
-                    Log.d("MessageRepository", "Message published successfully")
+
+                    // Then publish it in a background job, re-fetching the conversation
+                    // to ensure thread safety with the XMTP SDK.
+                    scope.launch {
+                        try {
+                            val conversationForPublish = xmtpClientManager.client.conversations.findConversation(threadId)
+                            conversationForPublish?.publishMessages()
+                            println("Done!")
+                            // Optionally, update the message status in the DB to PUBLISHED here
+                        } catch (e: Exception) {
+                            Log.e("MessageRepository", "Failed to publish message", e)
+                            // Optionally, update the message status in the DB to FAILED here
+                        }
+                    }
 
                     messageId
                 } catch (e: Exception) {
-                    Log.e("MessageRepository", "Failed to send message", e)
+                    Log.e("MessageRepository", "Failed to prepare message", e)
                     null
                 }
             }

@@ -132,6 +132,7 @@ dependencies {
     implementation(libs.kotlinx.datetime)
 
     implementation(project(":dgenlibrary"))
+    implementation(project(":terminalsdk"))
 
     // Video player
     implementation("com.google.android.exoplayer:exoplayer-core:2.18.7")

@@ -128,6 +128,19 @@ object AppModule {
         return XMTPConversationHandler()
     }
 
+    @Provides
+    @Singleton
+    fun provideTerminalSDK(
+        @ApplicationContext context: Context
+    ): com.core.terminalsdk.TerminalSDK? {
+        return try {
+            com.core.terminalsdk.TerminalSDK(context)
+        } catch (e: Exception) {
+            // If the underlying proxy class is not available on the device, gracefully fall back
+            null
+        }
+    }
+
 
 }
 

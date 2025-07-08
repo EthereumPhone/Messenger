@@ -163,7 +163,7 @@ class MainActivity : ComponentActivity() {
                     
                     // Start the service
                     val serviceIntent = Intent(this@MainActivity, XmtpMessageStreamService::class.java)
-                    ContextCompat.startForegroundService(this@MainActivity, serviceIntent)
+                    //ContextCompat.startForegroundService(this@MainActivity, serviceIntent)
                     Log.d("MainActivity", "Started XMTP stream service")
                 }
             }

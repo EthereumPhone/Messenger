@@ -1,0 +1,276 @@
+package org.ethereumhpone.chat
+
+import android.annotation.SuppressLint
+import android.content.ContentResolver
+import android.content.Context
+import android.net.Uri
+import android.provider.ContactsContract
+import android.util.Log
+import androidx.core.net.toUri
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.core.terminalsdk.TerminalSDK
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import ezvcard.Ezvcard
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.ethereumhpone.chat.components.isEthereumAddress
+import org.ethereumhpone.chat.navigation.AddressesArgs
+import org.ethereumhpone.chat.navigation.ThreadIdArgs
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethereumhpone.database.model.ConversationEntity
+import org.ethereumhpone.database.model.MessageEntity
+import org.ethereumhpone.data.manager.XmtpClientManager
+import org.ethereumhpone.domain.manager.ActiveConversationManager
+import org.ethereumhpone.domain.manager.PermissionManager
+import org.ethereumhpone.domain.model.Attachment
+import org.ethereumhpone.domain.model.UserData
+import org.ethereumhpone.domain.repository.ContactRepository
+import org.ethereumhpone.domain.repository.ConversationRepository
+import org.ethereumhpone.domain.repository.MediaRepository
+import org.ethereumhpone.domain.repository.MessageRepository
+import org.ethereumhpone.domain.usecase.SendMessage
+import org.ethereumhpone.domain.usecase.GetAllTokensUseCase
+import org.ethereumphone.dgenlibrary.components.TransactionStatus
+import org.ethereumphone.dgenlibrary.showDgenToast
+import org.ethereumphone.model.Conversation
+import org.ethereumphone.model.Message
+import org.ethereumphone.model.Reaction
+import org.ethereumphone.model.Recipient
+import org.ethereumphone.walletsdk.WalletSDK
+import org.ethereumphone.model.TokenAsset
+import org.json.JSONObject
+import org.kethereum.model.Address
+import org.kethereum.rpc.EthereumRPC
+import org.kethereum.rpc.HttpEthereumRPC
+//import org.kethereum.ens.ENS
+import java.math.BigDecimal
+import java.math.BigInteger
+import javax.inject.Inject
+import org.xmtp.android.library.codecs.ContentTypeReadReceipt
+import org.xmtp.android.library.codecs.ReadReceipt
+import org.xmtp.android.library.SendOptions
+
+
+@HiltViewModel
+class ChatSendViewModel @SuppressLint("StaticFieldLeak")
+@Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    conversationRepository: ConversationRepository,
+    private val contactRepository: ContactRepository,
+    private val activeConversationManager: ActiveConversationManager,
+    private var walletSDK: WalletSDK,
+    private val terminalSDK: TerminalSDK?,
+    private val getAllTokensUseCase: GetAllTokensUseCase,
+    @ApplicationContext private val context: Context
+): ViewModel() {
+
+
+    // nav arguments
+    private val threadId = ThreadIdArgs(savedStateHandle).threadId ?: ""
+    private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
+
+    // conversation state
+    val conversation = conversationRepository.getConversation(threadId)
+        .map { conversation ->
+            if (conversation == null) {
+                // TODO add fallback if convo does not exist?
+                ConversationUiState.Loading
+            } else {
+                activeConversationManager.setActiveConversation(conversation.id)
+                ConversationUiState.Success(conversation = conversation)
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = ConversationUiState.Loading,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
+
+    val recipients = conversationRepository.getConversation(threadId)
+        .map { conversation ->
+            if (conversation != null) {
+                RecipientUiState.Success(conversation.recipients)
+            } else {
+                RecipientUiState.Error
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = RecipientUiState.Loading,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
+
+    // contacts state
+    val contacts: StateFlow<List<ContactEntity>> = contactRepository.getContacts()
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = emptyList(),
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
+
+
+    // Add send transaction trigger state
+    private val _sendTransactionTriggered = MutableStateFlow(false)
+    val sendTransactionTriggered: StateFlow<Boolean> = _sendTransactionTriggered.asStateFlow()
+
+    private val _transactionStatus = MutableStateFlow<TransactionStatus?>(null)
+    val transactionStatus: StateFlow<TransactionStatus?> = _transactionStatus.asStateFlow()
+
+
+    val currentChainId: StateFlow<Int> = flow {
+        while (true) {
+            val chainId = walletSDK.getChainId()
+            emit(chainId)
+            delay(400)
+        }
+    }.flowOn(Dispatchers.IO) // Ensures the flow runs on the IO dispatcher
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = 1,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
+
+    val tokenAssetState: StateFlow<AssetsUiState> = getAllTokensUseCase()
+        .map { tokens ->
+            val filteredTokens = tokens
+                .filter { it.balance > 0 }
+                .filter { token -> // Filter out tokens with URLs in their names or symbols
+                    val name = token.name.lowercase()
+                    val symbol = token.symbol.lowercase()
+
+                    val urlPatterns = listOf(
+                        "http://", "https://", "www.",
+                        ".com", ".io", ".org", ".net", ".xyz",
+                        "/", "t.me", "telegram", "twitter", "discord", "t.ly"
+                    )
+
+                    val containsNoUrlPatterns = urlPatterns.none { pattern ->
+                        name.contains(pattern) || symbol.contains(pattern)
+                    }
+                    containsNoUrlPatterns
+                }
+
+            if (filteredTokens.isEmpty()) {
+                AssetsUiState.Empty
+            } else {
+                AssetsUiState.Success(filteredTokens)
+            }
+
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = AssetsUiState.Loading
+        )
+
+
+
+    override fun onCleared() {
+        activeConversationManager.clearActiveConversation()
+    }
+
+    /**
+     * Function to trigger send transaction from secondary screen
+     */
+    fun triggerSendTransaction() {
+        _sendTransactionTriggered.value = true
+    }
+
+
+
+
+
+
+    //-----------------------------SENDING--------------------------------
+    /**
+     * Call this function when the send screen is opened to secondary screen
+     */
+    fun onScreenOpened() {
+        viewModelScope.launch(Dispatchers.Main) {
+            try {
+                val result = terminalSDK?.isAvailable() == false
+                println("TerminalSDK isAvailable: $result")
+
+                if (terminalSDK?.isAvailable() == true) {
+                    terminalSDK.displaySend(
+                        sendTx = {
+                            Log.d("SendViewModel", "Send transaction touched on secondary screen - triggering send transaction")
+                            triggerSendTransaction()
+                        }
+                    )
+                    Log.d("SendViewModel", "QR code displayed on secondary screen")
+                } else {
+                    Log.w("SendViewModel", "TerminalSDK not available")
+                }
+            } catch (e: Exception) {
+                Log.e("SendViewModel", "Error displaying QR code", e)
+            }
+        }
+    }
+
+    /**
+     * Call this function when the send screen is closed/navigated away to remove QR code from secondary screen
+     */
+    fun onScreenClosed() {
+        viewModelScope.launch(Dispatchers.Main) {
+            try {
+                if (terminalSDK?.isAvailable() == true) {
+                    terminalSDK.removeSend()
+                    Log.d("ChatViewModel", "Removed send from secondary screen")
+                } else {
+                    Log.w("ChatViewModel", "TerminalSDK not available")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Error removing Send", e)
+            }
+        }
+    }
+
+
+
+}
+
+
+sealed interface AssetsUiState {
+    object Loading : AssetsUiState
+    object Error : AssetsUiState
+    object Empty : AssetsUiState
+    data class Success(
+        val assets: List<TokenAsset>
+    ) : AssetsUiState
+}
+
+sealed interface WalletDataUiState {
+    object Loading: WalletDataUiState
+    data class Success(val userData: UserData): WalletDataUiState
+}
+

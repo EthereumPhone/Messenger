@@ -1,6 +1,8 @@
 package org.ethereumhpone.chat.components
 
 
+import android.net.Uri
+import android.os.Build.VERSION.SDK_INT
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -38,6 +40,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -64,12 +68,18 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.label_fontSize
 import com.example.dgenlibrary.ui.theme.pulseOpacity
 import com.example.dgenlibrary.ui.theme.smalllabel_fontSize
+import org.ethereumhpone.chat.AssetsUiState
+import org.ethereumhpone.chat.ChatSendViewModel
+import org.ethereumhpone.chat.OverlayContactScreen
+import org.ethereumhpone.chat.RecipientUiState
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
@@ -80,9 +90,54 @@ import org.ethereumphone.dgenlibrary.components.DgenBasicTextfield
 import org.ethereumphone.dgenlibrary.components.TextToggle
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.dgenlibrary.theme.dgenOcean
+import org.ethereumphone.model.Recipient
+import org.ethosmobile.components.library.models.TransferItem
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
+import androidx.compose.ui.platform.LocalContext
+import coil.ImageLoader
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
+import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
+import org.ethereumphone.dgenlibrary.screens.InformationScreen
+
+
+@Composable
+fun OverlaySendScreenRoute(
+    onBackClick: () -> Unit,
+    onDone: () -> Unit,
+    primaryColor: Color,
+    secondaryColor: Color,
+    viewModel: ChatSendViewModel = hiltViewModel(),
+){
+
+    val assetsUiState by viewModel.tokenAssetState.collectAsStateWithLifecycle()
+    val transactionStatus by viewModel.transactionStatus.collectAsStateWithLifecycle()
+
+    // Display QR code on secondary screen only when the actual send screen content appears
+    LaunchedEffect(assetsUiState, transactionStatus) {
+        // Display QR code only when assets are loaded and there is no active transaction status
+        if (assetsUiState is AssetsUiState.Success && transactionStatus == null) {
+            viewModel.onScreenOpened()
+        }
+    }
+
+    // Remove QR code from secondary screen when this screen is disposed/closed
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.onScreenClosed()
+        }
+    }
+
+    OverlaySendScreen(
+        onBackClick = onBackClick,
+        onDone = {},
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor,
+        assetsUiState = assetsUiState
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,9 +145,21 @@ fun OverlaySendScreen(
     onBackClick: () -> Unit,
     onDone: () -> Unit,
     primaryColor: Color,
-    secondaryColor: Color
+    secondaryColor: Color,
+    assetsUiState: AssetsUiState
 ) {
 
+    val context = LocalContext.current
+    val gifEnabledLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                if ( SDK_INT >= 28 ) {
+                    add(ImageDecoderDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }.build()
+    }
     val scrollState = rememberLazyListState()
     var max by remember { mutableStateOf(0.0) }
     var amount by remember { mutableStateOf(TextFieldValue()) }
@@ -124,7 +191,9 @@ fun OverlaySendScreen(
 
 
 
-    Column(Modifier.fillMaxSize().background(dgenBlack),
+    Column(Modifier
+        .fillMaxSize()
+        .background(dgenBlack),
             verticalArrangement =  Arrangement.SpaceBetween) {
         Row(
             modifier = Modifier
@@ -184,52 +253,89 @@ fun OverlaySendScreen(
             }
         ) { targetState ->
             if (!targetState){
-                Box{
-                    LazyColumn(
-                        state= scrollState,
-                        modifier = Modifier
-                            .verticalLazyListScrollbar(
-                                scrollState, fixed = true,
-                                scrollBarTrackColor = secondaryColor,
-                                scrollBarColor = primaryColor,
-                            ) // Apply the scrollbar first
-                            .fillMaxSize()
-                            .background(dgenBlack)
-                        ,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        item {
-                            Spacer(Modifier.height(1.dp))
-                        }
-
-                        items(10) { index ->
-                            //TODO: Add real tokens
-                            val tokenBalance = 1.2
-                            val tokenFiatPrice = 645.0
-                            AvailableToken(
-                                name = "\$TOKEN $index",
-                                balance = tokenBalance,
-                                fiatamount= tokenFiatPrice,
-                                modifier = Modifier.padding(start = 32.dp, end = 40.dp).pointerInput(Unit){
-                                    detectTapGestures {
-                                        token = "TOKEN$index"// TODO: add token name
-                                        max = tokenBalance
-                                        fiatPrice = tokenFiatPrice
-                                        readyToSend = true
-                                    }
-                                },
-                                primaryColor = primaryColor
+                when(assetsUiState) {
+                    AssetsUiState.Loading -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            DgenLoadingMatrix(
+                                activeLEDColor = primaryColor,
+                                unactiveLEDColor = secondaryColor
                             )
                         }
-                        item {
-                            Spacer(Modifier.height(8.dp))
+                    }
+                    AssetsUiState.Empty -> {
+
+                        InformationScreen(
+                            gifEnabledLoader = gifEnabledLoader,
+                            primaryColor = primaryColor,
+                            text = "No Assets available"
+                        )
+                    }
+                    is AssetsUiState.Success -> {
+                        val assets = assetsUiState.assets
+                        Box {
+                            LazyColumn(
+                                state = scrollState,
+                                modifier = Modifier
+                                    .verticalLazyListScrollbar(
+                                        scrollState, fixed = true,
+                                        scrollBarTrackColor = secondaryColor,
+                                        scrollBarColor = primaryColor,
+                                    )
+                                    .fillMaxSize()
+                                    .background(dgenBlack),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                item { Spacer(Modifier.height(1.dp)) }
+                                items(assets.size) { index ->
+                                    val asset = assets[index]
+                                    val fiatPriceDummy = 0.0 // Replace with real pricing
+                                    AvailableToken(
+                                        name = asset.symbol,
+                                        balance = asset.balance,
+                                        fiatamount = fiatPriceDummy,
+                                        modifier = Modifier
+                                            .padding(start = 32.dp, end = 40.dp)
+                                            .pointerInput(Unit) {
+                                                detectTapGestures {
+                                                    token = asset.symbol
+                                                    max = asset.balance
+                                                    fiatPrice = fiatPriceDummy
+                                                    readyToSend = true
+                                                }
+                                            },
+                                        primaryColor = primaryColor
+                                    )
+                                }
+                                item { Spacer(Modifier.height(8.dp)) }
+                            }
+                            Spacer(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(24.dp)
+                                    .align(Alignment.TopCenter)
+                                    .background(
+                                        Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))
+                                    )
+                            )
+                            Spacer(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(24.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .background(
+                                        Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))
+                                    )
+                            )
                         }
                     }
-                    Spacer(modifier = Modifier.fillMaxWidth().height(24.dp).align(Alignment.TopCenter).background(Brush.verticalGradient(listOf(
-                        dgenBlack,Color.Transparent))))
-                    Spacer(modifier = Modifier.fillMaxWidth().height(24.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent,
-                        dgenBlack
-                    ))))
+
+                    AssetsUiState.Error -> {
+                        InformationScreen(
+                            gifEnabledLoader = gifEnabledLoader,
+                            primaryColor = primaryColor,
+                            text = "Empty"
+                        )
+                    }
                 }
 
             }
@@ -404,7 +510,11 @@ fun OverlaySendScreen(
                              textDecoration = TextDecoration.None
                          )
                      )
-                     Box(modifier = Modifier.fillMaxWidth().animateContentSize().heightIn(max = 100.dp).padding(vertical = 12.dp)){
+                     Box(modifier = Modifier
+                         .fillMaxWidth()
+                         .animateContentSize()
+                         .heightIn(max = 100.dp)
+                         .padding(vertical = 12.dp)){
                          SelectableTextGrid(
                              list,
                              preselectedIndex = preselectedRecipient,
@@ -413,11 +523,21 @@ fun OverlaySendScreen(
                              },
                              primaryColor = primaryColor
                          )
-                         Spacer(modifier = Modifier.fillMaxWidth().height(12.dp).align(Alignment.TopCenter).background(
-                             Brush.verticalGradient(listOf(dgenBlack,Color.Transparent))))
+                         Spacer(modifier = Modifier
+                             .fillMaxWidth()
+                             .height(12.dp)
+                             .align(Alignment.TopCenter)
+                             .background(
+                                 Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))
+                             ))
 
-                         Spacer(modifier = Modifier.fillMaxWidth().height(12.dp).align(Alignment.BottomCenter).background(
-                             Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))))
+                         Spacer(modifier = Modifier
+                             .fillMaxWidth()
+                             .height(12.dp)
+                             .align(Alignment.BottomCenter)
+                             .background(
+                                 Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))
+                             ))
 
                      }
 
@@ -425,7 +545,9 @@ fun OverlaySendScreen(
              }
 
              Row(
-                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                 modifier = Modifier
+                     .fillMaxWidth()
+                     .padding(bottom = 8.dp),
                  horizontalArrangement = Arrangement.Center
              ) {
 
@@ -625,8 +747,8 @@ fun AvailableToken(
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 fun OverlaySendScreenPreview(){
-    OverlaySendScreen(
-        {}, {}, dgenTurqoise,
-        secondaryColor = dgenOcean
-    )
+//    OverlaySendScreen(
+//        {}, {}, dgenTurqoise,
+//        secondaryColor = dgenOcean
+//    )
 }

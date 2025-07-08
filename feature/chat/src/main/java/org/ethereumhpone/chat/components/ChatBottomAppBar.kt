@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -60,6 +61,7 @@ import org.ethereumhpone.chat.components.attachments.AttachmentRow
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.components.DgenCursorTextfield
 import com.example.dgenlibrary.ui.theme.pulseOpacity
+import android.util.Log
 
 @Composable
 fun ChatBottomAppBar(
@@ -73,6 +75,7 @@ fun ChatBottomAppBar(
 ) {
     var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
 
 
@@ -178,6 +181,7 @@ fun ChatBottomAppBar(
                 IconButton(
                     onClick = {
                         if (textState.text.isNotBlank()) {
+                            Log.d("ChatBottomAppBar", "Send button clicked. Calling onSendClick.")
                             onSendClick(textState.text)
                             /*
                             val newMsg = ChatMessage(text = textState.text)
@@ -186,8 +190,9 @@ fun ChatBottomAppBar(
                             messages.add(0, newMsg)
                             input = ""
                              */
-
+                            Log.d("ChatBottomAppBar", "onSendClick finished. Hiding keyboard and clearing text.")
                             focusManager.clearFocus()
+                            keyboardController?.hide()
                             textState = TextFieldValue()
                             expand.value = false
                         }
