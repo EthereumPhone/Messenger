@@ -11,5 +11,6 @@ data class TokenAsset(
     val balance: Double,
     val decimals: Int = 0,
     val logoUrl: String? = "",
-    val swappable: Boolean = false
+    val swappable: Boolean = false,
+    val price: Double = 0.0
 )

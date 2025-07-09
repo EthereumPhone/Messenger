@@ -24,7 +24,7 @@ class TokenRepositoryImpl @Inject constructor() : TokenRepository {
             val request = Request.Builder().url(url).get().build()
             val response = client.newCall(request).execute()
             if (!response.isSuccessful) {
-                Log.w("TokenRepository", "Unsuccessful response from Alchemy: ${response.code}")
+                //Log.w("TokenRepository", "Unsuccessful response from Alchemy: ${response.code}")
                 return emptyList()
             }
             val bodyString = response.body?.string() ?: return emptyList()

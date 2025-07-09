@@ -100,8 +100,8 @@ import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
+import org.ethereumphone.dgenlibrary.formatWithSuffix
 import org.ethereumphone.dgenlibrary.screens.InformationScreen
-
 
 @Composable
 fun OverlaySendScreenRoute(
@@ -109,21 +109,13 @@ fun OverlaySendScreenRoute(
     onDone: () -> Unit,
     primaryColor: Color,
     secondaryColor: Color,
+    recipientUiState: RecipientUiState,
     viewModel: ChatSendViewModel = hiltViewModel(),
 ){
 
     val assetsUiState by viewModel.tokenAssetState.collectAsStateWithLifecycle()
-    val transactionStatus by viewModel.transactionStatus.collectAsStateWithLifecycle()
 
-    // Display QR code on secondary screen only when the actual send screen content appears
-    LaunchedEffect(assetsUiState, transactionStatus) {
-        // Display QR code only when assets are loaded and there is no active transaction status
-        if (assetsUiState is AssetsUiState.Success && transactionStatus == null) {
-            viewModel.onScreenOpened()
-        }
-    }
-
-    // Remove QR code from secondary screen when this screen is disposed/closed
+    // Ensure QR code removed when composable is disposed
     DisposableEffect(Unit) {
         onDispose {
             viewModel.onScreenClosed()
@@ -132,10 +124,18 @@ fun OverlaySendScreenRoute(
 
     OverlaySendScreen(
         onBackClick = onBackClick,
-        onDone = {},
+        onDone = onDone,
         primaryColor = primaryColor,
         secondaryColor = secondaryColor,
-        assetsUiState = assetsUiState
+        assetsUiState = assetsUiState,
+        recipientUiState = recipientUiState,
+        onReadyToSendChanged = { ready ->
+            if (ready) {
+                viewModel.onScreenOpened()
+            } else {
+                viewModel.onScreenClosed()
+            }
+        }
     )
 }
 
@@ -146,7 +146,9 @@ fun OverlaySendScreen(
     onDone: () -> Unit,
     primaryColor: Color,
     secondaryColor: Color,
-    assetsUiState: AssetsUiState
+    assetsUiState: AssetsUiState,
+    recipientUiState: RecipientUiState,
+    onReadyToSendChanged: (Boolean) -> Unit
 ) {
 
     val context = LocalContext.current
@@ -170,31 +172,27 @@ fun OverlaySendScreen(
     var fiatPrice by remember { mutableStateOf(0.0) }
 
     var readyToSend by remember { mutableStateOf(false)}
+
+    // Notify parent when readyToSend changes
+    LaunchedEffect(readyToSend) {
+        onReadyToSendChanged(readyToSend)
+    }
     
     var title = when(readyToSend){
         false ->  "SELECT TOKEN"
         true -> "SEND $${token.uppercase()}"
     }
 
-    //TODO: Fill with a list of recipient
-    val list = remember { mutableStateListOf(
-        "Max", "Joe", "Alex",
-        "Max", "Joe", "Alex",
-        "Max", "Joe", "Alex",
-        "Max", "Joe", "Alex",
-        "Max", "Joe", "Alex",
-        "Max", "Joe", "Alex",
-        "Max", "Joe", "Alex",
-
-        ) }
-    val preselectedRecipient = 0
-
+    // Determine recipient address (using first recipient)
+    val recipientAddress = remember(recipientUiState) {
+        (recipientUiState as? RecipientUiState.Success)?.recipients?.firstOrNull()?.address ?: ""
+    }
 
 
     Column(Modifier
         .fillMaxSize()
         .background(dgenBlack),
-            verticalArrangement =  Arrangement.SpaceBetween) {
+            verticalArrangement =  Arrangement.Top) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -281,18 +279,19 @@ fun OverlaySendScreen(
                                 item { Spacer(Modifier.height(1.dp)) }
                                 items(assets.size) { index ->
                                     val asset = assets[index]
-                                    val fiatPriceDummy = 0.0 // Replace with real pricing
+                                    val tokenPrice = asset.price
                                     AvailableToken(
+                                        logoUrl = asset.logoUrl ?: "",
                                         name = asset.symbol,
                                         balance = asset.balance,
-                                        fiatamount = fiatPriceDummy,
+                                        fiatamount = tokenPrice,
                                         modifier = Modifier
-                                            .padding(start = 32.dp, end = 40.dp)
+                                            .padding(start = 24.dp, end = 40.dp)
                                             .pointerInput(Unit) {
                                                 detectTapGestures {
                                                     token = asset.symbol
                                                     max = asset.balance
-                                                    fiatPrice = fiatPriceDummy
+                                                    fiatPrice = tokenPrice
                                                     readyToSend = true
                                                 }
                                             },
@@ -333,240 +332,197 @@ fun OverlaySendScreen(
 
             }
             else{
-        Column (
-            verticalArrangement =  Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 12.dp, horizontal = 32.dp),
-        ){
-            Spacer(Modifier.height(8.dp))
-             Column(
-                 verticalArrangement = Arrangement.spacedBy(24.dp)
-             ) {
-                 Column(modifier = Modifier.fillMaxWidth()) {
-                     Row(
-                         modifier = Modifier.fillMaxWidth(),
-                         horizontalArrangement = Arrangement.SpaceBetween,
-                         verticalAlignment = Alignment.CenterVertically
+                Column (
+//                    verticalArrangement =  Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 12.dp, horizontal = 32.dp),
+                ){
+                    Spacer(Modifier.height(48.dp))
+                     Column(
+                         verticalArrangement = Arrangement.spacedBy(24.dp)
                      ) {
-                         Text(
-                             text = "AMOUNT",
-                             style = TextStyle(
-                                 fontFamily = SpaceMono,
-                                 color = primaryColor,
-                                 fontWeight = FontWeight.Normal,
-                                 fontSize = label_fontSize,
-                                 lineHeight = label_fontSize,
-                                 letterSpacing = 0.sp,
-                                 textDecoration = TextDecoration.None
-                             )
-                         )
-                         TextToggle(
-                             textLeft = token.uppercase(),
-                             textRight = "$",
-                             onToggle = { useDollarAmount = !useDollarAmount },
-                             value = useDollarAmount,
-                             primaryColor = primaryColor
-                         )
-                     }
-
-                     Crossfade(
-                         targetState = useDollarAmount,
-                         animationSpec = tween(300),
-                     ) { isDollar ->
-                         if (isDollar) {
-                             DgenBasicTextfield(
-                                 placeholder = {
-                                     Text(
-                                         text = "$0.0",
-                                         style = TextStyle(
-                                             fontFamily = PitagonsSans,
-                                             color = primaryColor.copy(alpha = pulseOpacity),
-                                             fontWeight = FontWeight.SemiBold,
-                                             fontSize = 56.sp
-                                         )
-                                     )
-                                 },
-                                 value = dollarAmount,
-                                 onValueChange = { value ->
-                                     val text = value.text
-                                     // Allow only numbers and a single dot
-                                     if (text.isEmpty() || text.matches("^\\d*\\.?\\d*\$".toRegex())) {
-                                         dollarAmount = value
-                                     }
-                                 },
-                                 textStyle = TextStyle(
-                                     fontFamily = PitagonsSans,
-                                     color = dgenWhite,
-                                     fontWeight = FontWeight.SemiBold,
-                                     fontSize = 56.sp,
-                                     lineHeight = 56.sp,
-                                     letterSpacing = 0.sp,
-                                     textDecoration = TextDecoration.None
-                                 ),
-                                 maxLines = 1,
-                                 keyboardtype = KeyboardType.Decimal,
-                                 cursorWidth = 32.dp,
-                                 cursorColor = primaryColor,
-                                 isAnyFieldFocused = remember { mutableStateOf(false) },
-                                 modifier = Modifier.fillMaxWidth()
-                             )
-                         } else {
-                             DgenBasicTextfield(
-                                 placeholder = {
-                                     Text(
-                                         text = "0.0",
-                                         style = TextStyle(
-                                             fontFamily = PitagonsSans,
-                                             color = primaryColor.copy(alpha = pulseOpacity),
-                                             fontWeight = FontWeight.SemiBold,
-                                             fontSize = 56.sp
-                                         )
-                                     )
-                                 },
-                                 value = amount,
-                                 onValueChange = { value ->
-                                     val text = value.text
-                                     // Allow only numbers and a single dot, no commas or spaces
-                                     if (text.isEmpty() || text.matches("^\\d*\\.?\\d*\$".toRegex())) {
-                                         amount = value
-                                     }
-                                 },
-                                 textStyle = TextStyle(
-                                     fontFamily = PitagonsSans,
-                                     color = dgenWhite,
-                                     fontWeight = FontWeight.SemiBold,
-                                     fontSize = 56.sp,
-                                     lineHeight = 56.sp,
-                                     letterSpacing = 0.sp,
-                                     textDecoration = TextDecoration.None
-                                 ),
-                                 maxLines = 1,
-                                 keyboardtype = KeyboardType.Decimal,
-                                 cursorWidth = 32.dp,
-                                 cursorColor = primaryColor,
-                                 isAnyFieldFocused = remember { mutableStateOf(false) },
-                                 modifier = Modifier.fillMaxWidth()
-                             )
-                         }
-                     }
-                     val availableAmountText = if (useDollarAmount) {
-                         val dollarValue = max * fiatPrice
-                         val decimalFormat = DecimalFormat("0.00").apply {
-                             decimalFormatSymbols = DecimalFormatSymbols(Locale.US)
-                         }
-                         "$" + decimalFormat.format(dollarValue)
-                     } else {
-                         abbreviateNumber(max)
-                     }
-                     Text(
-                         text = buildAnnotatedString {
-                             append(availableAmountText)
-                             withStyle(style = SpanStyle(
-                                 fontFamily = PitagonsSans,
-                                 color = primaryColor,
-                                 fontWeight = FontWeight.SemiBold,
-                                 fontSize = smalllabel_fontSize,
-                                 letterSpacing = 0.sp,
-                                 textDecoration = TextDecoration.None
-                             )
+                         Column(modifier = Modifier.fillMaxWidth()) {
+                             Row(
+                                 verticalAlignment = Alignment.CenterVertically,
+                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                              ) {
-                                 if (useDollarAmount) {
-                                     append(" available")
+                                 Text(
+                                     text = "AMOUNT",
+                                     style = TextStyle(
+                                         fontFamily = SpaceMono,
+                                         color = primaryColor,
+                                         fontWeight = FontWeight.Normal,
+                                         fontSize = label_fontSize,
+                                         lineHeight = label_fontSize,
+                                         letterSpacing = 0.sp,
+                                         textDecoration = TextDecoration.None
+                                     )
+                                 )
+                                 TextToggle(
+                                     textLeft = token.uppercase(),
+                                     textRight = "$",
+                                     onToggle = { useDollarAmount = !useDollarAmount },
+                                     value = useDollarAmount,
+                                     primaryColor = primaryColor
+                                 )
+                             }
+
+                             Crossfade(
+                                 targetState = useDollarAmount,
+                                 animationSpec = tween(300),
+                             ) { isDollar ->
+                                 if (isDollar) {
+                                     DgenBasicTextfield(
+                                         placeholder = {
+                                             Text(
+                                                 text = "$0.0",
+                                                 style = TextStyle(
+                                                     fontFamily = PitagonsSans,
+                                                     color = primaryColor.copy(alpha = pulseOpacity),
+                                                     fontWeight = FontWeight.SemiBold,
+                                                     fontSize = 56.sp
+                                                 )
+                                             )
+                                         },
+                                         value = dollarAmount,
+                                         onValueChange = { value ->
+                                             val text = value.text
+                                             // Allow only numbers and a single dot
+                                             if (text.isEmpty() || text.matches("^\\d*\\.?\\d*\$".toRegex())) {
+                                                 dollarAmount = value
+                                             }
+                                         },
+                                         textStyle = TextStyle(
+                                             fontFamily = PitagonsSans,
+                                             color = dgenWhite,
+                                             fontWeight = FontWeight.SemiBold,
+                                             fontSize = 56.sp,
+                                             lineHeight = 56.sp,
+                                             letterSpacing = 0.sp,
+                                             textDecoration = TextDecoration.None
+                                         ),
+                                         maxLines = 1,
+                                         keyboardtype = KeyboardType.Decimal,
+                                         cursorWidth = 32.dp,
+                                         cursorColor = primaryColor,
+                                         isAnyFieldFocused = remember { mutableStateOf(false) },
+                                         modifier = Modifier.fillMaxWidth()
+                                     )
                                  } else {
-                                     append(" $token available")
+                                     DgenBasicTextfield(
+                                         placeholder = {
+                                             Text(
+                                                 text = "0.0",
+                                                 style = TextStyle(
+                                                     fontFamily = PitagonsSans,
+                                                     color = primaryColor.copy(alpha = pulseOpacity),
+                                                     fontWeight = FontWeight.SemiBold,
+                                                     fontSize = 56.sp
+                                                 )
+                                             )
+                                         },
+                                         value = amount,
+                                         onValueChange = { value ->
+                                             val text = value.text
+                                             // Allow only numbers and a single dot, no commas or spaces
+                                             if (text.isEmpty() || text.matches("^\\d*\\.?\\d*\$".toRegex())) {
+                                                 amount = value
+                                             }
+                                         },
+                                         textStyle = TextStyle(
+                                             fontFamily = PitagonsSans,
+                                             color = dgenWhite,
+                                             fontWeight = FontWeight.SemiBold,
+                                             fontSize = 56.sp,
+                                             lineHeight = 56.sp,
+                                             letterSpacing = 0.sp,
+                                             textDecoration = TextDecoration.None
+                                         ),
+                                         maxLines = 1,
+                                         keyboardtype = KeyboardType.Decimal,
+                                         cursorWidth = 32.dp,
+                                         cursorColor = primaryColor,
+                                         isAnyFieldFocused = remember { mutableStateOf(false) },
+                                         modifier = Modifier.fillMaxWidth()
+                                     )
                                  }
                              }
-                         },
-                         style = TextStyle(
-                             fontFamily = PitagonsSans,
-                             color = primaryColor,
-                             fontWeight = FontWeight.SemiBold,
-                             fontSize = smalllabel_fontSize,
-                             lineHeight = smalllabel_fontSize,
-                             letterSpacing = 0.sp,
-                             textDecoration = TextDecoration.None
-                         )
-                     )
-                 }
-                 Column(modifier = Modifier.fillMaxWidth()) {
-
-                     Text(
-                         text= "TO",
-                         style = TextStyle(
-                             fontFamily = SpaceMono,
-                             color = primaryColor,
-                             fontWeight = FontWeight.Normal,
-                             fontSize = label_fontSize,
-                             lineHeight = label_fontSize,
-                             letterSpacing = 0.sp,
-                             textDecoration = TextDecoration.None
-                         )
-                     )
-                     Box(modifier = Modifier
-                         .fillMaxWidth()
-                         .animateContentSize()
-                         .heightIn(max = 100.dp)
-                         .padding(vertical = 12.dp)){
-                         SelectableTextGrid(
-                             list,
-                             preselectedIndex = preselectedRecipient,
-                             onSelectionChanged = {
-
-                             },
-                             primaryColor = primaryColor
-                         )
-                         Spacer(modifier = Modifier
-                             .fillMaxWidth()
-                             .height(12.dp)
-                             .align(Alignment.TopCenter)
-                             .background(
-                                 Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))
-                             ))
-
-                         Spacer(modifier = Modifier
-                             .fillMaxWidth()
-                             .height(12.dp)
-                             .align(Alignment.BottomCenter)
-                             .background(
-                                 Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))
-                             ))
-
-                     }
-
-                 }
-             }
-
-             Row(
-                 modifier = Modifier
-                     .fillMaxWidth()
-                     .padding(bottom = 8.dp),
-                 horizontalArrangement = Arrangement.Center
-             ) {
-
-                     Text(text= "SEND".uppercase(),
-                         color = primaryColor ,
-                         style = TextStyle(
-                             fontFamily = SpaceMono,
-                             color = primaryColor,
-                             fontWeight = FontWeight.Bold,
-                             fontSize = 24.sp,
-                             lineHeight = 24.sp,
-                             letterSpacing = 1.sp,
-                             textDecoration = TextDecoration.None,
-                             textAlign = TextAlign.Center
-                         ),
-                         modifier = Modifier.pointerInput(Unit){
-                             detectTapGestures {
-                                 //TODO: Send Transaction
-                                 onDone()
+                             val availableAmountText = if (useDollarAmount) {
+                                 val dollarValue = max * fiatPrice
+                                 val decimalFormat = DecimalFormat("0.00").apply {
+                                     decimalFormatSymbols = DecimalFormatSymbols(Locale.US)
+                                 }
+                                 "$" + decimalFormat.format(dollarValue)
+                             } else {
+                                 abbreviateNumber(max)
                              }
+                             Text(
+                                 text = buildAnnotatedString {
+                                     append(availableAmountText)
+                                     withStyle(style = SpanStyle(
+                                         fontFamily = PitagonsSans,
+                                         color = primaryColor,
+                                         fontWeight = FontWeight.SemiBold,
+                                         fontSize = smalllabel_fontSize,
+                                         letterSpacing = 0.sp,
+                                         textDecoration = TextDecoration.None
+                                     )
+                                     ) {
+                                         if (useDollarAmount) {
+                                             append(" available")
+                                         } else {
+                                             append(" $token available")
+                                         }
+                                     }
+                                 },
+                                 style = TextStyle(
+                                     fontFamily = PitagonsSans,
+                                     color = primaryColor,
+                                     fontWeight = FontWeight.SemiBold,
+                                     fontSize = smalllabel_fontSize,
+                                     lineHeight = smalllabel_fontSize,
+                                     letterSpacing = 0.sp,
+                                     textDecoration = TextDecoration.None
+                                 )
+                             )
                          }
-                     )
 
-             }
+                         Column(modifier = Modifier.fillMaxWidth()) {
 
-        }
+                             Text(
+                                 text= "TO",
+                                 style = TextStyle(
+                                     fontFamily = SpaceMono,
+                                     color = primaryColor,
+                                     fontWeight = FontWeight.Normal,
+                                     fontSize = label_fontSize,
+                                     lineHeight = label_fontSize,
+                                     letterSpacing = 0.sp,
+                                     textDecoration = TextDecoration.None
+                                 )
+                             )
+
+                             Spacer(modifier = Modifier.height(12.dp))
+
+                             Text(
+                                 text = recipientAddress,
+                                 style = TextStyle(
+                                     fontFamily = PitagonsSans,
+                                     color = primaryColor,
+                                     fontWeight = FontWeight.SemiBold,
+                                     fontSize = 20.sp,
+                                     lineHeight = 20.sp,
+                                     letterSpacing = 0.sp,
+                                     textDecoration = TextDecoration.None
+                                 ),
+                                 maxLines = 1,
+                                 overflow = TextOverflow.Ellipsis
+                             )
+
+                         }
+                     }
+                }
             }
         }
     }
@@ -596,7 +552,7 @@ fun SelectableTextGrid(
 
             RecipientName(
                 selected = (index == selectedIndex),
-                name = "$text $index",
+                name = text,
                 onClick = {
                     selectedIndex = index
                     onSelectionChanged(index)
@@ -662,7 +618,7 @@ fun AvailableToken(
                     AsyncImage(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .size(24.dp),
+                            .size(32.dp),
                         model = logoUrl,
                         contentDescription = "Translated description of what the image contains"
                     )
@@ -670,7 +626,7 @@ fun AvailableToken(
                 false -> {
                     Image(
                         modifier = Modifier
-                            .size(24.dp),
+                            .size(32.dp),
                         painter = painterResource(org.ethereumhpone.chat.R.drawable.unknown_token),
                         contentDescription = "Ethereum"
                     )
@@ -703,7 +659,7 @@ fun AvailableToken(
             Text(
 
                 buildAnnotatedString {
-                    append(formatSmart(balance))
+                    append(balance.formatWithSuffix())
 
                     append("  ")
 

@@ -128,6 +128,9 @@ class WalletContentProviderImpl @Inject constructor(
         val meta = parseTokenMetadataCursor(cursor) ?: return null
         val balanceIdx = cursor.getColumnIndex("balance")
         val balance = if (balanceIdx != -1) cursor.getString(balanceIdx) else "0"
+
+        val priceIdx = cursor.getColumnIndex("price")
+        val price = if (priceIdx != -1) cursor.getDouble(priceIdx) else 0.0
         return OwnedToken(
             contractAddress = meta.contractAddress,
             decimals = meta.decimals,
@@ -136,7 +139,8 @@ class WalletContentProviderImpl @Inject constructor(
             logo = meta.logo,
             chainId = meta.chainId,
             swappable = meta.swappable,
-            balance = balance
+            balance = balance,
+            price = price
         )
     }
 

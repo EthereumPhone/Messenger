@@ -12,4 +12,5 @@ data class OwnedToken(
     val chainId: Int,
     val swappable: Boolean,
     val balance: String,
+    val price: Double = 0.0,
 ) 

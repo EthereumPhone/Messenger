@@ -52,6 +52,7 @@ fun ChatOverlays(
                         },
                         primaryColor = primaryColor,
                         secondaryColor = secondaryColor,
+                        recipientUiState = recipientUiState,
                     )
                 }
                 Actions.PHOTO -> {

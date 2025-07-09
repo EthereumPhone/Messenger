@@ -45,7 +45,7 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
     private val activeConversationManager: ActiveConversationManager,
     private var walletSDK: WalletSDK,
     private val terminalSDK: TerminalSDK?,
-    private val getAllTokensUseCase: GetAllTokensUseCase,
+    private val _getAllTokensUseCase: GetAllTokensUseCase,
     private val walletContentProvider: WalletContentProvider,
     @ApplicationContext private val context: Context
 ): ViewModel() {
@@ -133,24 +133,48 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
         )
 
 
-    val tokenAssetState: StateFlow<AssetsUiState> = getAllTokensUseCase()
-        .map { tokens ->
-            val filteredTokens = tokens
+    val tokenAssetState: StateFlow<AssetsUiState> = flow {
+        // Continuously poll owned tokens; in future this can be replaced by a content-observer pattern
+        while (true) {
+            val ownedTokens = walletContentProvider.getAllOwnedTokens()
+            emit(ownedTokens)
+            delay(2_000) // refresh every 2s
+        }
+    }
+        .map { ownedTokens ->
+            // Convert OwnedToken -> TokenAsset with balance scaled by decimals
+            val tokenAssets = ownedTokens.mapNotNull { ownedToken ->
+                try {
+                    val scaledBalance = ownedToken.balance.toDouble()
+                    TokenAsset(
+                        address = ownedToken.contractAddress,
+                        chainId = ownedToken.chainId,
+                        symbol = ownedToken.symbol,
+                        name = ownedToken.name,
+                        balance = scaledBalance,
+                        decimals = ownedToken.decimals,
+                        logoUrl = ownedToken.logo ?: "",
+                        swappable = ownedToken.swappable,
+                        price = ownedToken.price
+                    )
+                } catch (e: Exception) {
+                    null // skip token if conversion fails
+                }
+            }
+
+            val filteredTokens = tokenAssets
                 .filter { it.balance > 0 }
-                .filter { token -> // Filter out tokens with URLs in their names or symbols
+                .filter { token ->
                     val name = token.name.lowercase()
                     val symbol = token.symbol.lowercase()
-
                     val urlPatterns = listOf(
                         "http://", "https://", "www.",
                         ".com", ".io", ".org", ".net", ".xyz",
                         "/", "t.me", "telegram", "twitter", "discord", "t.ly"
                     )
-
-                    val containsNoUrlPatterns = urlPatterns.none { pattern ->
+                    urlPatterns.none { pattern ->
                         name.contains(pattern) || symbol.contains(pattern)
                     }
-                    containsNoUrlPatterns
                 }
 
             if (filteredTokens.isEmpty()) {
@@ -158,7 +182,6 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
             } else {
                 AssetsUiState.Success(filteredTokens)
             }
-
         }
         .stateIn(
             scope = viewModelScope,
