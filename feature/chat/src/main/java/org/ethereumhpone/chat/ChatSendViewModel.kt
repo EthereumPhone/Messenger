@@ -24,6 +24,7 @@ import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.manager.ActiveConversationManager
+import org.ethereumhpone.domain.manager.WalletContentProvider
 import org.ethereumhpone.domain.model.UserData
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
@@ -45,8 +46,22 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
     private var walletSDK: WalletSDK,
     private val terminalSDK: TerminalSDK?,
     private val getAllTokensUseCase: GetAllTokensUseCase,
+    private val walletContentProvider: WalletContentProvider,
     @ApplicationContext private val context: Context
 ): ViewModel() {
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val ownedTokens = walletContentProvider.getAllOwnedTokens()
+                ownedTokens.forEach { token ->
+                    Log.d("ChatSendViewModel", "OwnedToken: $token")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatSendViewModel", "Error querying owned tokens", e)
+            }
+        }
+    }
 
 
     // nav arguments

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.annotation.Nullable
 import com.google.protobuf.ByteString
+import com.messenger.terminalsdk.TerminalSDK
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -132,9 +133,9 @@ object AppModule {
     @Singleton
     fun provideTerminalSDK(
         @ApplicationContext context: Context
-    ): com.messenger.terminalsdk.TerminalSDK? {
+    ): TerminalSDK? {
         return try {
-            com.messenger.terminalsdk.TerminalSDK(context)
+            TerminalSDK(context)
         } catch (e: Exception) {
             // If the underlying proxy class is not available on the device, gracefully fall back
             null

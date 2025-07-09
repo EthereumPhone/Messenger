@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.org.jetbrains.kotlin.serialization)
 }
 
 android {
@@ -54,4 +55,5 @@ dependencies {
 
     implementation(libs.xmtp)
     implementation(libs.walletsdk)
+    implementation(libs.kotlin.serialization)
 }

@@ -7,12 +7,14 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.ethereumhpone.data.manager.PermissionManagerImpl
+import org.ethereumhpone.data.manager.WalletContentProviderImpl
 import org.ethereumhpone.data.mapper.ContactCursorImpl
 import org.ethereumhpone.data.mapper.ContactGroupCursorImpl
 import org.ethereumhpone.data.mapper.ContactGroupMemberCursorImpl
 import org.ethereumhpone.data.mapper.ImageCursorImpl
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.domain.manager.PermissionManager
+import org.ethereumhpone.domain.manager.WalletContentProvider
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
 import org.ethereumhpone.domain.mapper.ContactGroupMemberCursor
@@ -37,4 +39,6 @@ object DataModule {
     fun providePhoneNumberUtils(@ApplicationContext appContext: Context): PhoneNumberUtils = PhoneNumberUtils(appContext) // Assuming a default constructor is available
     @Provides
     fun providePermissionManager(permissionManagerImpl: PermissionManagerImpl): PermissionManager = permissionManagerImpl
+    @Provides
+    fun provideWalletContentProvider(walletContentProviderImpl: WalletContentProviderImpl): WalletContentProvider = walletContentProviderImpl
 }
