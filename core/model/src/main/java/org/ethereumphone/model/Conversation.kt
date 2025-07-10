@@ -18,18 +18,15 @@ data class Conversation(
     private val clientInbox: String
 ) {
     fun getHeader(): String {
-        // Prioritize explicit conversation title when provided
+        // 1. Use explicit conversation title if present.
         title?.takeIf { it.isNotBlank() }?.let { return it }
 
-        // Attempt to derive header from the recipient of the most recent message first
-        val candidateRecipient = lastMessage?.recipient ?: recipients.firstOrNull()
+        // 2. Exclude the current user's inbox from consideration to avoid showing their own address.
+        val otherRecipient = recipients.firstOrNull { it.id != clientInbox }
 
-        candidateRecipient?.let { recipient ->
-            return listOfNotNull(
-                recipient.contact?.name,
-                recipient.ens,
-                recipient.address
-            ).firstOrNull { it.isNotBlank() } ?: ""
+        otherRecipient?.let { recipient ->
+            // Prefer ENS if available, otherwise fall back to the raw address.
+            return recipient.ens?.takeIf { it.isNotBlank() } ?: recipient.address
         }
 
         return ""
