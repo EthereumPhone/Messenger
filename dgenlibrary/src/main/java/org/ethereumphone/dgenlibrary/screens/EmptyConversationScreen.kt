@@ -53,7 +53,7 @@ fun EmptyConversationScreen(
             )
 
             Text(
-                text = "Tap Buy to purchase your first token, or Receive to add assets from \n another wallet.",
+                text = "Tap the \"+\"-button to create conversation",
                 style = TextStyle(
                     fontFamily = PitagonsSans,
                     color = primaryColor.copy(neonOpacity),
