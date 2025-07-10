@@ -103,6 +103,7 @@ import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.SelectableCarousel
 import org.ethereumphone.dgenlibrary.formatWithSuffix
 import org.ethereumphone.dgenlibrary.screens.InformationScreen
+import org.ethereumhpone.chat.ConversationUiState
 
 @Composable
 fun OverlaySendScreenRoute(
@@ -115,6 +116,13 @@ fun OverlaySendScreenRoute(
 ){
 
     val assetsUiState by viewModel.tokenAssetState.collectAsStateWithLifecycle()
+
+    val conversationState by viewModel.conversation.collectAsStateWithLifecycle()
+    val recipientDisplay = remember(conversationState) {
+        if (conversationState is ConversationUiState.Success) {
+            (conversationState as ConversationUiState.Success).conversation.getHeader()
+        } else ""
+    }
 
     // Ensure QR code removed when composable is disposed
     DisposableEffect(Unit) {
@@ -129,7 +137,7 @@ fun OverlaySendScreenRoute(
         primaryColor = primaryColor,
         secondaryColor = secondaryColor,
         assetsUiState = assetsUiState,
-        recipientUiState = recipientUiState,
+        recipientDisplay = recipientDisplay,
         onReadyToSendChanged = { ready ->
             if (ready) {
                 viewModel.onScreenOpened()
@@ -148,7 +156,7 @@ fun OverlaySendScreen(
     primaryColor: Color,
     secondaryColor: Color,
     assetsUiState: AssetsUiState,
-    recipientUiState: RecipientUiState,
+    recipientDisplay: String,
     onReadyToSendChanged: (Boolean) -> Unit
 ) {
 
@@ -184,10 +192,7 @@ fun OverlaySendScreen(
         true -> "SEND $${token.uppercase()}"
     }
 
-    // Determine recipient address (using first recipient)
-    val recipientAddress = remember(recipientUiState) {
-        (recipientUiState as? RecipientUiState.Success)?.recipients?.firstOrNull()?.address ?: ""
-    }
+    val recipientAddress = recipientDisplay
 
 
     Column(Modifier
