@@ -32,6 +32,10 @@ fun Modifier.verticalLazyListScrollbar(
     scrollBarTrackColor: Color,
     scrollBarColor: Color,
     scrollBarCornerRadius: Float = 4f,
+    /* Space to leave at the top of the list before the scrollbar begins */
+    topPadding: Dp = 32.dp,
+    /* Space to leave at the bottom of the list after the scrollbar ends */
+    bottomPadding: Dp = 32.dp,
     endPadding: Float = 32f,
     fixed: Boolean = false
 ): Modifier {
@@ -67,8 +71,10 @@ fun Modifier.verticalLazyListScrollbar(
 
             if (visibleItemsInfo.isEmpty() || totalItemsCount == 0) return@drawWithContent
 
-            // 1️⃣ Fixed scrollbar track height
-            val trackHeight = (size.height - 64.dp.toPx()).coerceAtLeast(0f)
+            // 1️⃣ Compute scrollbar track height from the provided top & bottom padding
+            val topPaddingPx = topPadding.toPx()
+            val bottomPaddingPx = bottomPadding.toPx()
+            val trackHeight = (size.height - topPaddingPx - bottomPaddingPx).coerceAtLeast(0f)
 
             // 2️⃣ Compute thumb height proportionally
             val visibleItemCount = visibleItemsInfo.size.toFloat()
@@ -100,7 +106,7 @@ fun Modifier.verticalLazyListScrollbar(
                 drawRoundRect(
                     color = scrollBarTrackColor.copy(alpha = if (fixed) fixedalpha else alpha),
                     cornerRadius = CornerRadius(scrollBarCornerRadius),
-                    topLeft = Offset(size.width - endPadding,32.dp.toPx()),
+                    topLeft = Offset(size.width - endPadding, topPaddingPx),
                     size = Size(width.toPx(), trackHeight)
                 )
             }
@@ -109,7 +115,7 @@ fun Modifier.verticalLazyListScrollbar(
             drawRoundRect(
                 color = scrollBarColor.copy(alpha = if (fixed) fixedalpha else alpha),
                 cornerRadius = CornerRadius(scrollBarCornerRadius),
-                topLeft = Offset(size.width - endPadding, 32.dp.toPx() + targetScrollBarOffset),
+                topLeft = Offset(size.width - endPadding, topPaddingPx + targetScrollBarOffset),
                 size = Size(width.toPx(), thumbHeight)
             )
         }
@@ -124,6 +130,10 @@ fun Modifier.verticalScrollBarForLazyGrid(
     scrollBarTrackColor: Color,
     scrollBarColor: Color,
     scrollBarCornerRadius: Float = 4f,
+    /* Space before the track begins */
+    topPadding: Dp = 32.dp,
+    /* Space after the track ends */
+    bottomPadding: Dp = 32.dp,
     endPadding: Dp = 16.dp
 ): Modifier {
     var targetAlpha by remember { mutableStateOf(0f) }
@@ -151,7 +161,7 @@ fun Modifier.verticalScrollBarForLazyGrid(
 
             if (visibleItems.isEmpty() || totalItemsCount == 0) return@drawWithContent
 
-            val trackHeight = (size.height - 64.dp.toPx()).coerceAtLeast(0f)
+            val trackHeight = (size.height - topPadding.toPx() - bottomPadding.toPx()).coerceAtLeast(0f)
 
             val visibleItemCount = visibleItems.size.toFloat()
             val minThumbHeight = 40.dp.toPx()
@@ -175,7 +185,7 @@ fun Modifier.verticalScrollBarForLazyGrid(
                 drawRoundRect(
                     color = scrollBarTrackColor.copy(alpha = alpha),
                     cornerRadius = CornerRadius(scrollBarCornerRadius),
-                    topLeft = Offset(size.width - 32f, 32f),
+                    topLeft = Offset(size.width - endPadding.toPx(), topPadding.toPx()),
                     size = Size(width.toPx(), trackHeight)
                 )
             }
@@ -183,7 +193,7 @@ fun Modifier.verticalScrollBarForLazyGrid(
             drawRoundRect(
                 color = scrollBarColor.copy(alpha = alpha),
                 cornerRadius = CornerRadius(scrollBarCornerRadius),
-                topLeft = Offset(size.width - 32f, 32f + thumbOffset),
+                topLeft = Offset(size.width - endPadding.toPx(), topPadding.toPx() + thumbOffset),
                 size = Size(width.toPx(), thumbHeight)
             )
         }

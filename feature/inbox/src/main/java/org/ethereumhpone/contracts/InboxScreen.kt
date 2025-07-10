@@ -1,6 +1,7 @@
 package org.ethereumhpone.contracts
 
 import android.Manifest
+import android.graphics.Paint.Align
 import android.os.Build.VERSION.SDK_INT
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -104,6 +106,8 @@ import org.ethereumphone.dgenlibrary.screens.EmptyConversationScreen
 import org.ethereumphone.dgenlibrary.screens.InformationScreen
 import org.ethereumphone.dgenlibrary.showDgenToast
 import org.ethereumphone.dgenlibrary.components.DeleteConfirmationOverlay
+import org.ethereumphone.dgenlibrary.components.AcceptRequestOverlay
+import androidx.compose.material.icons.filled.Check
 
 @Composable
 fun ContactRoute(
@@ -176,6 +180,11 @@ fun InboxScreen(
     var conversationToDelete by remember { mutableStateOf<String?>(null) }
     var deleteMessage by remember { mutableStateOf("") }
 
+    // State for accept request confirmation overlay
+    var showAcceptConfirmation by remember { mutableStateOf(false) }
+    var conversationToAccept by remember { mutableStateOf<String?>(null) }
+    var acceptMessage by remember { mutableStateOf("") }
+
     // Keep track of which conversation (if any) currently shows actions
     var expandedConversationId by remember { mutableStateOf<String?>(null) }
 
@@ -232,78 +241,190 @@ fun InboxScreen(
                         tabs.size
                     })
 
+                    // --- Simple search filter implementation ---
+                    val query = searchValue.text.trim()
+                    val filteredConversations = if (query.isBlank()) {
+                        conversationState.conversations
+                    } else {
+                        conversationState.conversations.filter { conversation ->
+                            // Search in header, summary, last message body, recipient names/addresses/ENS
+                            conversation.getHeader().contains(query, ignoreCase = true) ||
+                                    conversation.getSummary().contains(query, ignoreCase = true) ||
+                                    (conversation.lastMessage?.body?.contains(query, ignoreCase = true) == true) ||
+                                    conversation.recipients.any { recipient ->
+                                        (recipient.contact?.name?.contains(query, ignoreCase = true) == true) ||
+                                                (recipient.ens?.contains(query, ignoreCase = true) == true) ||
+                                                recipient.address.contains(query, ignoreCase = true)
+                                    }
+                        }
+                    }
 
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    // Separate inbox and request conversations based on `unknown` flag
+                    val inboxConversations = filteredConversations.filter { !it.unknown }
+                    val requestConversations = filteredConversations.filter { it.unknown }
+
+                    // Total requests (unfiltered) to display dot indicator
+                    val requestCountAll = conversationState.conversations.count { it.unknown }
+                    // -------------------------------------------------
+
+
+                    Column(modifier = Modifier.fillMaxSize()) {
                         //TODO: Improve Inbox and Requests
-                        HorizontalPager(state = pagerState) { page ->
+                        TabRow(
+                            containerColor = dgenBlack,
+                            contentColor = primaryColor,
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            selectedTabIndex = pagerState.currentPage,
+                            divider = { Divider(color = Colors.TRANSPARENT) },
+                            indicator = { tabPositions ->
+                                if (pagerState.currentPage < tabPositions.size) {
+                                    TabRowDefaults.Indicator(
+                                        color = Colors.TRANSPARENT,
+                                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
+                                    )
+                                }
+                            }
+                        ) {
+                            tabs.forEachIndexed { index, s ->
+                                val fontColor by animateColorAsState(
+                                    if(pagerState.currentPage == index) primaryColor else primaryColor.copy(0.5f),
+                                    tween(300)
+                                )
+                                //TODO: Make a custom Tab
+                                Tab(
+                                    modifier = Modifier,
+                                    selectedContentColor = primaryColor,
+                                    unselectedContentColor = primaryColor.copy(0.5f),
+                                    selected = pagerState.currentPage == index,
+                                    onClick = {
+                                        //tabIndex = index
+                                        coroutineScope.launch {
+                                            // Call scroll to on pagerState
+                                            pagerState.animateScrollToPage(index)
+                                        }
+                                    },
+                                    text = {
+                                        Text(
+                                            text = s,
+                                            style = TextStyle(
+                                                fontFamily = SpaceMono,
+                                                color = fontColor,
+                                                fontWeight = FontWeight.Normal,
+                                                fontSize = 16.sp,
+                                                letterSpacing = 0.sp,
+                                                textDecoration = TextDecoration.None
+                                            )
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                        HorizontalPager(modifier = Modifier.fillMaxSize(),state = pagerState) { page ->
                             when (page) {
                                 0 -> {
 
-                                    if (conversationState.conversations.isNotEmpty()){
-                                        val conversations = conversationState.conversations
+                                    if (inboxConversations.isNotEmpty()){
+                                        val conversations = inboxConversations
 
-                                        LazyColumn(
-                                            state = lazylist,
-                                            modifier = Modifier
-                                                .verticalLazyListScrollbar(
-                                                    lazylist,
-                                                    scrollBarTrackColor = secondaryColor,
-                                                    scrollBarColor = primaryColor
-                                                )
-                                                .fillMaxSize()
+                                        Box(
+                                            Modifier.fillMaxSize()
                                         ) {
-                                            item{
-                                                Spacer(modifier = modifier.height(64.dp))
-                                            }
-                                            itemsIndexed(
-                                                items = conversations,
-                                            ) { index, conversation ->
-                                                SwipeableListItem(
-                                                    isRevealed = expandedConversationId == conversation.id && !showDeleteConfirmation,
-                                                    onExpanded = {
-                                                        expandedConversationId = conversation.id
-                                                    },
-                                                    onCollapsed = {
-                                                        if (expandedConversationId == conversation.id) {
-                                                            expandedConversationId = null
-                                                        }
-                                                    },
-                                                    actions = {
-                                                        ConversationActionButton(
-                                                            onClick = {
-                                                                conversationToDelete = conversation.id
-                                                                deleteMessage = "Do you want to delete the conversation with ${conversation.getHeader()}?"
-                                                                showDeleteConfirmation = true
-                                                                expandedConversationId = null // close any revealed rows
-                                                            },
-                                                            icon = Icons.Outlined.Delete,
-                                                            iconColor = primaryColor,
-                                                            iconSize = 48.dp,
-                                                            modifier = Modifier.fillMaxHeight()
+                                            LazyColumn(
+                                                state = lazylist,
+                                                modifier = Modifier
+                                                    .verticalLazyListScrollbar(
+                                                        lazylist,
+                                                        scrollBarTrackColor = secondaryColor,
+                                                        scrollBarColor = primaryColor,
+                                                        topPadding = 48.dp,
+                                                        bottomPadding = 48.dp
+                                                    )
+                                                    .fillMaxSize()
+                                            ) {
+                                                item{
+                                                    Spacer(modifier = modifier.fillMaxWidth().height(24.dp))
+                                                }
+                                                itemsIndexed(
+                                                    items = conversations,
+                                                ) { index, conversation ->
+                                                    SwipeableListItem(
+                                                        isRevealed = expandedConversationId == conversation.id && !showDeleteConfirmation && !showAcceptConfirmation,
+                                                        onExpanded = {
+                                                            expandedConversationId = conversation.id
+                                                        },
+                                                        onCollapsed = {
+                                                            if (expandedConversationId == conversation.id) {
+                                                                expandedConversationId = null
+                                                            }
+                                                        },
+                                                        actions = {
+                                                            ConversationActionButton(
+                                                                onClick = {
+                                                                    conversationToDelete = conversation.id
+                                                                    deleteMessage = "Do you want to delete the conversation with ${conversation.getHeader()}?"
+                                                                    showDeleteConfirmation = true
+                                                                    expandedConversationId = null // close any revealed rows
+                                                                },
+                                                                icon = Icons.Outlined.Delete,
+                                                                iconColor = primaryColor,
+                                                                iconSize = 100.dp,
+                                                                modifier = Modifier.fillMaxHeight()
+                                                            )
+
+                                                        },
+                                                    ) {
+                                                        ChatListInfo(
+                                                            //TODO: Improve group identification
+                                                            primaryColor = primaryColor,
+                                                            isGroup = conversation.recipients.size > 1,
+                                                            header = conversation.getHeader(),
+                                                            subheader = conversation.getSummary(),
+                                                            time = conversation.lastMessage?.date,
+                                                            readConversation = conversation.lastMessage?.seen == true,
+                                                            onClick = { conversationClicked(conversation.id) },
                                                         )
 
-                                                    },
-                                                ) {
-                                                    ChatListInfo(
-                                                        //TODO: Improve group identification
-                                                        primaryColor = primaryColor,
-                                                        isGroup = conversation.recipients.size > 1,
-                                                        header = conversation.getHeader(),
-                                                        subheader = conversation.getSummary(),
-                                                        time = conversation.lastMessage?.date,
-                                                        readConversation = conversation.lastMessage?.seen == true,
-                                                        onClick = { conversationClicked(conversation.id) },
-                                                    )
-
+                                                    }
+                                                }
+                                                item{
+                                                    Spacer(modifier = modifier.fillMaxWidth().height(24.dp))
                                                 }
                                             }
-                                            item{
-                                                Spacer(modifier = modifier.height(24.dp))
-                                            }
+                                            Spacer(modifier = Modifier
+                                                .align(Alignment.TopCenter)
+                                                .fillMaxWidth()
+                                                .height(24.dp)
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        listOf(
+                                                            dgenBlack,
+                                                            Color.Transparent
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                            Spacer(modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(24.dp)
+                                                .align(Alignment.BottomCenter)
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        listOf(
+                                                            Color.Transparent,
+                                                            dgenBlack
+                                                        )
+                                                    )
+                                                )
+                                            )
                                         }
+
+
+
                                     }
                                     else{
                                         InformationScreen(
+                                            modifier = Modifier.offset(y=-24.dp),
                                             gifEnabledLoader = gifEnabledLoader,
                                             primaryColor = primaryColor,
                                             text = "No Conversations"
@@ -313,69 +434,104 @@ fun InboxScreen(
                                 }
                                 1 -> {
 
-                                    if (conversationState.conversations.isNotEmpty()){
-                                        val conversations = conversationState.conversations
-                                        LazyColumn(
-                                            state = lazylist,
-                                            modifier = Modifier
-                                                .verticalLazyListScrollbar(
-                                                    lazylist,
-                                                    scrollBarTrackColor = secondaryColor,
-                                                    scrollBarColor = primaryColor)
-                                                .fillMaxSize()
+                                    if (requestConversations.isNotEmpty()){
+                                        val conversations = requestConversations
+                                        Box(
+                                            Modifier.fillMaxSize()
                                         ) {
-                                            item{
-                                                Spacer(modifier = modifier.height(64.dp))
-                                            }
-                                            itemsIndexed(
-                                                items = conversations,
-                                            ) { index, conversation ->
-                                                SwipeableListItem(
-                                                    isRevealed = expandedConversationId == conversation.id && !showDeleteConfirmation,
-                                                    onExpanded = {
-                                                        expandedConversationId = conversation.id
-                                                    },
-                                                    onCollapsed = {
-                                                        if (expandedConversationId == conversation.id) {
-                                                            expandedConversationId = null
-                                                        }
-                                                    },
-                                                    actions = {
-                                                        ConversationActionButton(
-                                                            onClick = {
-                                                                conversationToDelete = conversation.id
-                                                                deleteMessage = "Do you want to delete the conversation with ${conversation.getHeader()}?"
-                                                                showDeleteConfirmation = true
+                                            LazyColumn(
+                                                state = lazylist,
+                                                modifier = Modifier
+                                                    .verticalLazyListScrollbar(
+                                                        lazylist,
+                                                        scrollBarTrackColor = secondaryColor,
+                                                        scrollBarColor = primaryColor,
+                                                        topPadding = 48.dp,
+                                                        bottomPadding = 48.dp
+                                                    )
+                                                    .fillMaxSize()
+                                            ) {
+                                                item{
+                                                    Spacer(modifier = modifier.fillMaxWidth().height(24.dp))
+                                                }
+                                                itemsIndexed(
+                                                    items = conversations,
+                                                ) { index, conversation ->
+                                                    SwipeableListItem(
+                                                        isRevealed = expandedConversationId == conversation.id && !showDeleteConfirmation && !showAcceptConfirmation,
+                                                        onExpanded = {
+                                                            expandedConversationId = conversation.id
+                                                        },
+                                                        onCollapsed = {
+                                                            if (expandedConversationId == conversation.id) {
                                                                 expandedConversationId = null
-                                                            },
-                                                            icon = Icons.Outlined.Delete,
-                                                            iconColor = dgenRed,
-                                                            iconSize = 48.dp,
-                                                            modifier = Modifier.fillMaxHeight()
+                                                            }
+                                                        },
+                                                        actions = {
+                                                            ConversationActionButton(
+                                                                onClick = {
+                                                                    conversationToAccept = conversation.id
+                                                                    acceptMessage = "Do you want to accept the conversation with ${conversation.getHeader()}?"
+                                                                    showAcceptConfirmation = true
+                                                                    expandedConversationId = null
+                                                                },
+                                                                icon = Icons.Filled.Check,
+                                                                iconColor = primaryColor,
+                                                                iconSize = 48.dp,
+                                                                modifier = Modifier.fillMaxHeight()
+                                                            )
+
+                                                        },
+                                                    ) {
+                                                        ChatListInfo(
+                                                            //TODO: Improve group identification
+                                                            isGroup = conversation.recipients.size > 1,
+                                                            header = conversation.getHeader(),
+                                                            subheader = conversation.getSummary(),
+                                                            time = conversation.lastMessage?.date,
+                                                            readConversation = conversation.lastMessage?.seen == true,
+                                                            onClick = { conversationClicked(conversation.id) },
+                                                            primaryColor = primaryColor
                                                         )
 
-                                                    },
-                                                ) {
-                                                    ChatListInfo(
-                                                        //TODO: Improve group identification
-                                                        isGroup = conversation.recipients.size > 1,
-                                                        header = conversation.getHeader(),
-                                                        subheader = conversation.getSummary(),
-                                                        time = conversation.lastMessage?.date,
-                                                        readConversation = conversation.lastMessage?.seen == true,
-                                                        onClick = { conversationClicked(conversation.id) },
-                                                        primaryColor = primaryColor
-                                                    )
-
+                                                    }
+                                                }
+                                                item{
+                                                    Spacer(modifier = modifier.fillMaxWidth().height(24.dp))
                                                 }
                                             }
-                                            item{
-                                                Spacer(modifier = modifier.height(24.dp))
-                                            }
+                                            Spacer(modifier = Modifier
+                                                .align(Alignment.TopCenter)
+                                                .fillMaxWidth()
+                                                .height(24.dp)
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        listOf(
+                                                            dgenBlack,
+                                                            Color.Transparent
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                            Spacer(modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(24.dp)
+                                                .align(Alignment.BottomCenter)
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        listOf(
+                                                            Color.Transparent,
+                                                            dgenBlack
+                                                        )
+                                                    )
+                                                )
+                                            )
                                         }
+
                                     }
                                     else{
                                         InformationScreen(
+                                            modifier = Modifier.offset(y=-24.dp),
                                             gifEnabledLoader = gifEnabledLoader,
                                             primaryColor = primaryColor,
                                             text = "No requests"
@@ -384,89 +540,6 @@ fun InboxScreen(
                                 }
                             }
                         }
-
-                        Column(
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        ) {
-                            //TODO: Add AnimatedVisibilty with enums and make it a composable
-                            TabRow(
-                                containerColor = dgenBlack,
-                                contentColor = primaryColor,
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                selectedTabIndex = pagerState.currentPage,
-                                divider = { Divider(color = Colors.TRANSPARENT) },
-                                indicator = { tabPositions ->
-                                    if (pagerState.currentPage < tabPositions.size) {
-                                        TabRowDefaults.Indicator(
-                                            color = Colors.TRANSPARENT,
-                                            modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage])
-                                        )
-                                    }
-                                }
-                            ) {
-                                tabs.forEachIndexed { index, s ->
-                                    val fontColor by animateColorAsState(
-                                        if(pagerState.currentPage == index) primaryColor else primaryColor.copy(0.5f),
-                                        tween(300)
-                                    )
-                                    //TODO: Make a custom Tab
-                                    Tab(
-                                        modifier = Modifier,
-                                        selectedContentColor = primaryColor,
-                                        unselectedContentColor = primaryColor.copy(0.5f),
-                                        selected = pagerState.currentPage == index,
-                                        onClick = {
-                                            //tabIndex = index
-                                            coroutineScope.launch {
-                                                // Call scroll to on pagerState
-                                                pagerState.animateScrollToPage(index)
-                                            }
-                                        },
-                                        text = {
-                                            Text(
-                                                text = s,
-                                                style = TextStyle(
-                                                    fontFamily = SpaceMono,
-                                                    color = fontColor,
-                                                    fontWeight = FontWeight.Normal,
-                                                    fontSize = 16.sp,
-                                                    letterSpacing = 0.sp,
-                                                    textDecoration = TextDecoration.None
-                                                )
-                                            )
-                                        },
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier
-                                .fillMaxWidth()
-                                .height(16.dp)
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(
-                                            dgenBlack,
-                                            Color.Transparent
-                                        )
-                                    )
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier
-                            .fillMaxWidth()
-                            .height(24.dp)
-                            .align(Alignment.BottomCenter)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color.Transparent,
-                                        dgenBlack
-                                    )
-                                )
-                            )
-                        )
-
                     }
                 }
             }
