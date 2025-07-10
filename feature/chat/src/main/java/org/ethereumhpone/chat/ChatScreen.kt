@@ -52,7 +52,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -89,6 +88,7 @@ import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.GoToBottomFab
 import org.ethereumphone.dgenlibrary.components.CRTBackground
 import org.ethereumphone.dgenlibrary.components.NewMessagesDivider
+import androidx.compose.ui.graphics.Color
 import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
@@ -363,7 +363,7 @@ fun ChatScreen(
                     primaryColor = primaryColor
                 )
             },
-            containerColor = dgenBlack,
+            containerColor = Color.Transparent,
         ) { paddingValues ->
 
 
