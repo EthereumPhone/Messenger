@@ -246,7 +246,7 @@ fun OverlayContactScreen(
                                         ) {
                                             members.forEach { member->
                                                 MemberItem(
-                                                    member.ens.toString(),
+                                                    member.ens ?: "N/A",
                                                     onClick = {
                                                         confirmation = ContactConfirmation.DELETEMEMEBER
                                                         showConfirmation = true
@@ -319,7 +319,7 @@ fun OverlayContactScreen(
                                             )
                                         )
                                         Text(
-                                            text = members[0].ens.toString(),
+                                            text = members[0].ens ?: "N/A",
                                             style = TextStyle(
                                                 fontFamily = PitagonsSans,
                                                 color = dgenWhite,
