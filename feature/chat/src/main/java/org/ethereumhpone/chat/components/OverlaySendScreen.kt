@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -366,6 +367,7 @@ fun OverlaySendScreen(
                                      )
                                  )
                                  TextToggle(
+                                     modifier = Modifier.offset(y=-2.dp),
                                      textLeft = token.uppercase(),
                                      textRight = "$",
                                      onToggle = { useDollarAmount = !useDollarAmount },

@@ -86,7 +86,6 @@ import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.GoToBottomFab
-import org.ethereumphone.dgenlibrary.components.CRTBackground
 import org.ethereumphone.dgenlibrary.components.NewMessagesDivider
 import androidx.compose.ui.graphics.Color
 import org.ethereumphone.dgenlibrary.components.TimeHeader
@@ -315,11 +314,12 @@ fun ChatScreen(
 
 
 
-    CRTBackground(
+    // Removed CRTBackground overlay. Using plain dgenBlack background instead.
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding(),
-        primaryColor = primaryColor
+            .imePadding()
+            .background(dgenBlack)
     ) {
         Scaffold(
             topBar = {

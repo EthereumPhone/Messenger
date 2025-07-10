@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import kotlinx.datetime.Instant
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
@@ -71,7 +72,12 @@ fun ChatItemBubbleV3(
         horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier
             // Remove bubble clipping/background – terminal style uses plain text on parent BG
-            .padding(end = 12.dp, start = 12.dp, top = 0.dp, bottom = 0.dp)
+            .padding(
+                start = if (isUserMe) 0.dp else 4.dp,   // tighter left margin for incoming messages
+                end = if (isUserMe) 12.dp else 0.dp,    // keep space on the right for user messages
+                top = 0.dp,
+                bottom = 0.dp
+            )
     ) {
         // Show sender name in group chats on the first message of the block (recipient side only)
         if (isGroup && !isUserMe && isFirstMessageByAuthor) {
@@ -79,7 +85,7 @@ fun ChatItemBubbleV3(
                 messageEntity.recipient.contact?.name.toString(),
                 style = TextStyle(
                     textAlign = TextAlign.Start,
-                    fontFamily = PitagonsSans,
+                    fontFamily = SpaceMono,
                     color = colorFor(messageEntity.recipient),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
@@ -92,11 +98,28 @@ fun ChatItemBubbleV3(
 
         FlowRow(
             modifier = Modifier,
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
             verticalArrangement = Arrangement.Bottom
         ) {
             val uriHandler = LocalUriHandler.current
             val bodyText = messageEntity.body
+
+            // Leading arrow for incoming messages to mimic terminal prompt
+            if (!isUserMe) {
+                Text(
+                    text = "> ",
+                    style = TextStyle(
+                        textAlign = TextAlign.Start,
+                        fontFamily = SpaceMono,
+                        color = textColor,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 16.sp,
+                        lineHeight = 20.sp,
+                        textDecoration = TextDecoration.None
+                    ),
+                    modifier = Modifier.padding(end = 2.dp)
+                )
+            }
 
             if (bodyText.isNotBlank()) {
                 val styledMessage = messageFormatter(text = bodyText, primary = isUserMe)
@@ -143,22 +166,7 @@ fun ChatItemBubbleV3(
                 secondaryColor = secondaryColor
             )
 
-            // Arrow directly after timestamp for user messages
-            if (isUserMe) {
-                Text(
-                    text = " <",
-                    style = TextStyle(
-                        textAlign = TextAlign.Start,
-                        fontFamily = PitagonsSans,
-                        color = textColor,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 16.sp,
-                        lineHeight = 20.sp,
-                        textDecoration = TextDecoration.None
-                    ),
-                    modifier = Modifier.padding(start = 2.dp)
-                )
-            }
+            // Removed trailing arrow for user messages per new design
         }
     }
 }

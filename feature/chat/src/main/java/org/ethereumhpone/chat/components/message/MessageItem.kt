@@ -213,7 +213,7 @@ fun AuthorNameTimestamp(
 
 
                 messageEntity.isDelivered() -> Icon(
-                    painter = painterResource(id = R.drawable.read_icons),
+                    painter = painterResource(id = R.drawable.baseline_done_all_24),
                     contentDescription = "Go back",
                     tint = dgenWhite,
                     modifier = Modifier.size(16.dp)
