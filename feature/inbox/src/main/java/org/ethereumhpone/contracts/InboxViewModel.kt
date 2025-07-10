@@ -31,11 +31,19 @@ class InboxViewModel @Inject constructor(
     private val syncRepository: SyncRepository,
 ): ViewModel() {
 
+    // Keep the UI in a `Loading` state until we have at least one conversation. This prevents the
+    // temporary "No conversations" screen from flashing when data is still being fetched/synced.
     val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
-        .map(ConversationUIState::Success)
+        .map { conversations ->
+            if (conversations.isEmpty()) {
+                ConversationUIState.Loading
+            } else {
+                ConversationUIState.Success(conversations)
+            }
+        }
         .stateIn(
             scope = viewModelScope,
-            initialValue = ConversationUIState.Empty,
+            initialValue = ConversationUIState.Loading,
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
