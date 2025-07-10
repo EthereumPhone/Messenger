@@ -18,12 +18,21 @@ data class Conversation(
     private val clientInbox: String
 ) {
     fun getHeader(): String {
+        // Prioritize explicit conversation title when provided
         title?.takeIf { it.isNotBlank() }?.let { return it }
 
-        return recipients.firstOrNull()?.run {
-            listOfNotNull(contact?.name, ens, address)
-                .firstOrNull { it.isNotBlank() }
-        } ?: ""
+        // Attempt to derive header from the recipient of the most recent message first
+        val candidateRecipient = lastMessage?.recipient ?: recipients.firstOrNull()
+
+        candidateRecipient?.let { recipient ->
+            return listOfNotNull(
+                recipient.contact?.name,
+                recipient.ens,
+                recipient.address
+            ).firstOrNull { it.isNotBlank() } ?: ""
+        }
+
+        return ""
     }
 
 

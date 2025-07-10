@@ -100,6 +100,7 @@ import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
+import org.ethereumphone.dgenlibrary.components.SelectableCarousel
 import org.ethereumphone.dgenlibrary.formatWithSuffix
 import org.ethereumphone.dgenlibrary.screens.InformationScreen
 
@@ -338,7 +339,7 @@ fun OverlaySendScreen(
                         .fillMaxSize()
                         .padding(vertical = 12.dp, horizontal = 32.dp),
                 ){
-                    Spacer(Modifier.height(48.dp))
+                    Spacer(Modifier.height(24.dp))
                      Column(
                          verticalArrangement = Arrangement.spacedBy(24.dp)
                      ) {
@@ -486,6 +487,56 @@ fun OverlaySendScreen(
                                      textDecoration = TextDecoration.None
                                  )
                              )
+
+                            // Spacer & SelectableCarousel for choosing the chain of the selected token
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Build list of chains where the current token is available
+                            val chainItems = remember(token, assetsUiState) {
+                                if (token.isNotEmpty() && assetsUiState is AssetsUiState.Success) {
+                                    assetsUiState.assets
+                                        .filter { it.symbol.equals(token, ignoreCase = true) }
+                                        .map { chainIdToAbbrev(it.chainId) }
+                                        .distinct()
+                                } else {
+                                    emptyList()
+                                }
+                            }
+
+                            var selectedChainIndex by remember(token) { mutableStateOf(0) }
+
+                            if (chainItems.isNotEmpty()) {
+
+                                    SelectableCarousel(
+                                        items = chainItems,
+                                        itemWidth = 65.dp,
+                                        itemHeight = 65.dp,
+                                        primaryColor = primaryColor,
+                                        secondaryColor = secondaryColor,
+                                        initialSelectedIndex = selectedChainIndex,
+                                        onItemSelected = { newIndex ->
+                                            if (newIndex != null) {
+                                                selectedChainIndex = newIndex
+                                            }
+                                            val selectedAbbrev = newIndex?.let { chainItems.getOrNull(it) }
+                                            val newChainId = selectedAbbrev?.let { abbrevToChainId(it) }
+
+                                            // Update available balance & price based on chosen chain
+                                            val assetForChain = if (newChainId != null && assetsUiState is AssetsUiState.Success) {
+                                                assetsUiState.assets.firstOrNull {
+                                                    it.chainId == newChainId && it.symbol.equals(token, ignoreCase = true)
+                                                }
+                                            } else null
+
+                                            assetForChain?.let {
+                                                max = it.balance
+                                                fiatPrice = it.price
+                                            }
+                                        }
+                                    )
+
+
+                            }
                          }
 
                          Column(modifier = Modifier.fillMaxWidth()) {
@@ -516,7 +567,7 @@ fun OverlaySendScreen(
                                      letterSpacing = 0.sp,
                                      textDecoration = TextDecoration.None
                                  ),
-                                 maxLines = 1,
+                                 maxLines = 2,
                                  overflow = TextOverflow.Ellipsis
                              )
 
@@ -700,4 +751,25 @@ fun OverlaySendScreenPreview(){
 //        {}, {}, dgenTurqoise,
 //        secondaryColor = dgenOcean
 //    )
+}
+
+// Utility mapping functions for chain abbreviations <-> chainId used by SelectableCarousel
+private fun chainIdToAbbrev(chainId: Int): String = when (chainId) {
+    1 -> "main"
+    10 -> "op"
+    42161 -> "arb"
+    137 -> "pol"
+    8453 -> "base"
+    7777777 -> "zora"
+    else -> "main"
+}
+
+private fun abbrevToChainId(abbrev: String): Int = when (abbrev) {
+    "main" -> 1
+    "op" -> 10
+    "arb" -> 42161
+    "pol" -> 137
+    "base" -> 8453
+    "zora" -> 7777777
+    else -> 1
 }

@@ -103,6 +103,7 @@ import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.screens.EmptyConversationScreen
 import org.ethereumphone.dgenlibrary.screens.InformationScreen
 import org.ethereumphone.dgenlibrary.showDgenToast
+import org.ethereumphone.dgenlibrary.components.DeleteConfirmationOverlay
 
 @Composable
 fun ContactRoute(
@@ -169,6 +170,14 @@ fun InboxScreen(
     var showNewConversationSheet by remember { mutableStateOf(false) }
 
     val lazylist = rememberLazyListState()
+
+    // State for delete confirmation overlay
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var conversationToDelete by remember { mutableStateOf<String?>(null) }
+    var deleteMessage by remember { mutableStateOf("") }
+
+    // Keep track of which conversation (if any) currently shows actions
+    var expandedConversationId by remember { mutableStateOf<String?>(null) }
 
     val gifEnabledLoader = remember(context) {
         ImageLoader.Builder(context)
@@ -238,7 +247,6 @@ fun InboxScreen(
                                             modifier = Modifier
                                                 .verticalLazyListScrollbar(
                                                     lazylist,
-                                                    endPadding = 64f,
                                                     scrollBarTrackColor = secondaryColor,
                                                     scrollBarColor = primaryColor
                                                 )
@@ -251,20 +259,22 @@ fun InboxScreen(
                                                 items = conversations,
                                             ) { index, conversation ->
                                                 SwipeableListItem(
-                                                    isRevealed = conversation.isOptionsRevealed,
+                                                    isRevealed = expandedConversationId == conversation.id && !showDeleteConfirmation,
                                                     onExpanded = {
-                                                        //conversations[index] = conversation.copy(isOptionsRevealed = true)
+                                                        expandedConversationId = conversation.id
                                                     },
                                                     onCollapsed = {
-                                                        //conversations[index] = conversation.copy(isOptionsRevealed = false)
+                                                        if (expandedConversationId == conversation.id) {
+                                                            expandedConversationId = null
+                                                        }
                                                     },
                                                     actions = {
                                                         ConversationActionButton(
                                                             onClick = {
-
-                                                                showDgenToast(context,"Contact ${conversation.id} was deleted.")
-                                                                //conversations.remove(conversation)
-                                                                //TODO: call viewModel
+                                                                conversationToDelete = conversation.id
+                                                                deleteMessage = "Do you want to delete the conversation with ${conversation.getHeader()}?"
+                                                                showDeleteConfirmation = true
+                                                                expandedConversationId = null // close any revealed rows
                                                             },
                                                             icon = Icons.Outlined.Delete,
                                                             iconColor = primaryColor,
@@ -310,7 +320,6 @@ fun InboxScreen(
                                             modifier = Modifier
                                                 .verticalLazyListScrollbar(
                                                     lazylist,
-                                                    fixed = true,
                                                     scrollBarTrackColor = secondaryColor,
                                                     scrollBarColor = primaryColor)
                                                 .fillMaxSize()
@@ -322,23 +331,22 @@ fun InboxScreen(
                                                 items = conversations,
                                             ) { index, conversation ->
                                                 SwipeableListItem(
-                                                    isRevealed = conversation.isOptionsRevealed,
+                                                    isRevealed = expandedConversationId == conversation.id && !showDeleteConfirmation,
                                                     onExpanded = {
-                                                        //conversations[index] = conversation.copy(isOptionsRevealed = true)
+                                                        expandedConversationId = conversation.id
                                                     },
                                                     onCollapsed = {
-                                                       //conversations[index] = conversation.copy(isOptionsRevealed = false)
+                                                        if (expandedConversationId == conversation.id) {
+                                                            expandedConversationId = null
+                                                        }
                                                     },
                                                     actions = {
                                                         ConversationActionButton(
                                                             onClick = {
-                                                                Toast.makeText(
-                                                                    context,
-                                                                    "Contact ${conversation.id} was deleted.",
-                                                                    Toast.LENGTH_SHORT
-                                                                ).show()
-                                                                //conversations.remove(conversation)
-                                                                //TODO: call viewModel to remove chat
+                                                                conversationToDelete = conversation.id
+                                                                deleteMessage = "Do you want to delete the conversation with ${conversation.getHeader()}?"
+                                                                showDeleteConfirmation = true
+                                                                expandedConversationId = null
                                                             },
                                                             icon = Icons.Outlined.Delete,
                                                             iconColor = dgenRed,
@@ -478,6 +486,25 @@ fun InboxScreen(
                     //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!
                     conversationClicked(it)
                 }
+            )
+        }
+
+        // Delete conversation confirmation overlay
+        AnimatedVisibility(
+            visible = showDeleteConfirmation,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            DeleteConfirmationOverlay(
+                message = deleteMessage,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                onDelete = {
+                    showDeleteConfirmation = false
+                    conversationToDelete?.let { deleteConversation(it) }
+                },
+                onCancel = { showDeleteConfirmation = false }
             )
         }
     }

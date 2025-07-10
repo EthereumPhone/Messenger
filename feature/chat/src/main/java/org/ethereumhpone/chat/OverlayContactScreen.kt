@@ -81,6 +81,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.dgenlibrary.ui.theme.button_fontSize
 import com.example.dgenlibrary.ui.theme.label_fontSize
+import org.ethereumphone.dgenlibrary.components.DeleteConfirmationOverlay
 import org.ethereumphone.dgenlibrary.theme.dgenOcean
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 
@@ -707,83 +708,16 @@ fun OverlayContactScreen(
                     }
                 }
                 ContactConfirmation.DELETECONTACT -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
-                                detectTapGestures {
-                                    showConfirmation = false
-
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ){
-
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(24.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-
-                            //TODO: add leave group
-                            Text("Do you want to delete the conversation with ${title}?",
-                                style =
-                                    TextStyle(
-                                        textAlign = TextAlign.Center,
-                                        fontFamily = PitagonsSans,
-                                        color = primaryColor,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = body1_fontSize,
-                                        lineHeight = body1_fontSize,
-                                        letterSpacing = 0.sp,
-                                        textDecoration = TextDecoration.None,
-                                    ),
-                                modifier = Modifier
-                                    .padding(horizontal = 12.dp)
-                                    .width(350.dp)
-                            )
-                            Text("DELETE",
-                                modifier = Modifier
-                                    .background(color = primaryColor, shape = CircleShape)
-                                    .padding(horizontal = 16.dp, vertical = 2.dp)
-                                    .pointerInput(Unit){
-                                    detectTapGestures {
-                                        showConfirmation = false
-                                        deleteContact()
-                                    }
-                                },
-                                style = TextStyle(
-                                    textAlign = TextAlign.Center,
-                                    fontFamily = SpaceMono,
-                                    color = secondaryColor,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = label_fontSize,
-                                    lineHeight = label_fontSize,
-                                    letterSpacing = 0.sp,
-                                    textDecoration = TextDecoration.None,
-                                )
-                            )
-
-                            Text("CANCEL",
-                                modifier = Modifier.pointerInput(Unit){
-                                    detectTapGestures {
-                                        showConfirmation = false
-                                        deleteContact()
-                                    }
-                                },
-                                style = TextStyle(
-                                    textAlign = TextAlign.Center,
-                                    fontFamily = SpaceMono,
-                                    color = primaryColor,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = label_fontSize,
-                                    lineHeight =label_fontSize,
-                                    letterSpacing = 0.sp,
-                                    textDecoration = TextDecoration.None,
-                                )
-                            )
-                        }
-                    }
+                    DeleteConfirmationOverlay(
+                        message = "Do you want to delete the conversation with $title?",
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor,
+                        onDelete = {
+                            showConfirmation = false
+                            deleteContact()
+                        },
+                        onCancel = { showConfirmation = false }
+                    )
                 }
             }
         }

@@ -51,7 +51,7 @@ fun ChatListInfo(
             .clickable { onClick() }
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
-            .padding(vertical = 16.dp, horizontal = 24.dp)
+            .padding(top = 16.dp,bottom = 16.dp, start = 24.dp, end = 32.dp)
         ,
     ){
         Column(
@@ -99,7 +99,7 @@ fun ChatListInfo(
 
             printFormattedDateInfo(time)?.let {
                 Text(
-                    text = it,
+                    text = it.uppercase(),
                     style = TextStyle(
                         fontFamily = SpaceMono,
                         color = if(readConversation) primaryColor.copy(pulseOpacity) else primaryColor,
