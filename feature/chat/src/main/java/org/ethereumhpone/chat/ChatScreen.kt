@@ -87,6 +87,7 @@ import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.GoToBottomFab
+import org.ethereumphone.dgenlibrary.components.CRTBackground
 import org.ethereumphone.dgenlibrary.components.NewMessagesDivider
 import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
@@ -314,10 +315,11 @@ fun ChatScreen(
 
 
 
-    Box(
+    CRTBackground(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
+            .imePadding(),
+        primaryColor = primaryColor
     ) {
         Scaffold(
             topBar = {

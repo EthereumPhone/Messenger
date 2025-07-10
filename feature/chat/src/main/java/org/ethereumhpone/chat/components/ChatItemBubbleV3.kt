@@ -62,91 +62,58 @@ fun ChatItemBubbleV3(
     openGLColor: Color
 ) {
 
-    //TODO: Distinction between reply message and normal message
-    val hasReply = hasReply
+    // Determine the text color and optional user prefix for terminal style
+    val textColor = if (isUserMe) dgenWhite else primaryColor
+    val userSuffix = if (isUserMe) " <" else ""
 
-    val Bubbleshape = BubbleShape
-
-    val messageBrush = when(isUserMe){
-        true -> openGLColor
-        false -> secondaryColor
-    }
-
-    Column (
+    Column(
         verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
-        modifier = Modifier
-            .clip(Bubbleshape)
-            .background(messageBrush)
-            .padding(end = 12.dp, start = 12.dp, top = 8.dp, bottom = 4.dp)
-    ){
-        if (isGroup && !isUserMe && isFirstMessageByAuthor){
+        modifier = modifier
+            // Remove bubble clipping/background – terminal style uses plain text on parent BG
+            .padding(end = 12.dp, start = 12.dp, top = 0.dp, bottom = 0.dp)
+    ) {
+        // Show sender name in group chats on the first message of the block (recipient side only)
+        if (isGroup && !isUserMe && isFirstMessageByAuthor) {
             Text(
                 messageEntity.recipient.contact?.name.toString(),
                 style = TextStyle(
-                    textAlign = TextAlign.Start ,
+                    textAlign = TextAlign.Start,
                     fontFamily = PitagonsSans,
                     color = colorFor(messageEntity.recipient),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
                     lineHeight = 18.sp,
-                    letterSpacing = 0.sp,
                     textDecoration = TextDecoration.None
                 ),
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 4.dp)
             )
         }
 
-
-        //TODO: Add Images and Videos
-
-        /*
-            if (videoPlayer == null) {
-                        Box(
-                            modifier = modifier.padding(bottom = 6.dp).clip(BubbleShape).size(218.dp).aspectRatio(1f).background(
-                                dgenBlack.copy(0.25f)
-                            )
-                        ) {
-
-                        }
-                    }
-         */
-
-
-
-
-
-        FlowRow (
+        FlowRow(
             modifier = Modifier,
             horizontalArrangement = Arrangement.End,
             verticalArrangement = Arrangement.Bottom
         ) {
-
             val uriHandler = LocalUriHandler.current
+            val bodyText = messageEntity.body
 
-            val messageBody = messageEntity.body
-
-            if (messageBody.isNotBlank()) {
-                val styledMessage = messageFormatter(
-                    text = messageBody,
-                    primary = isUserMe
-                )
+            if (bodyText.isNotBlank()) {
+                val styledMessage = messageFormatter(text = bodyText, primary = isUserMe)
 
                 ClickableMessage(
-                    modifier= Modifier.widthIn(max = 300.dp),
+                    modifier = Modifier.widthIn(max = 300.dp),
                     styledMessage = styledMessage,
                     style = TextStyle(
-                        textAlign = TextAlign.Start ,
+                        textAlign = TextAlign.Start,
                         fontFamily = PitagonsSans,
-                        color = dgenWhite,
+                        color = textColor,
                         fontWeight = FontWeight.Normal,
                         fontSize = 16.sp,
                         lineHeight = 20.sp,
-                        letterSpacing = 0.sp,
                         textDecoration = TextDecoration.None
                     ),
                     onLongClick = onLongClick,
-
                     onClick = {
                         styledMessage
                             .getStringAnnotations(start = it, end = it)
@@ -161,9 +128,11 @@ fun ChatItemBubbleV3(
                             }
                     },
                     onDoubleClick = onDoubleClick,
-                    messageBrush = messageBrush
+                    // Use textColor for fade brush so it matches the new style
+                    messageBrush = textColor
                 )
             }
+
             AuthorNameTimestamp(
                 messageEntity,
                 isUserMe = isUserMe,
@@ -173,8 +142,24 @@ fun ChatItemBubbleV3(
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor
             )
-        }
 
+            // Arrow directly after timestamp for user messages
+            if (isUserMe) {
+                Text(
+                    text = " <",
+                    style = TextStyle(
+                        textAlign = TextAlign.Start,
+                        fontFamily = PitagonsSans,
+                        color = textColor,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 16.sp,
+                        lineHeight = 20.sp,
+                        textDecoration = TextDecoration.None
+                    ),
+                    modifier = Modifier.padding(start = 2.dp)
+                )
+            }
+        }
     }
 }
 

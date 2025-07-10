@@ -66,6 +66,7 @@ import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -185,7 +186,7 @@ fun AuthorNameTimestamp(
             fontFamily = SpaceMono,
             modifier = Modifier
                 .alignBy(LastBaseline),
-            color = if (isUserMe) secondaryColor else primaryColor,
+            color = if (isUserMe) dgenWhite else primaryColor,
         )
 
         if (isUserMe){
@@ -193,11 +194,10 @@ fun AuthorNameTimestamp(
 
             when {
                 messageEntity.isFailedMessage() -> Icon(
-                    imageVector = Icons.Rounded.Error,//Icons.Filled.CheckCircleOutline,
+                    imageVector = Icons.Rounded.Error,
                     contentDescription = "Go back",
-                    tint = secondaryColor,
-                    modifier = Modifier
-                        .size(16.dp)
+                    tint = dgenWhite,
+                    modifier = Modifier.size(16.dp)
                 )
 
                 /*
@@ -213,11 +213,10 @@ fun AuthorNameTimestamp(
 
 
                 messageEntity.isDelivered() -> Icon(
-                    painter = painterResource(id = R.drawable.read_icons),//Icons.Filled.CheckCircleOutline,
+                    painter = painterResource(id = R.drawable.read_icons),
                     contentDescription = "Go back",
-                    tint = secondaryColor,
-                    modifier = Modifier
-                        .size(16.dp)
+                    tint = dgenWhite,
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
