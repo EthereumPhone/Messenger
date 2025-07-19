@@ -45,6 +45,7 @@ import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.messenger.ui.MessagingApp
 import org.ethereumhpone.messenger.ui.rememberMessengerAppState
 import org.ethereumhpone.messenger.ui.theme.MessengerTheme
+import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.walletsdk.WalletSDK
 import javax.inject.Inject
 
@@ -207,6 +208,11 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        SystemColorManager.refresh(this)
     }
 
     override fun onDestroy() {

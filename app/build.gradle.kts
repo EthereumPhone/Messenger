@@ -77,6 +77,7 @@ dependencies {
     implementation(project(":feature:settings"))
     implementation(project(":feature:contacts"))
     implementation(project(":dgenlibrary"))
+    implementation(project(":terminalsdk"))
 
 
     implementation("androidx.navigation:navigation-compose:2.7.6")

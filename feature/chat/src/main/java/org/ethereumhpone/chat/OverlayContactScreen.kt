@@ -346,7 +346,7 @@ fun OverlayContactScreen(
                                             )
                                         )
                                         Text(
-                                            text= members[0].ens.toString(), //TODO: add phone number - currently not possible
+                                            text= members[0].ens ?: "N/A", //TODO: add phone number - currently not possible
                                             style = TextStyle(
                                                 fontFamily = PitagonsSans,
                                                 color = primaryColor,

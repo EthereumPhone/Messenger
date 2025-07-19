@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -67,6 +69,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -108,6 +111,10 @@ import org.ethereumphone.dgenlibrary.showDgenToast
 import org.ethereumphone.dgenlibrary.components.DeleteConfirmationOverlay
 import org.ethereumphone.dgenlibrary.components.AcceptRequestOverlay
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.shape.CircleShape
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.label_fontSize
+import com.example.dgenlibrary.ui.theme.body1_fontSize
 
 @Composable
 fun ContactRoute(
@@ -305,17 +312,33 @@ fun InboxScreen(
                                         }
                                     },
                                     text = {
-                                        Text(
-                                            text = s,
-                                            style = TextStyle(
-                                                fontFamily = SpaceMono,
-                                                color = fontColor,
-                                                fontWeight = FontWeight.Normal,
-                                                fontSize = 16.sp,
-                                                letterSpacing = 0.sp,
-                                                textDecoration = TextDecoration.None
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = s,
+                                                style = TextStyle(
+                                                    fontFamily = SpaceMono,
+                                                    color = fontColor,
+                                                    fontWeight = FontWeight.Normal,
+                                                    fontSize = 16.sp,
+                                                    letterSpacing = 0.sp,
+                                                    textDecoration = TextDecoration.None
+                                                )
                                             )
-                                        )
+                                            // Show dot for REQUESTS tab if there are any requests
+                                            if (index == 1 && requestCountAll > 0) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(6.dp)
+                                                        .background(
+                                                            color = primaryColor,
+                                                            shape = CircleShape
+                                                        )
+                                                )
+                                            }
+                                        }
                                     },
                                 )
                             }
@@ -569,15 +592,111 @@ fun InboxScreen(
             exit = fadeOut(animationSpec = tween(300)),
             modifier = Modifier.fillMaxSize()
         ) {
-            DeleteConfirmationOverlay(
-                message = deleteMessage,
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(dgenBlack)
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            showDeleteConfirmation = false
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = deleteMessage,
+                        style = TextStyle(
+                            textAlign = TextAlign.Center,
+                            fontFamily = PitagonsSans,
+                            color = primaryColor,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = body1_fontSize,
+                            lineHeight = body1_fontSize,
+                            letterSpacing = 0.sp,
+                            textDecoration = TextDecoration.None,
+                        ),
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp)
+                            .width(350.dp)
+                    )
+                    Text(
+                        "DELETE",
+                        modifier = Modifier
+                            .background(color = primaryColor, shape = CircleShape)
+                            .padding(horizontal = 16.dp, vertical = 2.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures {
+                                    showDeleteConfirmation = false
+                                    conversationToDelete?.let { 
+                                        deleteConversation(it)
+                                        showDgenToast(context, "Conversation deleted.")
+                                    }
+                                }
+                            },
+                        style = TextStyle(
+                            textAlign = TextAlign.Center,
+                            fontFamily = SpaceMono,
+                            color = secondaryColor,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = label_fontSize,
+                            lineHeight = label_fontSize,
+                            letterSpacing = 0.sp,
+                            textDecoration = TextDecoration.None,
+                        )
+                    )
+                    Text(
+                        "CANCEL",
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures {
+                                showDeleteConfirmation = false
+                            }
+                        },
+                        style = TextStyle(
+                            textAlign = TextAlign.Center,
+                            fontFamily = SpaceMono,
+                            color = primaryColor,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = label_fontSize,
+                            lineHeight = label_fontSize,
+                            letterSpacing = 0.sp,
+                            textDecoration = TextDecoration.None,
+                        )
+                    )
+                }
+            }
+        }
+
+        // Accept request confirmation overlay
+        AnimatedVisibility(
+            visible = showAcceptConfirmation,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            AcceptRequestOverlay(
+                message = acceptMessage,
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
-                onDelete = {
-                    showDeleteConfirmation = false
-                    conversationToDelete?.let { deleteConversation(it) }
+                onAccept = {
+                    showAcceptConfirmation = false
+                    conversationToAccept?.let {
+                        markAccepted(it, true)
+                        showDgenToast(context, "Request accepted.")
+                    }
                 },
-                onCancel = { showDeleteConfirmation = false }
+                onReject = {
+                    showAcceptConfirmation = false
+                    conversationToAccept?.let {
+                        deleteConversation(it)
+                        showDgenToast(context, "Request rejected.")
+                    }
+                },
+                onCancel = { showAcceptConfirmation = false }
             )
         }
     }

@@ -61,7 +61,10 @@ class InboxViewModel @Inject constructor(
     }
 
     fun updateConsentState(conversationId: String, address: Boolean) {
-        TODO()
+        viewModelScope.launch {
+            // When accepting a request, set unknown to false
+            conversationRepository.updateUnknownConversation(conversationId, false)
+        }
     }
 
     fun resolveENS(ensName: String): String {

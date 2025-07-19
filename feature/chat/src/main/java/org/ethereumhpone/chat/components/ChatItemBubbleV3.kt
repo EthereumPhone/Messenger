@@ -129,7 +129,7 @@ fun ChatItemBubbleV3(
                     styledMessage = styledMessage,
                     style = TextStyle(
                         textAlign = TextAlign.Start,
-                        fontFamily = PitagonsSans,
+                        fontFamily = SpaceMono,
                         color = textColor,
                         fontWeight = FontWeight.Normal,
                         fontSize = 16.sp,
