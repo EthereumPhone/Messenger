@@ -6,6 +6,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumphone.walletsdk.WalletSDK
 import javax.inject.Inject
@@ -25,7 +26,17 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // Kick off client creation
                 xmtpClientManager.createClient(walletSDK, context.applicationContext)
+
+                // Wait until the client is fully ready (signature completed)
+                xmtpClientManager.clientState.first { it is XmtpClientManager.ClientState.Ready }
+
+                // Now notify SetupWizard that XMTP setup is complete
+                val doneIntent = Intent("app.grapheneos.setupwizard.action.XMTP_SETUP_DONE").apply {
+                    `package` = "app.grapheneos.setupwizard" // restrict broadcast to SetupWizard app
+                }
+                context.sendBroadcast(doneIntent)
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
