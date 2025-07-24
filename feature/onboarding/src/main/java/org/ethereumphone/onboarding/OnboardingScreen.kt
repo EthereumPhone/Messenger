@@ -183,16 +183,15 @@ fun OnboardingScreen(
                                     text = "Enable XMTP"
                                 )
 
+                                /*
                                 dgenTextButton(
                                     fontColor = primaryColor,
                                     onClick = { onFinishOnboarding(false) },
                                     text = "Skip",
                                     primaryColor = primaryColor
                                 )
+                                 */
                             }
-
-
-
                         }
                         1 -> DgenLoadingMatrix(
                             unactiveLEDColor = secondaryColor,
