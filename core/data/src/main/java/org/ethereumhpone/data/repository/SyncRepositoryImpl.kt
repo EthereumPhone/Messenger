@@ -56,6 +56,8 @@ import org.xmtp.android.library.codecs.Reply
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.proto.message.contents.Content
 import javax.inject.Inject
+import org.ethereumhpone.domain.manager.NetworkManager
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 
 class SyncRepositoryImpl @Inject constructor(
@@ -78,7 +80,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val syncLogDao: SyncLogDao,
     private val ensResolver: ENS,
     private val logTimeHandler: LogTimeHandler,
-    private val notificationManager: NotificationManager
+    private val notificationManager: NotificationManager,
+    private val networkManager: NetworkManager
 ): SyncRepository {
     private val _isSyncing = MutableStateFlow(false)
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
@@ -292,17 +295,28 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun startStream() = coroutineScope {
-        xmtpClientManager.clientState.collectLatest { clientState ->
+        // Listen to network connectivity and restart streams/sync when we regain a connection.
+        networkManager.isOnline
+            .distinctUntilChanged()
+            .collectLatest { isOnline ->
+                if (!isOnline) return@collectLatest // Wait until we're online again
 
-            when(clientState) {
-                is XmtpClientManager.ClientState.Ready -> {
-                    val client = xmtpClientManager.client
-                    val activeConversation = activeConversationManager.getActiveConversation()
+                // When we come online (or are already online) make sure the XMTP client is ready
+                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
 
+                // Perform a full sync before starting the live streams
+                syncXmtp()
 
-                    // stream chats
-                    launch {
-                        client.conversations.stream().collect { conversation ->
+                // After sync we can start listening to the live streams. These coroutines will be
+                // automatically cancelled if the collectLatest block gets cancelled (e.g. when
+                // connectivity is lost and a new emission arrives).
+                val client = xmtpClientManager.client
+
+                // Stream new/updated conversations
+                launch {
+                    client.conversations
+                        .stream()
+                        .collect { conversation ->
                             // recipients portion
 
                             //TODO: Add refs to contacts
@@ -370,15 +384,13 @@ class SyncRepositoryImpl @Inject constructor(
 
                             conversationDao.insertConversation(conversationEntity)
                         }
-                    }
+                }
 
-
-                    // stream messages
-
-
-
-                    launch {
-                        client.conversations.streamAllMessages().collect { message ->
+                // Stream new messages
+                launch {
+                    client.conversations
+                        .streamAllMessages()
+                        .collect { message ->
 
                             val isMe = client.inboxId == message.senderInboxId
 
@@ -447,18 +459,8 @@ class SyncRepositoryImpl @Inject constructor(
                              */
 
                         }
-                    }
-
-                }
-                is XmtpClientManager.ClientState.Error -> {
-
-                }
-
-                is XmtpClientManager.ClientState.Unknown -> {
-
                 }
             }
-        }
     }
 
 
