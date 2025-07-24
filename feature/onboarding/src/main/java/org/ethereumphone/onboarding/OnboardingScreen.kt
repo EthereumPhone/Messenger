@@ -59,6 +59,7 @@ import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import android.os.Build.VERSION.SDK_INT
+import kotlin.system.exitProcess
 import org.ethereumphone.dgenlibrary.screens.InformationScreen
 
 @Composable
@@ -79,7 +80,13 @@ fun OnboardingRoute(
         onStartSync = onboardingViewModel::startFirstSync,
         onFinishOnboarding = {
             onboardingViewModel.hideOnboarding(it)
-            onFinishOnboarding()
+            if (!it) {
+                // User chose to skip XMTP or encountered an error: terminate the app
+                android.os.Process.killProcess(android.os.Process.myPid())
+                kotlin.system.exitProcess(0)
+            } else {
+                onFinishOnboarding()
+            }
         }
 
     )
