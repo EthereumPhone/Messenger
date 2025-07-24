@@ -11,12 +11,15 @@ import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumphone.walletsdk.WalletSDK
 import javax.inject.Inject
 import androidx.core.content.edit
+import org.ethereumhpone.datastore.MessengerPreferences
+import org.ethereumhpone.domain.model.UserData
 
 @AndroidEntryPoint
 class XmtpSetupReceiver : HiltBroadcastReceiver() {
 
     @Inject lateinit var walletSDK: WalletSDK
     @Inject lateinit var xmtpClientManager: XmtpClientManager
+    @Inject lateinit var prefs: MessengerPreferences
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
@@ -39,10 +42,14 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
                         putBoolean("SETUP_XMTP", true)
                     }
 
+                prefs.setUseXmtp(true)
+
                 // Now notify SetupWizard that XMTP setup is complete
                 val doneIntent = Intent("app.grapheneos.setupwizard.action.XMTP_SETUP_DONE").apply {
                     `package` = "app.grapheneos.setupwizard" // restrict broadcast to SetupWizard app
                 }
+
+
                 context.sendBroadcast(doneIntent)
             } catch (e: Exception) {
                 e.printStackTrace()

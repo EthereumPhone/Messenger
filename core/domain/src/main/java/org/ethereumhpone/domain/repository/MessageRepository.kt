@@ -5,6 +5,7 @@ import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Reaction
+import org.xmtp.android.library.Conversation
 
 interface MessageRepository {
 
@@ -18,6 +19,14 @@ interface MessageRepository {
     suspend fun markRead(vararg threadIds: String)
     suspend fun markUnread(vararg threadIds: String)
     suspend fun sendMessage(
+        threadId: String,
+        body: String?,
+        replyReference: String?,
+        attachments: List<Attachment>,
+        reaction: Reaction?
+    ): String?
+    suspend fun sendMessageWithConversation(
+        xmtpConversation: Conversation,
         threadId: String,
         body: String?,
         replyReference: String?,

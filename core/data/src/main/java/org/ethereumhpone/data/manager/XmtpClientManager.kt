@@ -1,6 +1,7 @@
 package org.ethereumhpone.data.manager
 
 import android.content.Context
+import android.util.Log
 import com.google.protobuf.ByteString
 import com.google.protobuf.kotlin.toByteString
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -85,6 +86,7 @@ object XmtpClientManager {
 
         GlobalScope.launch(Dispatchers.IO) {
             val address = walletSDK.getAddress()
+            Log.d("my address", address)
             try {
                 _client = Client.create(
                     account = EOAWallet(walletSDK, address),

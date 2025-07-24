@@ -29,8 +29,7 @@ class XmtpBootReceiver : BroadcastReceiver() {
                     .createNotificationChannel(channel)
             }
 
-            Intent(context, XmtpMessageStreamService::class.java)
-                .also { ContextCompat.startForegroundService(context, it) }
+            //Intent(context, XmtpMessageStreamService::class.java).also { ContextCompat.startForegroundService(context, it) }
         } catch (e: Exception) {
             println("xmtp crash"+ e.localizedMessage)
         }

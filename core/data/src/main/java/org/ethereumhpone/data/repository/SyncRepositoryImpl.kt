@@ -414,7 +414,7 @@ class SyncRepositoryImpl @Inject constructor(
                                 } ?: processedMessage
 
                                 messageDao.upsertMessages(listOf(updatedMessage))
-                                notificationManager.update(message.id)
+                                //notificationManager.update(message.id)
                             }
 
 

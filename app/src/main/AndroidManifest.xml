@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     coreApp="true"
-    android:sharedUserId="android.uid.system"
     >
 
     <uses-feature
@@ -82,12 +81,7 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name="org.ethereumhpone.data.services.XmtpMessageStreamService"
-            android:enabled="true"
-            android:exported="true"
-            android:foregroundServiceType="dataSync"
-            />
+
         <receiver android:name=".MyBootReceiver" android:enabled="true" android:exported="true">
             <intent-filter>
                 <action android:name="org.ethereumhpone.messenger.RUN_RECEIVER" />
@@ -96,3 +90,15 @@
     </application>
 
 </manifest>
+
+
+<!--
+
+<service
+            android:name="org.ethereumhpone.data.services.XmtpMessageStreamService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="dataSync"
+            />
+
+-->

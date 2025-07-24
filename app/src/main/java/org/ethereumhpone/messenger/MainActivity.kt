@@ -135,17 +135,27 @@ class MainActivity : ComponentActivity() {
             val lastSync = logTimeHandler.getLastLog()
             Log.d("Last sync", lastSync.toString())
 
+            val address = walletSDK.getAddress()
 
             val keyManager = KeyUtil(this@MainActivity)
-            val keys = keyManager.retrieveKey(walletSDK.getAddress())
+            val keys = keyManager.retrieveKey(address)
 
+            Log.d("walletSDK", "current address: $address")
+
+
+            xmtpClientManager.createClient(walletSDK , this@MainActivity)
+
+            /* comment out for now
             if (keys != null) {
                 xmtpClientManager.createClient(walletSDK , this@MainActivity)
-                
+
                 // Start XMTP stream service if user has XMTP enabled
                 val preferences = messengerPreferences.prefs.first()
                 if (preferences.useXmtp) {
                     // Create notification channel first
+
+
+                    /*
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         val channel = NotificationChannel(
                             "xmtp_channel",
@@ -158,26 +168,35 @@ class MainActivity : ComponentActivity() {
                         val notificationManager = getSystemService(NotificationManager::class.java)
                         notificationManager.createNotificationChannel(channel)
                     }
-                    
+
                     // Start the service
                     val serviceIntent = Intent(this@MainActivity, XmtpMessageStreamService::class.java)
                     //ContextCompat.startForegroundService(this@MainActivity, serviceIntent)
+                     */
+
+
+
                     Log.d("MainActivity", "Started XMTP stream service")
                 }
             }
+             */
+
+
 
 
             //TODO: Remove when everyone is on the new messenger version
             if((lastSync == 0L || lastSync <= 1727630355723) && permissionManager.isDefaultSms() && permissionManager.hasReadSms() && permissionManager.hasContacts()) {
-
+                //syncRepository.syncMessages()
             }
             try {
+
+                syncRepository.syncXmtp()
+                syncRepository.startStream()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
 
-            syncRepository.syncXmtp()
-            //syncRepository.startStream()
+
         }
 
         var inputAddress: String? = null

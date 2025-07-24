@@ -53,7 +53,7 @@ class XmtpMessageStreamService : Service() {
 
 
             // 2) start in foreground
-            startForeground(42, notification)
+            //startForeground(42, notification)
 
             // 3) kick off your coroutine
             coroutineScope.launch {

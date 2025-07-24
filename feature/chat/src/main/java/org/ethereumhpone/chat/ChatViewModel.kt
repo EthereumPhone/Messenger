@@ -41,6 +41,7 @@ import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.MediaRepository
 import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.usecase.SendMessage
+import org.ethereumhpone.domain.usecase.SendMessageWithConversation
 import org.ethereumphone.dgenlibrary.components.TransactionStatus
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.Message
@@ -68,7 +69,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val activeConversationManager: ActiveConversationManager,
     mediaRepository: MediaRepository,
     private val messageRepository: MessageRepository,
-    private val sendMessageUseCase: SendMessage,
+    private val sendMessageUseCase: SendMessageWithConversation,
     private var walletSDK: WalletSDK,
     private val context: Context,
     private val xmtpClientManager: XmtpClientManager
@@ -78,6 +79,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     // nav arguments
     private val threadId = ThreadIdArgs(savedStateHandle).threadId ?: ""
     private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
+    private lateinit var xmtpConversation: org.xmtp.android.library.Conversation
 
     // conversation state
     val conversation = conversationRepository.getConversation(threadId)
@@ -87,6 +89,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 ConversationUiState.Loading
             } else {
                 activeConversationManager.setActiveConversation(conversation.id)
+                xmtpConversation = xmtpClientManager.client.conversations.findConversation(threadId)!!
                 ConversationUiState.Success(conversation = conversation)
             }
         }
@@ -364,6 +367,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             sendMessageUseCase(
+                xmtpConversation = xmtpConversation,
                 threadId = threadId,
                 body = messageBody,
                 replyReference = if (selectedMessages.value.size == 1) selectedMessages.value.getOrNull(0)?.id else null,

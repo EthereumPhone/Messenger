@@ -26,6 +26,7 @@ import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Reaction
+import org.xmtp.android.library.Conversation
 import org.xmtp.android.library.codecs.ContentTypeText
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.android.library.libxmtp.DecodedMessage
@@ -102,76 +103,116 @@ class MessageRepositoryImpl @Inject constructor(
         replyReference: String?,
         attachments: List<Attachment>,
         reaction: Reaction?
-    ): String? {
+    ): String? = coroutineScope {
+        // Wait until the XMTP client is ready
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+
         val conversation = xmtpClientManager.client.conversations.findConversation(threadId)
-        if (conversation == null) {
-            Log.e("MessageRepository", "Conversation not found for threadId: $threadId")
-            return null
-        }
+            ?: return@coroutineScope null
 
         when {
             attachments.isNotEmpty() -> {
                 // TODO: Handle attachments
-                Log.w("MessageRepository", "Attachments not yet supported")
-                return null
+                null
             }
 
             reaction != null -> {
                 // TODO: Handle reaction
-                Log.w("MessageRepository", "Reactions not yet supported")
-                return null
+                null
             }
 
             else -> {
-                return try {
-                    val messageId = if (replyReference != null) {
-                        conversation.prepareMessage(
-                            Reply(
-                                reference = replyReference,
-                                content = body.orEmpty(),
-                                contentType = ContentTypeText
-                            )
+                val messageId = if (replyReference != null) {
+                    conversation.prepareMessage(
+                        Reply(
+                            reference = replyReference,
+                            content = body.orEmpty(),
+                            contentType = ContentTypeText
                         )
-                    } else {
-                        conversation.prepareMessage(body)
-                    }
-
-                    val messageEntity = MessageEntity(
-                        id = messageId,
-                        threadId = threadId,
-                        dateSent = System.currentTimeMillis(),
-                        date = System.currentTimeMillis(),
-                        senderInboxId = xmtpClientManager.client.inboxId,
-                        body = body.orEmpty(),
-                        deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
-                        isMe = true,
-                        replyReference = replyReference,
-                        seen = true,
-                        read = true
                     )
-
-                    // Save the message to database first for optimistic UI
-                    messageDao.upsertMessages(listOf(messageEntity))
-
-                    // Then publish it in a background job, re-fetching the conversation
-                    // to ensure thread safety with the XMTP SDK.
-                    scope.launch {
-                        try {
-                            val conversationForPublish = xmtpClientManager.client.conversations.findConversation(threadId)
-                            conversationForPublish?.publishMessages()
-                            println("Done!")
-                            // Optionally, update the message status in the DB to PUBLISHED here
-                        } catch (e: Exception) {
-                            Log.e("MessageRepository", "Failed to publish message", e)
-                            // Optionally, update the message status in the DB to FAILED here
-                        }
-                    }
-
-                    messageId
-                } catch (e: Exception) {
-                    Log.e("MessageRepository", "Failed to prepare message", e)
-                    null
+                } else {
+                    conversation.prepareMessage(body)
                 }
+
+                Log.d("MESSAGE ID", messageId)
+
+                val messageEntity = MessageEntity(
+                    id = messageId,
+                    threadId = threadId,
+                    dateSent = System.currentTimeMillis(),
+                    date = System.currentTimeMillis(),
+                    senderInboxId = xmtpClientManager.client.inboxId,
+                    body = body.orEmpty(),
+                    deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
+                    isMe = true,
+                    replyReference = replyReference,
+                    seen = true,
+                    read = true
+                )
+
+                launch { messageDao.upsertMessages(listOf(messageEntity)) }
+                launch { conversation.publishMessages() }
+
+                messageId
+            }
+        }
+    }
+
+    override suspend fun sendMessageWithConversation(
+        xmtpConversation: Conversation,
+        threadId: String,
+        body: String?,
+        replyReference: String?,
+        attachments: List<Attachment>,
+        reaction: Reaction?
+    ): String? = coroutineScope {
+        // Wait until the XMTP client is ready
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+
+        when {
+            attachments.isNotEmpty() -> {
+                // TODO: Handle attachments
+                null
+            }
+
+            reaction != null -> {
+                // TODO: Handle reaction
+                null
+            }
+
+            else -> {
+                val messageId = if (replyReference != null) {
+                    xmtpConversation.prepareMessage(
+                        Reply(
+                            reference = replyReference,
+                            content = body.orEmpty(),
+                            contentType = ContentTypeText
+                        )
+                    )
+                } else {
+                    xmtpConversation.prepareMessage(body)
+                }
+
+                Log.d("MESSAGE ID", messageId)
+
+                val messageEntity = MessageEntity(
+                    id = messageId,
+                    threadId = threadId,
+                    dateSent = System.currentTimeMillis(),
+                    date = System.currentTimeMillis(),
+                    senderInboxId = xmtpClientManager.client.inboxId,
+                    body = body.orEmpty(),
+                    deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
+                    isMe = true,
+                    replyReference = replyReference,
+                    seen = true,
+                    read = true
+                )
+
+                launch { messageDao.upsertMessages(listOf(messageEntity)) }
+                launch { xmtpConversation.publishMessages() }
+
+                messageId
             }
         }
     }

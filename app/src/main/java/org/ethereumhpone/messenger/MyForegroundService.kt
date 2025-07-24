@@ -74,7 +74,7 @@ class MyForegroundService : HiltService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        //startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
 
         // service only started once the client is ready
 
