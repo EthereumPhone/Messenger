@@ -11,11 +11,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.datastore.MessengerPreferences
@@ -48,26 +45,29 @@ class OnboardingViewModel @Inject constructor(
 
     fun generateXMTP() {
         viewModelScope.launch(Dispatchers.IO) {
-            // Observe network connectivity first
-            networkManager.isOnline.collectLatest { isOnline ->
-                if (!isOnline) {
-                    _syncState.value = SyncState.Error("No internet connection found")
-                    return@collectLatest
-                }
+            // Check connectivity only once to avoid starting a long running flow
+            val isOnline = networkManager.isOnline.first()
+            if (!isOnline) {
+                _syncState.value = SyncState.Error("No internet connection found")
+                return@launch
+            }
 
-                try {
-                    // Create the XMTP client – the library will trigger any required
-                    // wallet signature prompts ("Authenticate to inbox") the first time
-                    // it needs to generate or load keys.
-                    xmtpClientManager.createClient(walletSDK, context)
+            _syncState.value = SyncState.Loading
 
-                    // Wait until the client reports it is ready before moving on
-                    xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            try {
+                // Create the XMTP client – the library will trigger any required
+                // wallet signature prompts ("Authenticate to inbox") the first time
+                // it needs to generate or load keys.
+                xmtpClientManager.createClient(walletSDK, context)
 
-                    _syncState.value = SyncState.Success
-                } catch (exception: Exception) {
-                    _syncState.value = SyncState.Error(exception.localizedMessage ?: "Error")
-                }
+                // Wait until the client reports it is ready before moving on
+                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+
+                _syncState.value = SyncState.Success
+            } catch (exception: Exception) {
+                // CancellationException is expected when the coroutine scope is cancelled – don't treat it as an error
+                if (exception is kotlinx.coroutines.CancellationException) return@launch
+                _syncState.value = SyncState.Error(exception.localizedMessage ?: "Error")
             }
         }
     }
