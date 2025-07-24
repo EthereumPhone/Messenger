@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.first
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumphone.walletsdk.WalletSDK
 import javax.inject.Inject
+import androidx.core.content.edit
 
 @AndroidEntryPoint
 class XmtpSetupReceiver : HiltBroadcastReceiver() {
@@ -31,6 +32,12 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
 
                 // Wait until the client is fully ready (signature completed)
                 xmtpClientManager.clientState.first { it is XmtpClientManager.ClientState.Ready }
+
+                // Mark setup as completed so the app can skip onboarding in the future
+                context.getSharedPreferences("org.ethereumhpone.messenger.prefs", Context.MODE_PRIVATE)
+                    .edit {
+                        putBoolean("SETUP_XMTP", true)
+                    }
 
                 // Now notify SetupWizard that XMTP setup is complete
                 val doneIntent = Intent("app.grapheneos.setupwizard.action.XMTP_SETUP_DONE").apply {
