@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat
-import org.ethereumhpone.data.services.XmtpMessageStreamService
 import org.ethereumhpone.domain.repository.SyncRepository
 import javax.inject.Inject
 
@@ -29,7 +28,7 @@ class XmtpBootReceiver : BroadcastReceiver() {
                     .createNotificationChannel(channel)
             }
 
-            //Intent(context, XmtpMessageStreamService::class.java).also { ContextCompat.startForegroundService(context, it) }
+            // Service removed - no longer starting foreground service
         } catch (e: Exception) {
             println("xmtp crash"+ e.localizedMessage)
         }

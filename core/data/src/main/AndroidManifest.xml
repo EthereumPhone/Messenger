@@ -18,10 +18,7 @@
             </intent-filter>
         </receiver>
 
-        <service
-            android:name=".services.xmtpMessageStreamService"
-            android:enabled="true"
-            android:exported="true" />
+        <!-- Service removed to fix ANR issue -->
 
         <receiver
             android:name=".receiver.DefaultSmsChangedReceiver"

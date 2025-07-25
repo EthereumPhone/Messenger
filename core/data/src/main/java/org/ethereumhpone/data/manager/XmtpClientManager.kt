@@ -152,6 +152,13 @@ class EOAWallet(val walletSDK: WalletSDK, val address: String) : SigningKey {
     override var chainId: Long? = 8453 // https://chainlist.org/
 
 
+    // Explicitly implement `blockNumber` to prevent Kotlin's stub generator from
+    // creating a setter with the illegal Java identifier "_" (underscore) which
+    // breaks compilation on JDK 9+. Declaring the property ourselves ensures the
+    // generated setter parameter uses the standard name `value` instead.
+    override var blockNumber: Long? = null
+
+
     override suspend fun sign(message: String): SignedData {
         // Ensure signing is performed on the Main thread so that any UI-driven wallet prompts are shown properly
         val signatureString = withContext(Dispatchers.Main) {

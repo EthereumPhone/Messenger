@@ -34,7 +34,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.KeyUtil
 import org.ethereumhpone.data.manager.XmtpClientManager
-import org.ethereumhpone.data.services.XmtpMessageStreamService
 import org.ethereumhpone.database.dao.SyncLogDao
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.NetworkManager
@@ -190,7 +189,7 @@ class MainActivity : ComponentActivity() {
             }
             try {
 
-                syncRepository.syncXmtp()
+                //syncRepository.syncXmtp()
                 syncRepository.startStream()
             } catch (e: Exception) {
                 e.printStackTrace()

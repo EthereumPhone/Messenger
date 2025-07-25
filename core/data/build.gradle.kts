@@ -59,6 +59,12 @@ android {
 
 }
 
+kapt {
+    javacOptions {
+        option("--release", "8")       // or  option("-source", "8"); option("-target", "8")
+    }
+}
+
 dependencies {
 
     implementation(libs.core.ktx)

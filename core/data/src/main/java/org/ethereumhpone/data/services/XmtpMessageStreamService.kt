@@ -56,6 +56,7 @@ class XmtpMessageStreamService : Service() {
             //startForeground(42, notification)
 
             // 3) kick off your coroutine
+            /*
             coroutineScope.launch {
                 try {
                     println("xmtp starting stream service")
@@ -65,6 +66,8 @@ class XmtpMessageStreamService : Service() {
                     e.printStackTrace()
                 }
             }
+             */
+
             // if process dies, Android will recreate service and redeliver the intent
             return START_STICKY
         } catch (e: Exception) {

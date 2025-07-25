@@ -82,11 +82,7 @@
         </activity>
 
 
-        <receiver android:name=".MyBootReceiver" android:enabled="true" android:exported="true">
-            <intent-filter>
-                <action android:name="org.ethereumhpone.messenger.RUN_RECEIVER" />
-            </intent-filter>
-        </receiver>
+
     </application>
 
 </manifest>
