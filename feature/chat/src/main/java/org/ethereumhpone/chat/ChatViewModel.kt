@@ -425,7 +425,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
     private fun sendReadReceipt(conversationId: String) {
-        viewModelScope.launch {
+        // Network and database I/O must not run on the Main thread – otherwise the app
+        // can trigger an ANR ("Messenger has stopped") when the operation takes > 5 s.
+        // Run the whole block on Dispatchers.IO instead.
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Wait for client to be ready
                 xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
