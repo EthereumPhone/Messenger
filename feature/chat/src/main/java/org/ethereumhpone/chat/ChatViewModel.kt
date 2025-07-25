@@ -278,6 +278,16 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 }
             }
         }
+
+        // Initialise the XMTP conversation once in a background thread so the UI thread stays free.
+        viewModelScope.launch(Dispatchers.IO) {
+            // Ensure the XMTP client is ready before attempting to find a conversation
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+
+            xmtpClientManager.client.conversations.findConversation(threadId)?.let { convo ->
+                xmtpConversation = convo
+            }
+        }
     }
 
     override fun onCleared() {
