@@ -86,7 +86,7 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun hideOnboarding(useXmtp: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             // Persist the user's XMTP preference
             messengerPreferences.setUseXmtp(useXmtp)
 

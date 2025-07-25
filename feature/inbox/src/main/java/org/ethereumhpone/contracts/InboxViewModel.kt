@@ -48,13 +48,13 @@ class InboxViewModel @Inject constructor(
         )
 
     fun setConversationAsRead(conversationId: String, seen: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             conversationRepository.updateSeenConversation(conversationId, seen)
         }
     }
 
     fun deleteConversation(conversationId: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             conversationRepository.deleteConversation(conversationId)
 
         }

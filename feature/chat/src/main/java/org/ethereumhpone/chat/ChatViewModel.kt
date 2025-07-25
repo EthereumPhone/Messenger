@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -82,7 +81,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
     private lateinit var xmtpConversation: org.xmtp.android.library.Conversation
 
-
     // conversation state
     val conversation = conversationRepository.getConversation(threadId)
         .map { conversation ->
@@ -90,8 +88,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 // TODO add fallback if convo does not exist?
                 ConversationUiState.Loading
             } else {
-                // Perform potentially expensive XMTP conversation lookup off the main thread so we don't block the UI.
-                // XMTP conversation is now loaded in the init block to avoid repeated lookups here.
+                activeConversationManager.setActiveConversation(conversation.id)
+                xmtpConversation = xmtpClientManager.client.conversations.findConversation(threadId)!!
                 ConversationUiState.Success(conversation = conversation)
             }
         }
@@ -265,14 +263,12 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     // set conversation
     init {
-        viewModelScope.launch {
-            conversation
-                .collect { state ->
+        viewModelScope.launch(Dispatchers.IO) {
+            conversation.collect { state ->
                 if (state is ConversationUiState.Success) {
                     activeConversationManager.setActiveConversation(state.conversation.id)
                     // Send read receipt when entering the conversation
                     sendReadReceipt(state.conversation.id)
-                    // Perform potentially expensive XMTP conversation lookup is handled separately in IO coroutine.
                 }
             }
         }

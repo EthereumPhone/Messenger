@@ -3,6 +3,7 @@ package org.ethereumphone.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -34,13 +35,13 @@ class SettingsViewModel @Inject constructor(
 
 
     fun updateUseXmtp(useXmtp: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             messengerPreferences.setUseXmtp(useXmtp)
         }
     }
 
     fun updateRingtone(ringtone: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             messengerPreferences.setRingTone(ringtone)
         }
 
