@@ -81,6 +81,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val addresses = AddressesArgs(savedStateHandle).addresses ?: emptyList()
     private lateinit var xmtpConversation: org.xmtp.android.library.Conversation
 
+    // Track the last message id for which we have already sent a read-receipt. This prevents
+    // duplicate receipts when the same message (or the user’s own message) triggers multiple
+    // DB updates / emissions.
+    private var lastReadReceiptMessageId: String? = null
     // conversation state
     val conversation = conversationRepository.getConversation(threadId)
         .map { conversation ->
@@ -267,8 +271,13 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             conversation.collect { state ->
                 if (state is ConversationUiState.Success) {
                     activeConversationManager.setActiveConversation(state.conversation.id)
-                    // Send read receipt when entering the conversation
-                    sendReadReceipt(state.conversation.id)
+                    // Only send a read-receipt for NEW incoming messages (i.e. messages that are
+                    // not authored by the current user) and skip duplicates.
+                    val latestMessage = state.conversation.lastMessage
+                    if (latestMessage != null && !latestMessage.isMe && latestMessage.id != lastReadReceiptMessageId) {
+                        sendReadReceipt(state.conversation.id)
+                        lastReadReceiptMessageId = latestMessage.id
+                    }
                 }
             }
         }
@@ -435,9 +444,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
     private fun sendReadReceipt(conversationId: String) {
-        // Network and database I/O must not run on the Main thread – otherwise the app
-        // can trigger an ANR ("Messenger has stopped") when the operation takes > 5 s.
-        // Run the whole block on Dispatchers.IO instead.
+        // ANR fix
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Wait for client to be ready
