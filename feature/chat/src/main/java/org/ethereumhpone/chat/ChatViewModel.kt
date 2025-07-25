@@ -263,7 +263,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     // set conversation
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             conversation.collect { state ->
                 if (state is ConversationUiState.Success) {
                     activeConversationManager.setActiveConversation(state.conversation.id)
