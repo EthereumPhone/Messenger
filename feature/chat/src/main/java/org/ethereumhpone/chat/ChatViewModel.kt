@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.ethereumhpone.chat.components.isEthereumAddress
@@ -93,6 +95,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 ConversationUiState.Success(conversation = conversation)
             }
         }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,
             initialValue = ConversationUiState.Loading,
@@ -107,6 +111,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 MessageUiState.Success(it)
             }
         }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,
             initialValue = MessageUiState.Loading,
