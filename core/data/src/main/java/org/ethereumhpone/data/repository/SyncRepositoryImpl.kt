@@ -298,38 +298,20 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun startStream() = coroutineScope {
-        Log.d(TAG, "startStream() invoked")
         // Listen to network connectivity and restart streams/sync when we regain a connection.
         networkManager.isOnline
             .distinctUntilChanged()
             .collectLatest { isOnline ->
-                Log.d(TAG, "Network connectivity update - isOnline: $isOnline")
                 if (!isOnline) return@collectLatest // Wait until we're online again
 
-                Log.d(TAG, "Waiting for XMTP client readiness")
-                // When we come online (or are already online) make sure the XMTP client is ready
                 xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
-                Log.d(TAG, "XMTP client is ready")
-
-                Log.d(TAG, "Executing syncXmtp()")
-                // Perform a full sync before starting the live streams
-                syncXmtp()
-                Log.d(TAG, "syncXmtp() completed")
-
-                Log.d(TAG, "Initializing live streams")
-                // After sync we can start listening to the live streams. These coroutines will be
-                // automatically cancelled if the collectLatest block gets cancelled (e.g. when
-                // connectivity is lost and a new emission arrives).
+                syncXmtp() // inital sync
                 val client = xmtpClientManager.client
-                Log.d(TAG, "Client acquired. inboxId=${client.inboxId}")
-
-                Log.d(TAG, "Launching conversations stream")
-                // Stream new/updated conversations
                 launch {
                     client.conversations
                         .stream()
                         .collect { conversation ->
-                            Log.d(TAG, "Conversation event: id=${conversation.id} type=${conversation.type}")
+
                             // recipients portion
 
                             //TODO: Add refs to contacts
@@ -349,17 +331,12 @@ class SyncRepositoryImpl @Inject constructor(
                                 )
                             }
                             recipientDao.insertRecipients(recipientEntities)
-                            Log.d(TAG, "Inserted ${recipientEntities.size} recipient entities for conversation ${conversation.id}")
-
 
                             val inboxIds = conversation.members().map { it.inboxId }
-
                             val refs = inboxIds.map { inboxId ->
                                 ConversationRecipientCrossRef(conversation.id, inboxId)
                             }
                             conversationDao.insertConversationMemberCrossRefs(refs)
-                            Log.d(TAG, "Inserted ${refs.size} conversation-member cross refs for conversation ${conversation.id}")
-
 
                             // conversation portion
 
@@ -397,13 +374,10 @@ class SyncRepositoryImpl @Inject constructor(
                                 blocked = consentState == ConsentState.DENIED,
                                 clientInbox = client.inboxId
                             )
-
                             conversationDao.insertConversation(conversationEntity)
-                            Log.d(TAG, "Conversation inserted/updated in DB: $id")
                         }
                 }
 
-                Log.d(TAG, "Launching messages stream")
                 // Stream new messages
                 launch {
                     client.conversations
@@ -412,14 +386,10 @@ class SyncRepositoryImpl @Inject constructor(
 
                             val isMe = client.inboxId == message.senderInboxId
 
-                            Log.d(TAG, "Message event: id=${message.id} conversationId=${message.conversationId}")
-                            Log.d(TAG, "Message encodedContent=${message.encodedContent.type} bodyPreview=${message.body?.take(40)}")
-
                             Log.d("incoming MESSAGE id", message.id)
                             
                             // Skip read receipts or empty text messages
                             if (message.encodedContent.type == ContentTypeReadReceipt || (message.body.isNullOrBlank())) {
-                                Log.d(TAG, "Read receipt or empty text message detected. Updating seen date only for message ${message.id}")
                                 messageDao.updateMessageSeenDate(message.sentAtNs / 1_000_000)
                                 return@collect
                             }
@@ -448,7 +418,6 @@ class SyncRepositoryImpl @Inject constructor(
                                 } ?: processedMessage
 
                                 messageDao.upsertMessages(listOf(updatedMessage))
-                                Log.d(TAG, "Message upserted in DB: ${updatedMessage.id}")
                                 //notificationManager.update(message.id)
                             }
 
