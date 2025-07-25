@@ -184,14 +184,23 @@ class SyncRepositoryImpl @Inject constructor(
                 val members = conversation.members()
 
 
+                // Fetch contacts once to match ETH addresses (case-insensitive)
+                val contacts = contactDao.getContacts().first()
+
                 val recipientEntities = members.map { member ->
                     val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
                     val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
+
+                    // Try to find a contact with the same ETH address (ignoring case)
+                    val matchedContact = contacts.firstOrNull { contact ->
+                        contact.ethAddress?.equals(address, ignoreCase = true) == true
+                    }
+
                     RecipientEntity(
                         inboxId = member.inboxId,
                         address = address,
                         ens = ensAddress,
-                        contactLookupKey = null // TODO: Get contact lookupKeys
+                        contactLookupKey = matchedContact?.lookupKey // link to contact if found
                     )
                 }
                 recipientDao.insertRecipients(recipientEntities)

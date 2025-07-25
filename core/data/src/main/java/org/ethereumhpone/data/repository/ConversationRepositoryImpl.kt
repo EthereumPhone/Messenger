@@ -87,9 +87,16 @@ class ConversationRepositoryImpl @Inject constructor(
                     clientInbox = client.inboxId
                 )
 
+                // Attempt to link the new recipient to an existing contact (ETH address match, case-insensitive)
+                val contactLookupKey = contactDao.getContacts().first()
+                    .firstOrNull { contact ->
+                        contact.ethAddress?.equals(identity.identifier, ignoreCase = true) == true
+                    }?.lookupKey
+
                 val recipientEntity = RecipientEntity(
                     inboxId = dm.peerInboxId,
-                    address = identity.identifier
+                    address = identity.identifier,
+                    contactLookupKey = contactLookupKey
                 )
 
                 //
