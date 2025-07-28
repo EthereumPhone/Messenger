@@ -18,6 +18,8 @@ import org.ethereumhpone.chat.navigation.navigateToChatByAddresses
 import org.ethereumhpone.contracts.navigation.conversationsRoute
 import org.ethereumhpone.contracts.navigation.navigateToConversations
 import org.ethereumhpone.datastore.MessengerPreferences
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 
 @Composable
 fun rememberMessengerAppState(
@@ -26,15 +28,26 @@ fun rememberMessengerAppState(
     navController: NavHostController = rememberNavController()
 ): MessengerAppState {
 
+    val context = LocalContext.current
+
+    // Read once; if the value changes while the app is running we
+    // can recompute by adding it to the remember key if needed.
+    val setupXmtpDone = remember {
+        context.getSharedPreferences("org.ethereumhpone.messenger.prefs", Context.MODE_PRIVATE)
+            .getBoolean("SETUP_XMTP", false)
+    }
+
     return remember(
         navController,
         coroutineScope,
-        messengerPreferences
+        messengerPreferences,
+        setupXmtpDone
     ) {
         MessengerAppState(
             navController,
             coroutineScope,
-            messengerPreferences
+            messengerPreferences,
+            setupXmtpDone
         )
     }
 }
@@ -43,7 +56,8 @@ fun rememberMessengerAppState(
 class MessengerAppState(
     val navController: NavHostController,
     coroutineScope: CoroutineScope,
-    messengerPreferences: MessengerPreferences
+    messengerPreferences: MessengerPreferences,
+    private val setupXmtpDone: Boolean
 ) {
 
     private val previousDestination = mutableStateOf<NavDestination?>(null)
@@ -79,7 +93,13 @@ class MessengerAppState(
     // This ensures that users who skipped XMTP setup will continue to see the onboarding
     // until they finish the process, while users who completed it will no longer be prompted.
     val shouldShowOnboarding = messengerPreferences.prefs
-        .map { !it.shouldHideOnboarding || !it.useXmtp }
+        .map {
+            if (setupXmtpDone) {
+                false
+            } else {
+                !it.shouldHideOnboarding || !it.useXmtp
+            }
+        }
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.WhileSubscribed(5_000),
