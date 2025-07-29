@@ -118,17 +118,17 @@ fun ChatBottomAppBar(
 
             ) {
                 IconButton(
-                    onClick = openAction,
+                    onClick = {},//openAction,
                     colors = IconButtonDefaults.iconButtonColors(
                         Color.Transparent,
-                        primaryColor
+                        Color.Transparent
                     ),
                     modifier = Modifier.size(56.dp)
                 ) {
                     Icon(
                         modifier = Modifier.size(36.dp),
                         imageVector = Icons.Outlined.Add,
-                        tint = primaryColor,
+                        tint = Color.Transparent,
                         contentDescription = "collapse"
                     )
                 }

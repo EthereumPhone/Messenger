@@ -87,12 +87,12 @@ fun ChatTopAppBar(
                         .widthIn(min = 10.dp, max = 250.dp)
                         .clickable { onTitleClicked() },
                 )
-                IconButton(onClick = onTitleClicked) {
+                IconButton(onClick={}){//onClick = onTitleClicked) {
                     Icon(
                         imageVector = Icons.Filled.MoreVert,
                         contentDescription = "BackButton",
                         modifier = modifier.size(24.dp),
-                        tint = primaryColor
+                        tint = Color.Transparent
                     )
                 }
 
