@@ -86,9 +86,9 @@ import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.dgenlibrary.components.ActionButton
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
-import org.ethereumphone.dgenlibrary.screens.InformationScreen
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import org.ethereumphone.dgenlibrary.screens.InfoScreen
 import org.ethereumphone.dgenlibrary.showDgenToast
 
 
@@ -441,10 +441,10 @@ internal fun ConversationSheet(
                                                 .fillParentMaxWidth(),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                InformationScreen(
+                                                InfoScreen(
                                                     gifEnabledLoader = gifEnabledLoader,
                                                     primaryColor = primaryColor,
-                                                    text = "No contacts available"
+                                                    description = "No contacts available"
                                                 )
                                             }
                                         }

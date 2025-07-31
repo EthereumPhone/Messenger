@@ -103,8 +103,8 @@ import coil.decode.ImageDecoderDecoder
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.SelectableCarousel
 import org.ethereumphone.dgenlibrary.formatWithSuffix
-import org.ethereumphone.dgenlibrary.screens.InformationScreen
 import org.ethereumhpone.chat.ConversationUiState
+import org.ethereumphone.dgenlibrary.screens.InfoScreen
 
 @Composable
 fun OverlaySendScreenRoute(
@@ -262,10 +262,10 @@ fun OverlaySendScreen(
                     }
                     AssetsUiState.Empty -> {
 
-                        InformationScreen(
+                        InfoScreen(
                             gifEnabledLoader = gifEnabledLoader,
                             primaryColor = primaryColor,
-                            text = "No Assets available"
+                            description = "No Assets available"
                         )
                     }
                     is AssetsUiState.Success -> {
@@ -329,10 +329,10 @@ fun OverlaySendScreen(
                     }
 
                     AssetsUiState.Error -> {
-                        InformationScreen(
+                        InfoScreen(
                             gifEnabledLoader = gifEnabledLoader,
                             primaryColor = primaryColor,
-                            text = "Empty"
+                            description = "Empty"
                         )
                     }
                 }
