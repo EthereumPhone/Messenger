@@ -289,7 +289,7 @@ internal fun ConversationSheet(
                                     },
                                     placeholder = {
                                         Text(
-                                            text = "Search name, ENS or XMTP inbox ID".uppercase(),
+                                            text = "Search name, ENS or inbox ID".uppercase(),
                                             style = TextStyle(
                                                 fontFamily = SpaceMono,
                                                 color = primaryColor.copy(alpha = 0.45f),

@@ -25,6 +25,7 @@ import org.ethereumhpone.common.util.Result
 import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 import org.kethereum.ens.ENS
 import org.kethereum.model.Address
+import org.ethereumphone.dgenlibrary.showDgenToast
 
 class ConversationRepositoryImpl @Inject constructor(
     private val context: Context,
@@ -64,13 +65,13 @@ class ConversationRepositoryImpl @Inject constructor(
             val notAllowed = consentMap.filterValues { !it }
 
             if (notAllowed.isNotEmpty()) {
-                val blocked = notAllowed.keys.joinToString(", ")
-                emit(Result.Error("Could not create a conversation with: $blocked"))
+                val addressText = if (notAllowed.keys.size == 1) "Address" else "Addresses"
+                showDgenToast(context, "$addressText not registered with XMTP")
                 return@flow
             }
 
             if (addresses.size > 1) {
-                emit(Result.Error("Group conversations are not yet supported"))
+                showDgenToast(context, "Group conversations not yet supported")
                 return@flow
             }
 
