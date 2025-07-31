@@ -3,6 +3,7 @@ package org.ethereumhpone.chat.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -87,14 +88,18 @@ fun ChatTopAppBar(
                         .widthIn(min = 10.dp, max = 250.dp)
                         .clickable { onTitleClicked() },
                 )
-                IconButton(onClick = onTitleClicked) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = "BackButton",
-                        modifier = modifier.size(24.dp),
-                        tint = primaryColor
-                    )
-                }
+                // Invisible box to balance the layout and center the title
+                Box(modifier = Modifier.size(48.dp))
+                
+                // Removed vertical dots (MoreVert) button - kept for future use if needed
+                // IconButton(onClick = onTitleClicked) {
+                //     Icon(
+                //         imageVector = Icons.Filled.MoreVert,
+                //         contentDescription = "BackButton",
+                //         modifier = modifier.size(24.dp),
+                //         tint = primaryColor
+                //     )
+                // }
 
             }
 

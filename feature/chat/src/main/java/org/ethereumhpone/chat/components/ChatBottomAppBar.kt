@@ -117,21 +117,22 @@ fun ChatBottomAppBar(
                 verticalAlignment = Alignment.CenterVertically,
 
             ) {
-                IconButton(
-                    onClick = openAction,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        Color.Transparent,
-                        primaryColor
-                    ),
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(
-                        modifier = Modifier.size(36.dp),
-                        imageVector = Icons.Outlined.Add,
-                        tint = primaryColor,
-                        contentDescription = "collapse"
-                    )
-                }
+                // Removed plus (Add) button - kept for future use if needed
+                // IconButton(
+                //     onClick = openAction,
+                //     colors = IconButtonDefaults.iconButtonColors(
+                //         Color.Transparent,
+                //         primaryColor
+                //     ),
+                //     modifier = Modifier.size(56.dp)
+                // ) {
+                //     Icon(
+                //         modifier = Modifier.size(36.dp),
+                //         imageVector = Icons.Outlined.Add,
+                //         tint = primaryColor,
+                //         contentDescription = "collapse"
+                //     )
+                // }
 
 
 

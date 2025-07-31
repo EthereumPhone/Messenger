@@ -327,8 +327,9 @@ fun ChatScreen(
                     chatConversion?.getHeader() ?: "",
                     recipientUiState = recipientUiState,
                     onTitleClicked = {
-                        currentActions = Actions.CONTACT
-                        showPicker.value = true
+                        // Commented out option sheet trigger - kept for future use if needed
+                        // currentActions = Actions.CONTACT
+                        // showPicker.value = true
                         focusManager.clearFocus()
                         keyboardController?.hide()
                     },
@@ -355,8 +356,9 @@ fun ChatScreen(
                     expand = expand,
                     openAction = {
                         expand.value = false
+                        // Commented out overlay trigger - kept for future use if needed
                         // Show overlay when this action is triggered
-                        showOverlay.value = true
+                        // showOverlay.value = true
                         focusManager.clearFocus()
                         keyboardController?.hide()
                     },

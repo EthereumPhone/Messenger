@@ -214,7 +214,7 @@ internal fun ConversationSheet(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(bottom = 24.dp) // fab size 64.dp
+                        .padding(bottom = 16.dp) // fab size 64.dp
                 ) {
                     SecondaryScreenHeader(
                         title = "NEW CONVERSATION".uppercase(),
@@ -227,7 +227,8 @@ internal fun ConversationSheet(
                         Modifier.padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ){
+                    )
+                    {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -288,7 +289,7 @@ internal fun ConversationSheet(
                                     },
                                     placeholder = {
                                         Text(
-                                            text = "Search name or phone number".uppercase(),
+                                            text = "Search name, ENS or XMTP inbox ID".uppercase(),
                                             style = TextStyle(
                                                 fontFamily = SpaceMono,
                                                 color = primaryColor.copy(alpha = 0.45f),
@@ -340,7 +341,6 @@ internal fun ConversationSheet(
                                                 )
                                             }
                                         )
-
                                     }
                                 }
                             }
@@ -373,33 +373,7 @@ internal fun ConversationSheet(
                                     }
                                 }
                                 is QueryResultUiState.Success -> {
-                                    /*
-                                    stickyHeader {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(dgenBlack)
-                                                .padding(vertical = 8.dp)
-                                        ) {
-                                            Text(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .pointerInput(Unit) {
-                                                        detectTapGestures {
-                                                            multiSelectMode = true
-                                                        }
-                                                    },
-                                                text = "MAKE NEW GROUP",
-                                                style = TextStyle(
-                                                    fontFamily = PitagonsSans,
-                                                    color = dgenTurqoise,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 20.sp
-                                                )
-                                            )
-                                        }
-                                    }
-                                    */
+
                                     if(textState.text.isNotEmpty()){
                                         item {
                                             Spacer(Modifier.fillMaxWidth().height(16.dp))
@@ -436,19 +410,19 @@ internal fun ConversationSheet(
 
                                     if (queryResultUiState.contactEntities.isEmpty()) {
                                         item {
-                                            Box(modifier = Modifier
-                                                .fillParentMaxHeight(0.5f)
-                                                .fillParentMaxWidth(),
+                                            Box(modifier = Modifier.fillParentMaxSize(),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 InfoScreen(
+                                                    imageSize = 180.dp,
                                                     gifEnabledLoader = gifEnabledLoader,
                                                     primaryColor = primaryColor,
                                                     description = "No contacts available"
                                                 )
                                             }
                                         }
-                                    } else {
+                                    }
+                                    else {
                                         item {
                                             Spacer(modifier = Modifier
                                                 .fillMaxWidth()
