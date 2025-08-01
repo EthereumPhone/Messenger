@@ -576,7 +576,7 @@ fun InboxScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             DeleteConfirmationOverlay(
-                message = deleteMessage,
+                description = deleteMessage,
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
                 onDelete = {

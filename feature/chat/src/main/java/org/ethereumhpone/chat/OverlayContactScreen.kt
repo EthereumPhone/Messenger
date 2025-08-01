@@ -709,14 +709,14 @@ fun OverlayContactScreen(
                 }
                 ContactConfirmation.DELETECONTACT -> {
                     DeleteConfirmationOverlay(
-                        message = "Do you want to delete the conversation with $title?",
+                        description = "Do you want to delete the conversation with $title?",
                         primaryColor = primaryColor,
                         secondaryColor = secondaryColor,
                         onDelete = {
                             showConfirmation = false
                             deleteContact()
                         },
-                        onCancel = { showConfirmation = false }
+                        onCancel = { showConfirmation = false },
                     )
                 }
             }
