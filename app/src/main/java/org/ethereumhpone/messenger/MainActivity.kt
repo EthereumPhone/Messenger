@@ -199,15 +199,25 @@ class MainActivity : ComponentActivity() {
         }
 
         var inputAddress: String? = null
+        var contactName: String? = null
 
         val data = intent?.data
 
         if (data != null) {
             val scheme = data.scheme
-            if (scheme == "sms" || scheme == "smsto" || scheme == "mms" || scheme == "mmsto") {
-                inputAddress = data.schemeSpecificPart
-                // Remove any query parameters if present
-                inputAddress = inputAddress?.substringBefore('?')
+            when (scheme) {
+                "sms", "smsto", "mms", "mmsto" -> {
+                    inputAddress = data.schemeSpecificPart
+                    // Remove any query parameters if present
+                    inputAddress = inputAddress?.substringBefore('?')
+                }
+                "ethos-messenger" -> {
+                    // Handle deep link from contacts app
+                    if (data.host == "chat" && data.pathSegments.firstOrNull() == "new") {
+                        inputAddress = data.getQueryParameter("address")
+                        contactName = data.getQueryParameter("name")
+                    }
+                }
             }
         }
 
@@ -221,7 +231,8 @@ class MainActivity : ComponentActivity() {
                 MessagingApp(
                     messengerAppState = appState,
                     threadId = threadId,
-                    inputAddress = inputAddress
+                    inputAddress = inputAddress,
+                    contactName = contactName
                 )
             }
         }

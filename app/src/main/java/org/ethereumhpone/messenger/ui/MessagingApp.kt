@@ -24,7 +24,8 @@ import org.ethereumphone.settings.SettingsDialog
 fun MessagingApp(
     messengerAppState: MessengerAppState,
     threadId: Int? = null,
-    inputAddress: String? = null
+    inputAddress: String? = null,
+    contactName: String? = null
 ) {
 
     var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
@@ -36,6 +37,7 @@ fun MessagingApp(
         showContactSheet = showContactSheet,
         threadId = threadId,
         inputAddress = inputAddress,
+        contactName = contactName,
         onDismissSettingsDialog = { showSettingsDialog = false }
     )
 
@@ -50,6 +52,7 @@ internal fun MessagingApp(
     showContactSheet: Boolean,
     threadId: Int? = null,
     inputAddress: String? = null,
+    contactName: String? = null,
     onDismissSettingsDialog:() -> Unit,
 ) {
 
@@ -78,7 +81,8 @@ internal fun MessagingApp(
             MessagingNavHost(
                 messengerAppState = messengerAppState,
                 threadId = threadId,
-                inputAddress = inputAddress
+                inputAddress = inputAddress,
+                contactName = contactName
             )
         }
     }

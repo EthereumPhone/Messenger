@@ -16,7 +16,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import org.ethereumhpone.chat.navigation.chatScreen
 import org.ethereumhpone.chat.navigation.navigateToChatByAddresses
+import org.ethereumhpone.chat.navigation.navigateToChatByAddressesWithContactName
 import org.ethereumhpone.chat.navigation.navigateToChatByThreadId
+import org.ethereumhpone.chat.navigation.navigateToChatLoading
 import org.ethereumhpone.contracts.navigation.conversationsGraph
 import org.ethereumhpone.contracts.navigation.conversationsGraphRoutePattern
 import org.ethereumhpone.contracts.navigation.navigateToConversations
@@ -32,6 +34,7 @@ fun MessagingNavHost(
     modifier: Modifier = Modifier,
     threadId: Int? = null,
     inputAddress: String? = null,
+    contactName: String? = null,
     startDestination: String = conversationsGraphRoutePattern
 ){
     val context = LocalContext.current
@@ -60,18 +63,7 @@ fun MessagingNavHost(
         }
     }
 
-    // If threadId is not null, navigate to the chat
-    threadId?.let {
-        LaunchedEffect(it) {
-            navController.navigateToChatByThreadId(threadId = it.toString())
-        }
-    }
-
-    inputAddress?.let {
-        LaunchedEffect(inputAddress) {
-            navController.navigateToChatByAddresses(listOf(inputAddress))
-        }
-    }
+    // Deep link navigation will be handled after the NavHost is created
 
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
@@ -135,14 +127,29 @@ fun MessagingNavHost(
                     onConversationClick = navController::navigateToChatByThreadId,
                     conversationDestination = {
                         chatScreen (
+                            navController = navController,
                             onBackClick = navController::popBackStack,
                         )
                     }
                 )
 
                 onboardingScreen(navController::navigateToConversations)
-
             }
+            
+            // Handle deep link navigation after NavHost and navigation graph are set up
+            LaunchedEffect(threadId, inputAddress, contactName) {
+                // If threadId is not null, navigate to the chat
+                threadId?.let {
+                    navController.navigateToChatByThreadId(threadId = it.toString())
+                }
+                
+                // If inputAddress is not null, navigate to chat loading
+                inputAddress?.let {
+                    navController.navigateToChatLoading(listOf(inputAddress), contactName)
+                }
+            }
+            
+
         }
     }
 }
