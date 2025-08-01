@@ -227,9 +227,10 @@ fun InboxScreen(
             } else {
                 when(conversationState) {
                     is ConversationUIState.Loading ->{
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            DgenLoadingMatrix(activeLEDColor = primaryColor, unactiveLEDColor = secondaryColor)
-                        }
+                        // Temporarily comment out to prevent double loading matrix
+                        // Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        //     DgenLoadingMatrix(activeLEDColor = primaryColor, unactiveLEDColor = secondaryColor)
+                        // }
                     }
                     is ConversationUIState.Empty ->{
                         InfoScreen(
@@ -534,6 +535,8 @@ fun InboxScreen(
                                         }
                                         else{
                                             InfoScreen(
+                                                modifier = Modifier.offset(y=16.dp),
+                                                imageSize = 200.dp,
                                                 gifEnabledLoader = gifEnabledLoader,
                                                 primaryColor = primaryColor,
                                                 description = "No requests"

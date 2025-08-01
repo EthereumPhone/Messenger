@@ -361,16 +361,8 @@ internal fun ConversationSheet(
                         ) {
                             when(queryResultUiState) {
                                 is QueryResultUiState.Loading -> {
-                                    item {
-                                        Box(
-                                            Modifier.fillMaxSize()
-                                        ) {
-                                            DgenLoadingMatrix(
-                                                unactiveLEDColor = secondaryColor,
-                                                activeLEDColor = primaryColor
-                                            )
-                                        }
-                                    }
+                                    // Remove the loading matrix here to prevent double loading
+                                    // The ContactViewModel handles the conversation creation loading
                                 }
                                 is QueryResultUiState.Success -> {
 

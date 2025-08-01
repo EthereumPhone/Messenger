@@ -155,15 +155,25 @@ fun MessagingNavHost(
             }
             
             // Handle deep link navigation after NavHost and navigation graph are set up
+            // Only handle external deep links, not internal navigation
             LaunchedEffect(threadId, inputAddress, contactName) {
                 // If threadId is not null, navigate to the chat
                 threadId?.let {
                     navController.navigateToChatByThreadId(threadId = it.toString())
                 }
                 
-                // If inputAddress is not null, navigate to chat loading
-                inputAddress?.let {
-                    navController.navigateToChatLoading(listOf(inputAddress), contactName)
+                // For inputAddress, only navigate to chat loading if we're starting fresh
+                // This prevents conflict with internal contact selection
+                inputAddress?.let { address ->
+                    // Add a delay to see if any internal navigation happens first
+                    kotlinx.coroutines.delay(100)
+                    
+                    // Only navigate to chat loading if we're still on the conversations route
+                    // and haven't navigated elsewhere via internal contact selection
+                    val currentRoute = navController.currentDestination?.route
+                    if (currentRoute?.contains("conversations_route") == true) {
+                        navController.navigateToChatLoading(listOf(address), contactName)
+                    }
                 }
             }
             
