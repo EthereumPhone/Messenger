@@ -128,7 +128,25 @@ fun MessagingNavHost(
                     conversationDestination = {
                         chatScreen (
                             navController = navController,
-                            onBackClick = navController::popBackStack,
+                            onBackClick = {
+                                // Check if we came from contacts app by looking for chat loading route in back stack
+                                val backStackEntry = navController.previousBackStackEntry
+                                val cameFromChatLoading = backStackEntry?.destination?.route?.contains("chat_loading_route") == true
+                                
+                                if (cameFromChatLoading) {
+                                    // If we came from chat loading (which indicates navigation from contacts app),
+                                    // navigate to inbox instead of going back to chat loading
+                                    navController.navigate(conversationsGraphRoutePattern) {
+                                        popUpTo(conversationsGraphRoutePattern) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                } else {
+                                    // Normal back navigation
+                                    navController.popBackStack()
+                                }
+                            },
                         )
                     }
                 )
