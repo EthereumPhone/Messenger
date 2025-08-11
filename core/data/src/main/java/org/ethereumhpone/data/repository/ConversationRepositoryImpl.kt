@@ -25,6 +25,12 @@ import org.ethereumhpone.common.util.Result
 import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 import org.kethereum.ens.ENS
 import org.kethereum.model.Address
+import org.kethereum.eip137.model.ENSName
+import org.ethereumphone.dgenlibrary.showDgenToast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 class ConversationRepositoryImpl @Inject constructor(
     private val context: Context,
@@ -48,15 +54,85 @@ class ConversationRepositoryImpl @Inject constructor(
             .map { it.map(CompositeConversation::toExternalModel) }
 
     override fun createConversation(addresses: List<String>): Flow<Result<Conversation>> = flow {
-        val recipients = recipientDao.getRecipientsByAddress(addresses).first()
+        // First check if a conversation already exists with the ENS name as title
+        if (addresses.size == 1) {
+            val address = addresses.first()
+            // Check if conversation exists with ENS name as title
+            if (address.isValidEns()) {
+                val existingByTitle = conversationDao.getConversations().first()
+                    .map { it.toExternalModel() }
+                    .find { it.title?.equals(address, ignoreCase = true) == true }
+                if (existingByTitle != null) {
+                    emit(Result.Success(existingByTitle))
+                    return@flow
+                }
+            }
+        }
+        
+        // Normalize and resolve addresses
+        val normalizedAddresses = addresses.map { it.normalizedString() }
+        
+        val recipients = recipientDao.getRecipientsByAddress(normalizedAddresses).first()
         // Wait until XMTP client is ready before making any client calls to avoid IllegalStateException
         xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
         val client = xmtpClientManager.client
         val inboxIds = recipients.map { it.inboxId }
 
-        val allRecipientsFound = inboxIds.size == addresses.size
+        val allRecipientsFound = inboxIds.size == normalizedAddresses.size
         if (!allRecipientsFound) {
-            val identities = addresses.map {
+            // Resolve ENS names to Ethereum addresses in parallel for performance
+            val resolvedAddresses = withContext(Dispatchers.IO) {
+                coroutineScope {
+                    normalizedAddresses.mapIndexed { index, address ->
+                        async {
+                            if (address.isValidEns()) {
+                                try {
+                                    val resolvedAddress = ensResolver.getAddress(ENSName(address))
+                                    if (resolvedAddress != null) {
+                                        resolvedAddress.toString()
+                                    } else {
+                                        showDgenToast(context, "Could not resolve ENS name: ${addresses[index]}")
+                                        null
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("ConversationRepo", "ENS resolution failed for ${addresses[index]}", e)
+                                    showDgenToast(context, "Could not resolve ENS name: ${addresses[index]}")
+                                    null
+                                }
+                            } else {
+                                address
+                            }
+                        }
+                    }.map { it.await() }
+                }
+            }
+            
+            // Check if any ENS resolution failed
+            if (resolvedAddresses.contains(null)) {
+                emit(Result.Error("Could not resolve ENS name"))
+                return@flow
+            }
+            
+            @Suppress("UNCHECKED_CAST")
+            val validResolvedAddresses = resolvedAddresses as List<String>
+            
+            // Check again for recipients with resolved addresses
+            val resolvedRecipients = recipientDao.getRecipientsByAddress(validResolvedAddresses).first()
+            if (resolvedRecipients.isNotEmpty()) {
+                // Found recipients with resolved addresses - check for existing conversation
+                val resolvedInboxIds = resolvedRecipients.map { it.inboxId }
+                val existingConversation = conversationDao
+                    .getCompositeConversationByExactMembers(resolvedInboxIds)
+                    .first()
+                    ?.toExternalModel()
+                    
+                if (existingConversation != null) {
+                    emit(Result.Success(existingConversation))
+                    return@flow
+                }
+            }
+            
+            val identities = validResolvedAddresses.map {
                 PublicIdentity(kind = IdentityKind.ETHEREUM, identifier = it)
             }
 
@@ -64,13 +140,14 @@ class ConversationRepositoryImpl @Inject constructor(
             val notAllowed = consentMap.filterValues { !it }
 
             if (notAllowed.isNotEmpty()) {
-                val blocked = notAllowed.keys.joinToString(", ")
-                emit(Result.Error("Could not create a conversation with: $blocked"))
+                val addressText = if (notAllowed.keys.size == 1) "Address" else "Addresses"
+                showDgenToast(context, "$addressText not registered with XMTP")
+                emit(Result.Error("NOT_REGISTERED_WITH_XMTP"))
                 return@flow
             }
 
             if (addresses.size > 1) {
-                emit(Result.Error("Group conversations are not yet supported"))
+                showDgenToast(context, "Group conversations not yet supported")
                 return@flow
             }
 
@@ -79,18 +156,32 @@ class ConversationRepositoryImpl @Inject constructor(
                 val identity = identities.first()
                 val dm = client.conversations.findOrCreateDmWithIdentity(identity)
 
+                // Use original ENS name as title if provided
+                val conversationTitle = if (addresses.size == 1 && addresses.first().isValidEns()) {
+                    addresses.first()
+                } else {
+                    null
+                }
+                
                 val conversationEntity = ConversationEntity(
                     id = dm.id,
-                    title = null,
+                    title = conversationTitle,
                     members = listOf(dm.peerInboxId),
                     createdAt = dm.createdAt.time,
                     clientInbox = client.inboxId
                 )
 
-                // Attempt to link the new recipient to an existing contact (ETH address match, case-insensitive)
+                // Attempt to link the new recipient to an existing contact 
+                // Check both original ENS name and resolved address (case-insensitive)
+                val originalAddress = addresses.first() // Original input (might be ENS)
+                val resolvedAddress = identity.identifier // Resolved Ethereum address
+                
                 val contactLookupKey = contactDao.getContacts().first()
                     .firstOrNull { contact ->
-                        contact.ethAddress?.equals(identity.identifier, ignoreCase = true) == true
+                        // Check if contact's ETH address matches the resolved address
+                        contact.ethAddress?.equals(resolvedAddress, ignoreCase = true) == true ||
+                        // Or if contact's ETH address matches the original ENS name
+                        contact.ethAddress?.equals(originalAddress, ignoreCase = true) == true
                     }?.lookupKey
 
                 val recipientEntity = RecipientEntity(
@@ -139,9 +230,16 @@ class ConversationRepositoryImpl @Inject constructor(
         if (conversation != null) {
             emit(Result.Success(conversation.toExternalModel()))
         } else {
+            // Use original ENS name as title if provided
+            val conversationTitle = if (addresses.size == 1 && addresses.first().isValidEns()) {
+                addresses.first()
+            } else {
+                null
+            }
+            
             val newConversation = ConversationEntity(
                 id = dm.id,
-                title = null,
+                title = conversationTitle,
                 members = listOf(dm.peerInboxId),
                 createdAt = dm.createdAt.time,
                 clientInbox = client.inboxId
@@ -175,3 +273,8 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.deleteConversation(id)
     }
 }
+
+// Extension functions for ENS validation and string normalization
+private fun String.normalizedString(): String = this.replace("\\s".toRegex(), "").lowercase()
+private fun String.isValidEns(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_\$]{3,}\\.eth$"))
+private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))

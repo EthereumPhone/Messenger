@@ -108,4 +108,7 @@ dependencies {
 
     implementation("com.vdurmont:emoji-java:5.1.1") // emoji parser
 
+    implementation(project(":dgenlibrary"))
+    implementation("androidx.compose.ui:ui-graphics") // Required for showDgenToast Color parameter
+
 }

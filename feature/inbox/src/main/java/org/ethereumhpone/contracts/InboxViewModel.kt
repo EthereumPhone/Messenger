@@ -7,11 +7,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
+import org.ethereumhpone.domain.manager.NetworkManager
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumhpone.domain.repository.SyncRepository
@@ -29,14 +31,25 @@ class InboxViewModel @Inject constructor(
     private val xmtpClientManager: XmtpClientManager,
     private val ensResolver: ENS,
     private val syncRepository: SyncRepository,
+    private val networkManager: NetworkManager,
 ): ViewModel() {
+
+    // Expose network connectivity status separately
+    val isOnline: StateFlow<Boolean> = networkManager.isOnline
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = true,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
 
     // Keep the UI in a `Loading` state until we have at least one conversation. This prevents the
     // temporary "No conversations" screen from flashing when data is still being fetched/synced.
     val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
         .map { conversations ->
             if (conversations.isEmpty()) {
-                ConversationUIState.Loading
+                // TODO: Ideally we'd differentiate between "loading" and "truly empty" 
+                // For now, we'll show empty state when conversations list is empty
+                ConversationUIState.Empty
             } else {
                 ConversationUIState.Success(conversations)
             }

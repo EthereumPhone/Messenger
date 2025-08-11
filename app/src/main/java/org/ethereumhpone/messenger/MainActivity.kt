@@ -199,7 +199,9 @@ class MainActivity : ComponentActivity() {
         }
 
         var inputAddress: String? = null
-        var inputName: String? = null
+
+        var contactName: String? = null
+
 
         val data = intent?.data
 
@@ -212,10 +214,10 @@ class MainActivity : ComponentActivity() {
                     inputAddress = inputAddress?.substringBefore('?')
                 }
                 "ethos-messenger" -> {
-                    // Handle ethos-messenger://chat/new?address=...&name=...
-                    if (data.host == "chat" && data.path == "/new") {
+                    // Handle deep link from contacts app
+                    if (data.host == "chat" && data.pathSegments.firstOrNull() == "new") {
                         inputAddress = data.getQueryParameter("address")
-                        inputName = data.getQueryParameter("name")
+                        contactName = data.getQueryParameter("name")
                     }
                 }
             }
@@ -231,7 +233,8 @@ class MainActivity : ComponentActivity() {
                 MessagingApp(
                     messengerAppState = appState,
                     threadId = threadId,
-                    inputAddress = inputAddress
+                    inputAddress = inputAddress,
+                    contactName = contactName
                 )
             }
         }

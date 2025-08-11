@@ -1,6 +1,8 @@
 package org.ethereumhpone.chat.navigation
 
+import android.content.Intent
 import android.net.Uri
+import android.provider.ContactsContract
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavController
@@ -9,6 +11,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import org.ethereumhpone.chat.ChatRoute
+import org.ethereumhpone.chat.ChatLoadingRoute
 import org.ethereumhpone.database.util.Converters
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -28,6 +31,7 @@ internal const val contactArg = "contact"
 
 const val chatGraphRoutePattern = "chat_graph"
 const val chatRoute = "chat_route"
+const val chatLoadingRoute = "chat_loading_route"
 
 
 internal class ThreadIdArgs(val threadId: String?) {
@@ -41,6 +45,11 @@ internal class AddressesArgs(val addresses: List<String>?) {
             Converters().toStringList(Uri.decode(it))
         } ?: emptyList()
     )
+}
+
+internal class ContactNameArgs(val contactName: String?) {
+    constructor(savedStateHandle: SavedStateHandle) :
+            this(savedStateHandle.get<String>(contactArg)?.let { URLDecoder.decode(it, URL_CHARACTER_ENCODING) })
 }
 
 fun NavController.navigateToChatByThreadId(threadId: String) {
@@ -57,7 +66,29 @@ fun NavController.navigateToChatByAddresses(addresses: List<String>) {
     }
 }
 
+fun NavController.navigateToChatByAddressesWithContactName(addresses: List<String>, contactName: String) {
+    val encodedAddresses = Uri.encode(Converters().fromStringList(addresses))
+    val encodedContactName = URLEncoder.encode(contactName, URL_CHARACTER_ENCODING)
+    this.navigate("$chatRoute/addresses/$encodedAddresses?contactName=$encodedContactName") {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToChatLoading(addresses: List<String>, contactName: String?) {
+    val encodedAddresses = Uri.encode(Converters().fromStringList(addresses))
+    val route = if (contactName != null) {
+        val encodedContactName = URLEncoder.encode(contactName, URL_CHARACTER_ENCODING)
+        "$chatLoadingRoute/$encodedAddresses?contactName=$encodedContactName"
+    } else {
+        "$chatLoadingRoute/$encodedAddresses"
+    }
+    this.navigate(route) {
+        launchSingleTop = true
+    }
+}
+
 fun NavGraphBuilder.chatScreen(
+    navController: NavController,
     onBackClick: () -> Unit,
 ) {
     composable(
@@ -68,9 +99,54 @@ fun NavGraphBuilder.chatScreen(
     ) { ChatRoute(onBackClick = onBackClick) }
 
     composable(
-        route = "$chatRoute/addresses/{$addressesArg}",
+        route = "$chatRoute/addresses/{$addressesArg}?contactName={$contactArg}",
         arguments = listOf(
-            navArgument(addressesArg) { type = NavType.StringType }
+            navArgument(addressesArg) { type = NavType.StringType },
+            navArgument(contactArg) { 
+                type = NavType.StringType 
+                nullable = true
+                defaultValue = null
+            }
         ),
     ) { ChatRoute(onBackClick = onBackClick) }
+    
+    composable(
+        route = "$chatLoadingRoute/{$addressesArg}?contactName={$contactArg}",
+        arguments = listOf(
+            navArgument(addressesArg) { type = NavType.StringType },
+            navArgument(contactArg) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }
+        ),
+    ) { 
+        ChatLoadingRoute(
+            onNavigateToChat = { conversationId ->
+                navController.navigateToChatByThreadId(conversationId)
+            }, 
+            onNavigateBack = onBackClick,
+            onNavigateToContacts = {
+                // Navigate back to contacts app
+                val context = navController.context
+                val contactsIntent = context.packageManager.getLaunchIntentForPackage("org.ethereumhpone.contacts")
+                if (contactsIntent != null) {
+                    contactsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    context.startActivity(contactsIntent)
+                } else {
+                    // Fallback: try to open contacts using system intent
+                    val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                        type = ContactsContract.Contacts.CONTENT_TYPE
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    try {
+                        context.startActivity(fallbackIntent)
+                    } catch (e: Exception) {
+                        // If all fails, just go back
+                        onBackClick()
+                    }
+                }
+            }
+        )
+    }
 }

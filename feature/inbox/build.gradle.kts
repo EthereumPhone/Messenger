@@ -46,6 +46,10 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.5"
     }
+
+    lint {
+        disable.add("CoroutineCreationDuringComposition")
+    }
 }
 
 dependencies {

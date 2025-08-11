@@ -1,20 +1,17 @@
 package org.ethereumphone.dgenlibrary.screens
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import coil.ImageLoader
-
-
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +20,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.ImageLoader
 import coil.compose.AsyncImage
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.neonOpacity
@@ -30,12 +28,13 @@ import com.example.dgenlibrary.ui.theme.pulseOpacity
 import org.ethereumphone.dgenlibrary.R
 
 @Composable
-fun InformationScreen(
+fun InfoScreen(
     modifier: Modifier = Modifier,
+    description: String = "Description",
+    imageSize: Dp = 275.dp,
     gifEnabledLoader: ImageLoader,
-    gifSize: Dp = 275.dp,
-    primaryColor: Color,
-    text: String
+    imageModel: Any? = R.drawable.wireframe_torus,
+    primaryColor: Color
 ){
     Box(
         modifier = modifier.fillMaxSize(),
@@ -44,19 +43,19 @@ fun InformationScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(0.dp),
-            modifier = Modifier
+            modifier = Modifier.offset(y= (-48).dp)
         ) {
             AsyncImage(
                 imageLoader = gifEnabledLoader,
-                model = R.drawable.wireframe_torus,
+                model = imageModel,
                 contentDescription = null,
-                modifier = Modifier.size(gifSize),
+                modifier = Modifier.size(imageSize),
                 colorFilter = ColorFilter.tint(primaryColor.copy(pulseOpacity))
 
             )
 
             Text(
-                text = text,
+                text = description,
                 style = TextStyle(
                     fontFamily = PitagonsSans,
                     color = primaryColor.copy(neonOpacity),

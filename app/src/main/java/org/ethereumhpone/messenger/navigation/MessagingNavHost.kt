@@ -16,7 +16,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import org.ethereumhpone.chat.navigation.chatScreen
 import org.ethereumhpone.chat.navigation.navigateToChatByAddresses
+import org.ethereumhpone.chat.navigation.navigateToChatByAddressesWithContactName
 import org.ethereumhpone.chat.navigation.navigateToChatByThreadId
+import org.ethereumhpone.chat.navigation.navigateToChatLoading
 import org.ethereumhpone.contracts.navigation.conversationsGraph
 import org.ethereumhpone.contracts.navigation.conversationsGraphRoutePattern
 import org.ethereumhpone.contracts.navigation.navigateToConversations
@@ -32,6 +34,7 @@ fun MessagingNavHost(
     modifier: Modifier = Modifier,
     threadId: Int? = null,
     inputAddress: String? = null,
+    contactName: String? = null,
     startDestination: String = conversationsGraphRoutePattern
 ){
     val context = LocalContext.current
@@ -59,6 +62,7 @@ fun MessagingNavHost(
             }
         }
     }
+
 
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
@@ -122,28 +126,56 @@ fun MessagingNavHost(
                     onConversationClick = navController::navigateToChatByThreadId,
                     conversationDestination = {
                         chatScreen (
-                            onBackClick = navController::popBackStack,
+                            navController = navController,
+                            onBackClick = {
+                                // Check if we came from contacts app by looking for chat loading route in back stack
+                                val backStackEntry = navController.previousBackStackEntry
+                                val cameFromChatLoading = backStackEntry?.destination?.route?.contains("chat_loading_route") == true
+                                
+                                if (cameFromChatLoading) {
+                                    // If we came from chat loading (which indicates navigation from contacts app),
+                                    // navigate to inbox instead of going back to chat loading
+                                    navController.navigate(conversationsGraphRoutePattern) {
+                                        popUpTo(conversationsGraphRoutePattern) {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                } else {
+                                    // Normal back navigation
+                                    navController.popBackStack()
+                                }
+                            },
                         )
                     }
                 )
 
                 onboardingScreen(navController::navigateToConversations)
-
             }
             
-            // Navigate to specific chat if threadId or inputAddress is provided
-            // This needs to happen after NavHost is created to avoid navigation graph errors
-            threadId?.let {
-                LaunchedEffect(it) {
+            // Handle deep link navigation after NavHost and navigation graph are set up
+            // Only handle external deep links, not internal navigation
+            LaunchedEffect(threadId, inputAddress, contactName) {
+                // If threadId is not null, navigate to the chat
+                threadId?.let {
                     navController.navigateToChatByThreadId(threadId = it.toString())
                 }
-            }
-
-            inputAddress?.let {
-                LaunchedEffect(inputAddress) {
-                    navController.navigateToChatByAddresses(listOf(inputAddress))
+                
+                // For inputAddress, only navigate to chat loading if we're starting fresh
+                // This prevents conflict with internal contact selection
+                inputAddress?.let { address ->
+                    // Add a delay to see if any internal navigation happens first
+                    kotlinx.coroutines.delay(100)
+                    
+                    // Only navigate to chat loading if we're still on the conversations route
+                    // and haven't navigated elsewhere via internal contact selection
+                    val currentRoute = navController.currentDestination?.route
+                    if (currentRoute?.contains("conversations_route") == true) {
+                        navController.navigateToChatLoading(listOf(address), contactName)
+                    }
                 }
             }
+            
         }
     }
 }
