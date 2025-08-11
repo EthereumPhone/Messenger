@@ -199,15 +199,25 @@ class MainActivity : ComponentActivity() {
         }
 
         var inputAddress: String? = null
+        var inputName: String? = null
 
         val data = intent?.data
 
         if (data != null) {
             val scheme = data.scheme
-            if (scheme == "sms" || scheme == "smsto" || scheme == "mms" || scheme == "mmsto") {
-                inputAddress = data.schemeSpecificPart
-                // Remove any query parameters if present
-                inputAddress = inputAddress?.substringBefore('?')
+            when (scheme) {
+                "sms", "smsto", "mms", "mmsto" -> {
+                    inputAddress = data.schemeSpecificPart
+                    // Remove any query parameters if present
+                    inputAddress = inputAddress?.substringBefore('?')
+                }
+                "ethos-messenger" -> {
+                    // Handle ethos-messenger://chat/new?address=...&name=...
+                    if (data.host == "chat" && data.path == "/new") {
+                        inputAddress = data.getQueryParameter("address")
+                        inputName = data.getQueryParameter("name")
+                    }
+                }
             }
         }
 

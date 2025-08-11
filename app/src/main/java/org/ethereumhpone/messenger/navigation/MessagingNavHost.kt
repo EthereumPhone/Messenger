@@ -60,19 +60,6 @@ fun MessagingNavHost(
         }
     }
 
-    // If threadId is not null, navigate to the chat
-    threadId?.let {
-        LaunchedEffect(it) {
-            navController.navigateToChatByThreadId(threadId = it.toString())
-        }
-    }
-
-    inputAddress?.let {
-        LaunchedEffect(inputAddress) {
-            navController.navigateToChatByAddresses(listOf(inputAddress))
-        }
-    }
-
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
 
@@ -142,6 +129,20 @@ fun MessagingNavHost(
 
                 onboardingScreen(navController::navigateToConversations)
 
+            }
+            
+            // Navigate to specific chat if threadId or inputAddress is provided
+            // This needs to happen after NavHost is created to avoid navigation graph errors
+            threadId?.let {
+                LaunchedEffect(it) {
+                    navController.navigateToChatByThreadId(threadId = it.toString())
+                }
+            }
+
+            inputAddress?.let {
+                LaunchedEffect(inputAddress) {
+                    navController.navigateToChatByAddresses(listOf(inputAddress))
+                }
             }
         }
     }
