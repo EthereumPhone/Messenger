@@ -199,7 +199,9 @@ class MainActivity : ComponentActivity() {
         }
 
         var inputAddress: String? = null
+
         var contactName: String? = null
+
 
         val data = intent?.data
 

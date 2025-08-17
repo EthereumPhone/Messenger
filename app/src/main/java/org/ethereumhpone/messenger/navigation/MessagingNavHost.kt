@@ -63,7 +63,6 @@ fun MessagingNavHost(
         }
     }
 
-    // Deep link navigation will be handled after the NavHost is created
 
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
@@ -177,7 +176,6 @@ fun MessagingNavHost(
                 }
             }
             
-
         }
     }
 }
