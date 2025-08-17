@@ -1,11 +1,14 @@
 package org.ethereumhpone.chat
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -327,11 +330,29 @@ fun ChatScreen(
                     chatConversion?.getHeader() ?: "",
                     recipientUiState = recipientUiState,
                     onTitleClicked = {
-                        // Commented out option sheet trigger - kept for future use if needed
-                        // currentActions = Actions.CONTACT
-                        // showPicker.value = true
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
+                        // Copy recipient's address to clipboard when title is clicked
+                        when (recipientUiState) {
+                            is RecipientUiState.Success -> {
+                                val recipients = recipientUiState.recipients
+                                if (recipients.isNotEmpty()) {
+                                    // Get the first recipient's address (for single chats)
+                                    val address = recipients.first().address
+                                    
+                                    // Copy to clipboard
+                                    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("Recipient Address", address)
+                                    clipboardManager.setPrimaryClip(clip)
+                                    
+                                    // Show toast confirmation
+                                    Toast.makeText(context, "Address copied to clipboard", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            else -> {
+                                // Fallback to previous behavior
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                            }
+                        }
                     },
                     onBackClicked = navigateBackToConversations,
                     primaryColor = primaryColor
