@@ -47,9 +47,13 @@ class ContactViewModel @Inject constructor(
             contacts,
             searchQuery
         ) { contacts, query ->
+            // Filter contacts to only show those with valid eth addresses (not null or empty)
+            val contactsWithEthAddress = contacts.filter { 
+                !it.ethAddress.isNullOrBlank() 
+            }
 
             if (query.isEmpty()) {
-                QueryResultUiState.Success(null, contacts)
+                QueryResultUiState.Success(null, contactsWithEthAddress)
             } else {
                 // Generate a manual contact based on the query
                 val manualContactEntity = if (query.isValidEns() || query.isValidEthAddress()) {
@@ -58,8 +62,8 @@ class ContactViewModel @Inject constructor(
                     null
                 }
 
-                // Filter contacts based on the query and add manual contact if present
-                val filteredContacts = contacts.filter { filterContact(it, query) }
+                // Filter contacts based on the query (filterContact already checks for ethAddress)
+                val filteredContacts = contactsWithEthAddress.filter { filterContact(it, query) }
 
                 // Return appropriate UI state
                 QueryResultUiState.Success(
@@ -80,8 +84,6 @@ class ContactViewModel @Inject constructor(
 
     fun getOrCreateConversation(contacts: List<String>) {
         viewModelScope.launch(Dispatchers.IO) {
-            val allContacts = contactRepository.getContacts().first()
-
             val addresses = contacts
                 .filter { it.isNotBlank() }
                 .map { contactIdentifier ->
@@ -98,11 +100,8 @@ class ContactViewModel @Inject constructor(
                         }
                         contactIdentifier.normalizedString().isValidEthAddress() -> contactIdentifier.normalizedString()
                         else -> {
-                            val foundContact = allContacts.find { c -> c.numbers.any { phoneNumberUtils.compare(it.address, contactIdentifier) } }
-                            foundContact?.ethAddress?.normalizedString() ?: run {
-                                _uiEvent.tryEmit(UiEvent.ShowError("No contact with an ETH address found for this number, or the number is not valid."))
-                                return@launch
-                            }
+                            _uiEvent.tryEmit(UiEvent.ShowError("Invalid Ethereum address or ENS name"))
+                            return@launch
                         }
                     }
 
@@ -137,10 +136,12 @@ class ContactViewModel @Inject constructor(
 private fun filterContact(contactEntity: ContactEntity, query: String): Boolean {
     val normalizedQuery = query.normalizedString()
 
-    return contactEntity.name.contains(query) || // Check name
-            contactEntity.lookupKey.contains(query) || // Check lookupKey
-            contactEntity.numbers.any { it.address.contains(normalizedQuery) } || // Check normalized numbers
-            (contactEntity.ethAddress?.contains(query) ?: false) // Check ethAddress
+    // Only return contacts with valid eth addresses (not null or empty)
+    if (contactEntity.ethAddress.isNullOrBlank()) return false
+
+    return contactEntity.name.contains(query, ignoreCase = true) || // Check name
+            contactEntity.lookupKey.contains(query, ignoreCase = true) || // Check lookupKey
+            contactEntity.ethAddress!!.contains(query, ignoreCase = true) // Check ethAddress (we already know it's not null)
 }
 
 

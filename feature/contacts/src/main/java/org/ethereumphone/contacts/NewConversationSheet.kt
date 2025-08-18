@@ -400,7 +400,12 @@ internal fun ConversationSheet(
                                     }
 
 
-                                    if (queryResultUiState.contactEntities.isEmpty()) {
+                                    // Filter to only show contacts with valid eth addresses (not null or empty)
+                                    val contactsWithEthAddress = queryResultUiState.contactEntities.filter { 
+                                        !it.ethAddress.isNullOrBlank() 
+                                    }
+                                    
+                                    if (contactsWithEthAddress.isEmpty()) {
                                         item {
                                             Box(modifier = Modifier.fillParentMaxSize(),
                                                 contentAlignment = Alignment.Center
@@ -409,7 +414,7 @@ internal fun ConversationSheet(
                                                     imageSize = 180.dp,
                                                     gifEnabledLoader = gifEnabledLoader,
                                                     primaryColor = primaryColor,
-                                                    description = "No contacts available"
+                                                    description = "No contacts with Ethereum addresses"
                                                 )
                                             }
                                         }
@@ -420,18 +425,13 @@ internal fun ConversationSheet(
                                                 .fillMaxWidth()
                                                 .height(16.dp))
                                         }
-                                        items(queryResultUiState.contactEntities) { contact ->
+                                        
+                                        items(contactsWithEthAddress) { contact ->
                                             // add onCLick behaviour
                                             Column(
                                                 modifier = Modifier.clickable {
                                                     contact.ethAddress?.let {
                                                         onContactsSelected(listOf(it))
-                                                    } ?: run {
-                                                        Toast.makeText(
-                                                            context,
-                                                            "Selected contact has no Ethereum address",
-                                                            Toast.LENGTH_LONG
-                                                        ).show()
                                                     }
                                                 }
                                             ) {
@@ -448,21 +448,30 @@ internal fun ConversationSheet(
                                                         textDecoration = TextDecoration.None
                                                     )
                                                 )
-                                                if(contact.numbers.firstOrNull()?.address != null){
-                                                    Text(
-                                                        text = contact.numbers.firstOrNull()?.address!!,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                        style = TextStyle(
-                                                            fontFamily = PitagonsSans,
-                                                            color = primaryColor.copy(pulseOpacity),
-                                                            fontWeight = FontWeight.SemiBold,
-                                                            fontSize = 16.sp,
-                                                            lineHeight = 16.sp,
-                                                            letterSpacing = 0.sp,
-                                                            textDecoration = TextDecoration.None
-                                                        ),
-                                                        modifier = Modifier.fillMaxWidth()
-                                                    )
+                                                // Display eth address or ENS instead of phone number
+                                                contact.ethAddress?.let { ethAddr ->
+                                                    if (ethAddr.isNotBlank()) {
+                                                        Text(
+                                                            text = when {
+                                                                ethAddr.endsWith(".eth") -> ethAddr
+                                                                ethAddr.length > 10 -> ethAddr.take(6) + "..." + ethAddr.takeLast(6)
+                                                                else -> ethAddr
+                                                            },
+                                                            overflow = TextOverflow.Ellipsis,
+                                                            style = TextStyle(
+                                                                fontFamily = PitagonsSans,
+                                                                color = primaryColor.copy(pulseOpacity),
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                fontSize = 16.sp,
+                                                                lineHeight = 16.sp,
+                                                                letterSpacing = 0.sp,
+                                                                textDecoration = TextDecoration.None
+                                                            ),
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(top = 2.dp)
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }

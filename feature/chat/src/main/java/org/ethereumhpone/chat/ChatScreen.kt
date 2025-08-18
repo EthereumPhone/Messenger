@@ -342,9 +342,6 @@ fun ChatScreen(
                                     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     val clip = ClipData.newPlainText("Recipient Address", address)
                                     clipboardManager.setPrimaryClip(clip)
-                                    
-                                    // Show toast confirmation
-                                    Toast.makeText(context, "Address copied to clipboard", Toast.LENGTH_SHORT).show()
                                 }
                             }
                             else -> {
