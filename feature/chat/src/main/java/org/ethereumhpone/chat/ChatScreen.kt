@@ -59,6 +59,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -100,6 +102,9 @@ import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
 import java.io.ByteArrayOutputStream
 import kotlin.time.Duration.Companion.seconds
+import com.messenger.terminalsdk.TerminalLEDController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 @Composable
@@ -209,6 +214,7 @@ fun ChatScreen(
     clearSelection: () -> Unit,
 ) {
     val context = LocalContext.current
+    val hapticFeedback = LocalHapticFeedback.current
 
     //handle focus
     val showBottomSheet by remember { mutableStateOf(false) }
@@ -364,9 +370,29 @@ fun ChatScreen(
                     },
                     onSendClick = { text ->
                         if (text.isNotBlank()) {
-                            println("Before send")
-                            onSendMessageClicked(text)
-                            println("After send")
+                            coroutineScope.launch(Dispatchers.IO) {
+                                try {
+                                    println("Before send")
+                                    onSendMessageClicked(text)
+                                    println("After send")
+                                    
+                                    // Success feedback: haptic + LED
+                                    withContext(Dispatchers.Main) {
+                                        // Positive haptic feedback for successful send
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                    // Flash success pattern when message sent
+                                    TerminalLEDController.flashSuccess()
+                                } catch (e: Exception) {
+                                    // Error feedback: haptic + LED
+                                    withContext(Dispatchers.Main) {
+                                        // Error haptic feedback
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    // Flash error pattern if send fails
+                                    TerminalLEDController.flashError()
+                                }
+                            }
                         }
                         selectedAttachments.clear()
                     },
