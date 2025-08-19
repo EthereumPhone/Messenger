@@ -45,6 +45,7 @@ import org.ethereumhpone.messenger.ui.MessagingApp
 import org.ethereumhpone.messenger.ui.rememberMessengerAppState
 import org.ethereumhpone.messenger.ui.theme.MessengerTheme
 import org.ethereumphone.walletsdk.WalletSDK
+import com.messenger.terminalsdk.TerminalLEDController
 import javax.inject.Inject
 
 
@@ -79,6 +80,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize TerminalLEDController
+        TerminalLEDController.initialize(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         // Hide the status bar
@@ -243,6 +247,19 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         contentResolver.unregisterContentObserver(contentObserver)
+        // Clean up terminal resources when the activity is destroyed
+        TerminalLEDController.cleanupSync()
+    }
 
+    override fun onPause() {
+        super.onPause()
+        // Only clear LED, don't cleanup everything
+        TerminalLEDController.clearLED()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-display chad pattern when app comes back
+        TerminalLEDController.displayChadPattern()
     }
 }
