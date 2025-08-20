@@ -348,7 +348,7 @@ fun InboxScreen(
                                                     fontWeight = FontWeight.Normal,
                                                     fontSize = 16.sp,
                                                     letterSpacing = 0.sp,
-                                                    textDecoration = TextDecoration.None
+                                                    textDecoration = if(pagerState.currentPage == index) TextDecoration.Underline else TextDecoration.None
                                                 )
                                             )
                                         },
@@ -403,7 +403,7 @@ fun InboxScreen(
                                                                         expandedConversationId = null // close any revealed rows
                                                                     },
                                                                     icon = Icons.Outlined.Delete,
-                                                                    iconColor = primaryColor,
+                                                                    iconColor = secondaryColor,
                                                                     iconSize = 100.dp,
                                                                     modifier = Modifier.fillMaxHeight()
                                                                 )
@@ -511,7 +511,7 @@ fun InboxScreen(
                                                                         expandedConversationId = null
                                                                     },
                                                                     icon = Icons.Filled.Check,
-                                                                    iconColor = primaryColor,
+                                                                    iconColor = secondaryColor,
                                                                     iconSize = 48.dp,
                                                                     modifier = Modifier.fillMaxHeight()
                                                                 )

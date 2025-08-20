@@ -28,6 +28,7 @@ import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.pulseOpacity
 import kotlinx.datetime.Instant
 import org.ethereumhpone.contracts.utils.printFormattedDateInfo
+import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumphone.dgenlibrary.theme.lazerCore
 
 
@@ -61,7 +62,7 @@ fun ChatListInfo(
             Text(
                 text = header,
                 style = TextStyle(
-                    fontFamily = PitagonsSans,
+                    fontFamily = SpaceMono,
                     color = if(readConversation) primaryColor.copy(pulseOpacity) else primaryColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 24.sp,
@@ -78,7 +79,7 @@ fun ChatListInfo(
                 text = subheader,
                 style = TextStyle(
                     fontFamily = PitagonsSans,
-                    color = if(readConversation) primaryColor.copy(pulseOpacity) else primaryColor,
+                    color = if(readConversation) dgenWhite.copy(pulseOpacity) else dgenWhite,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
                     lineHeight = 14.sp,
@@ -103,7 +104,7 @@ fun ChatListInfo(
                     style = TextStyle(
                         fontFamily = SpaceMono,
                         color = if(readConversation) primaryColor.copy(pulseOpacity) else primaryColor,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
                         lineHeight = 13.sp,
                         letterSpacing = 0.sp,
