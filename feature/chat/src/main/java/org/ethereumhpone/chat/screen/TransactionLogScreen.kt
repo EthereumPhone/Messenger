@@ -30,7 +30,7 @@ fun TransactionLogScreen(
             .fillMaxSize()
             .padding(start = 32.dp, end = 0.dp, top = 0.dp)
             .verticalLazyListScrollbar(
-                scrollState, fixed = true,
+                scrollState,
                 scrollBarTrackColor = secondaryColor,
                 scrollBarColor = primaryColor,
             ),

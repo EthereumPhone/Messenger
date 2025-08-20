@@ -112,7 +112,7 @@ fun MessageItem(
         }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 32.dp,end = 32.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 24.dp,end = 24.dp),
         horizontalArrangement = if (msg.isMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {

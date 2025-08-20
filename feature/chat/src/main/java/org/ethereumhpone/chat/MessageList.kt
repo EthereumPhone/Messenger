@@ -86,6 +86,7 @@ fun MessageList(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalLazyListScrollbar(
+                    autoHide = true,
                     lazyListState = scrollState,
                     scrollBarColor = primaryColor,
                     scrollBarTrackColor = secondaryColor

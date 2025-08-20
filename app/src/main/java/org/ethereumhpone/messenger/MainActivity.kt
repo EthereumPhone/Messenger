@@ -48,6 +48,7 @@ import org.ethereumhpone.messenger.ui.theme.MessengerTheme
 import org.ethereumphone.walletsdk.WalletSDK
 import com.messenger.terminalsdk.TerminalLEDController
 import kotlinx.coroutines.delay
+import org.ethereumphone.dgenlibrary.SystemColorManager
 import javax.inject.Inject
 
 
@@ -262,6 +263,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         // Re-display chad pattern when app comes back
+        SystemColorManager.refresh(this)
         val reflectiveLedManager = ReflectiveLedManager()
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -272,6 +274,5 @@ class MainActivity : ComponentActivity() {
             delay(125)
             TerminalLEDController.displayChadPattern()
         }
-
     }
 }

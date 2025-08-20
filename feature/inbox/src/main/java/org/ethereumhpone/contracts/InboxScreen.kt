@@ -372,8 +372,9 @@ fun InboxScreen(
                                                             lazylist,
                                                             scrollBarTrackColor = secondaryColor,
                                                             scrollBarColor = primaryColor,
-                                                            topPadding = 48.dp,
-                                                            bottomPadding = 48.dp
+                                                            autoHide = true,
+                                                            trackTopInset = 32.dp,
+                                                            trackBottomInset = 32.dp,
                                                         )
                                                         .fillMaxSize()
                                                 ) {
@@ -480,8 +481,8 @@ fun InboxScreen(
                                                             lazylist,
                                                             scrollBarTrackColor = secondaryColor,
                                                             scrollBarColor = primaryColor,
-                                                            topPadding = 48.dp,
-                                                            bottomPadding = 48.dp
+                                                            trackTopInset = 48.dp,
+                                                            trackBottomInset = 48.dp
                                                         )
                                                         .fillMaxSize()
                                                 ) {

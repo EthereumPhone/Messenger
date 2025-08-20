@@ -154,7 +154,7 @@ fun OverlayContactScreen(
                     state = scrollState,
                     modifier = Modifier
                         .verticalLazyListScrollbar(
-                            scrollState, fixed = true,
+                            scrollState,
                             scrollBarTrackColor= secondaryColor,
                             scrollBarColor= primaryColor,
                         )

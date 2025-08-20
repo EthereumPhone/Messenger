@@ -275,9 +275,13 @@ fun OverlaySendScreen(
                                 state = scrollState,
                                 modifier = Modifier
                                     .verticalLazyListScrollbar(
-                                        scrollState, fixed = true,
+                                        scrollState,
                                         scrollBarTrackColor = secondaryColor,
                                         scrollBarColor = primaryColor,
+                                        autoHide = true,
+                                        fadeInDuration = 300,
+                                        fadeOutDuration = 300,
+                                        hideDelay = 1000L
                                     )
                                     .fillMaxSize()
                                     .background(dgenBlack),
