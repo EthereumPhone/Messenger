@@ -12,10 +12,13 @@ object TerminalLEDController {
     private const val TAG = "TerminalLEDController"
 
     private var applicationContext: Context? = null
+
     private var terminal: TerminalSDK? = null
     private var ledPattern: ReflectiveLedPattern? = null
     private var isInitialized = false
     private var systemColorHex: String? = null
+
+
     
     // Lightweight coroutine scope for async operations
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -34,7 +37,7 @@ object TerminalLEDController {
             
             terminal = TerminalSDK(applicationContext!!)
             ledPattern = ReflectiveLedPattern()
-            ledPattern?.setup()
+            //ledPattern?.setup()
             
             // Cache system color
             updateSystemColor()
@@ -197,7 +200,7 @@ object TerminalLEDController {
     @JvmStatic
     fun cleanupSync() {
         terminal?.destroyTouchHandlerSync()
-        ledPattern?.clear()
+        //ledPattern?.clear()
         Log.d(TAG, "Sync cleanup completed")
     }
     

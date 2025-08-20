@@ -25,6 +25,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.core.terminalsdk.ReflectiveLedManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,7 @@ import org.ethereumhpone.messenger.ui.rememberMessengerAppState
 import org.ethereumhpone.messenger.ui.theme.MessengerTheme
 import org.ethereumphone.walletsdk.WalletSDK
 import com.messenger.terminalsdk.TerminalLEDController
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 
@@ -254,12 +256,23 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         // Only clear LED, don't cleanup everything
-        TerminalLEDController.clearLED()
+        //TerminalLEDController.clearLED()
     }
 
     override fun onResume() {
         super.onResume()
         // Re-display chad pattern when app comes back
-        TerminalLEDController.displayChadPattern()
+        val reflectiveLedManager = ReflectiveLedManager()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            while (reflectiveLedManager.isRunning()) {
+                delay(50)
+                println("testesttest")
+            }
+
+            delay(125)
+            TerminalLEDController.displayChadPattern()
+        }
+
     }
 }
