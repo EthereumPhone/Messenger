@@ -267,7 +267,6 @@ class MainActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             while (reflectiveLedManager.isRunning()) {
                 delay(50)
-                println("testesttest")
             }
 
             delay(125)
