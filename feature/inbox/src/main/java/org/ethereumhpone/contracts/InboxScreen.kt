@@ -61,6 +61,8 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -73,6 +75,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.messenger.terminalsdk.TerminalLEDController
 import org.ethosmobile.components.library.theme.Colors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.ImageLoader
@@ -113,12 +118,37 @@ fun ContactRoute(
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
 
+    val coroutineScope = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
+
     InboxScreen(
         modifier = modifier,
         conversationState = conversationState,
         isOnline = isOnline,
         markAccepted = { id, acceptedState -> viewModel.updateConsentState(id, acceptedState) },
-        deleteConversation = { id -> viewModel.deleteConversation(id) },
+        deleteConversation = { id ->
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    viewModel.deleteConversation(id)
+                    
+                    // Success feedback: haptic + LED
+                    withContext(Dispatchers.Main) {
+                        // Positive haptic feedback for successful deletion
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    // Flash success pattern when conversation deleted
+                    TerminalLEDController.flashSuccess()
+                } catch (e: Exception) {
+                    // Error feedback: haptic + LED
+                    withContext(Dispatchers.Main) {
+                        // Error haptic feedback
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
+                    // Flash error pattern if deletion fails
+                    TerminalLEDController.flashError()
+                }
+            }
+        },
         markArchived = { id, archivedState -> viewModel.setConversationArchived(id, archivedState) },
         resolveENS = viewModel::resolveENS,
         conversationClicked = { id ->

@@ -21,6 +21,12 @@ public class MiniDisplayTouchHandler {
     private View touchCatcher;
     private Context displayContext;
     private OnTouchListener touchListener;
+    
+    // Track if handler has been destroyed to prevent processing after cleanup
+    private volatile boolean isDestroyed = false;
+    
+    // Static instance tracking for cleanup failsafe
+    private static MiniDisplayTouchHandler activeInstance = null;
 
     // Callback interface for touch events
     public interface OnTouchListener {
@@ -28,8 +34,15 @@ public class MiniDisplayTouchHandler {
     }
 
     public MiniDisplayTouchHandler(Context context, OnTouchListener listener) {
+        // Clean up any existing active instance first
+        if (activeInstance != null) {
+            Log.w(TAG, "Previous instance still active, cleaning up");
+            activeInstance.destroy();
+        }
+        
         this.touchListener = listener;
         initializeMiniDisplay(context);
+        activeInstance = this;
     }
 
     private void initializeMiniDisplay(Context context) {
@@ -57,6 +70,12 @@ public class MiniDisplayTouchHandler {
         touchCatcher.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                // Safety check: ensure the handler is still active
+                if (isDestroyed || touchListener == null || touchCatcher == null) {
+                    Log.w(TAG, "Touch event received after handler destroyed, ignoring");
+                    return false;
+                }
+                
                 if (touchListener != null) {
                     touchListener.onTouch(event.getX(), event.getY(), event.getAction());
 
@@ -93,6 +112,9 @@ public class MiniDisplayTouchHandler {
      * Remove the overlay view and clean up resources
      */
     public void destroy() {
+        // Mark as destroyed immediately to prevent any further touch processing
+        isDestroyed = true;
+        
         if (windowManager != null && touchCatcher != null) {
             try {
                 windowManager.removeView(touchCatcher);
@@ -105,6 +127,11 @@ public class MiniDisplayTouchHandler {
         windowManager = null;
         displayContext = null;
         touchListener = null;
+        
+        // Clear static reference if this is the active instance
+        if (activeInstance == this) {
+            activeInstance = null;
+        }
     }
 
     /**
@@ -119,5 +146,16 @@ public class MiniDisplayTouchHandler {
      */
     public void setOnTouchListener(OnTouchListener listener) {
         this.touchListener = listener;
+    }
+    
+    /**
+     * Static method to clean up any active instance
+     */
+    public static void cleanupActiveInstance() {
+        if (activeInstance != null) {
+            Log.w(TAG, "Cleaning up active instance from static method");
+            activeInstance.destroy();
+            activeInstance = null;
+        }
     }
 }

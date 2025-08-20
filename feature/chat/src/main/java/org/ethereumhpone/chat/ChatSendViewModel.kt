@@ -193,6 +193,15 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
 
     override fun onCleared() {
         activeConversationManager.clearActiveConversation()
+        // Ensure touch handler is cleaned up synchronously when ViewModel is cleared
+        try {
+            // Call destroyTouchHandlerSync directly without checking isAvailable
+            // since it's a non-suspend function and will handle null cases internally
+            terminalSDK?.destroyTouchHandlerSync()
+            Log.d("ChatSendViewModel", "Touch handler cleaned up in onCleared")
+        } catch (e: Exception) {
+            Log.e("ChatSendViewModel", "Error cleaning up touch handler", e)
+        }
     }
 
     /**

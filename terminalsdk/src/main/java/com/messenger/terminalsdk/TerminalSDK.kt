@@ -7,6 +7,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.messenger.terminalsdk.MiniDisplayTouchHandler
 
 class TerminalSDK(private val context: Context) {
 
@@ -163,6 +164,18 @@ class TerminalSDK(private val context: Context) {
             miniDisplayTouchHandler?.destroy()
             miniDisplayTouchHandler = null
         }
+    }
+    
+    /**
+     * Synchronously destroy the current touch handler.
+     * This is called from Activity onDestroy() to ensure cleanup happens before the app closes.
+     */
+    fun destroyTouchHandlerSync() {
+        println("ETHOSDEBUGTERMINAL destroyTouchHandlerSync")
+        miniDisplayTouchHandler?.destroy()
+        miniDisplayTouchHandler = null
+        // Also clean up any static instance as a failsafe
+        MiniDisplayTouchHandler.cleanupActiveInstance()
     }
 
     suspend fun finishScreen() {
