@@ -23,6 +23,7 @@ import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.kethereum.eip137.model.ENSName
 import org.kethereum.ens.ENS
+import org.kethereum.ens.isPotentialENSDomain
 import javax.inject.Inject
 
 @HiltViewModel
@@ -149,7 +150,10 @@ private fun String.normalizedString(): String = this.replace("\\s".toRegex(), ""
 
 private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))
 
-private fun String.isValidEns(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_$]{3,}\\.eth$"))
+private fun String.isValidEns(): Boolean {
+    val ens = ENSName(this)
+    return ens.isPotentialENSDomain()
+}
 
 private fun String.isPossibleENS(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_\$]{3,}$"))
 
