@@ -47,8 +47,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
-import org.ethereumphone.dgenlibrary.components.dgenButton
-import org.ethereumphone.dgenlibrary.components.dgenTextButton
 import org.ethereumphone.dgenlibrary.theme.DgenTheme
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -59,6 +57,7 @@ import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import android.os.Build.VERSION.SDK_INT
+import org.ethereumphone.dgenlibrary.components.DgenPrimaryButton
 import org.ethereumphone.dgenlibrary.screens.InfoScreen
 
 @Composable
@@ -176,9 +175,9 @@ fun OnboardingScreen(
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                dgenButton(
+                                DgenPrimaryButton(
                                     backgroundColor = primaryColor,
-                                    fontColor = secondaryColor,
+                                    containerColor = secondaryColor,
                                     onClick = {
                                         coroutineScope.launch {
                                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
@@ -205,9 +204,9 @@ fun OnboardingScreen(
                         )
 
                         2,3 -> {
-                            dgenButton(
+                            DgenPrimaryButton(
                                 backgroundColor = primaryColor,
-                                fontColor = secondaryColor,
+                                containerColor = secondaryColor,
                                 onClick = {
                                     if (syncState is SyncState.Success) {
                                         onFinishOnboarding(true)
@@ -298,10 +297,72 @@ enum class OnboardingPageContent(
 }
 
 
-@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice",uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "OnboardingWelcome", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun previewOnboarding() {
-    Column(Modifier.background(Color.Black)) {
-        OnboardingScreen(SyncState.Loading, true, {}, {}, {})
+fun PreviewOnboardingWelcome() {
+    DgenTheme {
+//        OnboardingScreen(
+//            syncState = SyncState.Idle,
+//            isOnline = true,
+//            onStartXmtp = {},
+//            onStartSync = {},
+//            onFinishOnboarding = {}
+//        )
+    }
+}
+
+@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "OnboardingLoading", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun PreviewOnboardingLoading() {
+    DgenTheme {
+        OnboardingScreen(
+            syncState = SyncState.Loading,
+            isOnline = true,
+            onStartXmtp = {},
+            onStartSync = {},
+            onFinishOnboarding = {}
+        )
+    }
+}
+
+@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "OnboardingSuccess", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun PreviewOnboardingSuccess() {
+    DgenTheme {
+        OnboardingScreen(
+            syncState = SyncState.Success,
+            isOnline = true,
+            onStartXmtp = {},
+            onStartSync = {},
+            onFinishOnboarding = {}
+        )
+    }
+}
+
+@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "OnboardingError", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun PreviewOnboardingError() {
+    DgenTheme {
+        OnboardingScreen(
+            syncState = SyncState.Error("Connection failed"),
+            isOnline = true,
+            onStartXmtp = {},
+            onStartSync = {},
+            onFinishOnboarding = {}
+        )
+    }
+}
+
+@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "OnboardingOffline", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun PreviewOnboardingOffline() {
+    DgenTheme {
+//        OnboardingScreen(
+//            syncState = SyncState.Idle,
+//            isOnline = false,
+//            onStartXmtp = {},
+//            onStartSync = {},
+//            onFinishOnboarding = {}
+//        )
     }
 }

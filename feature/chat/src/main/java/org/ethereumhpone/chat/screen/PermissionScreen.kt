@@ -19,8 +19,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
+import org.ethereumphone.dgenlibrary.components.DgenPrimaryButton
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
-import org.ethereumphone.dgenlibrary.components.dgenButton
 
 @Composable
 fun PermissionScreen(onRequestPermission: () -> Unit, primaryColor: Color, secondaryColor: Color) {
@@ -46,11 +46,11 @@ fun PermissionScreen(onRequestPermission: () -> Unit, primaryColor: Color, secon
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        dgenButton(
+        DgenPrimaryButton(
             onClick = onRequestPermission,
             text = "Grant Permission",
-            backgroundColor = secondaryColor,
-            fontColor = primaryColor
+            backgroundColor = primaryColor,
+            containerColor = secondaryColor
         )
 
     }

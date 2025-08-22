@@ -37,10 +37,13 @@ import androidx.compose.ui.unit.dp
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumhpone.chat.components.media.MediaThumbnail
-import org.ethereumphone.dgenlibrary.components.dgenButton
-import org.ethereumphone.dgenlibrary.components.dgenTextButton
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.domain.model.Attachment
+import org.ethereumphone.dgenlibrary.components.DgenPrimaryButton
+import org.ethereumphone.dgenlibrary.components.DgenSecondaryButton
+import androidx.compose.ui.tooling.preview.Preview
+import android.content.res.Configuration
+import org.ethereumphone.dgenlibrary.theme.DgenTheme
 
 @Composable
 fun MediaGridScreen(
@@ -120,27 +123,26 @@ fun MediaGridScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (selectionOn) {
-                                dgenTextButton(
+                                DgenPrimaryButton(
                                     onClick = {
                                         selectedAll = true
                                         selectAllMedia()
                                     },
                                     text = "Select All",
-                                    fontColor = selectAllColor,
-                                    primaryColor = primaryColor
+                                    backgroundColor = primaryColor,
+                                    containerColor = secondaryColor
                                 )
-                                dgenButton(
+                                DgenSecondaryButton(
                                     onClick = toggleSelectionMode,
                                     text = "Close",
-                                    backgroundColor = primaryColor,
-                                    fontColor = secondaryColor
+                                    containerColor = primaryColor,
                                 )
                             } else {
-                                dgenButton(
+                                DgenPrimaryButton(
                                     onClick = toggleSelectionMode,
                                     text = "Select",
                                     backgroundColor = primaryColor,
-                                    fontColor = secondaryColor
+                                    containerColor = secondaryColor
                                 )
                             }
                         }
@@ -215,25 +217,46 @@ fun MediaGridScreen(
                     .padding(bottom = 48.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                dgenButton(
+                DgenPrimaryButton(
                     onClick = {
                         Toast.makeText(context, "onSelectionDone clicked", Toast.LENGTH_SHORT).show() // Select ${selectedItems.size} items
                         onSelectionDone()
                     },
                     text = "Select ${selectedItems.size} items",
                     backgroundColor = primaryColor,
-                    fontColor = secondaryColor
+                    containerColor = secondaryColor
                 )
-                dgenButton(
+                DgenSecondaryButton(
                     onClick = {
                         selectedAll = false
                         clearSelections()
                     },
                     text = "Clear",
-                    backgroundColor = primaryColor,
-                    fontColor = secondaryColor
+                    containerColor = primaryColor,
                 )
             }
         }
     }
 }
+
+@Preview(device = "spec:width=720px,height=1280px,dpi=240", name = "MediaGridEmpty", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun PreviewMediaGridEmpty() {
+    DgenTheme {
+        MediaGridScreen(
+            mediaItems = emptyList(),
+            onMediaClick = {},
+            isInSelectionMode = false,
+            enableSelection = true,
+            selectedItems = emptySet(),
+            toggleSelectionMode = {},
+            selectAllMedia = {},
+            clearSelections = {},
+            onSelectionDone = {},
+            onBack = {},
+            primaryColor = dgenTurqoise,
+            secondaryColor = dgenBlack
+        )
+    }
+}
+
