@@ -148,8 +148,11 @@ class MainActivity : ComponentActivity() {
 
             Log.d("walletSDK", "current address: $address")
 
-
-            xmtpClientManager.createClient(walletSDK , this@MainActivity)
+            // Only create XMTP client if user has completed onboarding and chosen to use XMTP
+            val preferences = messengerPreferences.prefs.first()
+            if (preferences.shouldHideOnboarding && preferences.useXmtp) {
+                xmtpClientManager.createClient(walletSDK , this@MainActivity)
+            }
 
             /* comment out for now
             if (keys != null) {
