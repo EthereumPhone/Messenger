@@ -36,6 +36,10 @@ data class Conversation(
         return ""
     }
 
+    fun getOtherRecipients(): List<Recipient> = recipients.filter { it.id != clientInbox }
+
+    fun getOtherRecipientAddress(): String? = recipients.firstOrNull { it.id != clientInbox }?.address
+
 
     fun getSummary(): String {
         val messageBody = lastMessage?.body.orEmpty()

@@ -77,11 +77,7 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
     override suspend fun markSeen(threadId: String) {
-
-
-        messageDao.getMessages(threadId).map { messages ->
-
-        }
+        messageDao.markAllRead(threadId)
     }
 
     override suspend fun markRead(vararg threadIds: String) {

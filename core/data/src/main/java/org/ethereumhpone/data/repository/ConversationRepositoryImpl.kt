@@ -265,7 +265,7 @@ class ConversationRepositoryImpl @Inject constructor(
     override suspend fun updateSeenConversation(id: String, seen: Boolean) {
         val conversation = conversationDao.getConversation(id).first()
         conversation?.lastMessageEntity?.let {
-//            messageDao.updateSeenMessage(it.id, seen)
+            messageDao.updateSeenMessage(it.id, seen)
         }
     }
 

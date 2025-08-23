@@ -277,13 +277,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             conversation.collect { state ->
                 if (state is ConversationUiState.Success) {
                     activeConversationManager.setActiveConversation(state.conversation.id)
-                    // Only send a read-receipt for NEW incoming messages (i.e. messages that are
-                    // not authored by the current user) and skip duplicates.
-                    val latestMessage = state.conversation.lastMessage
-                    if (latestMessage != null && !latestMessage.isMe && latestMessage.id != lastReadReceiptMessageId) {
-                        sendReadReceipt(state.conversation.id)
-                        lastReadReceiptMessageId = latestMessage.id
-                    }
                 }
             }
         }
@@ -399,6 +392,23 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 attachments = attachments.value.toList(),
                 reaction = null
             )
+        }
+    }
+
+    fun markSeenOnExit() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                messageRepository.markSeen(threadId)
+                // Send a read receipt for latest message in this conversation if it's not authored by me
+                val convo = (conversation.value as? ConversationUiState.Success)?.conversation
+                val latestMessage = convo?.lastMessage
+                if (latestMessage != null && !latestMessage.isMe && latestMessage.id != lastReadReceiptMessageId) {
+                    sendReadReceipt(convo.id)
+                    lastReadReceiptMessageId = latestMessage.id
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "markSeenOnExit failed", e)
+            }
         }
     }
 

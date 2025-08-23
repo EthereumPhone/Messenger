@@ -152,7 +152,6 @@ fun ContactRoute(
         markArchived = { id, archivedState -> viewModel.setConversationArchived(id, archivedState) },
         resolveENS = viewModel::resolveENS,
         conversationClicked = { id ->
-            viewModel.setConversationAsRead(id, true)
             onConversationClick(id)
         },
         primaryColor = primaryColor,
@@ -403,7 +402,7 @@ fun InboxScreen(
                                                                         expandedConversationId = null // close any revealed rows
                                                                     },
                                                                     icon = Icons.Outlined.Delete,
-                                                                    iconColor = secondaryColor,
+                                                                    iconColor = primaryColor,
                                                                     iconSize = 100.dp,
                                                                     modifier = Modifier.fillMaxHeight()
                                                                 )

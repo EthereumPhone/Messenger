@@ -42,6 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -174,6 +175,13 @@ fun ChatRoute(
         openGLColor = openGLColor,
         clearSelection = chatViewModel::clearSelection
     )
+
+    // Mark messages as seen when leaving the chat screen
+    DisposableEffect(Unit) {
+        onDispose {
+            chatViewModel.markSeenOnExit()
+        }
+    }
 }
 
 @OptIn(
@@ -451,10 +459,8 @@ fun ChatScreen(
                             }
                         }
 
-                        //Variables for the new messages UI
-
+                        // Variables for the new messages UI
                         var seenCount by remember { mutableIntStateOf(messages.size) }
-                        val newCount = (messages.size - seenCount).coerceAtLeast(0)
 
                         MessageList(
                             modifier = Modifier.fillMaxSize(),

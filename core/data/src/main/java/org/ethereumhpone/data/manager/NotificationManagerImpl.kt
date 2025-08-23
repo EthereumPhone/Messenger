@@ -91,10 +91,8 @@ class NotificationManagerImpl @Inject constructor(
         
         val contentPI = contentPendingIntent(context, threadId)
 
-        val seenIntent = Intent(context, MarkSeenReceiver::class.java).putExtra("threadId", threadId)
-        val seenRequestCode = getRequestCodeFromThreadId(threadId)
-        val seenPI = PendingIntent.getBroadcast(context, seenRequestCode, seenIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        // Do not mark messages as seen when clicking the notification; we handle marking seen
+        // when leaving ChatScreen to ensure the divider appears on entry.
 
         println("xmtp notification building")
 
@@ -105,7 +103,6 @@ class NotificationManagerImpl @Inject constructor(
             .setNumber(unreadConversations.size)
             .setAutoCancel(true)
             .setContentIntent(contentPI)
-            .setDeleteIntent(seenPI)
             .setWhen(latestConversation.lastMessage?.dateSent?.toEpochMilliseconds() ?: System.currentTimeMillis())
             .setVibrate(VIBRATE_PATTERN)
             .setContentTitle(header)

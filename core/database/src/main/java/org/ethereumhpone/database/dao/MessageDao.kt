@@ -47,7 +47,7 @@ interface MessageDao {
 
     @Query("""
         UPDATE message
-        SET seenDate = :seenDate AND seen = 1 AND read = 1
+        SET seenDate = :seenDate, seen = 1, read = 1
         WHERE seenDate = 0 AND :seenDate >= dateSent
     """
     )
@@ -55,7 +55,7 @@ interface MessageDao {
 
     @Query("""
         UPDATE message
-        SET seen = 1 AND read = 1
+        SET seen = 1, read = 1
         WHERE threadId = :threadId
     """)
     suspend fun markAllRead(threadId: String)

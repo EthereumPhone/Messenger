@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -47,6 +48,7 @@ import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.Message
+import kotlin.math.max
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -68,7 +70,25 @@ fun MessageList(
     openGLColor: Color,
     onUpdateSeenCount: (Int) -> Unit
 ) {
-    val newCount = (messages.size - seenCount).coerceAtLeast(0)
+    // Lock the divider position/count for the lifetime of this screen
+    val lockedDividerIndexState = remember { mutableStateOf<Int?>(null) }
+    val lockedUnseenCountState = remember { mutableStateOf(0) }
+
+    if (lockedDividerIndexState.value == null) {
+        // Only consider messages from the other person (not me) that are unseen
+        val unseenOtherIndices = messages.indices.filter { index ->
+            val m = messages[index]
+            !m.seen && !m.isMe
+        }
+        if (unseenOtherIndices.isNotEmpty()) {
+            // Place divider above the NEWEST unseen message from the other person
+            lockedDividerIndexState.value = unseenOtherIndices.last()
+            lockedUnseenCountState.value = unseenOtherIndices.size
+        }
+    }
+
+    val firstUnseenIndex = lockedDividerIndexState.value
+    val unseenCount = lockedUnseenCountState.value
     val coroutineScope = rememberCoroutineScope()
 
     val showFab by remember {
@@ -110,18 +130,18 @@ fun MessageList(
                     val currentDate =
                         message.date.toLocalDateTime(TimeZone.currentSystemDefault()).date
 
-                    if (index == seenCount && newCount > 0) {
-                        NewMessagesDivider(
-                            count = newCount,
-                            primaryColor = primaryColor
-                        )
-                    }
-
                     if (prevDate != currentDate) {
                         TimeHeader(
                             timestamp = message.date,
                             primaryColor = primaryColor,
                             secondaryColor = secondaryColor
+                        )
+                    }
+
+                    if (firstUnseenIndex != null && index == firstUnseenIndex) {
+                        NewMessagesDivider(
+                            count = unseenCount,
+                            primaryColor = primaryColor
                         )
                     }
 
@@ -161,7 +181,7 @@ fun MessageList(
                 onClick = {
                     coroutineScope.launch {
                         val lastIndex = messages.lastIndex
-                        if(newCount > 0) onUpdateSeenCount(messages.size)
+                        if(unseenCount > 0) onUpdateSeenCount(messages.size)
                         scrollState.animateScrollToItem(lastIndex)
                     }
                 },
@@ -171,7 +191,7 @@ fun MessageList(
         }
 
         AnimatedVisibility(
-            visible = showFab && (newCount > 0),
+            visible = showFab && (unseenCount > 0),
             enter = fadeIn(tween(300)),
             exit = fadeOut(tween(300)),
             modifier = Modifier
@@ -185,14 +205,14 @@ fun MessageList(
                     .align(Alignment.TopCenter)
                     .padding(top = 16.dp)
                     .clickable {
-                        // jump to the divider
+                        // jump to the divider (first unseen message)
                         coroutineScope.launch {
-                            scrollState.animateScrollToItem(seenCount)
+                            firstUnseenIndex?.let { scrollState.animateScrollToItem(it) }
                         }
                     }
             ) {
                 Text(
-                    text = "$newCount new message${if (newCount > 1) "s" else ""}".uppercase(),
+                    text = "$unseenCount new message${if (unseenCount > 1) "s" else ""}".uppercase(),
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
                     style = TextStyle(
                         fontFamily = SpaceMono,
