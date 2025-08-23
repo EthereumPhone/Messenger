@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -200,7 +201,7 @@ fun MessageList(
         ) {
             Surface(
                 color = primaryColor,
-                shape = CircleShape,
+                shape = RoundedCornerShape(3.dp),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 16.dp)
