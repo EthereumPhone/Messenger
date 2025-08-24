@@ -150,8 +150,12 @@ class MainActivity : ComponentActivity() {
 
             // Only create XMTP client if user has completed onboarding and chosen to use XMTP
             val preferences = messengerPreferences.prefs.first()
+            Log.d("MainActivity", "Preference values - shouldHideOnboarding: ${preferences.shouldHideOnboarding}, useXmtp: ${preferences.useXmtp}")
             if (preferences.shouldHideOnboarding && preferences.useXmtp) {
+                Log.d("MainActivity", "Creating XMTP client because both conditions are met")
                 xmtpClientManager.createClient(walletSDK , this@MainActivity)
+            } else {
+                Log.d("MainActivity", "Skipping XMTP client creation - one or both conditions not met")
             }
 
             /* comment out for now

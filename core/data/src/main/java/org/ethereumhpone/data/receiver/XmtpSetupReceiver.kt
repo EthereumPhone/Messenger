@@ -43,6 +43,8 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
                     }
 
                 prefs.setUseXmtp(true)
+                prefs.setShouldHideOnboarding(true)
+                android.util.Log.d("XmtpSetupReceiver", "Set both useXmtp and shouldHideOnboarding to true")
 
                 // Now notify SetupWizard that XMTP setup is complete
                 val doneIntent = Intent("app.grapheneos.setupwizard.action.XMTP_SETUP_DONE").apply {
