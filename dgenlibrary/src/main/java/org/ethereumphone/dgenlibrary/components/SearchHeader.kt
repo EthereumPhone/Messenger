@@ -115,7 +115,13 @@ fun SearchHeader(
                                         color = primaryColor,
                                     )
                                 },
-                            onClick = onClearValue,
+                            onClick = {
+                                if (searchValue.text.isEmpty()) {
+                                    isSearchFocused.value = false
+                                } else {
+                                    onClearValue()
+                                }
+                            },
                             icon = {
                                 Icon(
                                     contentDescription = "Clear",
