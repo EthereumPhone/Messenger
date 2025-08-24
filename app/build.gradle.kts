@@ -24,7 +24,7 @@ android {
         applicationId = "org.ethereumhpone.messenger"
         minSdk = 34
         targetSdk = 34
-        versionCode = 288
+        versionCode = 289
         versionName = versionCode.toString()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
