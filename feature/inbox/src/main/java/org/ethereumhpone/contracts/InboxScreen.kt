@@ -125,6 +125,10 @@ fun ContactRoute(
         modifier = modifier,
         conversationState = conversationState,
         isOnline = isOnline,
+        onNewConversationCreated = { id ->
+            viewModel.unhideConversation(id)
+            onConversationClick(id)
+        },
         markAccepted = { id, acceptedState -> viewModel.updateConsentState(id, acceptedState) },
         deleteConversation = { id ->
             coroutineScope.launch(Dispatchers.IO) {
@@ -167,6 +171,7 @@ fun InboxScreen(
     conversationState: ConversationUIState,
     isOnline: Boolean,
     conversationClicked: (String) -> Unit,
+    onNewConversationCreated: (String) -> Unit,
     deleteConversation: (String) -> Unit,
     markAccepted: (String, Boolean) -> Unit,
     markArchived: (String, Boolean) -> Unit,
@@ -251,7 +256,7 @@ fun InboxScreen(
                 InfoScreen(
                     gifEnabledLoader = gifEnabledLoader,
                     primaryColor = primaryColor,
-                    description = "Connect you device to the internet."
+                    description = "Connect your device to the internet."
                 )
             } else {
                 when(conversationState) {
@@ -593,7 +598,7 @@ fun InboxScreen(
                 onConversationCreated = {
                     showNewConversationSheet = false
                     //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!
-                    conversationClicked(it)
+                    onNewConversationCreated(it)
                 }
             )
         }

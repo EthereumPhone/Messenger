@@ -21,6 +21,8 @@ import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
+import org.ethereumhpone.domain.manager.NetworkManager
+import org.ethereumphone.dgenlibrary.showDgenToast
 import org.kethereum.eip137.model.ENSName
 import org.kethereum.ens.ENS
 import org.kethereum.ens.isPotentialENSDomain
@@ -32,7 +34,8 @@ class ContactViewModel @Inject constructor(
     private val contactRepository: ContactRepository,
     private val phoneNumberUtils: PhoneNumberUtils,
     private val conversationRepository: ConversationRepository,
-    private val ensResolver: ENS
+    private val ensResolver: ENS,
+    private val networkManager: NetworkManager
 ): ViewModel() {
 
     val searchQuery = savedStateHandle.getStateFlow(key = SEARCH_QUERY, initialValue = "")
@@ -85,64 +88,111 @@ class ContactViewModel @Inject constructor(
 
     fun getOrCreateConversation(contacts: List<String>) {
         viewModelScope.launch(Dispatchers.IO) {
-            val addresses = contacts
-                .filter { it.isNotBlank() }
-                .map { contactIdentifier ->
-                    when {
-                        contactIdentifier.normalizedString().isValidEns() -> {
-                            val result = ensResolver.getAddress(ENSName(contactIdentifier.normalizedString()))
+            try {
+                val isOnline = networkManager.isOnline.first()
 
-                            if (result == null) {
-                                _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
+                // If offline, only allow navigation to an existing local conversation.
+                if (!isOnline) {
+                    val contactIdentifier = contacts.firstOrNull()?.normalizedString()
+
+                    if (contactIdentifier.isNullOrBlank()) {
+                        _uiEvent.tryEmit(UiEvent.ShowError("Connect to the internet to start a new conversation"))
+                        return@launch
+                    }
+
+                    val existingConversation = tryFindExistingLocalConversation(contactIdentifier)
+
+                    if (existingConversation != null) {
+                        _uiEvent.tryEmit(UiEvent.NavigateToConversation(existingConversation))
+                    } else {
+                        _uiEvent.tryEmit(UiEvent.ShowError("Connect to the internet to start a new conversation"))
+                    }
+                    return@launch
+                }
+
+                // Online: proceed with normal flow (ENS resolution if needed, then create or fetch)
+                val addresses = contacts
+                    .filter { it.isNotBlank() }
+                    .map { contactIdentifier ->
+                        when {
+                            contactIdentifier.normalizedString().isValidEns() -> {
+                                val result = ensResolver.getAddress(ENSName(contactIdentifier.normalizedString()))
+
+                                if (result == null) {
+                                    _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
+                                    return@launch
+                                }
+                                Log.d("TEST", result.toString())
+                                result.toString().normalizedString()
+                            }
+                            contactIdentifier.normalizedString().isValidEthAddress() -> contactIdentifier.normalizedString()
+                            else -> {
+                                _uiEvent.tryEmit(UiEvent.ShowError("Invalid Ethereum address or ENS name"))
                                 return@launch
                             }
-                            Log.d("TEST", result.toString())
-                            result.toString().normalizedString()
                         }
-                        contactIdentifier.normalizedString().isValidEthAddress() -> contactIdentifier.normalizedString()
-                        else -> {
-                            _uiEvent.tryEmit(UiEvent.ShowError("Invalid Ethereum address or ENS name"))
-                            return@launch
-                        }
+
                     }
 
+                // Guard against empty address list to prevent crashes
+                if (addresses.isEmpty()) {
+                    return@launch
                 }
 
-            // Guard against empty address list to prevent crashes
-            if (addresses.isEmpty()) {
-                _uiEvent.tryEmit(UiEvent.ShowError("No valid Ethereum address found for the selected contact"))
-                return@launch
-            }
+                // Only log if there is at least one address
+                addresses.firstOrNull()?.let { firstAddress ->
+                    Log.d("CURRENT ADDRESS", firstAddress)
+                }
 
-            // Only log if there is at least one address
-            addresses.firstOrNull()?.let { firstAddress ->
-                Log.d("CURRENT ADDRESS", firstAddress)
-            }
+                conversationRepository.createConversation(addresses).collectLatest { result ->
+                    when (result) {
+                        is Result.Success -> {
+                            _uiEvent.tryEmit(UiEvent.NavigateToConversation(result.data.id))
+                        }
 
-            conversationRepository.createConversation(addresses).collectLatest { result ->
-                when (result) {
-                    is Result.Success -> {
-                        _uiEvent.tryEmit(UiEvent.NavigateToConversation(result.data.id))
-                    }
-
-                    is Result.Error -> {
-                        _uiEvent.tryEmit(UiEvent.ShowError(result.message))
+                        is Result.Error -> {
+                            // Suppress internal code from surfacing in UI; repository already shows a user-friendly toast
+                            if (result.message != "NOT_REGISTERED_WITH_XMTP") {
+                                _uiEvent.tryEmit(UiEvent.ShowError(result.message))
+                            }
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                // Any unexpected errors (including network) should prompt the user to connect.
+                _uiEvent.tryEmit(UiEvent.ShowError("Connect to the internet to start a new conversation"))
             }
+        }
+    }
+
+    private suspend fun tryFindExistingLocalConversation(contactIdentifier: String): String? {
+        // Try to find an existing conversation locally by ETH address or ENS title/recipient.
+        val conversations = conversationRepository.getConversations().first()
+
+        return when {
+            contactIdentifier.isValidEthAddress() -> {
+                conversations.firstOrNull { conv ->
+                    conv.getOtherRecipientAddress()?.equals(contactIdentifier, ignoreCase = true) == true
+                }?.id
+            }
+            contactIdentifier.isValidEns() -> {
+                conversations.firstOrNull { conv ->
+                    conv.title?.equals(contactIdentifier, ignoreCase = true) == true ||
+                            conv.getOtherRecipients().any { r -> r.ens?.equals(contactIdentifier, ignoreCase = true) == true }
+                }?.id
+            }
+            else -> null
         }
     }
 }
 
 private fun filterContact(contactEntity: ContactEntity, query: String): Boolean {
-    val normalizedQuery = query.normalizedString()
-
     // Only return contacts with valid eth addresses (not null or empty)
     if (contactEntity.ethAddress.isNullOrBlank()) return false
 
     return contactEntity.name.contains(query, ignoreCase = true) || // Check name
             contactEntity.lookupKey.contains(query, ignoreCase = true) || // Check lookupKey
-            contactEntity.ethAddress!!.contains(query, ignoreCase = true) // Check ethAddress (we already know it's not null)
+            (contactEntity.ethAddress?.contains(query, ignoreCase = true) == true) // Check ethAddress
 }
 
 

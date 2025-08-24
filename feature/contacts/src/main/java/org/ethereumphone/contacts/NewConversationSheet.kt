@@ -120,10 +120,8 @@ fun NewConversationSheet(
                 }
 
                 is UiEvent.ShowError -> {
-                    // You can show a snackbar here if needed
-                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
-
-                     //scaffoldState.snackbarHostState.showSnackbar(event.message)
+                    // Show themed dgen toast
+                    showDgenToast(context, event.message)
                 }
             }
         }

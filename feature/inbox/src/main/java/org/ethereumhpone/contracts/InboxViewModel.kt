@@ -2,11 +2,13 @@ package org.ethereumhpone.contracts
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.SavedStateHandle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -26,6 +28,7 @@ import kotlin.math.acos
 
 @HiltViewModel
 class InboxViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val conversationRepository: ConversationRepository,
     private val contactRepository: ContactRepository,
     private val xmtpClientManager: XmtpClientManager,
@@ -42,17 +45,20 @@ class InboxViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
+    // Track locally hidden (deleted) conversations to avoid reappearing after remote sync.
+    private val hiddenConversationIds = MutableStateFlow(
+        savedStateHandle.get<List<String>>("hidden_conversation_ids")?.toSet() ?: emptySet()
+    )
+
     // Keep the UI in a `Loading` state until we have at least one conversation. This prevents the
     // temporary "No conversations" screen from flashing when data is still being fetched/synced.
-    val conversationState: StateFlow<ConversationUIState> = conversationRepository.getConversations()
-        .map { conversations ->
-            if (conversations.isEmpty()) {
-                // TODO: Ideally we'd differentiate between "loading" and "truly empty" 
-                // For now, we'll show empty state when conversations list is empty
-                ConversationUIState.Empty
-            } else {
-                ConversationUIState.Success(conversations)
-            }
+    val conversationState: StateFlow<ConversationUIState> =
+        combine(
+            conversationRepository.getConversations(),
+            hiddenConversationIds,
+        ) { conversations, hiddenIds ->
+            val visible = conversations.filterNot { hiddenIds.contains(it.id) }
+            if (visible.isEmpty()) ConversationUIState.Empty else ConversationUIState.Success(visible)
         }
         .stateIn(
             scope = viewModelScope,
@@ -69,8 +75,18 @@ class InboxViewModel @Inject constructor(
     fun deleteConversation(conversationId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             conversationRepository.deleteConversation(conversationId)
-
+            // Hide locally so it doesn't reappear if remote sync re-inserts it
+            val updated = hiddenConversationIds.value + conversationId
+            hiddenConversationIds.value = updated
+            savedStateHandle["hidden_conversation_ids"] = updated.toList()
         }
+    }
+
+    fun unhideConversation(conversationId: String) {
+        // Allow showing the conversation again (e.g., when user starts it from New Conversation)
+        val updated = hiddenConversationIds.value - conversationId
+        hiddenConversationIds.value = updated
+        savedStateHandle["hidden_conversation_ids"] = updated.toList()
     }
 
     fun updateConsentState(conversationId: String, address: Boolean) {
