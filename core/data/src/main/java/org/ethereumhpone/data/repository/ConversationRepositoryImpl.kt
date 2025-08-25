@@ -26,6 +26,7 @@ import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 import org.kethereum.ens.ENS
 import org.kethereum.model.Address
 import org.kethereum.eip137.model.ENSName
+import org.kethereum.ens.isPotentialENSDomain
 import org.ethereumphone.dgenlibrary.showDgenToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -276,5 +277,7 @@ class ConversationRepositoryImpl @Inject constructor(
 
 // Extension functions for ENS validation and string normalization
 private fun String.normalizedString(): String = this.replace("\\s".toRegex(), "").lowercase()
-private fun String.isValidEns(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_\$]{3,}\\.eth$"))
+private fun String.isValidEns(): Boolean = try {
+    ENSName(this).isPotentialENSDomain()
+} catch (e: Exception) { false }
 private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))
