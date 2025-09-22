@@ -242,6 +242,7 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                 }
 
+                val existing = conversationDao.getConversationEntityById(id as String)
                 val conversationEntity = ConversationEntity(
                     id = id as String,
                     title = title as String?,
@@ -250,7 +251,8 @@ class SyncRepositoryImpl @Inject constructor(
                     archived = archived as Boolean,
                     unknown = consentState == ConsentState.UNKNOWN,
                     blocked = consentState == ConsentState.DENIED,
-                    clientInbox = client.inboxId
+                    clientInbox = client.inboxId,
+                    deleted = existing?.deleted ?: false
                 )
 
                 Log.d("INSERT CONVERSATION", id)
@@ -373,6 +375,7 @@ class SyncRepositoryImpl @Inject constructor(
                                 }
                             }
 
+                            val existing = conversationDao.getConversationEntityById(id as String)
                             val conversationEntity = ConversationEntity(
                                 id = id as String,
                                 title = title as String?,
@@ -381,7 +384,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 archived = archived as Boolean,
                                 unknown = consentState == ConsentState.UNKNOWN,
                                 blocked = consentState == ConsentState.DENIED,
-                                clientInbox = client.inboxId
+                                clientInbox = client.inboxId,
+                                deleted = existing?.deleted ?: false
                             )
                             conversationDao.insertConversation(conversationEntity)
                         }

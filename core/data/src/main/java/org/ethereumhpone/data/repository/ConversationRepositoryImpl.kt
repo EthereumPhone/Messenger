@@ -271,7 +271,7 @@ class ConversationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteConversation(id: String) {
-        conversationDao.deleteConversation(id)
+        conversationDao.softDeleteConversation(id)
     }
 }
 

@@ -41,7 +41,7 @@ interface ConversationDao {
             WHERE threadId = m.threadId
         )
     ) AS latest_msg ON conversation.id = latest_msg.threadId
-    WHERE conversation.id = :id
+    WHERE conversation.id = :id AND conversation.deleted = 0
     """)
     fun getConversation(id: String): Flow<CompositeConversation?>
 
@@ -71,6 +71,7 @@ interface ConversationDao {
             GROUP BY threadId
         ) grouped ON m.threadId = grouped.threadId AND m.dateSent = grouped.max_date
     ) AS latest_msg ON conversation.id = latest_msg.threadId
+    WHERE conversation.deleted = 0
     ORDER BY CASE WHEN latest_msg.dateSent IS NULL THEN 0 ELSE 1 END DESC, latest_msg.dateSent DESC
     """)
     fun getConversations(): Flow<List<CompositeConversation>>
@@ -102,6 +103,7 @@ interface ConversationDao {
             GROUP BY threadId
         ) grouped ON m.threadId = grouped.threadId AND m.dateSent = grouped.max_date
     ) AS latest_msg ON conversation.id = latest_msg.threadId
+    WHERE conversation.deleted = 0
     GROUP BY conversation.id
     ORDER BY CASE WHEN latest_msg.dateSent IS NULL THEN 0 ELSE 1 END DESC, latest_msg.dateSent DESC
     """)
@@ -126,7 +128,7 @@ interface ConversationDao {
             COALESCE(m.isMe, 0) AS message_isMe
         FROM conversation c
         LEFT JOIN message m ON c.id = m.threadId
-        WHERE members = :members
+        WHERE members = :members AND c.deleted = 0
         ORDER BY m.dateSent DESC
         LIMIT 1
     """)
@@ -156,6 +158,12 @@ interface ConversationDao {
 
     @Query("DELETE FROM conversation WHERE id = :id")
     suspend fun deleteConversation(id: String)
+
+    @Query("UPDATE conversation SET deleted = 1 WHERE id = :id")
+    suspend fun softDeleteConversation(id: String)
+
+    @Query("SELECT * FROM conversation WHERE id = :id LIMIT 1")
+    suspend fun getConversationEntityById(id: String): ConversationEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversationMemberCrossRefs(refs: List<ConversationRecipientCrossRef>)
