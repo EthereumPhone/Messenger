@@ -164,12 +164,15 @@ class ConversationRepositoryImpl @Inject constructor(
                     null
                 }
                 
+                val existing = conversationDao.getConversationEntityById(dm.id)
                 val conversationEntity = ConversationEntity(
                     id = dm.id,
                     title = conversationTitle,
                     members = listOf(dm.peerInboxId),
                     createdAt = dm.createdAt.time,
-                    clientInbox = client.inboxId
+                    clientInbox = client.inboxId,
+                    deleted = false,
+                    hideBefore = existing?.hideBefore ?: 0L
                 )
 
                 // Attempt to link the new recipient to an existing contact 
@@ -238,12 +241,15 @@ class ConversationRepositoryImpl @Inject constructor(
                 null
             }
             
+            val existing = conversationDao.getConversationEntityById(dm.id)
             val newConversation = ConversationEntity(
                 id = dm.id,
                 title = conversationTitle,
                 members = listOf(dm.peerInboxId),
                 createdAt = dm.createdAt.time,
-                clientInbox = client.inboxId
+                clientInbox = client.inboxId,
+                deleted = false,
+                hideBefore = existing?.hideBefore ?: 0L
             )
             conversationDao.insertConversation(newConversation)
             emitAll(conversationDao.getConversation(dm.id).map { Result.Success(it!!.toExternalModel()) })
@@ -271,7 +277,8 @@ class ConversationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteConversation(id: String) {
-        conversationDao.softDeleteConversation(id)
+        val cutoff = System.currentTimeMillis()
+        conversationDao.softDeleteConversation(id, cutoff)
     }
 }
 

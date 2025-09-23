@@ -19,6 +19,7 @@ data class ConversationEntity(
     val createdAt: Long,
     val clientInbox: String,
     @ColumnInfo(index = true, defaultValue = "0") val deleted: Boolean = false,
+    @ColumnInfo(index = true, defaultValue = "0") val hideBefore: Long = 0L,
 )
 
 fun ConversationEntity.toExternalModal(recipientEntities: List<RecipientEntity>) = Conversation(

@@ -34,3 +34,11 @@ val migration3To4 = object: Migration(3,4) {
         db.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_deleted ON conversation(deleted)")
     }
 }
+
+val migration4To5 = object: Migration(4,5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add cutoff timestamp for hiding older messages
+        db.execSQL("ALTER TABLE conversation ADD COLUMN hideBefore INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_hideBefore ON conversation(hideBefore)")
+    }
+}

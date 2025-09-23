@@ -97,7 +97,6 @@ class SyncRepositoryImpl @Inject constructor(
 
 
 
-
         logTimeHandler.setLastLog(SyncLog().date)
         _isSyncing.value = false
     }
@@ -252,7 +251,8 @@ class SyncRepositoryImpl @Inject constructor(
                     unknown = consentState == ConsentState.UNKNOWN,
                     blocked = consentState == ConsentState.DENIED,
                     clientInbox = client.inboxId,
-                    deleted = existing?.deleted ?: false
+                    deleted = existing?.deleted ?: false,
+                    hideBefore = existing?.hideBefore ?: 0L
                 )
 
                 Log.d("INSERT CONVERSATION", id)
@@ -385,7 +385,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 unknown = consentState == ConsentState.UNKNOWN,
                                 blocked = consentState == ConsentState.DENIED,
                                 clientInbox = client.inboxId,
-                                deleted = existing?.deleted ?: false
+                                deleted = existing?.deleted ?: false,
+                                hideBefore = existing?.hideBefore ?: 0L
                             )
                             conversationDao.insertConversation(conversationEntity)
                         }

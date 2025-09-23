@@ -34,13 +34,13 @@ interface ConversationDao {
         COALESCE(latest_msg.deliveryStatus, 0) AS message_deliveryStatus,
         COALESCE(latest_msg.isMe, 0) AS message_isMe
     FROM conversation
-    LEFT JOIN (
-        SELECT * FROM message m
-        WHERE m.dateSent = (
-            SELECT MAX(dateSent) FROM message 
-            WHERE threadId = m.threadId
+    LEFT JOIN message AS latest_msg
+      ON latest_msg.threadId = conversation.id
+     AND latest_msg.dateSent = (
+          SELECT MAX(m2.dateSent) FROM message m2
+           WHERE m2.threadId = conversation.id
+             AND m2.dateSent >= conversation.hideBefore
         )
-    ) AS latest_msg ON conversation.id = latest_msg.threadId
     WHERE conversation.id = :id AND conversation.deleted = 0
     """)
     fun getConversation(id: String): Flow<CompositeConversation?>
@@ -63,14 +63,13 @@ interface ConversationDao {
         COALESCE(latest_msg.deliveryStatus, 0) AS message_deliveryStatus,
         COALESCE(latest_msg.isMe, 0) AS message_isMe
     FROM conversation
-    LEFT JOIN (
-        SELECT m.* FROM message m
-        INNER JOIN (
-            SELECT threadId, MAX(dateSent) AS max_date
-            FROM message
-            GROUP BY threadId
-        ) grouped ON m.threadId = grouped.threadId AND m.dateSent = grouped.max_date
-    ) AS latest_msg ON conversation.id = latest_msg.threadId
+    LEFT JOIN message AS latest_msg
+      ON latest_msg.threadId = conversation.id
+     AND latest_msg.dateSent = (
+          SELECT MAX(m2.dateSent) FROM message m2
+           WHERE m2.threadId = conversation.id
+             AND m2.dateSent >= conversation.hideBefore
+        )
     WHERE conversation.deleted = 0
     ORDER BY CASE WHEN latest_msg.dateSent IS NULL THEN 0 ELSE 1 END DESC, latest_msg.dateSent DESC
     """)
@@ -94,15 +93,14 @@ interface ConversationDao {
         COALESCE(latest_msg.deliveryStatus, 0) AS message_deliveryStatus,
         COALESCE(latest_msg.isMe, 0) AS message_isMe
     FROM conversation
-    INNER JOIN message ON conversation.id = message.threadId AND message.seen = 0
-    LEFT JOIN (
-        SELECT m.* FROM message m
-        INNER JOIN (
-            SELECT threadId, MAX(dateSent) AS max_date
-            FROM message
-            GROUP BY threadId
-        ) grouped ON m.threadId = grouped.threadId AND m.dateSent = grouped.max_date
-    ) AS latest_msg ON conversation.id = latest_msg.threadId
+    INNER JOIN message ON conversation.id = message.threadId AND message.seen = 0 AND message.dateSent >= conversation.hideBefore
+    LEFT JOIN message AS latest_msg
+      ON latest_msg.threadId = conversation.id
+     AND latest_msg.dateSent = (
+          SELECT MAX(m2.dateSent) FROM message m2
+           WHERE m2.threadId = conversation.id
+             AND m2.dateSent >= conversation.hideBefore
+        )
     WHERE conversation.deleted = 0
     GROUP BY conversation.id
     ORDER BY CASE WHEN latest_msg.dateSent IS NULL THEN 0 ELSE 1 END DESC, latest_msg.dateSent DESC
@@ -127,7 +125,7 @@ interface ConversationDao {
             COALESCE(m.deliveryStatus, 0) AS message_deliveryStatus,
             COALESCE(m.isMe, 0) AS message_isMe
         FROM conversation c
-        LEFT JOIN message m ON c.id = m.threadId
+        LEFT JOIN message m ON c.id = m.threadId AND m.dateSent >= c.hideBefore
         WHERE members = :members AND c.deleted = 0
         ORDER BY m.dateSent DESC
         LIMIT 1
@@ -159,8 +157,8 @@ interface ConversationDao {
     @Query("DELETE FROM conversation WHERE id = :id")
     suspend fun deleteConversation(id: String)
 
-    @Query("UPDATE conversation SET deleted = 1 WHERE id = :id")
-    suspend fun softDeleteConversation(id: String)
+    @Query("UPDATE conversation SET deleted = 1, hideBefore = :cutoff WHERE id = :id")
+    suspend fun softDeleteConversation(id: String, cutoff: Long)
 
     @Query("SELECT * FROM conversation WHERE id = :id LIMIT 1")
     suspend fun getConversationEntityById(id: String): ConversationEntity?

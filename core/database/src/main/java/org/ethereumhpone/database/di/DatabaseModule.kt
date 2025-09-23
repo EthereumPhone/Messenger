@@ -12,6 +12,7 @@ import dagger.hilt.components.SingletonComponent
 import org.ethereumhpone.database.MessengerDatabase
 import org.ethereumhpone.database.migration1To2
 import org.ethereumhpone.database.migration3To4
+import org.ethereumhpone.database.migration4To5
 import javax.inject.Singleton
 
 
@@ -28,7 +29,7 @@ object DatabaseModule {
         MessengerDatabase::class.java,
         "messenger-database"
     )
-        .addMigrations(migration1To2, migration3To4)
+        .addMigrations(migration1To2, migration3To4, migration4To5)
         .fallbackToDestructiveMigration()
         .addCallback(clearSyncLogCallback) // Add the callback here
         .build()
