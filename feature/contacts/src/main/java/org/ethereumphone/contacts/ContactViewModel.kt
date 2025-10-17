@@ -272,24 +272,30 @@ class ContactViewModel @Inject constructor(
                         
                         // Check if the input is a partial name and get the predicted full name
                         val predictedName = getPredictedFullName(normalized)
-                        val nameToCheck = predictedName ?: normalized
                         
-                        // Check if we have a pre-resolved result with an error
-                        val preResolved = preResolvedCache[nameToCheck]
-                        if (preResolved != null) {
-                            if (preResolved.error != null) {
-                                Log.d("ContactViewModel", "🚫 Using cached error for '$nameToCheck': ${preResolved.error}")
-                                _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
-                                return@launch
-                            } else {
-                                Log.d("ContactViewModel", "⚡ Using cached pre-resolved address for '$nameToCheck': ${preResolved.address}")
+                        // Only use pre-cached results if the actual input matches what we predicted
+                        // This ensures typos like "jesse.base.rth" don't incorrectly use "jesse.base.eth" cache
+                        val shouldUseCachedResult = predictedName != null && normalized == predictedName
+                        
+                        if (shouldUseCachedResult && predictedName != null) {
+                            // Check if we have a pre-resolved result
+                            val preResolved = preResolvedCache[predictedName]
+                            if (preResolved != null) {
+                                if (preResolved.error != null) {
+                                    Log.d("ContactViewModel", "🚫 Using cached error for '$predictedName': ${preResolved.error}")
+                                    _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
+                                    return@launch
+                                } else {
+                                    Log.d("ContactViewModel", "⚡ Using cached pre-resolved address for '$predictedName': ${preResolved.address}")
+                                }
                             }
-                        } else {
-                            Log.d("ContactViewModel", "⏳ No cached result for '$nameToCheck', will resolve in repository")
+                        } else if (predictedName != null && normalized != predictedName) {
+                            Log.d("ContactViewModel", "⚠️ Input '$normalized' doesn't match prediction '$predictedName' - will resolve as-is")
                         }
                         
-                        // Use the predicted full name if available, otherwise use the normalized input
-                        val finalIdentifier = predictedName ?: normalized
+                        // Always use the normalized input (what the user actually typed)
+                        // Do NOT auto-complete to the predicted name
+                        val finalIdentifier = normalized
                         
                         // Validate the identifier format
                         when {
