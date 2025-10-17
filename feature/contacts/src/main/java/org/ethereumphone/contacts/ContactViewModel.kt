@@ -263,8 +263,7 @@ class ContactViewModel @Inject constructor(
                 }
 
                 // Online: proceed with normal flow
-                // Check pre-resolved results for errors, but pass original identifiers to repository
-                // so it can preserve ENS/Base names as conversation titles
+                // Use cached resolved addresses when available to avoid re-resolution
                 val identifiers = contacts
                     .filter { it.isNotBlank() }
                     .map { contactIdentifier ->
@@ -285,16 +284,19 @@ class ContactViewModel @Inject constructor(
                                     Log.d("ContactViewModel", "🚫 Using cached error for '$predictedName': ${preResolved.error}")
                                     _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
                                     return@launch
-                                } else {
+                                } else if (preResolved.address != null) {
+                                    // Use the cached resolved address instead of the ENS name
+                                    // This avoids re-resolution in the repository
                                     Log.d("ContactViewModel", "⚡ Using cached pre-resolved address for '$predictedName': ${preResolved.address}")
+                                    return@map preResolved.address
                                 }
                             }
                         } else if (predictedName != null && normalized != predictedName) {
                             Log.d("ContactViewModel", "⚠️ Input '$normalized' doesn't match prediction '$predictedName' - will resolve as-is")
                         }
                         
-                        // Always use the normalized input (what the user actually typed)
-                        // Do NOT auto-complete to the predicted name
+                        // Use the normalized input (what the user actually typed)
+                        // The repository will need to resolve this
                         val finalIdentifier = normalized
                         
                         // Validate the identifier format
