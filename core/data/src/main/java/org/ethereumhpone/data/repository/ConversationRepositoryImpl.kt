@@ -89,7 +89,7 @@ class ConversationRepositoryImpl @Inject constructor(
                 coroutineScope {
                     normalizedAddresses.mapIndexed { index, address ->
                         async {
-                            if (address.isValidEns()) {
+                            if (address.isValidEns() && !address.isValidBaseEns()) {
                                 try {
                                     val resolvedAddress = ensResolver.getAddress(ENSName(address))
                                     if (resolvedAddress != null) {
