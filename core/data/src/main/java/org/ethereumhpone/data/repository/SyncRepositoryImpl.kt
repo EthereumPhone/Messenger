@@ -218,12 +218,14 @@ class SyncRepositoryImpl @Inject constructor(
                 conversationDao.insertConversationMemberCrossRefs(refs)
 
 
+                val existing = conversationDao.getConversationEntityById(conversation.id)
+                
                 val (id, title, createdAt, archived, consentState) = when (conversation.type) {
                     Conversation.Type.DM -> {
                         val dm = (conversation as Conversation.Dm).dm
                         listOf(
                             dm.id,
-                            null,
+                            existing?.title, // Preserve existing title (e.g., ENS name)
                             dm.createdAt.time,
                             false, // TODO: Add a way to fill this
                             dm.consentState()
@@ -234,7 +236,7 @@ class SyncRepositoryImpl @Inject constructor(
                         val group = (conversation as Conversation.Group).group
                         listOf(
                             group.id,
-                            group.name,
+                            existing?.title ?: group.name, // Preserve existing title or use group name
                             group.createdAt.time,
                             !group.isActive(),
                             group.consentState()
@@ -242,7 +244,6 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                 }
 
-                val existing = conversationDao.getConversationEntityById(id as String)
                 val conversationEntity = ConversationEntity(
                     id = id as String,
                     title = title as String?,
@@ -351,12 +352,14 @@ class SyncRepositoryImpl @Inject constructor(
 
                             // conversation portion
 
+                            val existing = conversationDao.getConversationEntityById(conversation.id)
+                            
                             val (id, title, createdAt, archived, consentState) = when (conversation.type) {
                                 Conversation.Type.DM -> {
                                     val dm = (conversation as Conversation.Dm).dm
                                     listOf(
                                         dm.id,
-                                        null,
+                                        existing?.title, // Preserve existing title (e.g., ENS name)
                                         dm.createdAt.time,
                                         false,
                                         dm.consentState()
@@ -367,7 +370,7 @@ class SyncRepositoryImpl @Inject constructor(
                                     val group = (conversation as Conversation.Group).group
                                     listOf(
                                         group.id,
-                                        group.name,
+                                        existing?.title ?: group.name, // Preserve existing title or use group name
                                         group.createdAt.time,
                                         !group.isActive(),
                                         group.consentState()
@@ -375,7 +378,6 @@ class SyncRepositoryImpl @Inject constructor(
                                 }
                             }
 
-                            val existing = conversationDao.getConversationEntityById(id as String)
                             val conversationEntity = ConversationEntity(
                                 id = id as String,
                                 title = title as String?,

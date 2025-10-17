@@ -201,72 +201,44 @@ class ContactViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Online: proceed with normal flow (ENS resolution if needed, then create or fetch)
-                val addresses = contacts
+                // Online: proceed with normal flow
+                // Check pre-resolved results for errors, but pass original identifiers to repository
+                // so it can preserve ENS/Base names as conversation titles
+                val identifiers = contacts
                     .filter { it.isNotBlank() }
                     .map { contactIdentifier ->
                         val normalized = contactIdentifier.normalizedString()
                         
-                        // Check if we have a pre-resolved result
+                        // Check if we have a pre-resolved result with an error
                         val preResolved = preResolvedCache[normalized]
+                        if (preResolved != null && preResolved.error != null) {
+                            _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
+                            return@launch
+                        }
                         
+                        // Validate the identifier format
                         when {
-                            // Use pre-resolved result if available
-                            preResolved != null -> {
-                                if (preResolved.error != null) {
-                                    _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
-                                    return@launch
-                                }
-                                preResolved.address!!
+                            normalized.isValidEns() || normalized.isValidBaseEns() || normalized.isValidEthAddress() -> {
+                                normalized
                             }
-                            
-                            normalized.isValidEns() && !normalized.isValidBaseEns() -> {
-                                val result = ensResolver.getAddress(ENSName(normalized))
-
-                                if (result == null) {
-                                    _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
-                                    return@launch
-                                }
-                                Log.d("TEST", result.toString())
-                                result.toString().normalizedString()
-                            }
-                            normalized.isValidBaseEns() -> {
-                                val result = baseNameResolver.resolve(normalized)
-
-                                if (result.error != null) {
-                                    _uiEvent.tryEmit(UiEvent.ShowError("The provided Base Name is not valid"))
-                                    return@launch
-                                }
-
-                                if (result.address.isNullOrEmpty()) {
-                                    _uiEvent.tryEmit(UiEvent.ShowError("The provided Base Name could not be resolved"))
-                                    return@launch
-                                }
-
-                                result.address!!.normalizedString()
-
-                            }
-
-                            normalized.isValidEthAddress() -> normalized
                             else -> {
                                 _uiEvent.tryEmit(UiEvent.ShowError("Invalid Ethereum address or ENS name"))
                                 return@launch
                             }
                         }
-
                     }
 
-                // Guard against empty address list to prevent crashes
-                if (addresses.isEmpty()) {
+                // Guard against empty identifier list to prevent crashes
+                if (identifiers.isEmpty()) {
                     return@launch
                 }
 
-                // Only log if there is at least one address
-                addresses.firstOrNull()?.let { firstAddress ->
-                    Log.d("CURRENT ADDRESS", firstAddress)
+                // Only log if there is at least one identifier
+                identifiers.firstOrNull()?.let { firstIdentifier ->
+                    Log.d("CURRENT IDENTIFIER", firstIdentifier)
                 }
 
-                conversationRepository.createConversation(addresses).collectLatest { result ->
+                conversationRepository.createConversation(identifiers).collectLatest { result ->
                     when (result) {
                         is Result.Success -> {
                             _uiEvent.tryEmit(UiEvent.NavigateToConversation(result.data.id))

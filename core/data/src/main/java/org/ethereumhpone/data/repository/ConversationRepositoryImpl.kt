@@ -175,8 +175,9 @@ class ConversationRepositoryImpl @Inject constructor(
                 val identity = identities.first()
                 val dm = client.conversations.findOrCreateDmWithIdentity(identity)
 
-                // Use original ENS name as title if provided
-                val conversationTitle = if (addresses.size == 1 && addresses.first().isValidEns()) {
+                // Use original ENS/Base name as title if provided
+                val conversationTitle = if (addresses.size == 1 && 
+                    (addresses.first().isValidEns() || addresses.first().isValidBaseEns())) {
                     addresses.first()
                 } else {
                     null
@@ -249,8 +250,9 @@ class ConversationRepositoryImpl @Inject constructor(
         if (conversation != null) {
             emit(Result.Success(conversation.toExternalModel()))
         } else {
-            // Use original ENS name as title if provided
-            val conversationTitle = if (addresses.size == 1 && addresses.first().isValidEns()) {
+            // Use original ENS/Base name as title if provided
+            val conversationTitle = if (addresses.size == 1 && 
+                (addresses.first().isValidEns() || addresses.first().isValidBaseEns())) {
                 addresses.first()
             } else {
                 null
