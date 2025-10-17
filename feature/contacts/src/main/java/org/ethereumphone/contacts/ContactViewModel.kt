@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.basenameservice.BaseNameResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,6 +36,7 @@ class ContactViewModel @Inject constructor(
     private val phoneNumberUtils: PhoneNumberUtils,
     private val conversationRepository: ConversationRepository,
     private val ensResolver: ENS,
+    private val baseNameResolver: BaseNameResolver,
     private val networkManager: NetworkManager
 ): ViewModel() {
 
@@ -115,7 +117,7 @@ class ContactViewModel @Inject constructor(
                     .filter { it.isNotBlank() }
                     .map { contactIdentifier ->
                         when {
-                            contactIdentifier.normalizedString().isValidEns() -> {
+                            contactIdentifier.normalizedString().isValidEns() && !contactIdentifier.normalizedString().isValidBaseEns() -> {
                                 val result = ensResolver.getAddress(ENSName(contactIdentifier.normalizedString()))
 
                                 if (result == null) {
@@ -125,6 +127,23 @@ class ContactViewModel @Inject constructor(
                                 Log.d("TEST", result.toString())
                                 result.toString().normalizedString()
                             }
+                            contactIdentifier.normalizedString().isValidBaseEns() -> {
+                                val result = baseNameResolver.resolve(contactIdentifier.normalizedString())
+
+                                if (result.error != null) {
+                                    _uiEvent.tryEmit(UiEvent.ShowError("The provided Base Name is not valid"))
+                                    return@launch
+                                }
+
+                                if (result.address.isNullOrEmpty()) {
+                                    _uiEvent.tryEmit(UiEvent.ShowError("The provided Base Name could not be resolved"))
+                                    return@launch
+                                }
+
+                                result.address!!.normalizedString()
+
+                            }
+
                             contactIdentifier.normalizedString().isValidEthAddress() -> contactIdentifier.normalizedString()
                             else -> {
                                 _uiEvent.tryEmit(UiEvent.ShowError("Invalid Ethereum address or ENS name"))
@@ -204,6 +223,9 @@ private fun String.isValidEns(): Boolean {
     val ens = ENSName(this)
     return ens.isPotentialENSDomain()
 }
+
+private fun String.isValidBaseEns(): Boolean = this.contains(Regex("^[a-z0-9]{3,}\\.base\\.eth$", RegexOption.IGNORE_CASE))
+
 
 private fun String.isPossibleENS(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_\$]{3,}$"))
 

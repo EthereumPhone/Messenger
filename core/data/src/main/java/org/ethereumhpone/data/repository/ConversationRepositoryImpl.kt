@@ -2,6 +2,7 @@ package org.ethereumhpone.data.repository
 
 import android.content.Context
 import android.util.Log
+import io.basenameservice.BaseNameResolver
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
@@ -41,6 +42,7 @@ class ConversationRepositoryImpl @Inject constructor(
     private val messageDao: MessageDao,
     private val xmtpClientManager: XmtpClientManager,
     private val ensResolver: ENS,
+    private val baseNameResolver: BaseNameResolver
 ): ConversationRepository {
     override fun getConversations(): Flow<List<Conversation>> =
         conversationDao.getConversations()
@@ -59,7 +61,7 @@ class ConversationRepositoryImpl @Inject constructor(
         if (addresses.size == 1) {
             val address = addresses.first()
             // Check if conversation exists with ENS name as title
-            if (address.isValidEns()) {
+            if (address.isValidEns() || address.isValidBaseEns()) {
                 val existingByTitle = conversationDao.getConversations().first()
                     .map { it.toExternalModel() }
                     .find { it.title?.equals(address, ignoreCase = true) == true }
@@ -68,6 +70,7 @@ class ConversationRepositoryImpl @Inject constructor(
                     return@flow
                 }
             }
+
         }
         
         // Normalize and resolve addresses
@@ -98,6 +101,21 @@ class ConversationRepositoryImpl @Inject constructor(
                                 } catch (e: Exception) {
                                     Log.e("ConversationRepo", "ENS resolution failed for ${addresses[index]}", e)
                                     showDgenToast(context, "Could not resolve ENS name: ${addresses[index]}")
+                                    null
+                                }
+                            } else if(address.isValidBaseEns()) {
+                                try {
+                                    val resolveAddress = baseNameResolver.resolve(address)
+
+                                    if (resolveAddress.error == null) {
+                                        resolveAddress.address!!
+                                    } else {
+                                        showDgenToast(context, "Could not resolve ENS name: ${addresses[index]}")
+                                        null
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("ConversationRepo", "Base Name resolution failed for ${addresses[index]}", e)
+                                    showDgenToast(context, "Could not resolve Base Name: ${addresses[index]}")
                                     null
                                 }
                             } else {
@@ -280,4 +298,8 @@ private fun String.normalizedString(): String = this.replace("\\s".toRegex(), ""
 private fun String.isValidEns(): Boolean = try {
     ENSName(this).isPotentialENSDomain()
 } catch (e: Exception) { false }
+
+private fun String.isValidBaseEns(): Boolean = this.contains(Regex("^[a-z0-9]{3,}\\.base\\.eth$", RegexOption.IGNORE_CASE))
+
+
 private fun String.isValidEthAddress(): Boolean = this.matches(Regex("^0x[a-fA-F0-9]{40}$"))
