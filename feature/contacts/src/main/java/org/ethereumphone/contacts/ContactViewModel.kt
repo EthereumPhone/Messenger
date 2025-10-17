@@ -57,8 +57,12 @@ class ContactViewModel @Inject constructor(
                 val normalized = query.normalizedString()
                 
                 // Check if it looks like a potential ENS or Base name being typed
-                if (shouldPreResolve(normalized)) {
-                    preResolveAddress(normalized)
+                val predictedName = getPredictedFullName(normalized)
+                if (predictedName != null) {
+                    Log.d("ContactViewModel", "🔍 Query '$normalized' -> predicting '$predictedName', triggering pre-resolution")
+                    preResolveAddress(predictedName)
+                } else if (normalized.isNotBlank()) {
+                    Log.d("ContactViewModel", "🔍 Query '$normalized' doesn't match pre-resolve criteria yet")
                 }
             }
         }
@@ -103,26 +107,68 @@ class ContactViewModel @Inject constructor(
         savedStateHandle[SEARCH_QUERY] = query
     }
 
-    private fun shouldPreResolve(query: String): Boolean {
-        // Don't pre-resolve if it's already a valid eth address or empty
+    /**
+     * Predicts the full ENS/Base name based on partial input
+     * Returns null if the input doesn't look like it could be an ENS/Base name
+     * 
+     * Examples:
+     * - "nceornea.e" -> "nceornea.eth"
+     * - "jesse.base.e" -> "jesse.base.eth"
+     * - "dgen1.markus.e" -> "dgen1.markus.eth"
+     * - "vitalik.et" -> "vitalik.eth"
+     */
+    private fun getPredictedFullName(query: String): String? {
+        // Don't predict if it's already a valid eth address or empty
         if (query.isBlank() || query.isValidEthAddress()) {
-            return false
+            return null
         }
 
-        // Check if it looks like a potential ENS (has a dot and some characters)
-        // e.g., "nceornea.e" or "jesse.b"
-        val hasDot = query.contains('.')
+        // If it's already a COMPLETE Base name, return as-is
+        if (query.isValidBaseEns()) {
+            return query
+        }
+        
+        // If it ends with .eth (complete ENS), return as-is
+        if (query.endsWith(".eth", ignoreCase = true)) {
+            return query
+        }
+
         val parts = query.split('.')
+        val lastPart = parts.lastOrNull()?.lowercase() ?: ""
+        
+        // Check if the last part looks like a partial "eth" or "base"
+        val looksLikePartialEth = lastPart.isNotEmpty() && "eth".startsWith(lastPart) && lastPart != "eth"
+        val looksLikePartialBase = lastPart.isNotEmpty() && "base".startsWith(lastPart)
         
         return when {
-            // Potential Base ENS: at least 3 chars before .b or .base or .base.e, etc.
-            parts.size >= 2 && parts[0].length >= 3 && 
-                (parts[1].startsWith("b") || query.contains(".base", ignoreCase = true)) -> true
+            // Case 1: Ends with partial "base" -> predict ".base.eth"
+            // e.g., "name.b", "name.ba", "name.bas", "name.base"
+            parts.size == 2 && parts[0].length >= 3 && looksLikePartialBase -> {
+                "${parts[0]}.base.eth"
+            }
             
-            // Potential ENS: has a dot and looks like it could be an ENS
-            hasDot && parts.size >= 2 && parts[0].length >= 3 -> true
+            // Case 2: Second-to-last is "base" and ends with partial or no "eth"
+            // e.g., "name.base", "name.base.", "name.base.e", "name.base.et"
+            parts.size >= 2 && parts[parts.size - 2].equals("base", ignoreCase = true) -> {
+                val prefix = parts.dropLast(1).joinToString(".")
+                "$prefix.eth"
+            }
             
-            else -> false
+            // Case 3: Multiple parts ending with partial "eth"
+            // e.g., "dgen1.markus.e", "sub.domain.et"
+            parts.size >= 2 && parts[0].length >= 1 && looksLikePartialEth -> {
+                val prefix = parts.dropLast(1).joinToString(".")
+                "$prefix.eth"
+            }
+            
+            // Case 4: Ends with just a dot (e.g., "name.")
+            // Predict .eth
+            parts.size >= 2 && lastPart.isEmpty() && parts.dropLast(1).all { it.isNotEmpty() } -> {
+                val prefix = parts.dropLast(1).joinToString(".")
+                "$prefix.eth"
+            }
+            
+            else -> null
         }
     }
 
@@ -131,12 +177,14 @@ class ContactViewModel @Inject constructor(
             try {
                 // Skip if already resolving/resolved
                 if (preResolvedCache.containsKey(query)) {
+                    Log.d("ContactViewModel", "⏭️ Skipping pre-resolve for '$query' - already cached")
                     return@launch
                 }
 
                 // Check if online
                 val isOnline = networkManager.isOnline.first()
                 if (!isOnline) {
+                    Log.d("ContactViewModel", "📡 Offline: Cannot pre-resolve '$query'")
                     preResolvedCache[query] = ResolvedResult(null, "Connect to the internet to resolve this name")
                     return@launch
                 }
@@ -144,34 +192,47 @@ class ContactViewModel @Inject constructor(
                 // Determine what type of name we're resolving
                 val result = when {
                     query.isValidBaseEns() -> {
+                        Log.d("ContactViewModel", "🔵 Starting Base name pre-resolution for '$query'")
+                        val startTime = System.currentTimeMillis()
                         val baseResult = baseNameResolver.resolve(query)
+                        val duration = System.currentTimeMillis() - startTime
+                        
                         if (baseResult.error != null) {
+                            Log.d("ContactViewModel", "❌ Base name resolution failed for '$query' in ${duration}ms: ${baseResult.error}")
                             ResolvedResult(null, "The provided Base Name is not valid")
                         } else if (baseResult.address.isNullOrEmpty()) {
+                            Log.d("ContactViewModel", "❌ Base name resolution returned empty for '$query' in ${duration}ms")
                             ResolvedResult(null, "The provided Base Name could not be resolved")
                         } else {
+                            Log.d("ContactViewModel", "✅ Base name pre-resolved '$query' -> ${baseResult.address} in ${duration}ms")
                             ResolvedResult(baseResult.address!!.normalizedString(), null)
                         }
                     }
                     query.isValidEns() -> {
+                        Log.d("ContactViewModel", "🟢 Starting ENS pre-resolution for '$query'")
+                        val startTime = System.currentTimeMillis()
                         val ensAddress = ensResolver.getAddress(ENSName(query))
+                        val duration = System.currentTimeMillis() - startTime
+                        
                         if (ensAddress == null) {
+                            Log.d("ContactViewModel", "❌ ENS resolution failed for '$query' in ${duration}ms")
                             ResolvedResult(null, "The provided ENS is not valid")
                         } else {
+                            Log.d("ContactViewModel", "✅ ENS pre-resolved '$query' -> ${ensAddress} in ${duration}ms")
                             ResolvedResult(ensAddress.toString().normalizedString(), null)
                         }
                     }
                     else -> {
                         // Not a valid ENS format yet, don't cache
+                        Log.d("ContactViewModel", "⚠️ Query '$query' is not a valid ENS/Base name format yet")
                         return@launch
                     }
                 }
 
                 preResolvedCache[query] = result
-                Log.d("ContactViewModel", "Pre-resolved $query -> ${result.address ?: result.error}")
             } catch (e: Exception) {
                 preResolvedCache[query] = ResolvedResult(null, "Unable to resolve name: ${e.message}")
-                Log.e("ContactViewModel", "Error pre-resolving $query", e)
+                Log.e("ContactViewModel", "💥 Exception pre-resolving '$query': ${e.message}", e)
             }
         }
     }
@@ -209,17 +270,31 @@ class ContactViewModel @Inject constructor(
                     .map { contactIdentifier ->
                         val normalized = contactIdentifier.normalizedString()
                         
+                        // Check if the input is a partial name and get the predicted full name
+                        val predictedName = getPredictedFullName(normalized)
+                        val nameToCheck = predictedName ?: normalized
+                        
                         // Check if we have a pre-resolved result with an error
-                        val preResolved = preResolvedCache[normalized]
-                        if (preResolved != null && preResolved.error != null) {
-                            _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
-                            return@launch
+                        val preResolved = preResolvedCache[nameToCheck]
+                        if (preResolved != null) {
+                            if (preResolved.error != null) {
+                                Log.d("ContactViewModel", "🚫 Using cached error for '$nameToCheck': ${preResolved.error}")
+                                _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
+                                return@launch
+                            } else {
+                                Log.d("ContactViewModel", "⚡ Using cached pre-resolved address for '$nameToCheck': ${preResolved.address}")
+                            }
+                        } else {
+                            Log.d("ContactViewModel", "⏳ No cached result for '$nameToCheck', will resolve in repository")
                         }
+                        
+                        // Use the predicted full name if available, otherwise use the normalized input
+                        val finalIdentifier = predictedName ?: normalized
                         
                         // Validate the identifier format
                         when {
-                            normalized.isValidEns() || normalized.isValidBaseEns() || normalized.isValidEthAddress() -> {
-                                normalized
+                            finalIdentifier.isValidEns() || finalIdentifier.isValidBaseEns() || finalIdentifier.isValidEthAddress() -> {
+                                finalIdentifier
                             }
                             else -> {
                                 _uiEvent.tryEmit(UiEvent.ShowError("Invalid Ethereum address or ENS name"))
