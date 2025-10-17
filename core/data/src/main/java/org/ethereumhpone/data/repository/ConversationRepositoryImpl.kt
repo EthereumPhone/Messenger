@@ -56,7 +56,10 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.getConversationsWithUnseenMessages()
             .map { it.map(CompositeConversation::toExternalModel) }
 
-    override fun createConversation(addresses: List<String>): Flow<Result<Conversation>> = flow {
+    override fun createConversation(
+        addresses: List<String>,
+        preResolvedAddresses: Map<String, String>?
+    ): Flow<Result<Conversation>> = flow {
         // First check if a conversation already exists with the ENS name as title
         if (addresses.size == 1) {
             val address = addresses.first()
@@ -89,7 +92,12 @@ class ConversationRepositoryImpl @Inject constructor(
                 coroutineScope {
                     normalizedAddresses.mapIndexed { index, address ->
                         async {
-                            if (address.isValidEns() && !address.isValidBaseEns()) {
+                            // Check if we have a pre-resolved address for this ENS/Base name
+                            val preResolved = preResolvedAddresses?.get(address)
+                            if (preResolved != null) {
+                                Log.d("ConversationRepo", "⚡ Using pre-resolved address for '$address': $preResolved")
+                                preResolved
+                            } else if (address.isValidEns() && !address.isValidBaseEns()) {
                                 try {
                                     val resolvedAddress = ensResolver.getAddress(ENSName(address))
                                     if (resolvedAddress != null) {

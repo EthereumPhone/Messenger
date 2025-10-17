@@ -263,7 +263,9 @@ class ContactViewModel @Inject constructor(
                 }
 
                 // Online: proceed with normal flow
-                // Use cached resolved addresses when available to avoid re-resolution
+                // Build pre-resolved addresses map for the repository
+                val preResolvedMap = mutableMapOf<String, String>()
+                
                 val identifiers = contacts
                     .filter { it.isNotBlank() }
                     .map { contactIdentifier ->
@@ -274,29 +276,29 @@ class ContactViewModel @Inject constructor(
                         
                         // Only use pre-cached results if the actual input matches what we predicted
                         // This ensures typos like "jesse.base.rth" don't incorrectly use "jesse.base.eth" cache
-                        val shouldUseCachedResult = predictedName != null && normalized == predictedName
+                        val shouldCheckCache = predictedName != null && normalized == predictedName
                         
-                        if (shouldUseCachedResult && predictedName != null) {
-                            // Check if we have a pre-resolved result
+                        if (shouldCheckCache && predictedName != null) {
+                            // Check if we have a pre-resolved result for validation
                             val preResolved = preResolvedCache[predictedName]
                             if (preResolved != null) {
                                 if (preResolved.error != null) {
+                                    // If resolution failed, show error immediately
                                     Log.d("ContactViewModel", "🚫 Using cached error for '$predictedName': ${preResolved.error}")
                                     _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
                                     return@launch
                                 } else if (preResolved.address != null) {
-                                    // Use the cached resolved address instead of the ENS name
-                                    // This avoids re-resolution in the repository
-                                    Log.d("ContactViewModel", "⚡ Using cached pre-resolved address for '$predictedName': ${preResolved.address}")
-                                    return@map preResolved.address
+                                    // Resolution succeeded - add to pre-resolved map
+                                    preResolvedMap[normalized] = preResolved.address
+                                    Log.d("ContactViewModel", "✅ Will use cached result for '$predictedName' -> ${preResolved.address}")
                                 }
                             }
                         } else if (predictedName != null && normalized != predictedName) {
                             Log.d("ContactViewModel", "⚠️ Input '$normalized' doesn't match prediction '$predictedName' - will resolve as-is")
                         }
                         
-                        // Use the normalized input (what the user actually typed)
-                        // The repository will need to resolve this
+                        // Always use the normalized input (what the user actually typed)
+                        // This preserves ENS/Base names as conversation titles
                         val finalIdentifier = normalized
                         
                         // Validate the identifier format
@@ -321,7 +323,10 @@ class ContactViewModel @Inject constructor(
                     Log.d("CURRENT IDENTIFIER", firstIdentifier)
                 }
 
-                conversationRepository.createConversation(identifiers).collectLatest { result ->
+                conversationRepository.createConversation(
+                    identifiers,
+                    preResolvedAddresses = if (preResolvedMap.isNotEmpty()) preResolvedMap else null
+                ).collectLatest { result ->
                     when (result) {
                         is Result.Success -> {
                             _uiEvent.tryEmit(UiEvent.NavigateToConversation(result.data.id))
