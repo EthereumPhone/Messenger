@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.ethereumhpone.chat.components.isEthereumAddress
@@ -87,18 +88,36 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     // duplicate receipts when the same message (or the user’s own message) triggers multiple
     // DB updates / emissions.
     private var lastReadReceiptMessageId: String? = null
-    // conversation state
-    val conversation = conversationRepository.getConversation(threadId)
-        .map { conversation ->
-            if (conversation == null) {
+    // conversation state - combines conversation data with XMTP client state
+    val conversation = combine(
+        conversationRepository.getConversation(threadId),
+        xmtpClientManager.clientState
+    ) { conversation, clientState ->
+        when {
+            conversation == null -> {
                 // TODO add fallback if convo does not exist?
                 ConversationUiState.Loading
-            } else {
-                activeConversationManager.setActiveConversation(conversation.id)
-                xmtpConversation = xmtpClientManager.client.conversations.findConversation(threadId)!!
-                ConversationUiState.Success(conversation = conversation)
             }
+            clientState is XmtpClientManager.ClientState.Error -> {
+                ConversationUiState.Error("XMTP client error: ${clientState.message}")
+            }
+            clientState is XmtpClientManager.ClientState.Unknown -> {
+                // Client not initialized yet, keep loading state
+                ConversationUiState.Loading
+            }
+            clientState is XmtpClientManager.ClientState.Ready -> {
+                activeConversationManager.setActiveConversation(conversation.id)
+                try {
+                    xmtpConversation = xmtpClientManager.client.conversations.findConversation(threadId)!!
+                    ConversationUiState.Success(conversation = conversation)
+                } catch (e: Exception) {
+                    Log.e("ChatViewModel", "Error finding conversation", e)
+                    ConversationUiState.Error(e.message ?: "Error finding conversation")
+                }
+            }
+            else -> ConversationUiState.Loading
         }
+    }
         .distinctUntilChanged()
         .flowOn(Dispatchers.IO)
         .stateIn(
@@ -490,6 +509,7 @@ sealed interface MessageUiState {
 sealed interface ConversationUiState {
     object Loading : ConversationUiState
     data class Success(val conversation: Conversation): ConversationUiState
+    data class Error(val message: String) : ConversationUiState
 }
 
 sealed interface RecipientUiState {
