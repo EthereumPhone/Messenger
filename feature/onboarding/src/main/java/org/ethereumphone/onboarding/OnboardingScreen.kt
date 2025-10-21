@@ -291,7 +291,7 @@ enum class OnboardingPageContent(
         "Chat with XMTP",
         "XMTP enables secure, wallet-to-wallet messaging using Ethereum addresses."
     ),
-    SYNC("Settings things up", "Please, sign the next two prompts"),
+    SYNC("Setting things up", "Please, sign the next two prompts"),
     FINISH("All set up :)", "You can change XMTP behaviours via the messenger's options"),
     ERROR("Something went wrong","You can retry via the option menu")
 }
