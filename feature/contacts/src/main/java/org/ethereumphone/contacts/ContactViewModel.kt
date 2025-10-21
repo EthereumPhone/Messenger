@@ -82,11 +82,7 @@ class ContactViewModel @Inject constructor(
                 QueryResultUiState.Success(null, contactsWithEthAddress)
             } else {
                 // Generate a manual contact based on the query
-                val manualContactEntity = if (query.isValidEns() || query.isValidEthAddress()) {
-                    ContactEntity(lookupKey = query, ethAddress = query, name = query)
-                } else {
-                    null
-                }
+                val manualContactEntity = ContactEntity(lookupKey = query, ethAddress = query, name = query)
 
                 // Filter contacts based on the query (filterContact already checks for ethAddress)
                 val filteredContacts = contactsWithEthAddress.filter { filterContact(it, query) }
@@ -176,15 +172,11 @@ class ContactViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Skip if already resolving/resolved
-                if (preResolvedCache.containsKey(query)) {
-                    Log.d("ContactViewModel", "⏭️ Skipping pre-resolve for '$query' - already cached")
-                    return@launch
-                }
+                if (preResolvedCache.containsKey(query)) return@launch
 
                 // Check if online
                 val isOnline = networkManager.isOnline.first()
                 if (!isOnline) {
-                    Log.d("ContactViewModel", "📡 Offline: Cannot pre-resolve '$query'")
                     preResolvedCache[query] = ResolvedResult(null, "Connect to the internet to resolve this name")
                     return@launch
                 }
@@ -192,39 +184,31 @@ class ContactViewModel @Inject constructor(
                 // Determine what type of name we're resolving
                 val result = when {
                     query.isValidBaseEns() -> {
-                        Log.d("ContactViewModel", "🔵 Starting Base name pre-resolution for '$query'")
                         val startTime = System.currentTimeMillis()
                         val baseResult = baseNameResolver.resolve(query)
                         val duration = System.currentTimeMillis() - startTime
                         
                         if (baseResult.error != null) {
-                            Log.d("ContactViewModel", "❌ Base name resolution failed for '$query' in ${duration}ms: ${baseResult.error}")
                             ResolvedResult(null, "The provided Base Name is not valid")
                         } else if (baseResult.address.isNullOrEmpty()) {
-                            Log.d("ContactViewModel", "❌ Base name resolution returned empty for '$query' in ${duration}ms")
                             ResolvedResult(null, "The provided Base Name could not be resolved")
                         } else {
-                            Log.d("ContactViewModel", "✅ Base name pre-resolved '$query' -> ${baseResult.address} in ${duration}ms")
                             ResolvedResult(baseResult.address!!.normalizedString(), null)
                         }
                     }
                     query.isValidEns() -> {
-                        Log.d("ContactViewModel", "🟢 Starting ENS pre-resolution for '$query'")
                         val startTime = System.currentTimeMillis()
                         val ensAddress = ensResolver.getAddress(ENSName(query))
                         val duration = System.currentTimeMillis() - startTime
                         
                         if (ensAddress == null) {
-                            Log.d("ContactViewModel", "❌ ENS resolution failed for '$query' in ${duration}ms")
                             ResolvedResult(null, "The provided ENS is not valid")
                         } else {
-                            Log.d("ContactViewModel", "✅ ENS pre-resolved '$query' -> ${ensAddress} in ${duration}ms")
                             ResolvedResult(ensAddress.toString().normalizedString(), null)
                         }
                     }
                     else -> {
                         // Not a valid ENS format yet, don't cache
-                        Log.d("ContactViewModel", "⚠️ Query '$query' is not a valid ENS/Base name format yet")
                         return@launch
                     }
                 }
@@ -232,7 +216,6 @@ class ContactViewModel @Inject constructor(
                 preResolvedCache[query] = result
             } catch (e: Exception) {
                 preResolvedCache[query] = ResolvedResult(null, "Unable to resolve name: ${e.message}")
-                Log.e("ContactViewModel", "💥 Exception pre-resolving '$query': ${e.message}", e)
             }
         }
     }
@@ -284,17 +267,13 @@ class ContactViewModel @Inject constructor(
                             if (preResolved != null) {
                                 if (preResolved.error != null) {
                                     // If resolution failed, show error immediately
-                                    Log.d("ContactViewModel", "🚫 Using cached error for '$predictedName': ${preResolved.error}")
                                     _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
                                     return@launch
                                 } else if (preResolved.address != null) {
                                     // Resolution succeeded - add to pre-resolved map
                                     preResolvedMap[normalized] = preResolved.address
-                                    Log.d("ContactViewModel", "✅ Will use cached result for '$predictedName' -> ${preResolved.address}")
                                 }
                             }
-                        } else if (predictedName != null && normalized != predictedName) {
-                            Log.d("ContactViewModel", "⚠️ Input '$normalized' doesn't match prediction '$predictedName' - will resolve as-is")
                         }
                         
                         // Always use the normalized input (what the user actually typed)

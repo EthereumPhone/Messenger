@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -100,8 +101,11 @@ fun NewConversationSheet(
     secondaryColor: Color,
     viewModel: ContactViewModel = hiltViewModel()
 ) {
+
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val queryResultUiState by viewModel.queryResultUiState.collectAsStateWithLifecycle()
     ConversationSheet(
+        searchQuery = searchQuery,
         queryResultUiState = queryResultUiState,
         onContactsSelected = viewModel::getOrCreateConversation,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
@@ -127,11 +131,19 @@ fun NewConversationSheet(
         }
     }
 
+    // Clear search query when the sheet is dismissed/disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.onSearchQueryChanged("")
+        }
+    }
+
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ConversationSheet(
+    searchQuery: String,
     queryResultUiState: QueryResultUiState,
     onContactsSelected: (List<String>) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
@@ -149,6 +161,16 @@ internal fun ConversationSheet(
 
     var multiSelectMode by remember { mutableStateOf(false) }
     val selectedItems = remember { mutableStateListOf<ContactEntity>() }
+    
+    // Local TextFieldValue state that syncs with searchQuery
+    var textState by remember { mutableStateOf(TextFieldValue(searchQuery)) }
+    
+    // Sync textState with searchQuery when searchQuery changes externally (e.g., when cleared)
+    LaunchedEffect(searchQuery) {
+        if (textState.text != searchQuery) {
+            textState = TextFieldValue(searchQuery)
+        }
+    }
 
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
     val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
@@ -158,9 +180,8 @@ internal fun ConversationSheet(
         BackHandler(onBack = dismissKeyboard)
     }
 
-    var textState by rememberSaveable(stateSaver = TextFieldValue.Saver) {
-        mutableStateOf(TextFieldValue())
-    }
+
+
 
     val animatedColor by animateColorAsState(
         targetValue = if (isSearchFocused) secondaryColor else Color.Transparent,
@@ -169,10 +190,6 @@ internal fun ConversationSheet(
     )
 
     // Lambda to clear the current search value and notify the change upstream
-    val onClearValue = {
-        textState = TextFieldValue()
-        onSearchQueryChanged("")
-    }
 
     LaunchedEffect(isSearchFocused) {
         if (isSearchFocused) {
@@ -329,7 +346,7 @@ internal fun ConversationSheet(
                                                         color = primaryColor,
                                                     )
                                                 },
-                                            onClick = onClearValue,
+                                            onClick = { onSearchQueryChanged("") },
                                             icon = {
                                                 Icon(
                                                     contentDescription = "Clear",
@@ -364,7 +381,7 @@ internal fun ConversationSheet(
                                 }
                                 is QueryResultUiState.Success -> {
 
-                                    if(textState.text.isNotEmpty()){
+                                    if(textState.text.isNotEmpty()) {
                                         item {
                                             Spacer(Modifier.fillMaxWidth().height(16.dp))
                                         }
@@ -533,6 +550,7 @@ fun previewContactSheet() {
     val queryResultUiState = QueryResultUiState.Success(ContactEntity(name = "Nicola"), contactEntities)
 
     ConversationSheet(
+        "",
         queryResultUiState,
         {},
         {},
@@ -552,6 +570,7 @@ fun previewNoContactsContactSheet() {
     val queryResultUiState = QueryResultUiState.Success(ContactEntity(name = "Nicola"), contactEntities)
 
     ConversationSheet(
+        "",
         queryResultUiState,
         {},
         {},
