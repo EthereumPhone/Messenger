@@ -263,6 +263,7 @@ fun ChatScreen(
 
     val chatConversion = when (converstation) {
         ConversationUiState.Loading -> null
+        is ConversationUiState.Error -> null
         is ConversationUiState.Success -> converstation.conversation
     }
 

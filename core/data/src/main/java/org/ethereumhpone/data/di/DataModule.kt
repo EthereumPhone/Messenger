@@ -6,6 +6,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.basenameservice.BaseNameResolver
+import org.ethereumhpone.data.BuildConfig
 import org.ethereumhpone.data.manager.PermissionManagerImpl
 import org.ethereumhpone.data.manager.WalletContentProviderImpl
 import org.ethereumhpone.data.mapper.ContactCursorImpl
@@ -41,4 +43,9 @@ object DataModule {
     fun providePermissionManager(permissionManagerImpl: PermissionManagerImpl): PermissionManager = permissionManagerImpl
     @Provides
     fun provideWalletContentProvider(walletContentProviderImpl: WalletContentProviderImpl): WalletContentProvider = walletContentProviderImpl
+
+    @Provides
+    fun provideBaseNameresolver(): BaseNameResolver = BaseNameResolver(
+        ethereumRpcUrl = "https://eth-mainnet.g.alchemy.com/v2/${BuildConfig.ALCHEMY_API}"
+    )
 }

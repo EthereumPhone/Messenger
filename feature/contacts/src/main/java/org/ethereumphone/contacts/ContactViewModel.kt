@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.basenameservice.BaseNameResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,6 +36,7 @@ class ContactViewModel @Inject constructor(
     private val phoneNumberUtils: PhoneNumberUtils,
     private val conversationRepository: ConversationRepository,
     private val ensResolver: ENS,
+    private val baseNameResolver: BaseNameResolver,
     private val networkManager: NetworkManager
 ): ViewModel() {
 
@@ -44,7 +46,27 @@ class ContactViewModel @Inject constructor(
     private val _uiEvent = MutableSharedFlow<UiEvent>(extraBufferCapacity = 1)
     val uiEvent: SharedFlow<UiEvent> = _uiEvent
 
+    // Cache for pre-resolved addresses
+    private data class ResolvedResult(val address: String?, val error: String?)
+    private val preResolvedCache = mutableMapOf<String, ResolvedResult>()
 
+    init {
+        // Monitor search query and pre-resolve when it looks like ENS or Base name
+        viewModelScope.launch(Dispatchers.IO) {
+            searchQuery.collectLatest { query ->
+                val normalized = query.normalizedString()
+                
+                // Check if it looks like a potential ENS or Base name being typed
+                val predictedName = getPredictedFullName(normalized)
+                if (predictedName != null) {
+                    Log.d("ContactViewModel", "🔍 Query '$normalized' -> predicting '$predictedName', triggering pre-resolution")
+                    preResolveAddress(predictedName)
+                } else if (normalized.isNotBlank()) {
+                    Log.d("ContactViewModel", "🔍 Query '$normalized' doesn't match pre-resolve criteria yet")
+                }
+            }
+        }
+    }
 
     val queryResultUiState: StateFlow<QueryResultUiState> =
         combine(
@@ -60,11 +82,7 @@ class ContactViewModel @Inject constructor(
                 QueryResultUiState.Success(null, contactsWithEthAddress)
             } else {
                 // Generate a manual contact based on the query
-                val manualContactEntity = if (query.isValidEns() || query.isValidEthAddress()) {
-                    ContactEntity(lookupKey = query, ethAddress = query, name = query)
-                } else {
-                    null
-                }
+                val manualContactEntity = ContactEntity(lookupKey = query, ethAddress = query, name = query)
 
                 // Filter contacts based on the query (filterContact already checks for ethAddress)
                 val filteredContacts = contactsWithEthAddress.filter { filterContact(it, query) }
@@ -83,6 +101,123 @@ class ContactViewModel @Inject constructor(
 
     fun onSearchQueryChanged(query: String) {
         savedStateHandle[SEARCH_QUERY] = query
+    }
+
+    /**
+     * Predicts the full ENS/Base name based on partial input
+     * Returns null if the input doesn't look like it could be an ENS/Base name
+     * 
+     * Examples:
+     * - "nceornea.e" -> "nceornea.eth"
+     * - "jesse.base.e" -> "jesse.base.eth"
+     * - "dgen1.markus.e" -> "dgen1.markus.eth"
+     * - "vitalik.et" -> "vitalik.eth"
+     */
+    private fun getPredictedFullName(query: String): String? {
+        // Don't predict if it's already a valid eth address or empty
+        if (query.isBlank() || query.isValidEthAddress()) {
+            return null
+        }
+
+        // If it's already a COMPLETE Base name, return as-is
+        if (query.isValidBaseEns()) {
+            return query
+        }
+        
+        // If it ends with .eth (complete ENS), return as-is
+        if (query.endsWith(".eth", ignoreCase = true)) {
+            return query
+        }
+
+        val parts = query.split('.')
+        val lastPart = parts.lastOrNull()?.lowercase() ?: ""
+        
+        // Check if the last part looks like a partial "eth" or "base"
+        val looksLikePartialEth = lastPart.isNotEmpty() && "eth".startsWith(lastPart) && lastPart != "eth"
+        val looksLikePartialBase = lastPart.isNotEmpty() && "base".startsWith(lastPart)
+        
+        return when {
+            // Case 1: Ends with partial "base" -> predict ".base.eth"
+            // e.g., "name.b", "name.ba", "name.bas", "name.base"
+            parts.size == 2 && parts[0].length >= 3 && looksLikePartialBase -> {
+                "${parts[0]}.base.eth"
+            }
+            
+            // Case 2: Second-to-last is "base" and ends with partial or no "eth"
+            // e.g., "name.base", "name.base.", "name.base.e", "name.base.et"
+            parts.size >= 2 && parts[parts.size - 2].equals("base", ignoreCase = true) -> {
+                val prefix = parts.dropLast(1).joinToString(".")
+                "$prefix.eth"
+            }
+            
+            // Case 3: Multiple parts ending with partial "eth"
+            // e.g., "dgen1.markus.e", "sub.domain.et"
+            parts.size >= 2 && parts[0].length >= 1 && looksLikePartialEth -> {
+                val prefix = parts.dropLast(1).joinToString(".")
+                "$prefix.eth"
+            }
+            
+            // Case 4: Ends with just a dot (e.g., "name.")
+            // Predict .eth
+            parts.size >= 2 && lastPart.isEmpty() && parts.dropLast(1).all { it.isNotEmpty() } -> {
+                val prefix = parts.dropLast(1).joinToString(".")
+                "$prefix.eth"
+            }
+            
+            else -> null
+        }
+    }
+
+    private fun preResolveAddress(query: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Skip if already resolving/resolved
+                if (preResolvedCache.containsKey(query)) return@launch
+
+                // Check if online
+                val isOnline = networkManager.isOnline.first()
+                if (!isOnline) {
+                    preResolvedCache[query] = ResolvedResult(null, "Connect to the internet to resolve this name")
+                    return@launch
+                }
+
+                // Determine what type of name we're resolving
+                val result = when {
+                    query.isValidBaseEns() -> {
+                        val startTime = System.currentTimeMillis()
+                        val baseResult = baseNameResolver.resolve(query)
+                        val duration = System.currentTimeMillis() - startTime
+                        
+                        if (baseResult.error != null) {
+                            ResolvedResult(null, "The provided Base Name is not valid")
+                        } else if (baseResult.address.isNullOrEmpty()) {
+                            ResolvedResult(null, "The provided Base Name could not be resolved")
+                        } else {
+                            ResolvedResult(baseResult.address!!.normalizedString(), null)
+                        }
+                    }
+                    query.isValidEns() -> {
+                        val startTime = System.currentTimeMillis()
+                        val ensAddress = ensResolver.getAddress(ENSName(query))
+                        val duration = System.currentTimeMillis() - startTime
+                        
+                        if (ensAddress == null) {
+                            ResolvedResult(null, "The provided ENS is not valid")
+                        } else {
+                            ResolvedResult(ensAddress.toString().normalizedString(), null)
+                        }
+                    }
+                    else -> {
+                        // Not a valid ENS format yet, don't cache
+                        return@launch
+                    }
+                }
+
+                preResolvedCache[query] = result
+            } catch (e: Exception) {
+                preResolvedCache[query] = ResolvedResult(null, "Unable to resolve name: ${e.message}")
+            }
+        }
     }
 
 
@@ -110,41 +245,67 @@ class ContactViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Online: proceed with normal flow (ENS resolution if needed, then create or fetch)
-                val addresses = contacts
+                // Online: proceed with normal flow
+                // Build pre-resolved addresses map for the repository
+                val preResolvedMap = mutableMapOf<String, String>()
+                
+                val identifiers = contacts
                     .filter { it.isNotBlank() }
                     .map { contactIdentifier ->
-                        when {
-                            contactIdentifier.normalizedString().isValidEns() -> {
-                                val result = ensResolver.getAddress(ENSName(contactIdentifier.normalizedString()))
-
-                                if (result == null) {
-                                    _uiEvent.tryEmit(UiEvent.ShowError("The provided ENS is not valid"))
+                        val normalized = contactIdentifier.normalizedString()
+                        
+                        // Check if the input is a partial name and get the predicted full name
+                        val predictedName = getPredictedFullName(normalized)
+                        
+                        // Only use pre-cached results if the actual input matches what we predicted
+                        // This ensures typos like "jesse.base.rth" don't incorrectly use "jesse.base.eth" cache
+                        val shouldCheckCache = predictedName != null && normalized == predictedName
+                        
+                        if (shouldCheckCache && predictedName != null) {
+                            // Check if we have a pre-resolved result for validation
+                            val preResolved = preResolvedCache[predictedName]
+                            if (preResolved != null) {
+                                if (preResolved.error != null) {
+                                    // If resolution failed, show error immediately
+                                    _uiEvent.tryEmit(UiEvent.ShowError(preResolved.error))
                                     return@launch
+                                } else if (preResolved.address != null) {
+                                    // Resolution succeeded - add to pre-resolved map
+                                    preResolvedMap[normalized] = preResolved.address
                                 }
-                                Log.d("TEST", result.toString())
-                                result.toString().normalizedString()
                             }
-                            contactIdentifier.normalizedString().isValidEthAddress() -> contactIdentifier.normalizedString()
+                        }
+                        
+                        // Always use the normalized input (what the user actually typed)
+                        // This preserves ENS/Base names as conversation titles
+                        val finalIdentifier = normalized
+                        
+                        // Validate the identifier format
+                        when {
+                            finalIdentifier.isValidEns() || finalIdentifier.isValidBaseEns() || finalIdentifier.isValidEthAddress() -> {
+                                finalIdentifier
+                            }
                             else -> {
                                 _uiEvent.tryEmit(UiEvent.ShowError("Invalid Ethereum address or ENS name"))
                                 return@launch
                             }
                         }
-
                     }
 
-                // Guard against empty address list to prevent crashes
-                if (addresses.isEmpty()) {
+                // Guard against empty identifier list to prevent crashes
+                if (identifiers.isEmpty()) {
                     return@launch
                 }
 
-                // Only log if there is at least one address
-                addresses.firstOrNull()?.let { firstAddress ->
-                    Log.d("CURRENT ADDRESS", firstAddress)
+                // Only log if there is at least one identifier
+                identifiers.firstOrNull()?.let { firstIdentifier ->
+                    Log.d("CURRENT IDENTIFIER", firstIdentifier)
                 }
 
-                conversationRepository.createConversation(addresses).collectLatest { result ->
+                conversationRepository.createConversation(
+                    identifiers,
+                    preResolvedAddresses = if (preResolvedMap.isNotEmpty()) preResolvedMap else null
+                ).collectLatest { result ->
                     when (result) {
                         is Result.Success -> {
                             _uiEvent.tryEmit(UiEvent.NavigateToConversation(result.data.id))
@@ -204,6 +365,9 @@ private fun String.isValidEns(): Boolean {
     val ens = ENSName(this)
     return ens.isPotentialENSDomain()
 }
+
+private fun String.isValidBaseEns(): Boolean = this.contains(Regex("^[a-z0-9]{3,}\\.base\\.eth$", RegexOption.IGNORE_CASE))
+
 
 private fun String.isPossibleENS(): Boolean = this.matches(Regex("^[a-zA-Z0-9-_\$]{3,}$"))
 

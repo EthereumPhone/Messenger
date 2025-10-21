@@ -110,5 +110,6 @@ dependencies {
 
     implementation(project(":dgenlibrary"))
     implementation("androidx.compose.ui:ui-graphics") // Required for showDgenToast Color parameter
+    implementation("com.github.Nicola-Ceornea:BaseNameResolver:1.0.2")
 
 }
