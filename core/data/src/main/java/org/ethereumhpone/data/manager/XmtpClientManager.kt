@@ -40,9 +40,15 @@ import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Singleton
 object XmtpClientManager {
+    private val creating = AtomicBoolean(false)
 
     fun clientOptions(appContext: Context, address: String): ClientOptions {
         val keyUtil = KeyUtil(appContext)
@@ -93,6 +99,7 @@ object XmtpClientManager {
         appContext: Context
     ) {
         if (clientState.value is ClientState.Ready) return
+        if (!creating.compareAndSet(false, true)) return
 
         GlobalScope.launch(Dispatchers.IO) {
             val address = walletSDK.getAddress()
@@ -114,6 +121,8 @@ object XmtpClientManager {
 
             } catch (e: Exception) {
                 _clientState.value = ClientState.Error(e.localizedMessage.orEmpty())
+            } finally {
+                creating.set(false)
             }
         }
     }
@@ -168,14 +177,38 @@ class EOAWallet(val walletSDK: WalletSDK, val address: String) : SigningKey {
     // generated setter parameter uses the standard name `value` instead.
     override var blockNumber: Long? = null
 
+    private val signMutex = Mutex()
 
     override suspend fun sign(message: String): SignedData {
-        // Ensure signing is performed on the Main thread so that any UI-driven wallet prompts are shown properly
-        val signatureString = withContext(Dispatchers.Main) {
-            walletSDK.signMessage(message, 8453)
-        }
-        val signatureBytes = signatureString.removePrefix("0x").chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        return signMutex.withLock {
+            // Ensure signing is performed on the Main thread so that any UI-driven wallet prompts are shown properly
+            val signatureString = try {
+                withTimeout(30_000) {
+                    withContext(Dispatchers.Main) {
+                        walletSDK.signMessage(message, 8453)
+                    }
+                }
+            } catch (e: IllegalStateException) {
+                if (e.message?.contains("Already resumed", ignoreCase = true) == true) {
+                    Log.w("EOAWallet", "Duplicate callback from WalletSDK.signMessage ignored; not retrying", e)
+                    throw CancellationException("WalletSDK duplicate callback; operation cancelled")
+                } else {
+                    throw e
+                }
+            }
 
-        return SignedData(signatureBytes)
+            if (signatureString.isBlank() || signatureString.equals("decline", ignoreCase = true)) {
+                throw CancellationException("User declined signing")
+            }
+
+            val normalized = signatureString.trim()
+            val hex = if (normalized.startsWith("0x")) normalized.substring(2) else normalized
+            if (hex.isEmpty() || hex.length % 2 != 0 || !hex.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' }) {
+                throw IllegalArgumentException("Invalid signature format")
+            }
+
+            val signatureBytes = hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            SignedData(signatureBytes)
+        }
     }
 }

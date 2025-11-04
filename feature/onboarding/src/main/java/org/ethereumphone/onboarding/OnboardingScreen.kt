@@ -69,6 +69,13 @@ fun OnboardingRoute(
     val syncState by onboardingViewModel.syncState.collectAsState()
     val isOnline by onboardingViewModel.isOnline.collectAsState(initial = true)
 
+    // Auto-finish onboarding once XMTP setup and initial sync succeed
+    LaunchedEffect(syncState) {
+        if (syncState is SyncState.Success) {
+            onboardingViewModel.hideOnboarding(true)
+            onFinishOnboarding()
+        }
+    }
 
 
     OnboardingScreen(
