@@ -9,6 +9,7 @@ import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.toExternalModel
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
+import org.ethereumphone.model.Recipient
 
 data class CompositeMessage(
     @Embedded
@@ -19,7 +20,7 @@ data class CompositeMessage(
         entityColumn = "inboxId",
         entity = RecipientEntity::class
     )
-    val recipient: RecipientWithContact,
+    val recipient: RecipientWithContact?,
 
 
     @Relation(
@@ -33,10 +34,19 @@ data class CompositeMessage(
 
 
 fun CompositeMessage.toExternalMessage(): Message {
+    val resolvedRecipient: Recipient =
+        recipient?.recipientEntity?.toExternalModel(recipient.contactEntity)
+            ?: Recipient(
+                id = message.senderInboxId,
+                address = message.senderInboxId,
+                ens = null,
+                contact = null
+            )
+
     return Message(
         id = message.id,
         threadId = message.threadId,
-        recipient = recipient.recipientEntity.toExternalModel(recipient.contactEntity),
+        recipient = resolvedRecipient,
         dateSent = Instant.fromEpochMilliseconds(message.dateSent),
         date = Instant.fromEpochMilliseconds(message.date),
         seen = message.seen,

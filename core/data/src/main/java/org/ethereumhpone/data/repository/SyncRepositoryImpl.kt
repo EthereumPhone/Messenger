@@ -168,6 +168,17 @@ class SyncRepositoryImpl @Inject constructor(
         
         val client = xmtpClientManager.client
 
+        // Pre-create self recipient to avoid missing relation for outgoing messages
+        runCatching {
+            val selfRecipient = RecipientEntity(
+                inboxId = client.inboxId,
+                address = "",
+                ens = null,
+                contactLookupKey = null
+            )
+            recipientDao.upsertRecipient(selfRecipient)
+        }
+
         val syncJob = launch {
             client.preferences.syncConsent()
             val test = client.conversations.syncAllConversations()
@@ -265,6 +276,28 @@ class SyncRepositoryImpl @Inject constructor(
 
             // messages
             launch {
+                // Ensure recipients exist before processing messages for this conversation
+                runCatching {
+                    val members = conversation.members()
+                    val contacts = contactDao.getContacts().first()
+                    val recipientEntities = members.map { member ->
+                        val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                        val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
+
+                        val matchedContact = contacts.firstOrNull { contact ->
+                            contact.ethAddress?.equals(address, ignoreCase = true) == true
+                        }
+
+                        RecipientEntity(
+                            inboxId = member.inboxId,
+                            address = address,
+                            ens = ensAddress,
+                            contactLookupKey = matchedContact?.lookupKey
+                        )
+                    }
+                    recipientDao.insertRecipients(recipientEntities)
+                }
+
                 val messages = conversation.messagesWithReactions()
 
                 messages.chunked(10) { messageChunk ->
@@ -330,19 +363,25 @@ class SyncRepositoryImpl @Inject constructor(
                             val members = conversation.members()
 
                             Log.d(TAG, "Conversation members count: ${members.size}")
+                            // Preserve/attach contact lookup by matching ETH addresses to contacts
+                            val contacts = contactDao.getContacts().first()
+
                             val recipientEntities = members.map { member ->
-                                //TODO: Might fire too often.
                                 val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
                                 val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
 
+                                val matchedContact = contacts.firstOrNull { contact ->
+                                    contact.ethAddress?.equals(address, ignoreCase = true) == true
+                                }
+
                                 RecipientEntity(
                                     inboxId = member.inboxId,
-                                    address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
+                                    address = address,
                                     ens = ensAddress,
-                                    contactLookupKey = null // TODO: Get contact lookupKeys
+                                    contactLookupKey = matchedContact?.lookupKey
                                 )
                             }
-                            recipientDao.insertRecipients(recipientEntities)
+                            recipientDao.upsertRecipients(recipientEntities)
 
                             val inboxIds = conversation.members().map { it.inboxId }
                             val refs = inboxIds.map { inboxId ->
@@ -409,6 +448,37 @@ class SyncRepositoryImpl @Inject constructor(
                                 messageDao.updateMessageSeenDate(message.sentAtNs / 1_000_000)
                                 return@collect
                             }
+
+                            // Ensure sender recipient exists before upserting the message
+                            try {
+                                val convo = client.conversations.findConversation(message.conversationId)
+                                val member = convo?.members()?.firstOrNull { it.inboxId == message.senderInboxId }
+                                if (member != null) {
+                                    val ethAddress = member.identities.firstOrNull { it.kind == IdentityKind.ETHEREUM }?.identifier
+                                    val resolvedEns = ethAddress?.let { addr ->
+                                        ensResolver.reverseResolve(Address(addr.removePrefix("0x")))
+                                    }
+
+                                    // Preserve existing contact link if present; otherwise try to match
+                                    val existing = recipientDao.getRecipientWithContact(member.inboxId).first()
+                                    val existingLookup = existing?.contactEntity?.lookupKey
+
+                                    val contacts = contactDao.getContacts().first()
+                                    val matchedContact = ethAddress?.let { addr ->
+                                        contacts.firstOrNull { c -> c.ethAddress?.equals(addr, ignoreCase = true) == true }
+                                    }
+
+                                    if (ethAddress != null) {
+                                        val recipient = RecipientEntity(
+                                            inboxId = member.inboxId,
+                                            address = ethAddress,
+                                            ens = resolvedEns,
+                                            contactLookupKey = existingLookup ?: matchedContact?.lookupKey
+                                        )
+                                        recipientDao.upsertRecipient(recipient)
+                                    }
+                                }
+                            } catch (_: Exception) {}
 
                             val template = MessageEntity(
                                 id = message.id,

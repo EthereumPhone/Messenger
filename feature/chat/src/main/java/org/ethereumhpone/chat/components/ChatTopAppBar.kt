@@ -46,14 +46,24 @@ fun ChatTopAppBar(
     modifier: Modifier = Modifier,
 
     ) {
+    fun shortenAddress(addr: String): String =
+        if (addr.length > 10) addr.take(6) + "…" + addr.takeLast(4) else addr
+
+    fun displayNameFor(recipient: Recipient): String =
+        recipient.contact?.name?.takeIf { it.isNotBlank() }
+            ?: recipient.ens?.takeIf { it.isNotBlank() } ?: shortenAddress(recipient.address)
+
     when(recipientUiState) {
         is RecipientUiState.Success -> {
             val recipients = recipientUiState.recipients
 
             val header = title.ifBlank {
-                val displayNames = recipients.map { "${it.contact?.name}" } //TODO FIX display name
-                displayNames.joinToString(", ")
-            }
+                recipients
+                    .map { displayNameFor(it) }
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .joinToString(", ")
+            }.ifBlank { "Unknown" }
 
             Row(
                 modifier = modifier

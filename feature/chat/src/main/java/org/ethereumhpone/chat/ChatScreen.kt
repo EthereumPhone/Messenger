@@ -341,8 +341,17 @@ fun ChatScreen(
     ) {
         Scaffold(
             topBar = {
+                val computedTitle = when (recipientUiState) {
+                    is RecipientUiState.Success -> if (recipientUiState.recipients.size == 2) {
+                        chatConversion?.getHeader() ?: ""
+                    } else {
+                        chatConversion?.title ?: ""
+                    }
+                    else -> chatConversion?.title ?: ""
+                }
+
                 ChatTopAppBar(
-                    chatConversion?.getHeader() ?: "",
+                    computedTitle,
                     recipientUiState = recipientUiState,
                     onTitleClicked = {
                         // Copy recipient's address to clipboard when title is clicked
