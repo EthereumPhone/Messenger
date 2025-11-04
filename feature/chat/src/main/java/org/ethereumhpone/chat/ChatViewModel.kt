@@ -88,41 +88,30 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     // duplicate receipts when the same message (or the user’s own message) triggers multiple
     // DB updates / emissions.
     private var lastReadReceiptMessageId: String? = null
-    // conversation state - combines conversation data with XMTP client state
-    val conversation = combine(
-        conversationRepository.getConversation(threadId),
-        xmtpClientManager.clientState
-    ) { conversation, clientState ->
-        when {
-            conversation == null -> {
-                // TODO add fallback if convo does not exist?
+    // conversation state - render from DB immediately without gating on XMTP readiness
+    val conversation = conversationRepository.getConversation(threadId)
+        .map { convo ->
+            if (convo == null) {
                 ConversationUiState.Loading
+            } else {
+                activeConversationManager.setActiveConversation(convo.id)
+                ConversationUiState.Success(conversation = convo)
             }
-            clientState is XmtpClientManager.ClientState.Error -> {
-                ConversationUiState.Error("XMTP client error: ${clientState.message}")
-            }
-            clientState is XmtpClientManager.ClientState.Unknown -> {
-                // Client not initialized yet, keep loading state
-                ConversationUiState.Loading
-            }
-            clientState is XmtpClientManager.ClientState.Ready -> {
-                activeConversationManager.setActiveConversation(conversation.id)
-                try {
-                    xmtpConversation = xmtpClientManager.client.conversations.findConversation(threadId)!!
-                    ConversationUiState.Success(conversation = conversation)
-                } catch (e: Exception) {
-                    Log.e("ChatViewModel", "Error finding conversation", e)
-                    ConversationUiState.Error(e.message ?: "Error finding conversation")
-                }
-            }
-            else -> ConversationUiState.Loading
         }
-    }
         .distinctUntilChanged()
         .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,
             initialValue = ConversationUiState.Loading,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
+    // expose readiness flag so UI can enable/disable actions
+    val isClientReady: StateFlow<Boolean> = xmtpClientManager.clientState
+        .map { it is XmtpClientManager.ClientState.Ready }
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = false,
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
@@ -303,9 +292,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         // Initialise the XMTP conversation once in a background thread so the UI thread stays free.
         viewModelScope.launch(Dispatchers.IO) {
             // Ensure the XMTP client is ready before attempting to find a conversation
-            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
-
-            xmtpClientManager.client.conversations.findConversation(threadId)?.let { convo ->
+            val client = xmtpClientManager.awaitClient()
+            client.conversations.findConversation(threadId)?.let { convo ->
                 xmtpConversation = convo
             }
         }
@@ -403,6 +391,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         messageBody: String = "",
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            if (!this@ChatViewModel::xmtpConversation.isInitialized) {
+                Log.w("ChatViewModel", "Cannot send message: XMTP conversation not initialized")
+                return@launch
+            }
             sendMessageUseCase(
                 xmtpConversation = xmtpConversation,
                 threadId = threadId,
@@ -482,10 +474,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         // ANR fix
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Wait for client to be ready
-                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
-                
-                val conversation = xmtpClientManager.client.conversations.findConversation(conversationId)
+                // Wait for client to be ready and then find the conversation
+                val client = xmtpClientManager.awaitClient()
+                val conversation = client.conversations.findConversation(conversationId)
                 if (conversation != null) {
                     // Send read receipt with current timestamp
                     conversation.send(

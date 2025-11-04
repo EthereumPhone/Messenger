@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -74,6 +75,15 @@ object XmtpClientManager {
         } else {
             throw IllegalStateException("Client called before Ready state")
         }
+
+
+    suspend fun awaitClient(): Client {
+        clientState.first { it == ClientState.Ready }
+        return _client!!
+    }
+
+    val clientOrNull: Client?
+        get() = _client
 
 
 
