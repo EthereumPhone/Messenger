@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
 
 @Composable
 fun SelectionOverlay(
@@ -24,11 +25,9 @@ fun SelectionOverlay(
     primaryColor: Color,
     onCancelClick: () -> Unit,
     modifier: Modifier = Modifier,
-    headerText: String = "",
-    showHeader: Boolean = true,
     headerContent: (@Composable androidx.compose.foundation.layout.RowScope.() -> Unit)? = null,
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
-    overlayAlpha: Float = 0.7f,
+    overlayAlpha: Float = 0.9f,
     dismissOnBackgroundClick: Boolean = true,
     onBackgroundClick: (() -> Unit)? = null,
 ) {
@@ -41,7 +40,7 @@ fun SelectionOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = overlayAlpha))
+                .background(dgenBlack.copy(alpha = overlayAlpha))
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = {
@@ -60,9 +59,9 @@ fun SelectionOverlay(
                 visible = visible,
                 primaryColor = primaryColor,
                 onCancelClick = onCancelClick,
-                showHeader = showHeader,
+                showHeader = false,
                 headerContent = headerContent,
-                showCancelButton = true,
+                showCancelButton = false,
                 actions = actions
             )
         }
@@ -75,7 +74,6 @@ private fun PreviewSelectionOverlay() {
     SelectionOverlay(
         visible = true,
         primaryColor = Color.White,
-        headerText = "Ethereum",
         onCancelClick = {},
         actions = {
             SelectionBarColumn(

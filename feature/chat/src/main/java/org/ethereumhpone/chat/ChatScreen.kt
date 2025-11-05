@@ -37,6 +37,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -96,6 +101,7 @@ import org.ethereumphone.dgenlibrary.components.NewMessagesDivider
 import androidx.compose.ui.graphics.Color
 import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
+import org.ethereumphone.dgenlibrary.components.SelectionOverlay
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
@@ -106,6 +112,8 @@ import kotlin.time.Duration.Companion.seconds
 import com.messenger.terminalsdk.TerminalLEDController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.ethereumphone.dgenlibrary.components.SelectionBarColumn
+import org.ethereumphone.dgenlibrary.theme.dgenRed
 
 
 @Composable
@@ -472,6 +480,7 @@ fun ChatScreen(
                             selectedMessages = selectedMessages,
                             selectMode = remember { mutableStateOf(selectMode) },
                             onToggleSelection = onToggleSelection,
+                            onMessageLongPress = { showOverlay.value = true },
                             composablePositionState = composablePositionState,
                             player = videoPlayer,
                             onPrepareVideo = onPrepareVideo,
@@ -501,8 +510,26 @@ fun ChatScreen(
 
         }
 
-
-
+        SelectionOverlay(
+            visible = showOverlay.value,
+            primaryColor = primaryColor,
+            onCancelClick = { showOverlay.value = false },
+            dismissOnBackgroundClick = true,
+            actions = {
+                SelectionBarColumn(
+                    imageVector = Icons.Outlined.Delete,
+                    title = "Delete",
+                    primaryColor = dgenRed,
+                    onClick = {}
+                )
+                SelectionBarColumn(
+                    imageVector = Icons.Outlined.ContentCopy,
+                    title = "Copy",
+                    primaryColor = primaryColor,
+                    onClick = {}
+                )
+            }
+        )
 
         //Removed the ChatOverlays & ActionOverlayScreen
     }

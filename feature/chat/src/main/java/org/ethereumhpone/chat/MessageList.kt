@@ -63,6 +63,7 @@ fun MessageList(
     selectedMessages: List<Message>,
     selectMode: MutableState<Boolean>,
     onToggleSelection: (Message) -> Unit,
+    onMessageLongPress: (Message) -> Unit = {},
     composablePositionState: MutableState<ComposablePosition>,
     player: Player?,
     onPrepareVideo: (Uri) -> Unit,
@@ -152,7 +153,10 @@ fun MessageList(
                         composablePositionState = composablePositionState,
                         player = player,
                         onPrepareVideo = { /* your logic */ },
-                        onLongClick = { onToggleSelection(message) },
+                        onLongClick = {
+                            onToggleSelection(message)
+                            onMessageLongPress(message)
+                        },
                         name = "${message.recipient.contact?.name}",
                         isSelected = selectedMessages.contains(message),
                         selectMode = selectMode,
