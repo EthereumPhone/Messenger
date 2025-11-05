@@ -501,63 +501,10 @@ fun ChatScreen(
 
         }
 
-        // Overlay with AnimatedVisibility for fade effect
-        ActionOverlayScreen(
-            showOverlay = showOverlay,
-            shouldRotate = shouldRotate,
-            openImage = {
-                //opens gallery for selecting images
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                    type = "image/*"
-                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                }
-                launcher.launch(intent)
-                showOverlay.value = false
-            },
-            openVideo = {
-                //opens gallery for selecting images
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                    type = "video/*"
-                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                }
-                launcher.launch(intent)
 
-                showOverlay.value = false
-            },
-            openCamera = {
-                //open camera
-                //val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                cameraLauncher.launch(null)
-                showOverlay.value = false
-            },
-            openSend = {
-                //open camera
-                //val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                //cameraLauncher.launch(null)
-                //showOverlay.value = false
-                currentActions = Actions.SEND //set sending screen
-                showPicker.value = true
-            },
-            primaryColor = primaryColor
-        )
 
-        ChatOverlays(
-            showPicker = showPicker.value,
-            currentActions = currentActions,
-            onActionSelected = { action, show ->
-                currentActions = action
-                showPicker.value = show
-            },
-            chatConversion = chatConversion,
-            recipientUiState = recipientUiState,
-            media = media,
-            selectedIndex = selectedIndex,
-            prevMedia = prevMedia,
-            nextMedia = nextMedia,
-            selectMedia = selectMedia,
-            primaryColor = primaryColor,
-            secondaryColor = secondaryColor
-        )
+
+        //Removed the ChatOverlays & ActionOverlayScreen
     }
 
 }
