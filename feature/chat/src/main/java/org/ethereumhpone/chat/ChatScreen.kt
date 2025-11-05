@@ -102,6 +102,11 @@ import androidx.compose.ui.graphics.Color
 import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.dgenlibrary.components.SelectionOverlay
+import org.ethereumphone.dgenlibrary.components.SelectionBarColumn
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.ContentCopy
+import org.ethereumphone.dgenlibrary.theme.dgenRed
+// removed unused: LocalDensity/width/height
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
@@ -241,6 +246,7 @@ fun ChatScreen(
 
 
     var showOverlay = remember { mutableStateOf(false) }
+    val longPressedMessage = remember { mutableStateOf<Message?>(null) }
 
     var shouldRotate = remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
@@ -254,6 +260,7 @@ fun ChatScreen(
         when {
             showOverlay.value -> {
                 showOverlay.value = false
+                longPressedMessage.value = null
             }
             showPicker.value -> {
                 showPicker.value = false
@@ -480,7 +487,10 @@ fun ChatScreen(
                             selectedMessages = selectedMessages,
                             selectMode = remember { mutableStateOf(selectMode) },
                             onToggleSelection = onToggleSelection,
-                            onMessageLongPress = { showOverlay.value = true },
+                            onMessageLongPress = { msg ->
+                                longPressedMessage.value = msg
+                                showOverlay.value = true
+                            },
                             composablePositionState = composablePositionState,
                             player = videoPlayer,
                             onPrepareVideo = onPrepareVideo,
@@ -513,8 +523,40 @@ fun ChatScreen(
         SelectionOverlay(
             visible = showOverlay.value,
             primaryColor = primaryColor,
-            onCancelClick = { showOverlay.value = false },
+            onCancelClick = {
+                showOverlay.value = false
+                longPressedMessage.value = null
+            },
             dismissOnBackgroundClick = true,
+            content = {
+                longPressedMessage.value?.let { selected ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        MessageItem(
+                            onAuthorClick = { },
+                            msg = selected,
+                            isSelected = selectedMessages.contains(selected),
+                            isFirstMessageByAuthor = true,
+                            composablePositionState = composablePositionState,
+                            player = videoPlayer,
+                            name = "${selected.recipient.contact?.name}",
+                            isXMTP = true,
+                            selectMode = remember { mutableStateOf(false) },
+                            onPrepareVideo = onPrepareVideo,
+                            onLongClick = {},
+                            onSelect = {},
+                            isGroup = chatConversion?.isGroup == true,
+                            onDoubleClick = {},
+                            isVisible = true,
+                            primaryColor = primaryColor,
+                            secondaryColor = secondaryColor,
+                            openGLColor = openGLColor,
+                        )
+                    }
+                }
+            },
             actions = {
                 SelectionBarColumn(
                     imageVector = Icons.Outlined.Delete,
@@ -803,4 +845,86 @@ private fun PreviewGroupChatScreen() {
     //     */
     //
     //
+}
+
+
+@Composable
+@Preview(showBackground = true, name = "OverlayWithMessageItem")
+private fun PreviewSelectionOverlayWithMessageItem() {
+    val now = Instant.parse("2024-01-01T00:00:00Z")
+    val recipient = Recipient(
+        id = "r1",
+        address = "0xABCDEF",
+        ens = "alice.eth",
+        contact = Contact(
+            lookupKey = "lk1",
+            name = "Alice",
+            photoUri = null,
+            ethAddress = "0xABCDEF"
+        )
+    )
+
+    val message = Message(
+        id = "m1",
+        threadId = "t1",
+        recipient = recipient,
+        date = now,
+        dateSent = now,
+        seen = false,
+        deliveryStatus = DeliveryStatus.PUBLISHED,
+        replyReference = null,
+        isMe = false,
+        attachments = emptyList(),
+        reactions = emptyList(),
+        body = "This is a preview message with time and read checks."
+    )
+
+    val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
+
+    SelectionOverlay(
+        visible = true,
+        primaryColor = Color.White,
+        onCancelClick = {},
+        content = {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                MessageItem(
+                    onAuthorClick = { },
+                    msg = message,
+                    isSelected = false,
+                    isFirstMessageByAuthor = true,
+                    composablePositionState = composablePositionState,
+                    player = null,
+                    name = "Alice",
+                    isXMTP = true,
+                    selectMode = remember { mutableStateOf(false) },
+                    onPrepareVideo = {},
+                    onLongClick = {},
+                    onSelect = {},
+                    isGroup = false,
+                    onDoubleClick = {},
+                    isVisible = true,
+                    primaryColor = Color(0xFF00E5FF),
+                    secondaryColor = Color(0xFF2C2C2C),
+                    openGLColor = Color(0xFF00FFC2),
+                )
+            }
+        },
+        actions = {
+            SelectionBarColumn(
+                imageVector = Icons.Outlined.Delete,
+                title = "Delete",
+                primaryColor = Color.White,
+                onClick = {}
+            )
+            SelectionBarColumn(
+                imageVector = Icons.Outlined.ContentCopy,
+                title = "Copy",
+                primaryColor = Color.White,
+                onClick = {}
+            )
+        }
+    )
 }

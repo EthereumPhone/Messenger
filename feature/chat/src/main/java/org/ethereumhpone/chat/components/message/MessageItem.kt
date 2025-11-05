@@ -74,7 +74,8 @@ import java.util.Locale
 
 data class ComposablePosition(
     var offset: Offset = Offset.Zero,
-    var height: Int = 0
+    var height: Int = 0,
+    var width: Int = 0
 )
 
 
@@ -102,12 +103,14 @@ fun MessageItem(
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
     var compSize by remember { mutableIntStateOf(0) }
+    var compWidth by remember { mutableIntStateOf(0) }
 
 
     val alignmessage = Modifier
         .widthIn(max = 300.dp)
         .onGloballyPositioned { coordinates ->
             compSize = coordinates.size.height
+            compWidth = coordinates.size.width
             positionComp = coordinates.positionInRoot()
         }
 
@@ -140,6 +143,7 @@ fun MessageItem(
                 onPlayVideo = { onPrepareVideo(it) },
                 onLongClick = {
                     composablePositionState.value.height = compSize
+                    composablePositionState.value.width = compWidth
                     composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
                     onLongClick()
                 },
