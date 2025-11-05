@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+// removed shared transition imports
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -64,6 +65,7 @@ fun MessageList(
     selectMode: MutableState<Boolean>,
     onToggleSelection: (Message) -> Unit,
     onMessageLongPress: (Message) -> Unit = {},
+    // removed shared transition args
     composablePositionState: MutableState<ComposablePosition>,
     player: Player?,
     onPrepareVideo: (Uri) -> Unit,
@@ -148,27 +150,27 @@ fun MessageList(
                     }
 
                     MessageItem(
-                        onAuthorClick = { },
-                        msg = message,
-                        composablePositionState = composablePositionState,
-                        player = player,
-                        onPrepareVideo = { /* your logic */ },
-                        onLongClick = {
-                            onToggleSelection(message)
-                            onMessageLongPress(message)
-                        },
-                        name = "${message.recipient.contact?.name}",
-                        isSelected = selectedMessages.contains(message),
-                        selectMode = selectMode,
-                        isXMTP = true,
-                        onSelect = { onToggleSelection(message) },
-                        onDoubleClick = { onToggleSelection(message) },
-                        isFirstMessageByAuthor = isFirstMessageByAuthor,
-                        isGroup = chatConversion?.isGroup == true,
-                        isVisible = true,
-                        primaryColor = primaryColor,
-                        secondaryColor = secondaryColor,
-                        openGLColor = openGLColor,
+                            onAuthorClick = { },
+                            msg = message,
+                            composablePositionState = composablePositionState,
+                            player = player,
+                            onPrepareVideo = { /* your logic */ },
+                            onLongClick = {
+                                onToggleSelection(message)
+                                onMessageLongPress(message)
+                            },
+                            name = "${message.recipient.contact?.name}",
+                            isSelected = selectedMessages.contains(message),
+                            selectMode = selectMode,
+                            isXMTP = true,
+                            onSelect = { onToggleSelection(message) },
+                            onDoubleClick = { onToggleSelection(message) },
+                            isFirstMessageByAuthor = isFirstMessageByAuthor,
+                            isGroup = chatConversion?.isGroup == true,
+                            isVisible = true,
+                            primaryColor = primaryColor,
+                            secondaryColor = secondaryColor,
+                            openGLColor = openGLColor,
                     )
                 }
             }

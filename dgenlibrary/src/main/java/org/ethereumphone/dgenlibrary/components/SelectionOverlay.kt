@@ -58,9 +58,12 @@ fun SelectionOverlay(
                     )
                 }
         ) {
-            // Free-positioned content layer (e.g., shared element clone)
+            // Centered content layer
             if (content != null) {
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     content()
                 }
             }

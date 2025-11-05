@@ -75,12 +75,14 @@ import java.util.Locale
 data class ComposablePosition(
     var offset: Offset = Offset.Zero,
     var height: Int = 0,
-    var width: Int = 0
+    var width: Int = 0,
+    var isFirstByAuthor: Boolean = false
 )
 
 
 @Composable
 fun MessageItem(
+    modifier:Modifier = Modifier,
     onAuthorClick: (String) -> Unit,
     msg: Message,
     isSelected: Boolean = false,
@@ -98,7 +100,9 @@ fun MessageItem(
     isVisible: Boolean,
     primaryColor: Color,
     secondaryColor: Color,
-    openGLColor: Color
+    openGLColor: Color,
+    fullWidth: Boolean = true,
+    applyOuterPadding: Boolean = true
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
@@ -115,7 +119,9 @@ fun MessageItem(
         }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 24.dp,end = 24.dp),
+        modifier = modifier
+            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
+            .then(if (applyOuterPadding) Modifier.padding(start = 24.dp, end = 24.dp) else Modifier),
         horizontalArrangement = if (msg.isMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -145,6 +151,7 @@ fun MessageItem(
                     composablePositionState.value.height = compSize
                     composablePositionState.value.width = compWidth
                     composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
+                    composablePositionState.value.isFirstByAuthor = isFirstMessageByAuthor
                     onLongClick()
                 },
                 name = name,

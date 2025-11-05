@@ -26,10 +26,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -89,7 +92,7 @@ import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
-import org.ethereumhpone.chat.components.message.MessageItem
+import org.ethereumhpone.chat.components.message.OverlayMessageItem
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.database.model.ContactEntity
@@ -105,7 +108,9 @@ import org.ethereumphone.dgenlibrary.components.SelectionOverlay
 import org.ethereumphone.dgenlibrary.components.SelectionBarColumn
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ContentCopy
+// removed LocalDensity/zIndex imports; overlay content is centered, not positioned
 import org.ethereumphone.dgenlibrary.theme.dgenRed
+// removed SharedMessageItem; using measured overlay clone
 // removed unused: LocalDensity/width/height
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
@@ -198,8 +203,7 @@ fun ChatRoute(
 }
 
 @OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
-    ExperimentalFoundationApi::class
+    ExperimentalLayoutApi::class
 )
 @Composable
 fun ChatScreen(
@@ -453,67 +457,69 @@ fun ChatScreen(
                 //TODO: refactor ALL of this
 
                 when (messageUiState) {
-                    is MessageUiState.Success -> {
-                        val messages = messageUiState.messageEntities
+                            is MessageUiState.Success -> {
+                                val messages = messageUiState.messageEntities
 
-                        var initialScrollDone by remember { mutableStateOf(false) }
+                                var initialScrollDone by remember { mutableStateOf(false) }
 
-                        // handles scroll logic.
-                        LaunchedEffect(messages) {
-                            if (messages.isNotEmpty()) {
-                                val lastVisibleItemIndex = scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
-                                val totalItemsCount = scrollState.layoutInfo.totalItemsCount
+                                // handles scroll logic.
+                                LaunchedEffect(messages) {
+                                    if (messages.isNotEmpty()) {
+                                        val lastVisibleItemIndex = scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                                        val totalItemsCount = scrollState.layoutInfo.totalItemsCount
 
-                                if (!initialScrollDone) {
-                                    scrollState.animateScrollToItem(totalItemsCount)
-                                    initialScrollDone = true
+                                        if (!initialScrollDone) {
+                                            scrollState.animateScrollToItem(totalItemsCount)
+                                            initialScrollDone = true
+                                        }
+
+                                        if (lastVisibleItemIndex != null && lastVisibleItemIndex >= totalItemsCount - 2) {
+                                            scrollState.animateScrollToItem(totalItemsCount)
+                                        }
+                                    }
                                 }
 
-                                if (lastVisibleItemIndex != null && lastVisibleItemIndex >= totalItemsCount - 2) {
-                                    scrollState.animateScrollToItem(totalItemsCount)
+                                // Variables for the new messages UI
+                                var seenCount by remember { mutableIntStateOf(messages.size) }
+
+                                MessageList(
+                                    modifier = Modifier.fillMaxSize(),
+                                    messages = messages,
+                                    scrollState = scrollState,
+                                    seenCount = seenCount,
+                                    chatConversion = chatConversion,
+                                    selectedMessages = selectedMessages,
+                                    selectMode = remember { mutableStateOf(selectMode) },
+                                    onToggleSelection = onToggleSelection,
+                                    onMessageLongPress = { msg ->
+                                        longPressedMessage.value = msg
+                                        showOverlay.value = true
+                                    },
+                                    composablePositionState = composablePositionState,
+                                    player = videoPlayer,
+                                    onPrepareVideo = onPrepareVideo,
+                                    primaryColor = primaryColor,
+                                    secondaryColor = secondaryColor,
+                                    openGLColor = openGLColor,
+                                    onUpdateSeenCount = { seenCount = it }
+                                )
+                            }
+
+                            MessageUiState.Loading -> {
+                                Box(
+                                    Modifier
+                                        .fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    DgenLoadingMatrix(
+                                        unactiveLEDColor = secondaryColor,
+                                        activeLEDColor = primaryColor
+                                    )
                                 }
                             }
-                        }
-
-                        // Variables for the new messages UI
-                        var seenCount by remember { mutableIntStateOf(messages.size) }
-
-                        MessageList(
-                            modifier = Modifier.fillMaxSize(),
-                            messages = messages,
-                            scrollState = scrollState,
-                            seenCount = seenCount,
-                            chatConversion = chatConversion,
-                            selectedMessages = selectedMessages,
-                            selectMode = remember { mutableStateOf(selectMode) },
-                            onToggleSelection = onToggleSelection,
-                            onMessageLongPress = { msg ->
-                                longPressedMessage.value = msg
-                                showOverlay.value = true
-                            },
-                            composablePositionState = composablePositionState,
-                            player = videoPlayer,
-                            onPrepareVideo = onPrepareVideo,
-                            primaryColor = primaryColor,
-                            secondaryColor = secondaryColor,
-                            openGLColor = openGLColor,
-                            onUpdateSeenCount = { seenCount = it }
-                        )
-                    }
-
-                    MessageUiState.Loading -> {
-                        Box(
-                            Modifier
-                                .fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            DgenLoadingMatrix(
-                                unactiveLEDColor = secondaryColor,
-                                activeLEDColor = primaryColor
-                            )
-                        }
-                    }
                 }
+
+                
 
             }
 
@@ -534,25 +540,10 @@ fun ChatScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        MessageItem(
-                            onAuthorClick = { },
+                        OverlayMessageItem(
                             msg = selected,
-                            isSelected = selectedMessages.contains(selected),
-                            isFirstMessageByAuthor = true,
-                            composablePositionState = composablePositionState,
-                            player = videoPlayer,
-                            name = "${selected.recipient.contact?.name}",
-                            isXMTP = true,
-                            selectMode = remember { mutableStateOf(false) },
-                            onPrepareVideo = onPrepareVideo,
-                            onLongClick = {},
-                            onSelect = {},
-                            isGroup = chatConversion?.isGroup == true,
-                            onDoubleClick = {},
-                            isVisible = true,
                             primaryColor = primaryColor,
                             secondaryColor = secondaryColor,
-                            openGLColor = openGLColor,
                         )
                     }
                 }
@@ -636,295 +627,7 @@ fun extractTransactionDetails(message: String): TransactionDetails? {
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 private fun PreviewChatScreen() {
-    //
-    //
-    //    val now = Instant.parse("2025-04-17T12:23:05Z")
-    //
-    //    val messageUiState = MessageUiState.Success(generateTestMessages())
-    //    val recipientUiState = RecipientUiState.Success(
-    //        listOf(
-    //            Recipient(
-    //                id = "userB",
-    //                address = "0xDeF456HodlGuyWallet",
-    //                ens = "hodl.eth",
-    //                contact = Contact("lk2", "Bob", null, "0x456")
-    //            )
-    //        )
-    //    )
-    // //    ChatScreen(
-    // //        messageUiState = messageUiState,
-    // //        recipientUiState = recipientUiState,
-    // //        navigateBackToConversations = { },
-    // //        tokenBalance = 2.456,
-    // //        onSendEthClicked = { it -> },
-    // //        converstation = ConversationUiState.Success(
-    // //            Conversation(
-    // //                id = "2",
-    // //                title = null,
-    // //                recipients = listOf(
-    // //                    Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
-    // //                ),
-    // //                draft = null,
-    // //                lastMessage = Message(
-    // //                    id = "m2",
-    // //                    threadId = "2",
-    // //                    recipient = Recipient(
-    // //                        "r2",
-    // //                        "0x456",
-    // //                        null,
-    // //                        Contact("lk2", "Bob", null, "0x456")
-    // //                    ),
-    // //                    date = now,
-    // //                    dateSent = now,
-    // //                    seen = false,
-    // //                    deliveryStatus = DeliveryStatus.PUBLISHED,
-    // //                    replyReference = null,
-    // //                    isMe = false,
-    // //                    attachments = emptyList(),
-    // //                    reactions = emptyList(),
-    // //                    body = "See you tomorrow!"
-    // //                ),
-    // //                clientInbox = "inbox2"
-    // //            )
-    // //        ),
-    // //        onAddSelectedMessage = TODO()
-    // //    )
-    //    /*
-    //    ChatScreen(
-    //        messagesUiState = messageUiState,
-    //        recipients = listOf(
-    //            Recipient(
-    //                id = "userB",
-    //                address = "0xDeF456HodlGuyWallet",
-    //                ens = "hodl.eth",
-    //                contact = Contact("lk2", "Bob", null, "0x456")
-    //            )
-    //        ),
-    //        navigateBackToConversations={},
-    //        onPhoneClicked = {},
-    //        onSendEthClicked = {},
-    //        onOpenContact = {},
-    //        onContactSelected = {},
-    //        onToggleAttachment = {},
-    //        onSendMessageClicked = {},
-    //        onDeleteMessage = {},
-    //        onFocusedMessageUpdate = {},
-    //        onPrepareVideo = {},
-    //        onRemoveSelectedMessage = {},
-    //        onAddSelectedMessage = {},
-    //        videoPlayer = null
-    //    )
-    //     */
-    //
-    //
 }
 
 
-@Composable
-@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
-private fun PreviewGroupChatScreen() {
 
-
-    //    val now = Instant.parse("2025-04-17T12:00:00Z")
-    //    val messageUiState = MessageUiState.Success(generateTestGroupMessages())
-    //
-    //    val recipientMe = Recipient(
-    //        id = "userA",
-    //        address = "0xAbC123CryptoBroWallet",
-    //        ens = "bro.eth",
-    //        contact = Contact("lk1", "Timothy", null, "0x423")
-    //    )
-    //
-    //    val recipientUiState = RecipientUiState.Success(
-    //        listOf(
-    //            Recipient(
-    //                id = "userB",
-    //                address = "0xDeF456HodlGuyWallet",
-    //                ens = "hodl.eth",
-    //                contact = Contact("lk2", "Bob", null, "0x456")
-    //            ),
-    //            Recipient(
-    //                id = "userC",
-    //                address = "0xDeF456JoeGuy",
-    //                ens = "Joe.eth",
-    //                contact = Contact("lk2", "Joe", null, "0x474")
-    //            )
-    //        )
-    //    )
-    //    val convo = ConversationUiState.Success(
-    //        Conversation(
-    //            id = "3",
-    //            title = "🏀 Game Plan",
-    //            recipients = listOf(
-    //                recipientMe,
-    //                Recipient(
-    //                    id = "userB",
-    //                    address = "0xDeF456HodlGuyWallet",
-    //                    ens = "hodl.eth",
-    //                    contact = Contact("lk2", "Bob", null, "0x456")
-    //                ),
-    //                Recipient(
-    //                    id = "userC",
-    //                    address = "0xDeF456JoeGuy",
-    //                    ens = "Joe.eth",
-    //                    contact = Contact("lk2", "Joe", null, "0x474")
-    //                )
-    //            ),
-    //            draft = "Need to reply...",
-    //            lastMessage = Message(
-    //                "17",
-    //                "thread3x3",
-    //                recipientMe,
-    //                now - (51 * 60).seconds,
-    //                now - (51 * 60).seconds,
-    //                true,
-    //                DeliveryStatus.PUBLISHED,
-    //                null,
-    //                false,
-    //                emptyList(),
-    //                emptyList(),
-    //                "Got it! And I'll post some stories tagging Freedom Factory later."
-    //            ),
-    //            pinned = true,
-    //            clientInbox = "inbox3",
-    //            isGroup = true
-    //        )
-    //    )
-    //
-    //
-    //
-    // //    ChatScreen(
-    // //        messageUiState = messageUiState,
-    // //        recipientUiState = recipientUiState,
-    // //        navigateBackToConversations = { },
-    // //        tokenBalance = 2.456,
-    // //        onSendEthClicked = { it -> },
-    // //        converstation = convo,
-    // //        modifier = TODO(),
-    // //        contactEntities = TODO(),
-    // //        media = TODO(),
-    // //        attachments = TODO(),
-    // //        chainName = TODO(),
-    // //        videoPlayer = TODO(),
-    // //        onOpenContact = TODO(),
-    // //        selectedMessaged = TODO(),
-    // //        onContactSelected = TODO(),
-    // //        onToggleAttachment = TODO(),
-    // //        onSendMessageClicked = TODO(),
-    // //        onDeleteMessage = TODO(),
-    // //        onFocusedMessageUpdate = TODO(),
-    // //        onPrepareVideo = TODO(),
-    // //        onRemoveSelectedMessage = TODO(),
-    // //        onAddSelectedMessage = TODO()
-    // //    )
-    //    /*
-    //    ChatScreen(
-    //        messagesUiState = messageUiState,
-    //        recipients = listOf(
-    //            Recipient(
-    //                id = "userB",
-    //                address = "0xDeF456HodlGuyWallet",
-    //                ens = "hodl.eth",
-    //                contact = Contact("lk2", "Bob", null, "0x456")
-    //            )
-    //        ),
-    //        navigateBackToConversations={},
-    //        onPhoneClicked = {},
-    //        onSendEthClicked = {},
-    //        onOpenContact = {},
-    //        onContactSelected = {},
-    //        onToggleAttachment = {},
-    //        onSendMessageClicked = {},
-    //        onDeleteMessage = {},
-    //        onFocusedMessageUpdate = {},
-    //        onPrepareVideo = {},
-    //        onRemoveSelectedMessage = {},
-    //        onAddSelectedMessage = {},
-    //        videoPlayer = null
-    //    )
-    //     */
-    //
-    //
-}
-
-
-@Composable
-@Preview(showBackground = true, name = "OverlayWithMessageItem")
-private fun PreviewSelectionOverlayWithMessageItem() {
-    val now = Instant.parse("2024-01-01T00:00:00Z")
-    val recipient = Recipient(
-        id = "r1",
-        address = "0xABCDEF",
-        ens = "alice.eth",
-        contact = Contact(
-            lookupKey = "lk1",
-            name = "Alice",
-            photoUri = null,
-            ethAddress = "0xABCDEF"
-        )
-    )
-
-    val message = Message(
-        id = "m1",
-        threadId = "t1",
-        recipient = recipient,
-        date = now,
-        dateSent = now,
-        seen = false,
-        deliveryStatus = DeliveryStatus.PUBLISHED,
-        replyReference = null,
-        isMe = false,
-        attachments = emptyList(),
-        reactions = emptyList(),
-        body = "This is a preview message with time and read checks."
-    )
-
-    val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
-
-    SelectionOverlay(
-        visible = true,
-        primaryColor = Color.White,
-        onCancelClick = {},
-        content = {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                MessageItem(
-                    onAuthorClick = { },
-                    msg = message,
-                    isSelected = false,
-                    isFirstMessageByAuthor = true,
-                    composablePositionState = composablePositionState,
-                    player = null,
-                    name = "Alice",
-                    isXMTP = true,
-                    selectMode = remember { mutableStateOf(false) },
-                    onPrepareVideo = {},
-                    onLongClick = {},
-                    onSelect = {},
-                    isGroup = false,
-                    onDoubleClick = {},
-                    isVisible = true,
-                    primaryColor = Color(0xFF00E5FF),
-                    secondaryColor = Color(0xFF2C2C2C),
-                    openGLColor = Color(0xFF00FFC2),
-                )
-            }
-        },
-        actions = {
-            SelectionBarColumn(
-                imageVector = Icons.Outlined.Delete,
-                title = "Delete",
-                primaryColor = Color.White,
-                onClick = {}
-            )
-            SelectionBarColumn(
-                imageVector = Icons.Outlined.ContentCopy,
-                title = "Copy",
-                primaryColor = Color.White,
-                onClick = {}
-            )
-        }
-    )
-}
