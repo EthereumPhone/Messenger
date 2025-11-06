@@ -89,7 +89,7 @@ fun OverlayMessageItem(
                     .alignBy(LastBaseline)
             )
 
-            Spacer(modifier = Modifier.padding(start = 8.dp))
+            Spacer(modifier = Modifier.padding(start = 12.dp))
 
             AuthorNameTimestamp(
                 messageEntity = msg,

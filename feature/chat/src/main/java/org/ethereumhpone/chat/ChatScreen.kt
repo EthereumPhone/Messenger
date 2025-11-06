@@ -17,6 +17,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -122,8 +123,15 @@ import kotlin.time.Duration.Companion.seconds
 import com.messenger.terminalsdk.TerminalLEDController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import org.ethereumphone.dgenlibrary.components.SelectionBarColumn
 import org.ethereumphone.dgenlibrary.theme.dgenRed
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import android.util.Log
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalDensity
 
 
 @Composable
@@ -536,15 +544,44 @@ fun ChatScreen(
             dismissOnBackgroundClick = true,
             content = {
                 longPressedMessage.value?.let { selected ->
+                    val density = LocalDensity.current
+                    val msgPos = composablePositionState.value.offset
+                    // Adjust for OverlayMessageItem internal padding
+                    val xCorrectionPx = with(density) { 16.dp.toPx() }
+                    val yCorrectionPx = with(density) { 8.dp.toPx() }
+                    val startX = (msgPos.x - xCorrectionPx).coerceAtLeast(0f)
+
+                    val yAnim = remember { Animatable(0f) }
+                    LaunchedEffect(selected.id, showOverlay.value) {
+                        if (showOverlay.value) {
+                            val startY = (msgPos.y - yCorrectionPx).coerceAtLeast(0f)
+                            yAnim.snapTo(startY)
+                            Log.d("ChatOverlay", "Start XY (corrected): $startX, $startY")
+                            delay(1000)
+                            yAnim.animateTo(332f, animationSpec = tween(durationMillis = 500))
+                            Log.d("ChatOverlay", "Animated to Y: 332.0")
+                        }
+                    }
+
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = if (selected.isMe) Alignment.CenterEnd else Alignment.CenterStart
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        OverlayMessageItem(
-                            msg = selected,
-                            primaryColor = primaryColor,
-                            secondaryColor = secondaryColor,
-                        )
+                        Box(
+                            modifier = Modifier
+                                .offset { IntOffset(startX.roundToInt(), yAnim.value.roundToInt()) }
+                        ) {
+                            OverlayMessageItem(
+                                msg = selected,
+                                primaryColor = primaryColor,
+                                secondaryColor = secondaryColor,
+                                modifier = Modifier.onGloballyPositioned { coordinates ->
+                                    val pos = coordinates.positionInRoot()
+                                    val msgPosition = composablePositionState.value.offset
+                                    Log.d("ChatOverlay", "Long-pressed message XY: ${msgPosition.x}, ${msgPosition.y}")
+                                    Log.d("ChatOverlay", "OverlayMessageItem XY: ${pos.x}, ${pos.y}")
+                                }
+                            )
+                        }
                     }
                 }
             },
