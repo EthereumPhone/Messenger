@@ -587,12 +587,14 @@ fun ChatScreen(
                 }
             },
             actions = {
-                SelectionBarColumn(
-                    imageVector = Icons.Outlined.Delete,
-                    title = "Delete",
-                    primaryColor = dgenRed,
-                    onClick = {}
-                )
+                if (longPressedMessage.value?.isMe == true) {
+                    SelectionBarColumn(
+                        imageVector = Icons.Outlined.Delete,
+                        title = "Delete",
+                        primaryColor = dgenRed,
+                        onClick = {}
+                    )
+                }
                 SelectionBarColumn(
                     imageVector = Icons.Outlined.ContentCopy,
                     title = "Copy",
