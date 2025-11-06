@@ -538,7 +538,7 @@ fun ChatScreen(
                 longPressedMessage.value?.let { selected ->
                     Box(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = if (selected.isMe) Alignment.CenterEnd else Alignment.CenterStart
                     ) {
                         OverlayMessageItem(
                             msg = selected,
