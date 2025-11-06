@@ -403,31 +403,14 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         messageBody: String = "",
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                // Ensure client is ready and conversation is initialized before sending
-                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
-
-                if (!::xmtpConversation.isInitialized) {
-                    val convo = xmtpClientManager.client.conversations.findConversation(threadId)
-                    if (convo != null) {
-                        xmtpConversation = convo
-                    } else {
-                        Log.e("ChatViewModel", "sendMessage aborted: conversation not found for thread $threadId")
-                        return@launch
-                    }
-                }
-
-                sendMessageUseCase(
-                    xmtpConversation = xmtpConversation,
-                    threadId = threadId,
-                    body = messageBody,
-                    replyReference = if (selectedMessages.value.size == 1) selectedMessages.value.getOrNull(0)?.id else null,
-                    attachments = attachments.value.toList(),
-                    reaction = null
-                )
-            } catch (e: Exception) {
-                Log.e("ChatViewModel", "sendMessage failed", e)
-            }
+            sendMessageUseCase(
+                xmtpConversation = xmtpConversation,
+                threadId = threadId,
+                body = messageBody,
+                replyReference = if (selectedMessages.value.size == 1) selectedMessages.value.getOrNull(0)?.id else null,
+                attachments = attachments.value.toList(),
+                reaction = null
+            )
         }
     }
 
