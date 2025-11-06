@@ -500,6 +500,7 @@ fun ChatScreen(
                                     selectMode = remember { mutableStateOf(selectMode) },
                                     onToggleSelection = onToggleSelection,
                                     onMessageLongPress = { msg ->
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                         longPressedMessage.value = msg
                                         showOverlay.value = true
                                     },
@@ -557,7 +558,7 @@ fun ChatScreen(
                             val startY = (msgPos.y - yCorrectionPx).coerceAtLeast(0f)
                             yAnim.snapTo(startY)
                             Log.d("ChatOverlay", "Start XY (corrected): $startX, $startY")
-                            delay(1000)
+                            delay(500)
                             yAnim.animateTo(332f, animationSpec = tween(durationMillis = 500))
                             Log.d("ChatOverlay", "Animated to Y: 332.0")
                         }
