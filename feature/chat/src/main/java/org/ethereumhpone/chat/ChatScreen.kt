@@ -629,7 +629,7 @@ fun ChatScreen(
             visible = showDeleteConfirmation.value,
             description = "Delete this message?",
             extraDescription = "This will hide the message and show 'Deleted Message'.",
-            primaryColor = dgenRed,
+            primaryColor = primaryColor,
             secondaryColor = secondaryColor,
             onDelete = {
                 longPressedMessage.value?.id?.let { msgId ->
@@ -638,6 +638,7 @@ fun ChatScreen(
                 showDgenToast(context, "Message deleted")
                 showDeleteConfirmation.value = false
                 longPressedMessage.value = null
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             },
             onCancel = {
                 showDeleteConfirmation.value = false
