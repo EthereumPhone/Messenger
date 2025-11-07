@@ -593,18 +593,18 @@ fun ChatScreen(
                 }
             },
             actions = {
-                if (longPressedMessage.value?.isMe == true) {
-                    SelectionBarColumn(
-                        imageVector = Icons.Outlined.Delete,
-                        title = "Delete",
-                        primaryColor = dgenRed,
-                        onClick = {
-                            // Hide selection actions and ask for confirmation
-                            showOverlay.value = false
-                            showDeleteConfirmation.value = true
-                        }
-                    )
-                }
+//                if (longPressedMessage.value?.isMe == true) {
+//                    SelectionBarColumn(
+//                        imageVector = Icons.Outlined.Delete,
+//                        title = "Delete",
+//                        primaryColor = dgenRed,
+//                        onClick = {
+//                            // Hide selection actions and ask for confirmation
+//                            showOverlay.value = false
+//                            showDeleteConfirmation.value = true
+//                        }
+//                    )
+//                }
                 SelectionBarColumn(
                     imageVector = Icons.Outlined.ContentCopy,
                     title = "Copy",
