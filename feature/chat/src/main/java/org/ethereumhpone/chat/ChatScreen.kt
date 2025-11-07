@@ -609,7 +609,17 @@ fun ChatScreen(
                     imageVector = Icons.Outlined.ContentCopy,
                     title = "Copy",
                     primaryColor = primaryColor,
-                    onClick = {}
+                    onClick = {
+                        longPressedMessage.value?.let { msg ->
+                            val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("Message", msg.body)
+                            clipboardManager.setPrimaryClip(clip)
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            showDgenToast(context, "Copied")
+                        }
+                        showOverlay.value = false
+                        longPressedMessage.value = null
+                    }
                 )
             }
         )
