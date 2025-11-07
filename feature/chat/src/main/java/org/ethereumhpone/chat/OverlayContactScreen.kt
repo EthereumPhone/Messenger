@@ -81,7 +81,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.dgenlibrary.ui.theme.button_fontSize
 import com.example.dgenlibrary.ui.theme.label_fontSize
-import org.ethereumphone.dgenlibrary.components.DeleteConfirmationOverlay
+import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
 import org.ethereumphone.dgenlibrary.theme.dgenOcean
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 
@@ -708,7 +708,7 @@ fun OverlayContactScreen(
                     }
                 }
                 ContactConfirmation.DELETECONTACT -> {
-                    DeleteConfirmationOverlay(
+                    ConfirmationOverlay(
                         description = "Do you want to delete the conversation with $title?",
                         primaryColor = primaryColor,
                         secondaryColor = secondaryColor,

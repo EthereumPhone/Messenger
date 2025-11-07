@@ -49,12 +49,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.pulseOpacity
 import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.ChatItemBubbleV3
@@ -98,6 +100,7 @@ fun MessageItem(
     isGroup: Boolean,
     onDoubleClick: () -> Unit,
     isVisible: Boolean,
+    isDeleted: Boolean = false,
     primaryColor: Color,
     secondaryColor: Color,
     openGLColor: Color,
@@ -139,29 +142,74 @@ fun MessageItem(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
-            //Animates the bubble based on if its visible or not
-            
-            ChatItemBubbleV3(
-                modifier = alignmessage,
-                messageEntity = msg,
-                isUserMe = msg.isMe,
-                videoPlayer = player,
-                onPlayVideo = { onPrepareVideo(it) },
-                onLongClick = {
-                    composablePositionState.value.height = compSize
-                    composablePositionState.value.width = compWidth
-                    composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
-                    composablePositionState.value.isFirstByAuthor = isFirstMessageByAuthor
-                    onLongClick()
-                },
-                name = name,
-                onDoubleClick = onDoubleClick,
-                isGroup = isGroup,
-                isFirstMessageByAuthor = isFirstMessageByAuthor,
-                primaryColor = primaryColor,
-                secondaryColor = secondaryColor,
-                openGLColor = openGLColor
-            )
+            // Render soft-deleted placeholder or the normal message
+            if (isDeleted) {
+                val isUserMe = msg.isMe
+                val textColor = if (isUserMe) dgenWhite else primaryColor
+
+                Row(
+                    modifier = alignmessage.alpha(0.5f),
+                    horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    // Terminal-style prompt for incoming messages
+                    if (!isUserMe) {
+                        Text(
+                            text = "> ",
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = textColor,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 16.sp
+                            ),
+                            modifier = Modifier.padding(end = 2.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "Deleted Message",
+                        style = TextStyle(
+                            fontFamily = PitagonsSans,
+                            color = textColor,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 16.sp,
+                            fontStyle = FontStyle.Italic
+                        ),
+                        modifier = Modifier.widthIn(max = 300.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    AuthorNameTimestamp(
+                        messageEntity = msg,
+                        isUserMe = isUserMe,
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor
+                    )
+                }
+            } else {
+                ChatItemBubbleV3(
+                    modifier = alignmessage,
+                    messageEntity = msg,
+                    isUserMe = msg.isMe,
+                    videoPlayer = player,
+                    onPlayVideo = { onPrepareVideo(it) },
+                    onLongClick = {
+                        composablePositionState.value.height = compSize
+                        composablePositionState.value.width = compWidth
+                        composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
+                        composablePositionState.value.isFirstByAuthor = isFirstMessageByAuthor
+                        onLongClick()
+                    },
+                    name = name,
+                    onDoubleClick = onDoubleClick,
+                    isGroup = isGroup,
+                    isFirstMessageByAuthor = isFirstMessageByAuthor,
+                    primaryColor = primaryColor,
+                    secondaryColor = secondaryColor,
+                    openGLColor = openGLColor
+                )
+            }
 
 
         }

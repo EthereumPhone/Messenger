@@ -111,6 +111,8 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ContentCopy
 // removed LocalDensity/zIndex imports; overlay content is centered, not positioned
 import org.ethereumphone.dgenlibrary.theme.dgenRed
+import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
+import org.ethereumphone.dgenlibrary.showDgenToast
 // removed SharedMessageItem; using measured overlay clone
 // removed unused: LocalDensity/width/height
 import org.ethereumphone.model.Contact
@@ -304,6 +306,9 @@ fun ChatScreen(
     var hasMultipleLines = remember { mutableStateOf(false) }
     val expand = remember { mutableStateOf(false) }
 
+    // Soft-delete state for messages (UI-only)
+    val softDeletedMessageIds = remember { mutableStateMapOf<String, Boolean>() }
+    val showDeleteConfirmation = remember { mutableStateOf(false) }
 
 
     //for selecting images from gallery
@@ -510,6 +515,7 @@ fun ChatScreen(
                                     primaryColor = primaryColor,
                                     secondaryColor = secondaryColor,
                                     openGLColor = openGLColor,
+                                    deletedMessageIds = softDeletedMessageIds,
                                     onUpdateSeenCount = { seenCount = it }
                                 )
                             }
@@ -592,7 +598,11 @@ fun ChatScreen(
                         imageVector = Icons.Outlined.Delete,
                         title = "Delete",
                         primaryColor = dgenRed,
-                        onClick = {}
+                        onClick = {
+                            // Hide selection actions and ask for confirmation
+                            showOverlay.value = false
+                            showDeleteConfirmation.value = true
+                        }
                     )
                 }
                 SelectionBarColumn(
@@ -601,6 +611,26 @@ fun ChatScreen(
                     primaryColor = primaryColor,
                     onClick = {}
                 )
+            }
+        )
+
+        // Confirmation overlay for deleting a message (soft-delete)
+        ConfirmationOverlay(
+            visible = showDeleteConfirmation.value,
+            description = "Delete this message?",
+            extraDescription = "This will hide the message and show 'Deleted Message'.",
+            primaryColor = dgenRed,
+            secondaryColor = secondaryColor,
+            onDelete = {
+                longPressedMessage.value?.id?.let { msgId ->
+                    softDeletedMessageIds[msgId] = true
+                }
+                showDgenToast(context, "Message deleted")
+                showDeleteConfirmation.value = false
+                longPressedMessage.value = null
+            },
+            onCancel = {
+                showDeleteConfirmation.value = false
             }
         )
 

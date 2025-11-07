@@ -72,6 +72,7 @@ fun MessageList(
     primaryColor: Color,
     secondaryColor: Color,
     openGLColor: Color,
+    deletedMessageIds: Map<String, Boolean>,
     onUpdateSeenCount: (Int) -> Unit
 ) {
     // Lock the divider position/count for the lifetime of this screen
@@ -168,6 +169,7 @@ fun MessageList(
                             isFirstMessageByAuthor = isFirstMessageByAuthor,
                             isGroup = chatConversion?.isGroup == true,
                             isVisible = true,
+                            isDeleted = (deletedMessageIds[message.id] == true),
                             primaryColor = primaryColor,
                             secondaryColor = secondaryColor,
                             openGLColor = openGLColor,
