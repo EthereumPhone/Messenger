@@ -32,6 +32,17 @@ interface MessageDao {
     @Query("SELECT * FROM message WHERE seen = 0")
     fun getUnseenMessages(): Flow<List<MessageEntity>>
 
+    @Query("SELECT * FROM message WHERE threadId = :threadId AND seen = 0 ORDER BY dateSent ASC")
+    suspend fun getUnseenMessagesForThread(threadId: String): List<MessageEntity>
+
+    @Query("""
+        SELECT * FROM message 
+        WHERE threadId = :threadId 
+          AND dateSent >= (SELECT hideBefore FROM conversation WHERE id = :threadId)
+        ORDER BY dateSent ASC
+    """)
+    suspend fun getMessagesForThread(threadId: String): List<MessageEntity>
+
     @Query("UPDATE message SET seen = :seen WHERE id = :id")
     fun updateSeenMessage(id: String, seen: Boolean)
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_name">XMTP messages</string>
+    <string name="notification_channel_description">Alerts for new XMTP messages</string>
+    <string name="notification_multiple_title">New messages from %1$d chats</string>
+    <string name="notification_multiple_summary">Open Messenger to read</string>
+    <string name="notification_you">You</string>
+    <string name="notification_mark_read">Mark as read</string>
+</resources>
+
+

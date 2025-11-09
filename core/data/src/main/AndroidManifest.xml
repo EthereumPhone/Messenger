@@ -71,6 +71,15 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".receiver.XmtpRefreshReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="org.ethereumhpone.messenger.action.REFRESH_XMTP" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
         <service android:name="com.android.mms.transaction.TransactionService" />
         <service
             android:name=".services.NoConfirmationSmsSendService"
