@@ -17,6 +17,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,10 +27,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -37,6 +41,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -84,7 +93,7 @@ import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
-import org.ethereumhpone.chat.components.message.MessageItem
+import org.ethereumhpone.chat.components.message.OverlayMessageItem
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.database.model.ContactEntity
@@ -96,6 +105,16 @@ import org.ethereumphone.dgenlibrary.components.NewMessagesDivider
 import androidx.compose.ui.graphics.Color
 import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
+import org.ethereumphone.dgenlibrary.components.SelectionOverlay
+import org.ethereumphone.dgenlibrary.components.SelectionBarColumn
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.ContentCopy
+// removed LocalDensity/zIndex imports; overlay content is centered, not positioned
+import org.ethereumphone.dgenlibrary.theme.dgenRed
+import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
+import org.ethereumphone.dgenlibrary.showDgenToast
+// removed SharedMessageItem; using measured overlay clone
+// removed unused: LocalDensity/width/height
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
@@ -106,6 +125,15 @@ import kotlin.time.Duration.Companion.seconds
 import com.messenger.terminalsdk.TerminalLEDController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import org.ethereumphone.dgenlibrary.components.SelectionBarColumn
+import org.ethereumphone.dgenlibrary.theme.dgenRed
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import android.util.Log
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalDensity
 
 
 @Composable
@@ -185,8 +213,7 @@ fun ChatRoute(
 }
 
 @OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
-    ExperimentalFoundationApi::class
+    ExperimentalLayoutApi::class
 )
 @Composable
 fun ChatScreen(
@@ -233,6 +260,7 @@ fun ChatScreen(
 
 
     var showOverlay = remember { mutableStateOf(false) }
+    val longPressedMessage = remember { mutableStateOf<Message?>(null) }
 
     var shouldRotate = remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
@@ -246,6 +274,7 @@ fun ChatScreen(
         when {
             showOverlay.value -> {
                 showOverlay.value = false
+                longPressedMessage.value = null
             }
             showPicker.value -> {
                 showPicker.value = false
@@ -277,6 +306,9 @@ fun ChatScreen(
     var hasMultipleLines = remember { mutableStateOf(false) }
     val expand = remember { mutableStateOf(false) }
 
+    // Soft-delete state for messages (UI-only)
+    val softDeletedMessageIds = remember { mutableStateMapOf<String, Boolean>() }
+    val showDeleteConfirmation = remember { mutableStateOf(false) }
 
 
     //for selecting images from gallery
@@ -438,126 +470,182 @@ fun ChatScreen(
                 //TODO: refactor ALL of this
 
                 when (messageUiState) {
-                    is MessageUiState.Success -> {
-                        val messages = messageUiState.messageEntities
+                            is MessageUiState.Success -> {
+                                val messages = messageUiState.messageEntities
 
-                        var initialScrollDone by remember { mutableStateOf(false) }
+                                var initialScrollDone by remember { mutableStateOf(false) }
 
-                        // handles scroll logic.
-                        LaunchedEffect(messages) {
-                            if (messages.isNotEmpty()) {
-                                val lastVisibleItemIndex = scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
-                                val totalItemsCount = scrollState.layoutInfo.totalItemsCount
+                                // handles scroll logic.
+                                LaunchedEffect(messages) {
+                                    if (messages.isNotEmpty()) {
+                                        val lastVisibleItemIndex = scrollState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                                        val totalItemsCount = scrollState.layoutInfo.totalItemsCount
 
-                                if (!initialScrollDone) {
-                                    scrollState.animateScrollToItem(totalItemsCount)
-                                    initialScrollDone = true
+                                        if (!initialScrollDone) {
+                                            scrollState.animateScrollToItem(totalItemsCount)
+                                            initialScrollDone = true
+                                        }
+
+                                        if (lastVisibleItemIndex != null && lastVisibleItemIndex >= totalItemsCount - 2) {
+                                            scrollState.animateScrollToItem(totalItemsCount)
+                                        }
+                                    }
                                 }
 
-                                if (lastVisibleItemIndex != null && lastVisibleItemIndex >= totalItemsCount - 2) {
-                                    scrollState.animateScrollToItem(totalItemsCount)
+                                // Variables for the new messages UI
+                                var seenCount by remember { mutableIntStateOf(messages.size) }
+
+                                MessageList(
+                                    modifier = Modifier.fillMaxSize(),
+                                    messages = messages,
+                                    scrollState = scrollState,
+                                    seenCount = seenCount,
+                                    chatConversion = chatConversion,
+                                    selectedMessages = selectedMessages,
+                                    selectMode = remember { mutableStateOf(selectMode) },
+                                    onToggleSelection = onToggleSelection,
+                                    onMessageLongPress = { msg ->
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        longPressedMessage.value = msg
+                                        showOverlay.value = true
+                                    },
+                                    composablePositionState = composablePositionState,
+                                    player = videoPlayer,
+                                    onPrepareVideo = onPrepareVideo,
+                                    primaryColor = primaryColor,
+                                    secondaryColor = secondaryColor,
+                                    openGLColor = openGLColor,
+                                    deletedMessageIds = softDeletedMessageIds,
+                                    onUpdateSeenCount = { seenCount = it }
+                                )
+                            }
+
+                            MessageUiState.Loading -> {
+                                Box(
+                                    Modifier
+                                        .fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    DgenLoadingMatrix(
+                                        unactiveLEDColor = secondaryColor,
+                                        activeLEDColor = primaryColor
+                                    )
                                 }
                             }
-                        }
-
-                        // Variables for the new messages UI
-                        var seenCount by remember { mutableIntStateOf(messages.size) }
-
-                        MessageList(
-                            modifier = Modifier.fillMaxSize(),
-                            messages = messages,
-                            scrollState = scrollState,
-                            seenCount = seenCount,
-                            chatConversion = chatConversion,
-                            selectedMessages = selectedMessages,
-                            selectMode = remember { mutableStateOf(selectMode) },
-                            onToggleSelection = onToggleSelection,
-                            composablePositionState = composablePositionState,
-                            player = videoPlayer,
-                            onPrepareVideo = onPrepareVideo,
-                            primaryColor = primaryColor,
-                            secondaryColor = secondaryColor,
-                            openGLColor = openGLColor,
-                            onUpdateSeenCount = { seenCount = it }
-                        )
-                    }
-
-                    MessageUiState.Loading -> {
-                        Box(
-                            Modifier
-                                .fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            DgenLoadingMatrix(
-                                unactiveLEDColor = secondaryColor,
-                                activeLEDColor = primaryColor
-                            )
-                        }
-                    }
                 }
+
+                
 
             }
 
 
         }
 
-        // Overlay with AnimatedVisibility for fade effect
-        ActionOverlayScreen(
-            showOverlay = showOverlay,
-            shouldRotate = shouldRotate,
-            openImage = {
-                //opens gallery for selecting images
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                    type = "image/*"
-                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                }
-                launcher.launch(intent)
-                showOverlay.value = false
-            },
-            openVideo = {
-                //opens gallery for selecting images
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                    type = "video/*"
-                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                }
-                launcher.launch(intent)
-
-                showOverlay.value = false
-            },
-            openCamera = {
-                //open camera
-                //val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                cameraLauncher.launch(null)
-                showOverlay.value = false
-            },
-            openSend = {
-                //open camera
-                //val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                //cameraLauncher.launch(null)
-                //showOverlay.value = false
-                currentActions = Actions.SEND //set sending screen
-                showPicker.value = true
-            },
-            primaryColor = primaryColor
-        )
-
-        ChatOverlays(
-            showPicker = showPicker.value,
-            currentActions = currentActions,
-            onActionSelected = { action, show ->
-                currentActions = action
-                showPicker.value = show
-            },
-            chatConversion = chatConversion,
-            recipientUiState = recipientUiState,
-            media = media,
-            selectedIndex = selectedIndex,
-            prevMedia = prevMedia,
-            nextMedia = nextMedia,
-            selectMedia = selectMedia,
+        SelectionOverlay(
+            visible = showOverlay.value,
             primaryColor = primaryColor,
-            secondaryColor = secondaryColor
+            onCancelClick = {
+                showOverlay.value = false
+                longPressedMessage.value = null
+            },
+            dismissOnBackgroundClick = true,
+            content = {
+                longPressedMessage.value?.let { selected ->
+                    val density = LocalDensity.current
+                    val msgPos = composablePositionState.value.offset
+                    // Adjust for OverlayMessageItem internal padding
+                    val xCorrectionPx = with(density) { 16.dp.toPx() }
+                    val yCorrectionPx = with(density) { 8.dp.toPx() }
+                    val startX = (msgPos.x - xCorrectionPx).coerceAtLeast(0f)
+
+                    val yAnim = remember { Animatable(0f) }
+                    LaunchedEffect(selected.id, showOverlay.value) {
+                        if (showOverlay.value) {
+                            val startY = (msgPos.y - yCorrectionPx).coerceAtLeast(0f)
+                            yAnim.snapTo(startY)
+                            Log.d("ChatOverlay", "Start XY (corrected): $startX, $startY")
+                            delay(500)
+                            yAnim.animateTo(332f, animationSpec = tween(durationMillis = 500))
+                            Log.d("ChatOverlay", "Animated to Y: 332.0")
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .offset { IntOffset(startX.roundToInt(), yAnim.value.roundToInt()) }
+                        ) {
+                            OverlayMessageItem(
+                                msg = selected,
+                                primaryColor = primaryColor,
+                                secondaryColor = secondaryColor,
+                                modifier = Modifier.onGloballyPositioned { coordinates ->
+                                    val pos = coordinates.positionInRoot()
+                                    val msgPosition = composablePositionState.value.offset
+                                    Log.d("ChatOverlay", "Long-pressed message XY: ${msgPosition.x}, ${msgPosition.y}")
+                                    Log.d("ChatOverlay", "OverlayMessageItem XY: ${pos.x}, ${pos.y}")
+                                }
+                            )
+                        }
+                    }
+                }
+            },
+            actions = {
+//                if (longPressedMessage.value?.isMe == true) {
+//                    SelectionBarColumn(
+//                        imageVector = Icons.Outlined.Delete,
+//                        title = "Delete",
+//                        primaryColor = dgenRed,
+//                        onClick = {
+//                            // Hide selection actions and ask for confirmation
+//                            showOverlay.value = false
+//                            showDeleteConfirmation.value = true
+//                        }
+//                    )
+//                }
+                SelectionBarColumn(
+                    imageVector = Icons.Outlined.ContentCopy,
+                    title = "Copy",
+                    primaryColor = primaryColor,
+                    onClick = {
+                        longPressedMessage.value?.let { msg ->
+                            val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("Message", msg.body)
+                            clipboardManager.setPrimaryClip(clip)
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            showDgenToast(context, "Copied")
+                        }
+                        showOverlay.value = false
+                        longPressedMessage.value = null
+                    }
+                )
+            }
         )
+
+        // Confirmation overlay for deleting a message (soft-delete)
+        ConfirmationOverlay(
+            visible = showDeleteConfirmation.value,
+            description = "Delete this message?",
+            extraDescription = "This will hide the message and show 'Deleted Message'.",
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor,
+            onDelete = {
+                longPressedMessage.value?.id?.let { msgId ->
+                    softDeletedMessageIds[msgId] = true
+                }
+                showDgenToast(context, "Message deleted")
+                showDeleteConfirmation.value = false
+                longPressedMessage.value = null
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            },
+            onCancel = {
+                showDeleteConfirmation.value = false
+            }
+        )
+
+        //Removed the ChatOverlays & ActionOverlayScreen
     }
 
 }
@@ -620,213 +708,7 @@ fun extractTransactionDetails(message: String): TransactionDetails? {
 @Composable
 @Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
 private fun PreviewChatScreen() {
-    //
-    //
-    //    val now = Instant.parse("2025-04-17T12:23:05Z")
-    //
-    //    val messageUiState = MessageUiState.Success(generateTestMessages())
-    //    val recipientUiState = RecipientUiState.Success(
-    //        listOf(
-    //            Recipient(
-    //                id = "userB",
-    //                address = "0xDeF456HodlGuyWallet",
-    //                ens = "hodl.eth",
-    //                contact = Contact("lk2", "Bob", null, "0x456")
-    //            )
-    //        )
-    //    )
-    // //    ChatScreen(
-    // //        messageUiState = messageUiState,
-    // //        recipientUiState = recipientUiState,
-    // //        navigateBackToConversations = { },
-    // //        tokenBalance = 2.456,
-    // //        onSendEthClicked = { it -> },
-    // //        converstation = ConversationUiState.Success(
-    // //            Conversation(
-    // //                id = "2",
-    // //                title = null,
-    // //                recipients = listOf(
-    // //                    Recipient("r2", "0x456", null, Contact("lk2", "Bob", null, "0x456")),
-    // //                ),
-    // //                draft = null,
-    // //                lastMessage = Message(
-    // //                    id = "m2",
-    // //                    threadId = "2",
-    // //                    recipient = Recipient(
-    // //                        "r2",
-    // //                        "0x456",
-    // //                        null,
-    // //                        Contact("lk2", "Bob", null, "0x456")
-    // //                    ),
-    // //                    date = now,
-    // //                    dateSent = now,
-    // //                    seen = false,
-    // //                    deliveryStatus = DeliveryStatus.PUBLISHED,
-    // //                    replyReference = null,
-    // //                    isMe = false,
-    // //                    attachments = emptyList(),
-    // //                    reactions = emptyList(),
-    // //                    body = "See you tomorrow!"
-    // //                ),
-    // //                clientInbox = "inbox2"
-    // //            )
-    // //        ),
-    // //        onAddSelectedMessage = TODO()
-    // //    )
-    //    /*
-    //    ChatScreen(
-    //        messagesUiState = messageUiState,
-    //        recipients = listOf(
-    //            Recipient(
-    //                id = "userB",
-    //                address = "0xDeF456HodlGuyWallet",
-    //                ens = "hodl.eth",
-    //                contact = Contact("lk2", "Bob", null, "0x456")
-    //            )
-    //        ),
-    //        navigateBackToConversations={},
-    //        onPhoneClicked = {},
-    //        onSendEthClicked = {},
-    //        onOpenContact = {},
-    //        onContactSelected = {},
-    //        onToggleAttachment = {},
-    //        onSendMessageClicked = {},
-    //        onDeleteMessage = {},
-    //        onFocusedMessageUpdate = {},
-    //        onPrepareVideo = {},
-    //        onRemoveSelectedMessage = {},
-    //        onAddSelectedMessage = {},
-    //        videoPlayer = null
-    //    )
-    //     */
-    //
-    //
 }
 
 
-@Composable
-@Preview(device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
-private fun PreviewGroupChatScreen() {
 
-
-    //    val now = Instant.parse("2025-04-17T12:00:00Z")
-    //    val messageUiState = MessageUiState.Success(generateTestGroupMessages())
-    //
-    //    val recipientMe = Recipient(
-    //        id = "userA",
-    //        address = "0xAbC123CryptoBroWallet",
-    //        ens = "bro.eth",
-    //        contact = Contact("lk1", "Timothy", null, "0x423")
-    //    )
-    //
-    //    val recipientUiState = RecipientUiState.Success(
-    //        listOf(
-    //            Recipient(
-    //                id = "userB",
-    //                address = "0xDeF456HodlGuyWallet",
-    //                ens = "hodl.eth",
-    //                contact = Contact("lk2", "Bob", null, "0x456")
-    //            ),
-    //            Recipient(
-    //                id = "userC",
-    //                address = "0xDeF456JoeGuy",
-    //                ens = "Joe.eth",
-    //                contact = Contact("lk2", "Joe", null, "0x474")
-    //            )
-    //        )
-    //    )
-    //    val convo = ConversationUiState.Success(
-    //        Conversation(
-    //            id = "3",
-    //            title = "🏀 Game Plan",
-    //            recipients = listOf(
-    //                recipientMe,
-    //                Recipient(
-    //                    id = "userB",
-    //                    address = "0xDeF456HodlGuyWallet",
-    //                    ens = "hodl.eth",
-    //                    contact = Contact("lk2", "Bob", null, "0x456")
-    //                ),
-    //                Recipient(
-    //                    id = "userC",
-    //                    address = "0xDeF456JoeGuy",
-    //                    ens = "Joe.eth",
-    //                    contact = Contact("lk2", "Joe", null, "0x474")
-    //                )
-    //            ),
-    //            draft = "Need to reply...",
-    //            lastMessage = Message(
-    //                "17",
-    //                "thread3x3",
-    //                recipientMe,
-    //                now - (51 * 60).seconds,
-    //                now - (51 * 60).seconds,
-    //                true,
-    //                DeliveryStatus.PUBLISHED,
-    //                null,
-    //                false,
-    //                emptyList(),
-    //                emptyList(),
-    //                "Got it! And I'll post some stories tagging Freedom Factory later."
-    //            ),
-    //            pinned = true,
-    //            clientInbox = "inbox3",
-    //            isGroup = true
-    //        )
-    //    )
-    //
-    //
-    //
-    // //    ChatScreen(
-    // //        messageUiState = messageUiState,
-    // //        recipientUiState = recipientUiState,
-    // //        navigateBackToConversations = { },
-    // //        tokenBalance = 2.456,
-    // //        onSendEthClicked = { it -> },
-    // //        converstation = convo,
-    // //        modifier = TODO(),
-    // //        contactEntities = TODO(),
-    // //        media = TODO(),
-    // //        attachments = TODO(),
-    // //        chainName = TODO(),
-    // //        videoPlayer = TODO(),
-    // //        onOpenContact = TODO(),
-    // //        selectedMessaged = TODO(),
-    // //        onContactSelected = TODO(),
-    // //        onToggleAttachment = TODO(),
-    // //        onSendMessageClicked = TODO(),
-    // //        onDeleteMessage = TODO(),
-    // //        onFocusedMessageUpdate = TODO(),
-    // //        onPrepareVideo = TODO(),
-    // //        onRemoveSelectedMessage = TODO(),
-    // //        onAddSelectedMessage = TODO()
-    // //    )
-    //    /*
-    //    ChatScreen(
-    //        messagesUiState = messageUiState,
-    //        recipients = listOf(
-    //            Recipient(
-    //                id = "userB",
-    //                address = "0xDeF456HodlGuyWallet",
-    //                ens = "hodl.eth",
-    //                contact = Contact("lk2", "Bob", null, "0x456")
-    //            )
-    //        ),
-    //        navigateBackToConversations={},
-    //        onPhoneClicked = {},
-    //        onSendEthClicked = {},
-    //        onOpenContact = {},
-    //        onContactSelected = {},
-    //        onToggleAttachment = {},
-    //        onSendMessageClicked = {},
-    //        onDeleteMessage = {},
-    //        onFocusedMessageUpdate = {},
-    //        onPrepareVideo = {},
-    //        onRemoveSelectedMessage = {},
-    //        onAddSelectedMessage = {},
-    //        videoPlayer = null
-    //    )
-    //     */
-    //
-    //
-}
