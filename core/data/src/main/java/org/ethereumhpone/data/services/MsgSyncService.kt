@@ -13,17 +13,20 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.database.dao.MessageDao
-import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.NotificationManager
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.ipc.IMsgSyncService
 import org.ethereumphone.walletsdk.WalletSDK
 import javax.inject.Inject
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import org.ethereumhpone.datastore.MessengerPreferences
 
 @AndroidEntryPoint
 class MsgSyncService : Service() {
 
-    @Inject lateinit var messengerPreferences: MessengerPreferences
     @Inject lateinit var xmtpClientManager: XmtpClientManager
     @Inject lateinit var walletSDK: WalletSDK
     @Inject lateinit var syncRepository: SyncRepository
@@ -51,9 +54,19 @@ class MsgSyncService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface MsgSyncEntryPoint {
+        fun messengerPreferences(): MessengerPreferences
+    }
+
     private suspend fun performSync() {
-        // Only proceed if XMTP is enabled by the user
-        val prefs = messengerPreferences.prefs.first()
+        // Only proceed if XMTP is enabled by the user (resolve via EntryPoint to avoid service field injection issues)
+        val entryPoint = EntryPointAccessors.fromApplication(
+            applicationContext,
+            MsgSyncEntryPoint::class.java
+        )
+        val prefs = entryPoint.messengerPreferences().prefs.first()
         if (!prefs.useXmtp) return
 
         // Create client if needed then wait until ready
