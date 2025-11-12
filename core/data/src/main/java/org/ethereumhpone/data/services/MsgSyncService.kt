@@ -61,6 +61,11 @@ class MsgSyncService : Service() {
     }
 
     private suspend fun performSync() {
+        // Bail out if the user's credential-encrypted storage is still locked
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            val um = getSystemService(android.os.UserManager::class.java)
+            if (um != null && !um.isUserUnlocked) return
+        }
         // Only proceed if XMTP is enabled by the user (resolve via EntryPoint to avoid service field injection issues)
         val entryPoint = EntryPointAccessors.fromApplication(
             applicationContext,
