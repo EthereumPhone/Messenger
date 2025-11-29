@@ -70,4 +70,11 @@ interface MessageDao {
     @Delete
     suspend fun deleteMessage(messageEntity: MessageEntity)
 
+    /**
+     * Gets the timestamp of the most recent message in the database.
+     * Used by syncNow() to determine which messages are new.
+     */
+    @Query("SELECT MAX(date) FROM message")
+    suspend fun getLatestMessageTime(): Long?
+
 }

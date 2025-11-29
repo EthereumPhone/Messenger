@@ -166,4 +166,45 @@ interface ConversationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversationMemberCrossRefs(refs: List<ConversationRecipientCrossRef>)
 
+    /**
+     * Gets all conversations with unseen messages for notification purposes.
+     * Includes both ALLOWED and UNKNOWN consent state conversations.
+     * Excludes only BLOCKED conversations.
+     */
+    @Transaction
+    @Query("""
+    SELECT 
+        conversation.*,
+        COALESCE(latest_msg.id, '') AS message_id,
+        COALESCE(latest_msg.threadId, '') AS message_threadId,
+        COALESCE(latest_msg.date, 0) AS message_date,
+        COALESCE(latest_msg.body, '') AS message_body,
+        COALESCE(latest_msg.senderInboxId, '') AS message_senderInboxId,
+        COALESCE(latest_msg.read, 0) AS message_read,
+        COALESCE(latest_msg.dateSent, 0) AS message_dateSent,
+        COALESCE(latest_msg.seen, 0) AS message_seen,
+        COALESCE(latest_msg.locked, 0) AS message_locked,
+        COALESCE(latest_msg.replyReference, '') AS message_replyReference,
+        COALESCE(latest_msg.seenDate, 0) AS message_seenDate,
+        COALESCE(latest_msg.deliveryStatus, 0) AS message_deliveryStatus,
+        COALESCE(latest_msg.isMe, 0) AS message_isMe
+    FROM conversation
+    INNER JOIN message ON conversation.id = message.threadId 
+        AND message.seen = 0 
+        AND message.isMe = 0
+        AND message.dateSent >= conversation.hideBefore
+    LEFT JOIN message AS latest_msg
+      ON latest_msg.threadId = conversation.id
+     AND latest_msg.dateSent = (
+          SELECT MAX(m2.dateSent) FROM message m2
+           WHERE m2.threadId = conversation.id
+             AND m2.dateSent >= conversation.hideBefore
+        )
+    WHERE conversation.deleted = 0 
+      AND conversation.blocked = 0
+    GROUP BY conversation.id
+    ORDER BY CASE WHEN latest_msg.dateSent IS NULL THEN 0 ELSE 1 END DESC, latest_msg.dateSent DESC
+    """)
+    fun getConversationsWithUnseenMessagesForNotifications(): Flow<List<CompositeConversation>>
+
 }

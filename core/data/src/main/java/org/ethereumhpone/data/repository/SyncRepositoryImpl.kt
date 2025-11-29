@@ -58,6 +58,7 @@ import org.xmtp.proto.message.contents.Content
 import javax.inject.Inject
 import org.ethereumhpone.domain.manager.NetworkManager
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.withTimeoutOrNull
 
 
 class SyncRepositoryImpl @Inject constructor(
@@ -471,6 +472,221 @@ class SyncRepositoryImpl @Inject constructor(
             }
     }
 
+
+    /**
+     * syncNow() - Called by the OS-level XMTPNotificationsService every 5 minutes.
+     * 
+     * This method MUST:
+     * 1. Call syncAllConversations() to pull new data from the XMTP network
+     * 2. Process any new messages
+     * 3. Store them in the local database
+     * 4. Trigger notifications
+     * 
+     * Returns the count of new messages received.
+     */
+    override suspend fun syncNow(): Int = coroutineScope {
+        Log.i(TAG, "syncNow() starting - fetching from XMTP network...")
+        
+        var newMessageCount = 0
+        
+        try {
+            // Wait for client to be ready (should already be ready if MsgSyncService initialized it)
+            val clientReady = withTimeoutOrNull(10_000L) {
+                xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            }
+            
+            if (clientReady == null) {
+                Log.w(TAG, "syncNow(): XMTP client not ready, aborting sync")
+                return@coroutineScope 0
+            }
+            
+            val client = xmtpClientManager.client
+            val myInboxId = client.inboxId
+            
+            // CRITICAL: This is what actually pulls new messages from the XMTP network!
+            // Without this call, we only read from local cache.
+            Log.i(TAG, "syncNow(): Calling syncAllConversations() to fetch from network...")
+            val syncedConversationCount = client.conversations.syncAllConversations()
+            Log.i(TAG, "syncNow(): Synced $syncedConversationCount conversations from network")
+            
+            // Also sync consent state
+            try {
+                client.preferences.syncConsent()
+            } catch (e: Exception) {
+                Log.w(TAG, "syncNow(): Failed to sync consent preferences", e)
+            }
+            
+            // Get the timestamp of the most recent message we have locally
+            // to determine which messages are actually new
+            val lastKnownMessageTime = messageDao.getLatestMessageTime() ?: 0L
+            Log.i(TAG, "syncNow(): Last known message time: $lastKnownMessageTime")
+            
+            // Process each conversation
+            val conversations = client.conversations.list()
+            Log.i(TAG, "syncNow(): Processing ${conversations.size} conversations")
+            
+            for (conversation in conversations) {
+                try {
+                    // Fetch messages for this conversation
+                    // The sync above should have pulled them into the local XMTP database
+                    val messages = conversation.messagesWithReactions()
+                    
+                    var conversationNewCount = 0
+                    
+                    for (msg in messages) {
+                        // Skip if we already have this message or it's older than our last sync
+                        val msgTimeMs = msg.sentAtNs / 1_000_000
+                        
+                        // Check if message already exists in our database
+                        val existingMessage = messageDao.getMessage(msg.id).firstOrNull()
+                        if (existingMessage != null) {
+                            continue // Already have this message
+                        }
+                        
+                        // Skip read receipts and empty messages
+                        if (msg.encodedContent.type == ContentTypeReadReceipt || msg.body.isNullOrBlank()) {
+                            if (msg.encodedContent.type == ContentTypeReadReceipt) {
+                                messageDao.updateMessageSeenDate(msgTimeMs)
+                            }
+                            continue
+                        }
+                        
+                        val isMe = myInboxId == msg.senderInboxId
+                        
+                        val baseMessage = MessageEntity(
+                            id = msg.id,
+                            threadId = msg.conversationId,
+                            senderInboxId = msg.senderInboxId,
+                            date = msgTimeMs,
+                            dateSent = msgTimeMs,
+                            deliveryStatus = msg.deliveryStatus,
+                            isMe = isMe,
+                            replyReference = null,
+                            body = msg.body
+                        )
+                        
+                        val processedMessage = processContent(baseMessage, msg.encodedContent.type, msg.content())
+                        
+                        if (processedMessage != null) {
+                            messageDao.insertMessages(listOf(processedMessage))
+                            conversationNewCount++
+                            newMessageCount++
+                            
+                            Log.d(TAG, "syncNow(): New message ${msg.id} in conversation ${conversation.id}")
+                            
+                            // Trigger notification for new incoming messages (not from me)
+                            if (!isMe) {
+                                try {
+                                    notificationManager.update(conversation.id)
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "syncNow(): Failed to update notification", e)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Also ensure the conversation entity exists in our database
+                    ensureConversationExists(client, conversation)
+                    
+                    if (conversationNewCount > 0) {
+                        Log.i(TAG, "syncNow(): Found $conversationNewCount new messages in conversation ${conversation.id}")
+                    }
+                    
+                } catch (e: Exception) {
+                    Log.e(TAG, "syncNow(): Error processing conversation ${conversation.id}", e)
+                }
+            }
+            
+            Log.i(TAG, "syncNow() completed: $newMessageCount new messages total")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "syncNow() failed with exception", e)
+        }
+        
+        newMessageCount
+    }
+    
+    /**
+     * Ensures a conversation entity exists in our local database.
+     * Called during syncNow() to make sure we have conversation metadata.
+     */
+    private suspend fun ensureConversationExists(client: org.xmtp.android.library.Client, conversation: Conversation) {
+        try {
+            val existing = conversationDao.getConversationEntityById(conversation.id)
+            
+            // Get members and create cross-refs
+            val members = conversation.members()
+            val inboxIds = members.map { it.inboxId }
+            
+            // Insert/update recipients
+            val contacts = contactDao.getContacts().first()
+            val recipientEntities = members.map { member ->
+                val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                val ensAddress = try {
+                    ensResolver.reverseResolve(Address(address.removePrefix("0x")))
+                } catch (e: Exception) { null }
+                
+                val matchedContact = contacts.firstOrNull { contact ->
+                    contact.ethAddress?.equals(address, ignoreCase = true) == true
+                }
+                
+                RecipientEntity(
+                    inboxId = member.inboxId,
+                    address = address,
+                    ens = ensAddress,
+                    contactLookupKey = matchedContact?.lookupKey
+                )
+            }
+            recipientDao.insertRecipients(recipientEntities)
+            
+            // Insert conversation-member cross refs
+            val refs = inboxIds.map { inboxId ->
+                ConversationRecipientCrossRef(conversation.id, inboxId)
+            }
+            conversationDao.insertConversationMemberCrossRefs(refs)
+            
+            // Create/update conversation entity
+            val (id, title, createdAt, archived, consentState) = when (conversation.type) {
+                Conversation.Type.DM -> {
+                    val dm = (conversation as Conversation.Dm).dm
+                    listOf(
+                        dm.id,
+                        existing?.title,
+                        dm.createdAt.time,
+                        false,
+                        dm.consentState()
+                    )
+                }
+                Conversation.Type.GROUP -> {
+                    val group = (conversation as Conversation.Group).group
+                    listOf(
+                        group.id,
+                        existing?.title ?: group.name,
+                        group.createdAt.time,
+                        !group.isActive(),
+                        group.consentState()
+                    )
+                }
+            }
+            
+            val conversationEntity = ConversationEntity(
+                id = id as String,
+                title = title as String?,
+                members = inboxIds,
+                createdAt = createdAt as Long,
+                archived = archived as Boolean,
+                unknown = consentState == ConsentState.UNKNOWN,
+                blocked = consentState == ConsentState.DENIED,
+                clientInbox = client.inboxId,
+                deleted = existing?.deleted ?: false,
+                hideBefore = existing?.hideBefore ?: 0L
+            )
+            
+            conversationDao.insertConversation(conversationEntity)
+        } catch (e: Exception) {
+            Log.w(TAG, "ensureConversationExists(): Failed for ${conversation.id}", e)
+        }
+    }
 
     private suspend fun processContent(messageEntity: MessageEntity, contentType: Content.ContentTypeId, content: Any?): MessageEntity? {
         return when(contentType) {

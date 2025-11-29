@@ -56,6 +56,10 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.getConversationsWithUnseenMessages()
             .map { it.map(CompositeConversation::toExternalModel) }
 
+    override fun getUnreadConversationsForNotifications(): Flow<List<Conversation>> =
+        conversationDao.getConversationsWithUnseenMessagesForNotifications()
+            .map { it.map(CompositeConversation::toExternalModel) }
+
     override fun createConversation(
         addresses: List<String>,
         preResolvedAddresses: Map<String, String>?

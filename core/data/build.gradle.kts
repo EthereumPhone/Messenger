@@ -38,6 +38,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        aidl = true  // Enable AIDL for OS-level IPC with MsgSyncService
     }
 
     buildTypes {

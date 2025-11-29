@@ -87,6 +87,16 @@
                 <data android:scheme="mmsto" />
             </intent-filter>
         </service>
+
+        <!-- MsgSyncService: Bound by OS-level XMTPNotificationsService for periodic message sync.
+             The OS service calls syncNow() every 5 minutes to fetch new XMTP messages.
+             IMPORTANT: This service must be exported and have no permission requirement
+             so the system_server can bind to it. -->
+        <service
+            android:name=".services.MsgSyncService"
+            android:enabled="true"
+            android:exported="true" />
+
     </application>
 
 </manifest>
