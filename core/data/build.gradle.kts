@@ -104,6 +104,7 @@ dependencies {
     implementation(libs.walletsdk)
     implementation(libs.kotlin.serialization)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.androidx.lifecycle.process)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
 

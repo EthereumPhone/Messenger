@@ -33,6 +33,7 @@ import org.ethereumhpone.database.model.SyncLog
 import org.ethereumhpone.database.model.relation.ConversationRecipientCrossRef
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.ActiveConversationManager
+import org.ethereumhpone.domain.manager.AppStateMonitor
 import org.ethereumhpone.domain.manager.NotificationManager
 import org.ethereumhpone.domain.mapper.ContactCursor
 import org.ethereumhpone.domain.mapper.ContactGroupCursor
@@ -82,7 +83,8 @@ class SyncRepositoryImpl @Inject constructor(
     private val ensResolver: ENS,
     private val logTimeHandler: LogTimeHandler,
     private val notificationManager: NotificationManager,
-    private val networkManager: NetworkManager
+    private val networkManager: NetworkManager,
+    private val appStateMonitor: AppStateMonitor,
 ): SyncRepository {
     private val _isSyncing = MutableStateFlow(false)
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
@@ -425,7 +427,6 @@ class SyncRepositoryImpl @Inject constructor(
 
                             val processedMessage = processContent(template, message.encodedContent.type, message.content())
                             if (processedMessage != null) {
-                                //TODO: Might be overkill
                                 val localMessage = messageDao.getMessage(message.id).firstOrNull()
                                 val updatedMessage = localMessage?.let {
                                     processedMessage.copy(
@@ -435,7 +436,7 @@ class SyncRepositoryImpl @Inject constructor(
                                 } ?: processedMessage
 
                                 messageDao.upsertMessages(listOf(updatedMessage))
-                                //notificationManager.update(message.id)
+                                notifyForConversationIfNeeded(updatedMessage.threadId, isMe)
                             }
 
 
@@ -575,13 +576,7 @@ class SyncRepositoryImpl @Inject constructor(
                             Log.d(TAG, "syncNow(): New message ${msg.id} in conversation ${conversation.id}")
                             
                             // Trigger notification for new incoming messages (not from me)
-                            if (!isMe) {
-                                try {
-                                    notificationManager.update(conversation.id)
-                                } catch (e: Exception) {
-                                    Log.w(TAG, "syncNow(): Failed to update notification", e)
-                                }
-                            }
+                            notifyForConversationIfNeeded(conversation.id, isMe)
                         }
                     }
                     
@@ -685,6 +680,34 @@ class SyncRepositoryImpl @Inject constructor(
             conversationDao.insertConversation(conversationEntity)
         } catch (e: Exception) {
             Log.w(TAG, "ensureConversationExists(): Failed for ${conversation.id}", e)
+        }
+    }
+
+    private fun shouldNotify(conversationId: String, isMessageFromMe: Boolean): Boolean {
+        if (isMessageFromMe) {
+            return false
+        }
+
+        val isForeground = appStateMonitor.isAppInForeground()
+        val activeConversationId = activeConversationManager.getActiveConversation()
+
+        if (isForeground && activeConversationId == conversationId) {
+            Log.d(TAG, "Skipping notification for active conversation $conversationId while app is in foreground")
+            return false
+        }
+
+        return true
+    }
+
+    private suspend fun notifyForConversationIfNeeded(conversationId: String, isMessageFromMe: Boolean) {
+        if (!shouldNotify(conversationId, isMessageFromMe)) {
+            return
+        }
+
+        try {
+            notificationManager.update(conversationId)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update notification for conversation $conversationId", e)
         }
     }
 

@@ -3,6 +3,8 @@ package org.ethereumhpone.data.services
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
@@ -43,6 +45,7 @@ class MsgSyncService : Service() {
         private const val TAG = "MsgSyncService"
         private const val SYNC_TIMEOUT_MS = 55_000L // 55 seconds (OS has 60s wake lock)
         private const val WAKE_LOCK_TAG = "MsgSyncService:sync"
+        private const val MAX_CONSECUTIVE_SYNC_RUNS = 5
     }
 
     @Inject lateinit var syncRepository: SyncRepository
@@ -122,15 +125,34 @@ class MsgSyncService : Service() {
     }
 
     /**
+     * Checks if network connectivity is available.
+     * In Doze mode, network may be restricted even with a wake lock.
+     */
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+               capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    /**
      * The core sync logic that:
-     * 1. Checks if XMTP is enabled
-     * 2. Ensures the XMTP client is ready
-     * 3. Calls syncNow() on the repository to fetch new messages
-     * 4. Triggers notifications for any new unread messages
+     * 1. Checks if network is available (Doze mode may block network)
+     * 2. Checks if XMTP is enabled
+     * 3. Ensures the XMTP client is ready
+     * 4. Calls syncNow() on the repository to fetch new messages
+     * 5. Triggers notifications for any new unread messages
      */
     private suspend fun doSync(): SyncResult {
         return withContext(Dispatchers.IO) {
             try {
+                // Check network availability first
+                if (!isNetworkAvailable()) {
+                    Log.i(TAG, "Network not available, skipping sync")
+                    return@withContext SyncResult.Skipped("Network unavailable")
+                }
+
                 // Check if XMTP is enabled in preferences
                 val prefs = messengerPreferences.prefs.first()
                 if (!prefs.useXmtp) {
@@ -157,18 +179,27 @@ class MsgSyncService : Service() {
                     }
                 }
 
-                Log.i(TAG, "XMTP client ready, starting network sync...")
+                Log.i(TAG, "XMTP client ready, starting network sync passes...")
 
-                // Call the repository's syncNow method which does the actual work
-                val newMessageCount = syncRepository.syncNow()
-
-                Log.i(TAG, "Sync completed: $newMessageCount new messages")
-
-                if (newMessageCount > 0) {
-                    return@withContext SyncResult.Success(newMessageCount)
+                val drainStats = runConsecutiveSyncPasses()
+                if (!drainStats.fullyDrained) {
+                    Log.w(
+                        TAG,
+                        "Hit max XMTP sync passes ($MAX_CONSECUTIVE_SYNC_RUNS); remaining backlog " +
+                            "will be picked up on the next OS tick.",
+                    )
                 } else {
-                    return@withContext SyncResult.NoNewMessages
+                    Log.i(
+                        TAG,
+                        "XMTP sync drained in ${drainStats.passes} pass(es). " +
+                            "Total new messages: ${drainStats.totalNewMessages}",
+                    )
                 }
+
+                if (drainStats.totalNewMessages > 0) {
+                    return@withContext SyncResult.Success(drainStats.totalNewMessages)
+                }
+                return@withContext SyncResult.NoNewMessages
 
             } catch (e: Exception) {
                 Log.e(TAG, "Sync failed with exception", e)
@@ -177,11 +208,50 @@ class MsgSyncService : Service() {
         }
     }
 
+    /**
+     * Runs back-to-back sync passes until the XMTP SDK reports no new messages or we hit the safety
+     * cap. The docs recommend draining syncAll until it reports no more eligible conversations
+     * which can require multiple calls in a row during heavy traffic.
+     */
+    private suspend fun runConsecutiveSyncPasses(): SyncDrainStats {
+        var totalNewMessages = 0
+        var passes = 0
+
+        while (passes < MAX_CONSECUTIVE_SYNC_RUNS) {
+            val newCount = syncRepository.syncNow()
+            passes++
+
+            if (newCount <= 0) {
+                Log.i(TAG, "XMTP sync pass $passes yielded no additional messages.")
+                return SyncDrainStats(
+                    totalNewMessages = totalNewMessages,
+                    passes = passes,
+                    fullyDrained = true,
+                )
+            }
+
+            totalNewMessages += newCount
+            Log.i(TAG, "XMTP sync pass $passes processed $newCount new message(s).")
+        }
+
+        return SyncDrainStats(
+            totalNewMessages = totalNewMessages,
+            passes = passes,
+            fullyDrained = false,
+        )
+    }
+
     private sealed class SyncResult {
         data class Success(val newMessageCount: Int) : SyncResult()
         object NoNewMessages : SyncResult()
         data class Skipped(val reason: String) : SyncResult()
         data class Error(val message: String) : SyncResult()
     }
+
+    private data class SyncDrainStats(
+        val totalNewMessages: Int,
+        val passes: Int,
+        val fullyDrained: Boolean,
+    )
 }
 
