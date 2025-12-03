@@ -88,17 +88,18 @@ object XmtpClientManager {
             val address = walletSDK.getAddress()
             Log.d("my address", address)
             try {
-                _client = Client.create(
-                    account = EOAWallet(walletSDK, address),
-                    options = clientOptions(appContext, address),
-                )
-
+                // Register codecs BEFORE creating the client
                 Client.register(codec = GroupUpdatedCodec())
                 Client.register(codec = ReadReceiptCodec())
                 Client.register(codec = ReactionCodec())
                 Client.register(codec = ReplyCodec())
                 Client.register(codec = AttachmentCodec())
                 Client.register(codec = RemoteAttachmentCodec())
+
+                _client = Client.create(
+                    account = EOAWallet(walletSDK, address),
+                    options = clientOptions(appContext, address),
+                )
 
                 _clientState.value = ClientState.Ready
 

@@ -403,14 +403,18 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         messageBody: String = "",
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            sendMessageUseCase(
-                xmtpConversation = xmtpConversation,
-                threadId = threadId,
-                body = messageBody,
-                replyReference = if (selectedMessages.value.size == 1) selectedMessages.value.getOrNull(0)?.id else null,
-                attachments = attachments.value.toList(),
-                reaction = null
-            )
+            try {
+                sendMessageUseCase(
+                    xmtpConversation = xmtpConversation,
+                    threadId = threadId,
+                    body = messageBody,
+                    replyReference = if (selectedMessages.value.size == 1) selectedMessages.value.getOrNull(0)?.id else null,
+                    attachments = attachments.value.toList(),
+                    reaction = null
+                )
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to send message", e)
+            }
         }
     }
 

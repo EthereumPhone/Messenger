@@ -177,16 +177,21 @@ class MessageRepositoryImpl @Inject constructor(
             }
 
             else -> {
-                val messageId = if (replyReference != null) {
-                    xmtpConversation.prepareMessage(
-                        Reply(
-                            reference = replyReference,
-                            content = body.orEmpty(),
-                            contentType = ContentTypeText
+                val messageId = try {
+                    if (replyReference != null) {
+                        xmtpConversation.prepareMessage(
+                            Reply(
+                                reference = replyReference,
+                                content = body.orEmpty(),
+                                contentType = ContentTypeText
+                            )
                         )
-                    )
-                } else {
-                    xmtpConversation.prepareMessage(body)
+                    } else {
+                        xmtpConversation.prepareMessage(body)
+                    }
+                } catch (e: Exception) {
+                    AndroidLog.e("MessageRepository", "Failed to prepare message", e)
+                    return@coroutineScope null
                 }
 
                 Log.d("MESSAGE ID", messageId)
