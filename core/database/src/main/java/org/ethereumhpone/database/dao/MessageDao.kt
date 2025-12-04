@@ -29,6 +29,14 @@ interface MessageDao {
     @Query("SELECT * FROM message WHERE seen = 0 ORDER BY date")
     suspend fun getUnreadUnseenMessages(): List<MessageEntity>
 
+    /**
+     * Returns unread (unseen) messages for a specific thread.
+     * This intentionally does NOT depend on the conversation table so it works
+     * even if the conversation entity hasn't been created yet.
+     */
+    @Query("SELECT * FROM message WHERE threadId = :threadId AND seen = 0 ORDER BY date")
+    suspend fun getUnreadUnseenMessagesForThread(threadId: String): List<MessageEntity>
+
     @Query("SELECT * FROM message WHERE seen = 0")
     fun getUnseenMessages(): Flow<List<MessageEntity>>
 

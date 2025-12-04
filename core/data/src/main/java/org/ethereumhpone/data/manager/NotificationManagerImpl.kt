@@ -18,6 +18,8 @@ import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
+import org.ethereumhpone.database.dao.MessageDao
+import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.data.R
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.PermissionManager
@@ -36,6 +38,7 @@ class NotificationManagerImpl @Inject constructor(
     private val messengerPreferences: MessengerPreferences,
     private val permissionManager: PermissionManager,
     private val conversationRepository: ConversationRepository,
+    private val messageDao: MessageDao,
 ): org.ethereumhpone.domain.manager.NotificationManager {
 
     companion object {
@@ -95,7 +98,25 @@ class NotificationManagerImpl @Inject constructor(
             // Get the specific conversation for this thread
             val conversation = conversationRepository.getConversation(threadId).first()
             if (conversation == null) {
-                Log.w(TAG, "Conversation not found for threadId: $threadId")
+                Log.w(TAG, "Conversation not found for threadId: $threadId. Falling back to message-based notification.")
+                
+                // Fallback: build a notification directly from unread messages in the message table
+                val unreadEntities = try {
+                    messageDao.getUnreadUnseenMessagesForThread(threadId)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to query unread messages for threadId: $threadId", e)
+                    emptyList()
+                }
+                
+                if (unreadEntities.isEmpty()) {
+                    Log.d(TAG, "No unread messages found for thread (fallback): $threadId")
+                    // No-op; nothing to show
+                    return
+                }
+                
+                showFallbackNotification(threadId, unreadEntities)
+                // Try updating summary as well (may not include this thread if conversation is still absent)
+                updateSummaryNotification()
                 return
             }
 
@@ -192,6 +213,58 @@ class NotificationManagerImpl @Inject constructor(
             .build()
 
         Log.d(TAG, "Showing notification for $senderName with ${unreadMessages.size} messages")
+        notificationManager.notify(notificationId, notification)
+    }
+
+    /**
+     * Fallback notification when the conversation entity doesn't exist yet.
+     * Builds a minimal MessagingStyle notification from MessageEntity rows.
+     */
+    private fun showFallbackNotification(threadId: String, unreadMessages: List<MessageEntity>) {
+        val senderName = "New messages"
+
+        val messagingStyle = NotificationCompat.MessagingStyle(
+            Person.Builder().setName("Me").build()
+        ).also { style ->
+            // Add each unread message
+            unreadMessages.forEach { message ->
+                val messagePerson = if (message.isMe) {
+                    Person.Builder().setName("Me").build()
+                } else {
+                    val fallbackName = shortenAddress(message.senderInboxId)
+                    Person.Builder()
+                        .setName(fallbackName)
+                        .setIcon(createAvatarIcon(fallbackName))
+                        .build()
+                }
+
+                style.addMessage(
+                    message.body.ifBlank { "[Attachment]" },
+                    message.dateSent,
+                    messagePerson
+                )
+            }
+        }
+
+        val contentPI = createContentPendingIntent(threadId)
+        val notificationId = getNotificationIdFromThreadId(threadId)
+
+        val notification = NotificationCompat.Builder(context, DEFAULT_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_sms_light)
+            .setStyle(messagingStyle)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(contentPI)
+            .setGroup(NOTIFICATION_GROUP_KEY)
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_ALL)
+            .setVibrate(VIBRATE_PATTERN)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_LIGHTS)
+            .setWhen(unreadMessages.lastOrNull()?.dateSent ?: System.currentTimeMillis())
+            .setShowWhen(true)
+            .build()
+
+        Log.d(TAG, "Showing fallback notification with ${unreadMessages.size} messages")
         notificationManager.notify(notificationId, notification)
     }
 
