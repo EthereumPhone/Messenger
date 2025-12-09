@@ -100,10 +100,8 @@ import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
-import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
-import org.ethereumphone.dgenlibrary.screens.EmptyConversationScreen
-import org.ethereumphone.dgenlibrary.components.DeleteConfirmationOverlay
 import androidx.compose.material.icons.filled.Check
+import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
 import org.ethereumphone.dgenlibrary.screens.InfoScreen
 
 @Composable
@@ -610,7 +608,7 @@ fun InboxScreen(
             exit = fadeOut(animationSpec = tween(300)),
             modifier = Modifier.fillMaxSize()
         ) {
-            DeleteConfirmationOverlay(
+            ConfirmationOverlay(
                 description = deleteMessage,
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,

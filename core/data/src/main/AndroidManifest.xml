@@ -6,6 +6,10 @@
 
 
 
+    <permission
+        android:name="org.ethereumhpone.messenger.permission.BIND_MSG_SYNC_SERVICE"
+        android:protectionLevel="signature" />
+
     <application>
         <receiver
             android:name=".receiver.XmtpBootReceiver"
@@ -70,6 +74,15 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
+
+        <service
+            android:name="org.ethereumhpone.data.services.MsgSyncService"
+            android:exported="true"
+            android:directBootAware="true">
+            <intent-filter>
+                <action android:name="org.ethereumhpone.messenger.action.BIND_MSG_SYNC_SERVICE" />
+            </intent-filter>
+        </service>
 
         <service android:name="com.android.mms.transaction.TransactionService" />
         <service

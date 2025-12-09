@@ -34,6 +34,7 @@ import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.os.Build
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -78,7 +79,15 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLogTimeHandler(@ApplicationContext context: Context) = LogTimeHandler(context.getSharedPreferences("app", Context.MODE_PRIVATE))
+    fun provideLogTimeHandler(@ApplicationContext context: Context): LogTimeHandler {
+        // Use device-protected storage to ensure availability before user unlock
+        val dpContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            context.createDeviceProtectedStorageContext()
+        } else {
+            context
+        }
+        return LogTimeHandler(dpContext.getSharedPreferences("app", Context.MODE_PRIVATE))
+    }
 
     @Provides
     @Singleton

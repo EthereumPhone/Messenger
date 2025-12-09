@@ -1,6 +1,5 @@
 package org.ethereumphone.dgenlibrary.components
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -13,8 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,7 +29,7 @@ import com.example.dgenlibrary.ui.theme.neonOpacity
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 
 @Composable
-fun DeleteConfirmationOverlay(
+fun ConfirmationOverlay(
     visible: Boolean = true,
     description: String,
     extraDescription: String? = null,
