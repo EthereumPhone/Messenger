@@ -226,6 +226,13 @@ class MainActivity : ComponentActivity() {
                     inputAddress = data.schemeSpecificPart
                     // Remove any query parameters if present
                     inputAddress = inputAddress?.substringBefore('?')
+
+                    // Quick fix for when intent passes phone numbers instead of eth address/ens
+                    if (inputAddress != null) {
+                        if (!inputAddress.contains(".eth",true) && !inputAddress.contains("0x", true)) {
+                            inputAddress = null
+                        }
+                    }
                 }
                 "ethos-messenger" -> {
                     // Handle deep link from contacts app
