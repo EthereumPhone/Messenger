@@ -9,9 +9,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -31,8 +33,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -89,6 +93,9 @@ import org.ethereumphone.dgenlibrary.components.ActionButton
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import com.example.dgenlibrary.ui.theme.label_fontSize
+import com.example.dgenlibrary.ui.theme.smallDuration
+import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.screens.InfoScreen
 import org.ethereumphone.dgenlibrary.showDgenToast
 
@@ -159,6 +166,9 @@ internal fun ConversationSheet(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
+    var showAddMembers by remember { mutableStateOf(false) }
+    val selectedGroupMembers = remember { mutableStateListOf<String>() }
+
     var multiSelectMode by remember { mutableStateOf(false) }
     val selectedItems = remember { mutableStateListOf<ContactEntity>() }
     
@@ -178,6 +188,11 @@ internal fun ConversationSheet(
     // Intercept back navigation if there's a InputSelector visible
     if (currentInputSelector != InputSelector.NONE) {
         BackHandler(onBack = dismissKeyboard)
+    }
+
+    // Back closes the "add members" pop up
+    if (showAddMembers) {
+        BackHandler { showAddMembers = false }
     }
 
 
@@ -216,6 +231,20 @@ internal fun ConversationSheet(
             .fillMaxSize()
             .background(dgenBlack)
     ) {
+        if (showAddMembers) {
+            AddGroupMembersSheetContent(
+                searchQuery = searchQuery,
+                queryResultUiState = queryResultUiState,
+                onSearchQueryChanged = onSearchQueryChanged,
+                onDismiss = { showAddMembers = false },
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                onSelectionChanged = { selected ->
+                    selectedGroupMembers.clear()
+                    selectedGroupMembers.addAll(selected)
+                },
+            )
+        } else {
         AnimatedContent(
             multiSelectMode,
             transitionSpec = {
@@ -226,7 +255,7 @@ internal fun ConversationSheet(
             if(!open){
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(bottom = 16.dp) // fab size 64.dp
@@ -238,43 +267,46 @@ internal fun ConversationSheet(
                     )
 
 
-                    Row(
-                        Modifier.padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    )
-                    {
+                    Column(
+                        Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
+                    ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .drawBehind {
-                                    drawRoundRect(
-                                        cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
-                                        color = animatedColor,
+                            Modifier.padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        )
+                        {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .drawBehind {
+                                        drawRoundRect(
+                                            cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
+                                            color = animatedColor,
+                                        )
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(org.ethereumphone.dgenlibrary.R.drawable.searchicon),
+                                        contentDescription = "Search",
+                                        tint = primaryColor,
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .pointerInput(Unit) {
+                                                detectTapGestures {
+                                                    isSearchFocused = true
+                                                }
+                                            }
                                     )
                                 }
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.size(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(org.ethereumphone.dgenlibrary.R.drawable.searchicon),
-                                    contentDescription = "Search",
-                                    tint = primaryColor,
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .pointerInput(Unit) {
-                                            detectTapGestures {
-                                                isSearchFocused = true
-                                            }
-                                        }
-                                )
-
-                            }
 
 
                                 DgenCursorSearchTextfield(
@@ -361,6 +393,48 @@ internal fun ConversationSheet(
                             }
                         }
 
+                        AnimatedVisibility(
+                            enter = fadeIn(tween(smallDuration)) + expandVertically(tween(smallDuration)),
+                            exit = fadeOut(tween(smallDuration)) + shrinkVertically(tween(smallDuration)),
+                            visible = textState.text.isBlank()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(end = 12.dp, start = 24.dp, top = 24.dp, bottom = 12.dp)
+                                    .clickable { showAddMembers = true },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            )
+                            {
+
+                                Text(
+                                    text = "NEW GROUP",
+                                    style = TextStyle(
+                                        fontFamily = SpaceMono,
+                                        color = primaryColor,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = body1_fontSize,
+                                        lineHeight = body1_fontSize,
+                                        letterSpacing = 0.sp,
+                                        textDecoration = TextDecoration.None
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                IconButton(onClick = { showAddMembers = true }, modifier = Modifier.size(40.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ChevronRight,
+                                        contentDescription = "Create new group",
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+
+
 
 
 
@@ -438,7 +512,7 @@ internal fun ConversationSheet(
                                         item {
                                             Spacer(modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(16.dp))
+                                                .height(4.dp))
                                         }
                                         
                                         items(contactsWithEthAddress) { contact ->
@@ -475,7 +549,7 @@ internal fun ConversationSheet(
                                                             overflow = TextOverflow.Ellipsis,
                                                             style = TextStyle(
                                                                 fontFamily = PitagonsSans,
-                                                                color = primaryColor.copy(pulseOpacity),
+                                                                color = dgenWhite, //primaryColor.copy(pulseOpacity),
                                                                 fontWeight = FontWeight.SemiBold,
                                                                 fontSize = 16.sp,
                                                                 lineHeight = 16.sp,
@@ -524,6 +598,7 @@ internal fun ConversationSheet(
 //                    onContactsSelected = {  } //TODO: add logic back when groups are supported,
 //                )
             }
+        }
         }
     }
 

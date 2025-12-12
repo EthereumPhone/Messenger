@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.body1_fontSize
 import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.theme.DgenTheme
@@ -41,7 +42,7 @@ fun SecondaryScreenHeader(
         Text(
             text = title,
             style = TextStyle(
-                fontFamily = PitagonsSans,
+                fontFamily = SpaceMono,
                 color = primaryColor,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = body1_fontSize,
