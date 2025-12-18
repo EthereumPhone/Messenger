@@ -31,8 +31,9 @@ fun CheckBox(
     modifier: Modifier = Modifier,
     size: Dp = 24.dp,
     borderWidth: Dp = 2.dp,
-    borderColor: Color = dgenTurqoise,
-    fillColor: Color = dgenTurqoise,
+    primaryColor: Color = dgenTurqoise,
+    borderColor: Color = primaryColor,
+    fillColor: Color = primaryColor,
     checkColor: Color = dgenOcean
 ) {
     Box(

@@ -42,3 +42,13 @@ val migration4To5 = object: Migration(4,5) {
         db.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_hideBefore ON conversation(hideBefore)")
     }
 }
+
+val migration5To6 = object: Migration(5,6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add isGroup flag for group conversations
+        db.execSQL("ALTER TABLE conversation ADD COLUMN isGroup INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_isGroup ON conversation(isGroup)")
+        // Add imageUrl for group conversation images
+        db.execSQL("ALTER TABLE conversation ADD COLUMN imageUrl TEXT DEFAULT NULL")
+    }
+}

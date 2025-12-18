@@ -5,6 +5,8 @@ import kotlinx.datetime.Instant
 data class Conversation(
     val id: String,
     val title: String?,
+    val description: String? = null,
+    val imageUrl: String? = null,
     val recipients: List<Recipient>,
     val draft: String?,
     val lastMessage: Message?,
@@ -21,13 +23,25 @@ data class Conversation(
         // 1. Use explicit conversation title if present.
         title?.takeIf { it.isNotBlank() }?.let { return it }
 
-        // 2. Exclude the current user's inbox from consideration to avoid showing their own address.
+        // 2. For group chats without a title, show member names
+        if (isGroup) {
+            val otherMembers = getOtherRecipients().take(3)
+            val names = otherMembers.mapNotNull { recipient ->
+                recipient.contact?.name?.takeIf { it.isNotBlank() }
+                    ?: recipient.ens?.takeIf { it.isNotBlank() }
+                    ?: recipient.address.take(8) + "..."
+            }
+            val suffix = if (recipients.size > 4) " +${recipients.size - 4}" else ""
+            return names.joinToString(", ") + suffix
+        }
+
+        // 3. Exclude the current user's inbox from consideration to avoid showing their own address.
         val otherRecipient = recipients.firstOrNull { it.id != clientInbox }
 
         otherRecipient?.let { recipient ->
             // 1) Prefer the local contact name (if the user has saved one)
             // 2) Otherwise prefer the resolved ENS name
-            // 3) Finally fall back to displaying the raw address             
+            // 3) Finally fall back to displaying the raw address             
             return recipient.contact?.name?.takeIf { it.isNotBlank() }
                 ?: recipient.ens?.takeIf { it.isNotBlank() }
                 ?: recipient.address
@@ -40,13 +54,14 @@ data class Conversation(
 
     fun getOtherRecipientAddress(): String? = recipients.firstOrNull { it.id != clientInbox }?.address
 
+    fun getMemberCount(): Int = recipients.size
 
     fun getSummary(): String {
         val messageBody = lastMessage?.body.orEmpty()
 
         return when {
             messageBody.isEmpty() -> ""
-            recipients.size == 2 -> messageBody
+            !isGroup && recipients.size == 2 -> messageBody
             lastMessage?.isMe == true -> messageBody
             else -> {
                 val sender = lastMessage?.recipient?.let {

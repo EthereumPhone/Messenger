@@ -246,6 +246,8 @@ class SyncRepositoryImpl @Inject constructor(
                     }
                 }
 
+                val isGroupConversation = conversation.type == Conversation.Type.GROUP
+                
                 val conversationEntity = ConversationEntity(
                     id = id as String,
                     title = title as String?,
@@ -256,7 +258,8 @@ class SyncRepositoryImpl @Inject constructor(
                     blocked = consentState == ConsentState.DENIED,
                     clientInbox = client.inboxId,
                     deleted = existing?.deleted ?: false,
-                    hideBefore = existing?.hideBefore ?: 0L
+                    hideBefore = existing?.hideBefore ?: 0L,
+                    isGroup = isGroupConversation
                 )
 
                 Log.d("INSERT CONVERSATION", id)
@@ -381,6 +384,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 }
                             }
 
+                            val isGroupConversation = conversation.type == Conversation.Type.GROUP
+                            
                             val conversationEntity = ConversationEntity(
                                 id = id as String,
                                 title = title as String?,
@@ -391,7 +396,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 blocked = consentState == ConsentState.DENIED,
                                 clientInbox = client.inboxId,
                                 deleted = existing?.deleted ?: false,
-                                hideBefore = existing?.hideBefore ?: 0L
+                                hideBefore = existing?.hideBefore ?: 0L,
+                                isGroup = isGroupConversation
                             )
                             conversationDao.insertConversation(conversationEntity)
                         }
@@ -664,6 +670,8 @@ class SyncRepositoryImpl @Inject constructor(
                 }
             }
             
+            val isGroupConversation = conversation.type == Conversation.Type.GROUP
+            
             val conversationEntity = ConversationEntity(
                 id = id as String,
                 title = title as String?,
@@ -674,7 +682,8 @@ class SyncRepositoryImpl @Inject constructor(
                 blocked = consentState == ConsentState.DENIED,
                 clientInbox = client.inboxId,
                 deleted = existing?.deleted ?: false,
-                hideBefore = existing?.hideBefore ?: 0L
+                hideBefore = existing?.hideBefore ?: 0L,
+                isGroup = isGroupConversation
             )
             
             conversationDao.insertConversation(conversationEntity)

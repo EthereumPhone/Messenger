@@ -67,7 +67,7 @@ import org.xmtp.android.library.SendOptions
 class ChatViewModel @SuppressLint("StaticFieldLeak")
 @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    conversationRepository: ConversationRepository,
+    private val conversationRepository: ConversationRepository,
     private val contactRepository: ContactRepository,
     private val activeConversationManager: ActiveConversationManager,
     mediaRepository: MediaRepository,
@@ -452,6 +452,77 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         }
          */
 
+    }
+    
+    // Group Management Functions
+    
+    fun updateGroupName(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = conversationRepository.updateGroupName(threadId, name)
+                if (result is org.ethereumhpone.common.util.Result.Error) {
+                    Log.e("ChatViewModel", "Failed to update group name: ${result.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to update group name", e)
+            }
+        }
+    }
+    
+    fun updateGroupDescription(description: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = conversationRepository.updateGroupDescription(threadId, description)
+                if (result is org.ethereumhpone.common.util.Result.Error) {
+                    Log.e("ChatViewModel", "Failed to update group description: ${result.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to update group description", e)
+            }
+        }
+    }
+    
+    fun addGroupMembers(addresses: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = conversationRepository.addGroupMembers(threadId, addresses)
+                if (result is org.ethereumhpone.common.util.Result.Error) {
+                    Log.e("ChatViewModel", "Failed to add group members: ${result.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to add group members", e)
+            }
+        }
+    }
+    
+    fun removeGroupMember(inboxId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = conversationRepository.removeGroupMembers(threadId, listOf(inboxId))
+                if (result is org.ethereumhpone.common.util.Result.Error) {
+                    Log.e("ChatViewModel", "Failed to remove group member: ${result.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to remove group member", e)
+            }
+        }
+    }
+    
+    fun leaveGroup(onComplete: () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = conversationRepository.leaveGroup(threadId)
+                if (result is org.ethereumhpone.common.util.Result.Success) {
+                    withContext(Dispatchers.Main) {
+                        onComplete()
+                    }
+                } else if (result is org.ethereumhpone.common.util.Result.Error) {
+                    Log.e("ChatViewModel", "Failed to leave group: ${result.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to leave group", e)
+            }
+        }
     }
 
 

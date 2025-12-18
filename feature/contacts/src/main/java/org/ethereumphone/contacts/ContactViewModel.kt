@@ -222,6 +222,18 @@ class ContactViewModel @Inject constructor(
 
 
     fun getOrCreateConversation(contacts: List<String>) {
+        getOrCreateConversationWithGroupInfo(contacts, null, null, null)
+    }
+    
+    /**
+     * Creates a conversation - either DM (single contact) or Group (multiple contacts with group info).
+     */
+    fun getOrCreateConversationWithGroupInfo(
+        contacts: List<String>,
+        groupName: String?,
+        groupDescription: String?,
+        groupImageUrl: String?
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val isOnline = networkManager.isOnline.first()
@@ -304,7 +316,10 @@ class ContactViewModel @Inject constructor(
 
                 conversationRepository.createConversation(
                     identifiers,
-                    preResolvedAddresses = if (preResolvedMap.isNotEmpty()) preResolvedMap else null
+                    preResolvedAddresses = if (preResolvedMap.isNotEmpty()) preResolvedMap else null,
+                    groupName = groupName,
+                    groupDescription = groupDescription,
+                    groupImageUrl = groupImageUrl
                 ).collectLatest { result ->
                     when (result) {
                         is Result.Success -> {

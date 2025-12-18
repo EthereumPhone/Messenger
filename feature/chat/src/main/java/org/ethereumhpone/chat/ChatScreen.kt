@@ -91,6 +91,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
+import org.ethereumhpone.chat.components.GroupDetailsSheet
 import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.OverlayMessageItem
@@ -201,7 +202,11 @@ fun ChatRoute(
         primaryColor = primaryColor,
         secondaryColor = secondaryColor,
         openGLColor = openGLColor,
-        clearSelection = chatViewModel::clearSelection
+        clearSelection = chatViewModel::clearSelection,
+        onUpdateGroupName = chatViewModel::updateGroupName,
+        onUpdateGroupDescription = chatViewModel::updateGroupDescription,
+        onRemoveGroupMember = chatViewModel::removeGroupMember,
+        onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) }
     )
 
     // Mark messages as seen when leaving the chat screen
@@ -247,6 +252,10 @@ fun ChatScreen(
     openGLColor: Color,
     secondaryColor: Color,
     clearSelection: () -> Unit,
+    onUpdateGroupName: (String) -> Unit = {},
+    onUpdateGroupDescription: (String) -> Unit = {},
+    onRemoveGroupMember: (String) -> Unit = {},
+    onLeaveGroup: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -269,9 +278,15 @@ fun ChatScreen(
     val showPicker = remember { mutableStateOf(false) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
+    
+    // Group details sheet state
+    var showGroupDetails by remember { mutableStateOf(false) }
 
-    BackHandler(showOverlay.value || showPicker.value || (WindowInsets.isImeVisible && !showBottomSheet) || selectMode) {
+    BackHandler(showOverlay.value || showPicker.value || (WindowInsets.isImeVisible && !showBottomSheet) || selectMode || showGroupDetails) {
         when {
+            showGroupDetails -> {
+                showGroupDetails = false
+            }
             showOverlay.value -> {
                 showOverlay.value = false
                 longPressedMessage.value = null
@@ -376,25 +391,31 @@ fun ChatScreen(
                 ChatTopAppBar(
                     chatConversion?.getHeader() ?: "",
                     recipientUiState = recipientUiState,
+                    isGroup = chatConversion?.isGroup ?: false,
                     onTitleClicked = {
-                        // Copy recipient's address to clipboard when title is clicked
-                        when (recipientUiState) {
-                            is RecipientUiState.Success -> {
-                                val recipients = recipientUiState.recipients
-                                if (recipients.isNotEmpty()) {
-                                    // Get the first recipient's address (for single chats)
-                                    val address = recipients.first().address
-                                    
-                                    // Copy to clipboard
-                                    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = ClipData.newPlainText("Recipient Address", address)
-                                    clipboardManager.setPrimaryClip(clip)
+                        // Show group details if this is a group conversation
+                        if (chatConversion?.isGroup == true) {
+                            showGroupDetails = true
+                        } else {
+                            // Copy recipient's address to clipboard when title is clicked
+                            when (recipientUiState) {
+                                is RecipientUiState.Success -> {
+                                    val recipients = recipientUiState.recipients
+                                    if (recipients.isNotEmpty()) {
+                                        // Get the first recipient's address (for single chats)
+                                        val address = recipients.first().address
+                                        
+                                        // Copy to clipboard
+                                        val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("Recipient Address", address)
+                                        clipboardManager.setPrimaryClip(clip)
+                                    }
                                 }
-                            }
-                            else -> {
-                                // Fallback to previous behavior
-                                focusManager.clearFocus()
-                                keyboardController?.hide()
+                                else -> {
+                                    // Fallback to previous behavior
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                }
                             }
                         }
                     },
@@ -646,6 +667,27 @@ fun ChatScreen(
         )
 
         //Removed the ChatOverlays & ActionOverlayScreen
+        
+        // Group Details Sheet
+        if (showGroupDetails && chatConversion != null) {
+            GroupDetailsSheet(
+                conversation = chatConversion,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                onBackClick = { showGroupDetails = false },
+                onUpdateGroupName = onUpdateGroupName,
+                onUpdateGroupDescription = onUpdateGroupDescription,
+                onAddMembers = {
+                    // TODO: Navigate to add members screen
+                    showGroupDetails = false
+                },
+                onRemoveMember = onRemoveGroupMember,
+                onLeaveGroup = {
+                    onLeaveGroup()
+                    showGroupDetails = false
+                }
+            )
+        }
     }
 
 }

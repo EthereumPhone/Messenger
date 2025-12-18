@@ -20,6 +20,8 @@ data class ConversationEntity(
     val clientInbox: String,
     @ColumnInfo(index = true, defaultValue = "0") val deleted: Boolean = false,
     @ColumnInfo(index = true, defaultValue = "0") val hideBefore: Long = 0L,
+    @ColumnInfo(index = true, defaultValue = "0") val isGroup: Boolean = false,
+    val imageUrl: String? = null,
 )
 
 fun ConversationEntity.toExternalModal(recipientEntities: List<RecipientEntity>) = Conversation(
@@ -31,6 +33,7 @@ fun ConversationEntity.toExternalModal(recipientEntities: List<RecipientEntity>)
     archived = archived,
     blocked = blocked,
     pinned = pinned,
+    isGroup = isGroup,
     clientInbox = ""
 )
 

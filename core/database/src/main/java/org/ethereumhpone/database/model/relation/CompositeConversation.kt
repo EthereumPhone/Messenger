@@ -50,6 +50,8 @@ fun CompositeConversation.toExternalModel(): Conversation {
         archived = conversationEntity.archived,
         blocked = conversationEntity.blocked,
         pinned = conversationEntity.pinned,
+        isGroup = conversationEntity.isGroup,
+        unknown = conversationEntity.unknown,
         clientInbox = conversationEntity.clientInbox
     )
 }

@@ -33,6 +33,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import org.xmtp.android.library.Conversation as XmtpConversation
+import org.xmtp.android.library.Group
 
 class ConversationRepositoryImpl @Inject constructor(
     private val context: Context,
@@ -62,7 +64,10 @@ class ConversationRepositoryImpl @Inject constructor(
 
     override fun createConversation(
         addresses: List<String>,
-        preResolvedAddresses: Map<String, String>?
+        preResolvedAddresses: Map<String, String>?,
+        groupName: String?,
+        groupDescription: String?,
+        groupImageUrl: String?
     ): Flow<Result<Conversation>> = flow {
         // First check if a conversation already exists with the ENS name as title
         if (addresses.size == 1) {
@@ -177,8 +182,98 @@ class ConversationRepositoryImpl @Inject constructor(
                 return@flow
             }
 
+            // Handle GROUP conversation creation when multiple addresses
             if (addresses.size > 1) {
-                showDgenToast(context, "Group conversations not yet supported")
+                try {
+                    // Get inbox IDs by first creating temporary DMs with each identity
+                    // This is needed because newGroup requires inbox IDs
+                    val memberInboxIdList = mutableListOf<String>()
+                    for (identity in identities) {
+                        try {
+                            val dm = client.conversations.findOrCreateDmWithIdentity(identity)
+                            memberInboxIdList.add(dm.peerInboxId)
+                        } catch (e: Exception) {
+                            Log.e("ConversationRepo", "Failed to get inbox ID for ${identity.identifier}", e)
+                        }
+                    }
+                    
+                    if (memberInboxIdList.size != identities.size) {
+                        showDgenToast(context, "Some addresses could not be resolved to inbox IDs")
+                        emit(Result.Error("Could not resolve all addresses to inbox IDs"))
+                        return@flow
+                    }
+                    
+                    // Create group with XMTP using inbox IDs
+                    val group = client.conversations.newGroup(memberInboxIdList)
+                    
+                    // Update group metadata after creation
+                    if (!groupName.isNullOrBlank()) {
+                        try { group.updateName(groupName) } catch (e: Exception) { 
+                            Log.w("ConversationRepo", "Failed to set group name", e) 
+                        }
+                    }
+                    if (!groupDescription.isNullOrBlank()) {
+                        try { group.updateDescription(groupDescription) } catch (e: Exception) { 
+                            Log.w("ConversationRepo", "Failed to set group description", e) 
+                        }
+                    }
+                    if (!groupImageUrl.isNullOrBlank()) {
+                        try { group.updateImageUrl(groupImageUrl) } catch (e: Exception) { 
+                            Log.w("ConversationRepo", "Failed to set group image", e) 
+                        }
+                    }
+                    
+                    Log.d("ConversationRepo", "Created new group: ${group.id}")
+                    
+                    // Get all members including self
+                    val allMembers = group.members()
+                    val memberInboxIds = allMembers.map { it.inboxId }
+                    
+                    // Create recipient entities for all members
+                    val contacts = contactDao.getContacts().first()
+                    val recipientEntities = allMembers.map { member ->
+                        val memberAddress = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                        
+                        val matchedContact = contacts.firstOrNull { contact ->
+                            contact.ethAddress?.equals(memberAddress, ignoreCase = true) == true
+                        }
+                        
+                        RecipientEntity(
+                            inboxId = member.inboxId,
+                            address = memberAddress,
+                            contactLookupKey = matchedContact?.lookupKey
+                        )
+                    }
+                    recipientDao.insertRecipients(recipientEntities)
+                    
+                    // Create conversation entity
+                    val conversationEntity = ConversationEntity(
+                        id = group.id,
+                        title = groupName ?: "Group Chat",
+                        description = groupDescription,
+                        members = memberInboxIds,
+                        createdAt = group.createdAt.time,
+                        clientInbox = client.inboxId,
+                        deleted = false,
+                        hideBefore = 0L,
+                        isGroup = true,
+                        imageUrl = groupImageUrl
+                    )
+                    conversationDao.insertConversation(conversationEntity)
+                    
+                    // Create cross-references
+                    val refs = memberInboxIds.map { inboxId ->
+                        ConversationRecipientCrossRef(group.id, inboxId)
+                    }
+                    conversationDao.insertConversationMemberCrossRefs(refs)
+                    
+                    showDgenToast(context, "Group created successfully")
+                    emit(Result.Success(conversationDao.getConversation(group.id).first()!!.toExternalModel()))
+                } catch (e: Exception) {
+                    Log.e("ConversationRepo", "Failed to create group", e)
+                    showDgenToast(context, "Failed to create group: ${e.message}")
+                    emit(Result.Error(e.message ?: "Could not create group conversation"))
+                }
                 return@flow
             }
 
@@ -203,7 +298,8 @@ class ConversationRepositoryImpl @Inject constructor(
                     createdAt = dm.createdAt.time,
                     clientInbox = client.inboxId,
                     deleted = false,
-                    hideBefore = existing?.hideBefore ?: 0L
+                    hideBefore = existing?.hideBefore ?: 0L,
+                    isGroup = false
                 )
 
                 // Attempt to link the new recipient to an existing contact 
@@ -252,8 +348,63 @@ class ConversationRepositoryImpl @Inject constructor(
             return@flow
         }
 
+        // Handle GROUP conversation with existing recipients
         if (inboxIds.size > 1) {
-            emit(Result.Error("Group conversations are not yet supported"))
+            try {
+                // Create group with XMTP using existing inbox IDs (simple version)
+                val group = client.conversations.newGroup(inboxIds)
+                
+                // Update group metadata after creation
+                if (!groupName.isNullOrBlank()) {
+                    try { group.updateName(groupName) } catch (e: Exception) { 
+                        Log.w("ConversationRepo", "Failed to set group name", e) 
+                    }
+                }
+                if (!groupDescription.isNullOrBlank()) {
+                    try { group.updateDescription(groupDescription) } catch (e: Exception) { 
+                        Log.w("ConversationRepo", "Failed to set group description", e) 
+                    }
+                }
+                if (!groupImageUrl.isNullOrBlank()) {
+                    try { group.updateImageUrl(groupImageUrl) } catch (e: Exception) { 
+                        Log.w("ConversationRepo", "Failed to set group image", e) 
+                    }
+                }
+                
+                Log.d("ConversationRepo", "Created new group with existing recipients: ${group.id}")
+                
+                // Get all members including self
+                val allMembers = group.members()
+                val memberInboxIds = allMembers.map { it.inboxId }
+                
+                // Create conversation entity
+                val conversationEntity = ConversationEntity(
+                    id = group.id,
+                    title = groupName ?: "Group Chat",
+                    description = groupDescription,
+                    members = memberInboxIds,
+                    createdAt = group.createdAt.time,
+                    clientInbox = client.inboxId,
+                    deleted = false,
+                    hideBefore = 0L,
+                    isGroup = true,
+                    imageUrl = groupImageUrl
+                )
+                conversationDao.insertConversation(conversationEntity)
+                
+                // Create cross-references
+                val refs = memberInboxIds.map { inboxId ->
+                    ConversationRecipientCrossRef(group.id, inboxId)
+                }
+                conversationDao.insertConversationMemberCrossRefs(refs)
+                
+                showDgenToast(context, "Group created successfully")
+                emit(Result.Success(conversationDao.getConversation(group.id).first()!!.toExternalModel()))
+            } catch (e: Exception) {
+                Log.e("ConversationRepo", "Failed to create group", e)
+                showDgenToast(context, "Failed to create group: ${e.message}")
+                emit(Result.Error(e.message ?: "Could not create group conversation"))
+            }
             return@flow
         }
 
@@ -281,7 +432,8 @@ class ConversationRepositoryImpl @Inject constructor(
                 createdAt = dm.createdAt.time,
                 clientInbox = client.inboxId,
                 deleted = false,
-                hideBefore = existing?.hideBefore ?: 0L
+                hideBefore = existing?.hideBefore ?: 0L,
+                isGroup = false
             )
             conversationDao.insertConversation(newConversation)
             emitAll(conversationDao.getConversation(dm.id).map { Result.Success(it!!.toExternalModel()) })
@@ -311,6 +463,254 @@ class ConversationRepositoryImpl @Inject constructor(
     override suspend fun deleteConversation(id: String) {
         val cutoff = System.currentTimeMillis()
         conversationDao.softDeleteConversation(id, cutoff)
+    }
+    
+    override suspend fun updateGroupName(conversationId: String, name: String): Result<Unit> {
+        return try {
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            val client = xmtpClientManager.client
+            
+            val conversation = client.conversations.findConversation(conversationId)
+            if (conversation == null) {
+                return Result.Error("Conversation not found")
+            }
+            
+            if (conversation.type != XmtpConversation.Type.GROUP) {
+                return Result.Error("Not a group conversation")
+            }
+            
+            val group = (conversation as XmtpConversation.Group).group
+            group.updateName(name)
+            
+            // Update local database
+            val existing = conversationDao.getConversationEntityById(conversationId)
+            if (existing != null) {
+                conversationDao.insertConversation(existing.copy(title = name))
+            }
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to update group name", e)
+            Result.Error(e.message ?: "Failed to update group name")
+        }
+    }
+    
+    override suspend fun updateGroupDescription(conversationId: String, description: String): Result<Unit> {
+        return try {
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            val client = xmtpClientManager.client
+            
+            val conversation = client.conversations.findConversation(conversationId)
+            if (conversation == null) {
+                return Result.Error("Conversation not found")
+            }
+            
+            if (conversation.type != XmtpConversation.Type.GROUP) {
+                return Result.Error("Not a group conversation")
+            }
+            
+            val group = (conversation as XmtpConversation.Group).group
+            group.updateDescription(description)
+            
+            // Update local database
+            val existing = conversationDao.getConversationEntityById(conversationId)
+            if (existing != null) {
+                conversationDao.insertConversation(existing.copy(description = description))
+            }
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to update group description", e)
+            Result.Error(e.message ?: "Failed to update group description")
+        }
+    }
+    
+    override suspend fun updateGroupImageUrl(conversationId: String, imageUrl: String): Result<Unit> {
+        return try {
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            val client = xmtpClientManager.client
+            
+            val conversation = client.conversations.findConversation(conversationId)
+            if (conversation == null) {
+                return Result.Error("Conversation not found")
+            }
+            
+            if (conversation.type != XmtpConversation.Type.GROUP) {
+                return Result.Error("Not a group conversation")
+            }
+            
+            val group = (conversation as XmtpConversation.Group).group
+            group.updateImageUrl(imageUrl)
+            
+            // Update local database
+            val existing = conversationDao.getConversationEntityById(conversationId)
+            if (existing != null) {
+                conversationDao.insertConversation(existing.copy(imageUrl = imageUrl))
+            }
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to update group image", e)
+            Result.Error(e.message ?: "Failed to update group image")
+        }
+    }
+    
+    override suspend fun addGroupMembers(conversationId: String, addresses: List<String>): Result<Unit> {
+        return try {
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            val client = xmtpClientManager.client
+            
+            val conversation = client.conversations.findConversation(conversationId)
+            if (conversation == null) {
+                return Result.Error("Conversation not found")
+            }
+            
+            if (conversation.type != XmtpConversation.Type.GROUP) {
+                return Result.Error("Not a group conversation")
+            }
+            
+            val group = (conversation as XmtpConversation.Group).group
+            
+            // Resolve addresses and create identities
+            val identities = addresses.map { address ->
+                val resolvedAddress = when {
+                    address.isValidEns() && !address.isValidBaseEns() -> {
+                        ensResolver.getAddress(ENSName(address))?.toString() ?: address
+                    }
+                    address.isValidBaseEns() -> {
+                        val result = baseNameResolver.resolve(address)
+                        if (result.error == null) result.address!! else address
+                    }
+                    else -> address
+                }
+                PublicIdentity(kind = IdentityKind.ETHEREUM, identifier = resolvedAddress)
+            }
+            
+            // Check if all addresses can be messaged
+            val canMessageMap = client.canMessage(identities)
+            val notAllowed = canMessageMap.filterValues { !it }
+            if (notAllowed.isNotEmpty()) {
+                showDgenToast(context, "Some addresses are not registered with XMTP")
+                return Result.Error("NOT_REGISTERED_WITH_XMTP")
+            }
+            
+            // Add members to the group
+            group.addMembersByIdentity(identities)
+            
+            // Sync and update local database
+            group.sync()
+            
+            val allMembers = group.members()
+            val memberInboxIds = allMembers.map { it.inboxId }
+            
+            // Create recipient entities for new members
+            val contacts = contactDao.getContacts().first()
+            val recipientEntities = allMembers.map { member ->
+                val memberAddress = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                
+                val matchedContact = contacts.firstOrNull { contact ->
+                    contact.ethAddress?.equals(memberAddress, ignoreCase = true) == true
+                }
+                
+                RecipientEntity(
+                    inboxId = member.inboxId,
+                    address = memberAddress,
+                    contactLookupKey = matchedContact?.lookupKey
+                )
+            }
+            recipientDao.insertRecipients(recipientEntities)
+            
+            // Update conversation members
+            val existing = conversationDao.getConversationEntityById(conversationId)
+            if (existing != null) {
+                conversationDao.insertConversation(existing.copy(members = memberInboxIds))
+            }
+            
+            // Create cross-references for new members
+            val refs = memberInboxIds.map { inboxId ->
+                ConversationRecipientCrossRef(conversationId, inboxId)
+            }
+            conversationDao.insertConversationMemberCrossRefs(refs)
+            
+            showDgenToast(context, "Members added successfully")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to add group members", e)
+            showDgenToast(context, "Failed to add members: ${e.message}")
+            Result.Error(e.message ?: "Failed to add group members")
+        }
+    }
+    
+    override suspend fun removeGroupMembers(conversationId: String, inboxIds: List<String>): Result<Unit> {
+        return try {
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            val client = xmtpClientManager.client
+            
+            val conversation = client.conversations.findConversation(conversationId)
+            if (conversation == null) {
+                return Result.Error("Conversation not found")
+            }
+            
+            if (conversation.type != XmtpConversation.Type.GROUP) {
+                return Result.Error("Not a group conversation")
+            }
+            
+            val group = (conversation as XmtpConversation.Group).group
+            
+            // Remove members from the group
+            group.removeMembers(inboxIds)
+            
+            // Sync and update local database
+            group.sync()
+            
+            val allMembers = group.members()
+            val memberInboxIds = allMembers.map { it.inboxId }
+            
+            // Update conversation members
+            val existing = conversationDao.getConversationEntityById(conversationId)
+            if (existing != null) {
+                conversationDao.insertConversation(existing.copy(members = memberInboxIds))
+            }
+            
+            showDgenToast(context, "Members removed successfully")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to remove group members", e)
+            showDgenToast(context, "Failed to remove members: ${e.message}")
+            Result.Error(e.message ?: "Failed to remove group members")
+        }
+    }
+    
+    override suspend fun leaveGroup(conversationId: String): Result<Unit> {
+        return try {
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            val client = xmtpClientManager.client
+            
+            val conversation = client.conversations.findConversation(conversationId)
+            if (conversation == null) {
+                return Result.Error("Conversation not found")
+            }
+            
+            if (conversation.type != XmtpConversation.Type.GROUP) {
+                return Result.Error("Not a group conversation")
+            }
+            
+            val group = (conversation as XmtpConversation.Group).group
+            
+            // Remove self from the group
+            group.removeMembers(listOf(client.inboxId))
+            
+            // Mark the conversation as deleted locally
+            val cutoff = System.currentTimeMillis()
+            conversationDao.softDeleteConversation(conversationId, cutoff)
+            
+            showDgenToast(context, "Left the group")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to leave group", e)
+            showDgenToast(context, "Failed to leave group: ${e.message}")
+            Result.Error(e.message ?: "Failed to leave group")
+        }
     }
 }
 

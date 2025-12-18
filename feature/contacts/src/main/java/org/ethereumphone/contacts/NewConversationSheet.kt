@@ -52,6 +52,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -108,6 +109,7 @@ fun NewConversationSheet(
         searchQuery = searchQuery,
         queryResultUiState = queryResultUiState,
         onContactsSelected = viewModel::getOrCreateConversation,
+        onGroupCreated = viewModel::getOrCreateConversationWithGroupInfo,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
         onDismiss = onDismiss,
         primaryColor = primaryColor,
@@ -146,6 +148,7 @@ internal fun ConversationSheet(
     searchQuery: String,
     queryResultUiState: QueryResultUiState,
     onContactsSelected: (List<String>) -> Unit,
+    onGroupCreated: (List<String>, String?, String?, String?) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onDismiss: () -> Unit,
     primaryColor: Color,
@@ -161,6 +164,9 @@ internal fun ConversationSheet(
 
     var multiSelectMode by remember { mutableStateOf(false) }
     val selectedItems = remember { mutableStateListOf<ContactEntity>() }
+    
+    // Group creation state
+    var showGroupCreation by remember { mutableStateOf(false) }
     
     // Local TextFieldValue state that syncs with searchQuery
     var textState by remember { mutableStateOf(TextFieldValue(searchQuery)) }
@@ -178,6 +184,18 @@ internal fun ConversationSheet(
     // Intercept back navigation if there's a InputSelector visible
     if (currentInputSelector != InputSelector.NONE) {
         BackHandler(onBack = dismissKeyboard)
+    }
+    
+    // Handle back press in multi-select or group creation mode
+    if (multiSelectMode || showGroupCreation) {
+        BackHandler {
+            if (showGroupCreation) {
+                showGroupCreation = false
+            } else if (multiSelectMode) {
+                multiSelectMode = false
+                selectedItems.clear()
+            }
+        }
     }
 
 
@@ -217,13 +235,21 @@ internal fun ConversationSheet(
             .background(dgenBlack)
     ) {
         AnimatedContent(
-            multiSelectMode,
+            targetState = when {
+                showGroupCreation -> 2
+                multiSelectMode -> 1
+                else -> 0
+            },
             transitionSpec = {
                 fadeIn(animationSpec = tween(150, 150)) togetherWith
                         fadeOut(animationSpec = tween(150))
             }
-        ) { open ->
-            if(!open){
+        ) { state ->
+            when (state) {
+                0 -> {
+                // Normal conversation selection
+                // Wrap in Box to add touch-blocking overlay when in multi-select mode
+                Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -236,6 +262,35 @@ internal fun ConversationSheet(
                         primaryColor = primaryColor,
                         onDismiss = onDismiss,
                     )
+                    
+                    // Add "Create Group" button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .clickable(enabled = !multiSelectMode && !showGroupCreation) { multiSelectMode = true },
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Create Group",
+                            tint = primaryColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "CREATE GROUP".uppercase(),
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 18.sp,
+                                lineHeight = 18.sp,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None
+                            )
+                        )
+                    }
 
 
                     Row(
@@ -390,7 +445,7 @@ internal fun ConversationSheet(
                                                 Row(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .clickable {
+                                                        .clickable(enabled = !multiSelectMode && !showGroupCreation) {
                                                             showDgenToast(context, "Write to ${it.lookupKey}")
                                                             onContactsSelected(listOf(it.lookupKey))
                                                         }
@@ -442,9 +497,9 @@ internal fun ConversationSheet(
                                         }
                                         
                                         items(contactsWithEthAddress) { contact ->
-                                            // add onCLick behaviour
+                                            // add onCLick behaviour - disabled when in multi-select mode to prevent accidental navigation
                                             Column(
-                                                modifier = Modifier.clickable {
+                                                modifier = Modifier.clickable(enabled = !multiSelectMode && !showGroupCreation) {
                                                     contact.ethAddress?.let {
                                                         onContactsSelected(listOf(it))
                                                     }
@@ -514,22 +569,68 @@ internal fun ConversationSheet(
 
                     }
                 }
-            }
-            else {
-                //TODO: Add group selection feature
-//                SelectMembersSheet(
-//                    queryResultUiState = queryResultUiState,
-//                    onSearchQueryChanged = onSearchQueryChanged,
-//                    onBackClick = { multiSelectMode = false },
-//                    onContactsSelected = {  } //TODO: add logic back when groups are supported,
-//                )
+                
+                // CRITICAL: Touch-blocking overlay when in multi-select mode
+                // This ABSOLUTELY prevents any clicks from reaching the underlying content
+                // during AnimatedContent transitions where both states are visible
+                if (multiSelectMode || showGroupCreation) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        // Consume all pointer events to block them
+                                        event.changes.forEach { it.consume() }
+                                    }
+                                }
+                            }
+                    )
+                }
+                } // Close the outer Box for state 0
+                }
+                1 -> {
+                    // Multi-select mode for group creation
+                    SelectMembersSheet(
+                        queryResultUiState = queryResultUiState,
+                        onSearchQueryChanged = onSearchQueryChanged,
+                        onBackClick = { 
+                            multiSelectMode = false 
+                            selectedItems.clear()
+                        },
+                        onContactsSelected = { selectedContacts ->
+                            selectedItems.clear()
+                            selectedItems.addAll(selectedContacts)
+                            showGroupCreation = true
+                        },
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor
+                    )
+                }
+                2 -> {
+                    // Group creation screen
+                    CreateGroupSheet(
+                        members = selectedItems,
+                        onBackClick = { showGroupCreation = false },
+                        onCreateGroup = { members, groupName ->
+                            // Get eth addresses from the selected contacts
+                            val addresses = members.mapNotNull { it.ethAddress }
+                            if (addresses.isNotEmpty()) {
+                                onGroupCreated(addresses, groupName, null, null)
+                            }
+                        },
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor
+                    )
+                }
             }
         }
     }
 
     // clear list if user quits multiselect
     LaunchedEffect(multiSelectMode) {
-        if(!multiSelectMode) {
+        if(!multiSelectMode && !showGroupCreation) {
             selectedItems.clear()
         }
     }
@@ -550,13 +651,14 @@ fun previewContactSheet() {
     val queryResultUiState = QueryResultUiState.Success(ContactEntity(name = "Nicola"), contactEntities)
 
     ConversationSheet(
-        "",
-        queryResultUiState,
-        {},
-        {},
-        {},
-        Color.Red,
-        Color.Red
+        searchQuery = "",
+        queryResultUiState = queryResultUiState,
+        onContactsSelected = {},
+        onGroupCreated = { _, _, _, _ -> },
+        onSearchQueryChanged = {},
+        onDismiss = {},
+        primaryColor = Color.Red,
+        secondaryColor = Color.Red
     )
 }
 
@@ -570,13 +672,14 @@ fun previewNoContactsContactSheet() {
     val queryResultUiState = QueryResultUiState.Success(ContactEntity(name = "Nicola"), contactEntities)
 
     ConversationSheet(
-        "",
-        queryResultUiState,
-        {},
-        {},
-        {},
-        Color.Red,
-        Color.Red
+        searchQuery = "",
+        queryResultUiState = queryResultUiState,
+        onContactsSelected = {},
+        onGroupCreated = { _, _, _, _ -> },
+        onSearchQueryChanged = {},
+        onDismiss = {},
+        primaryColor = Color.Red,
+        secondaryColor = Color.Red
     )
 }
 
@@ -606,8 +709,10 @@ fun previewGroup() {
     val queryResultUiState = QueryResultUiState.Success(ContactEntity(name = "Nicola"), contactEntities)
 
     CreateGroupSheet(
-        contactEntities,
-        {},
-        {},
+        members = contactEntities,
+        onBackClick = {},
+        onCreateGroup = { _, _ -> },
+        primaryColor = Color.Red,
+        secondaryColor = Color.Red
     )
 }

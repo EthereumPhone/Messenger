@@ -17,10 +17,48 @@ interface ConversationRepository {
      */
     fun getUnreadConversationsForNotifications(): Flow<List<Conversation>>
     
+    /**
+     * Creates a new conversation - either DM (single address) or Group (multiple addresses).
+     * For groups, an optional groupName can be provided.
+     */
     fun createConversation(
         addresses: List<String>,
-        preResolvedAddresses: Map<String, String>? = null
+        preResolvedAddresses: Map<String, String>? = null,
+        groupName: String? = null,
+        groupDescription: String? = null,
+        groupImageUrl: String? = null
     ): Flow<Result<Conversation>>
+    
+    /**
+     * Updates the name of a group conversation.
+     */
+    suspend fun updateGroupName(conversationId: String, name: String): Result<Unit>
+    
+    /**
+     * Updates the description of a group conversation.
+     */
+    suspend fun updateGroupDescription(conversationId: String, description: String): Result<Unit>
+    
+    /**
+     * Updates the image URL of a group conversation.
+     */
+    suspend fun updateGroupImageUrl(conversationId: String, imageUrl: String): Result<Unit>
+    
+    /**
+     * Adds members to a group conversation.
+     */
+    suspend fun addGroupMembers(conversationId: String, addresses: List<String>): Result<Unit>
+    
+    /**
+     * Removes members from a group conversation.
+     */
+    suspend fun removeGroupMembers(conversationId: String, inboxIds: List<String>): Result<Unit>
+    
+    /**
+     * Leaves a group conversation.
+     */
+    suspend fun leaveGroup(conversationId: String): Result<Unit>
+    
     suspend fun updatePinnedConversation(id: String, pinned: Boolean)
     suspend fun updateArchivedConversation(id: String, archived: Boolean)
     suspend fun updateBlockedConversation(id: String, blocked: Boolean)
