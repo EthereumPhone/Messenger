@@ -93,6 +93,15 @@
 
 
 
+        <!-- Receiver for OS text field focus requests (F2 long-press voice input) -->
+        <receiver
+            android:name=".receivers.FocusTextFieldReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.ethos.action.FOCUS_TEXT_FIELD" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

@@ -65,6 +65,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -116,6 +117,7 @@ import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
 import org.ethereumphone.dgenlibrary.showDgenToast
 // removed SharedMessageItem; using measured overlay clone
 // removed unused: LocalDensity/width/height
+import org.ethereumhpone.common.util.TextFieldFocusManager
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
@@ -263,6 +265,24 @@ fun ChatScreen(
     //handle focus
     val showBottomSheet by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    
+    // FocusRequester for the message input text field (used for F2 voice input focus)
+    val messageTextFieldFocusRequester = remember { FocusRequester() }
+    
+    // Register/unregister focus callback for OS text field focus requests (F2 long-press)
+    DisposableEffect(Unit) {
+        TextFieldFocusManager.registerFocusCallback {
+            try {
+                messageTextFieldFocusRequester.requestFocus()
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+        onDispose {
+            TextFieldFocusManager.unregisterFocusCallback()
+        }
+    }
 
     //gets offset of message composable
     val composablePositionState = remember { mutableStateOf(ComposablePosition()) }
@@ -468,7 +488,8 @@ fun ChatScreen(
                         focusManager.clearFocus()
                         keyboardController?.hide()
                     },
-                    primaryColor = primaryColor
+                    primaryColor = primaryColor,
+                    textFieldFocusRequester = messageTextFieldFocusRequester
                 )
             },
             containerColor = Color.Transparent,
