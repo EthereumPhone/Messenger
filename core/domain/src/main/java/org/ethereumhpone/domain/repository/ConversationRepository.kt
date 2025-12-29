@@ -13,6 +13,12 @@ interface ConversationRepository {
         addresses: List<String>,
         preResolvedAddresses: Map<String, String>? = null
     ): Flow<Result<Conversation>>
+    fun createGroupConversation(
+        addresses: List<String>,
+        groupName: String,
+        groupImageUrl: String? = null,
+        groupDescription: String? = null
+    ): Flow<Result<Conversation>>
     suspend fun updatePinnedConversation(id: String, pinned: Boolean)
     suspend fun updateArchivedConversation(id: String, archived: Boolean)
     suspend fun updateBlockedConversation(id: String, blocked: Boolean)

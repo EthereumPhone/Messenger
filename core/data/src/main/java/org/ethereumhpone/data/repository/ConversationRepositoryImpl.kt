@@ -308,6 +308,186 @@ class ConversationRepositoryImpl @Inject constructor(
         val cutoff = System.currentTimeMillis()
         conversationDao.softDeleteConversation(id, cutoff)
     }
+
+    override fun createGroupConversation(
+        addresses: List<String>,
+        groupName: String,
+        groupImageUrl: String?,
+        groupDescription: String?
+    ): Flow<Result<Conversation>> = flow {
+        if (addresses.isEmpty()) {
+            emit(Result.Error("At least one member is required to create a group"))
+            return@flow
+        }
+
+        if (groupName.isBlank()) {
+            emit(Result.Error("Group name is required"))
+            return@flow
+        }
+
+        // Wait until XMTP client is ready
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+        val client = xmtpClientManager.client
+
+        // Normalize and resolve addresses
+        val normalizedAddresses = addresses.map { it.normalizedString() }
+
+        // Resolve ENS names to Ethereum addresses in parallel
+        val resolvedAddresses = withContext(Dispatchers.IO) {
+            coroutineScope {
+                normalizedAddresses.mapIndexed { index, address ->
+                    async {
+                        when {
+                            address.isValidEthAddress() -> address
+                            address.isValidEns() && !address.isValidBaseEns() -> {
+                                try {
+                                    val resolvedAddress = ensResolver.getAddress(ENSName(address))
+                                    if (resolvedAddress != null) {
+                                        resolvedAddress.toString()
+                                    } else {
+                                        showDgenToast(context, "Could not resolve ENS name: ${addresses[index]}")
+                                        null
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("ConversationRepo", "ENS resolution failed for ${addresses[index]}", e)
+                                    showDgenToast(context, "Could not resolve ENS name: ${addresses[index]}")
+                                    null
+                                }
+                            }
+                            address.isValidBaseEns() -> {
+                                try {
+                                    val resolveAddress = baseNameResolver.resolve(address)
+                                    if (resolveAddress.error == null) {
+                                        resolveAddress.address!!
+                                    } else {
+                                        showDgenToast(context, "Could not resolve Base name: ${addresses[index]}")
+                                        null
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("ConversationRepo", "Base Name resolution failed for ${addresses[index]}", e)
+                                    showDgenToast(context, "Could not resolve Base Name: ${addresses[index]}")
+                                    null
+                                }
+                            }
+                            else -> {
+                                showDgenToast(context, "Invalid address format: ${addresses[index]}")
+                                null
+                            }
+                        }
+                    }
+                }.map { it.await() }
+            }
+        }
+
+        // Check if any resolution failed
+        if (resolvedAddresses.contains(null)) {
+            emit(Result.Error("Could not resolve all addresses"))
+            return@flow
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        val validResolvedAddresses = resolvedAddresses as List<String>
+
+        // Create PublicIdentities for canMessage check
+        val identities = validResolvedAddresses.map {
+            PublicIdentity(kind = IdentityKind.ETHEREUM, identifier = it)
+        }
+
+        // Verify all members can receive messages
+        val consentMap = client.canMessage(identities)
+        val notAllowed = consentMap.filterValues { !it }
+
+        if (notAllowed.isNotEmpty()) {
+            val addressText = if (notAllowed.keys.size == 1) "Address" else "Addresses"
+            showDgenToast(context, "$addressText not registered with XMTP")
+            emit(Result.Error("NOT_REGISTERED_WITH_XMTP"))
+            return@flow
+        }
+
+        try {
+            // Get inbox IDs for all members
+            val inboxIds = identities.mapNotNull { identity ->
+                try {
+                    client.inboxIdFromIdentifier(identity)
+                } catch (e: Exception) {
+                    Log.e("ConversationRepo", "Failed to get inbox ID for ${identity.identifier}", e)
+                    null
+                }
+            }
+
+            if (inboxIds.size != identities.size) {
+                emit(Result.Error("Could not find inbox IDs for all members"))
+                return@flow
+            }
+
+            // Create the group using XMTP
+            val group = client.conversations.newGroup(
+                inboxIds = inboxIds,
+                name = groupName,
+                imageUrl = groupImageUrl ?: "",
+                description = groupDescription ?: ""
+            )
+
+            Log.d("ConversationRepo", "Created group with ID: ${group.id}")
+
+            // Create conversation entity
+            val conversationEntity = ConversationEntity(
+                id = group.id,
+                title = groupName,
+                members = group.members().map { it.inboxId },
+                createdAt = group.createdAt.time,
+                clientInbox = client.inboxId,
+                deleted = false,
+                hideBefore = 0L
+            )
+
+            // Create recipient entities for all members
+            val recipientEntities = group.members().mapNotNull { member ->
+                val address = identities.find { identity ->
+                    try {
+                        client.inboxIdFromIdentifier(identity) == member.inboxId
+                    } catch (e: Exception) {
+                        false
+                    }
+                }?.identifier
+
+                val contactLookupKey = if (address != null) {
+                    contactDao.getContacts().first()
+                        .firstOrNull { contact ->
+                            contact.ethAddress?.equals(address, ignoreCase = true) == true
+                        }?.lookupKey
+                } else null
+
+                RecipientEntity(
+                    inboxId = member.inboxId,
+                    address = address ?: "",
+                    contactLookupKey = contactLookupKey
+                )
+            }
+
+            // Insert into database
+            recipientDao.insertRecipients(recipientEntities)
+            conversationDao.insertConversation(conversationEntity)
+            
+            // Create cross-references for all members
+            val crossRefs = group.members().map { member ->
+                ConversationRecipientCrossRef(group.id, member.inboxId)
+            }
+            conversationDao.insertConversationMemberCrossRefs(crossRefs)
+
+            // Return the created conversation
+            val createdConversation = conversationDao.getConversation(group.id).first()
+            if (createdConversation != null) {
+                emit(Result.Success(createdConversation.toExternalModel()))
+            } else {
+                emit(Result.Error("Failed to retrieve created group"))
+            }
+
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to create group", e)
+            emit(Result.Error(e.message ?: "Failed to create group conversation"))
+        }
+    }
 }
 
 // Extension functions for ENS validation and string normalization

@@ -271,7 +271,7 @@ internal fun AddGroupMembersSheetContent(
                 }
             }
             
-            Spacer(Modifier.fillMaxWidth().height(24.dp))
+            Spacer(Modifier.fillMaxWidth().height(16.dp))
             Text(
                 text = buildAnnotatedString {
                     append("MEMBERS ")
@@ -298,8 +298,9 @@ internal fun AddGroupMembersSheetContent(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                    .padding(vertical = 8.dp,horizontal = 24.dp)
             )
+
 
             Box(Modifier.fillMaxSize()) {
                 LazyColumn(
