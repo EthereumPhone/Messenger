@@ -44,7 +44,9 @@ import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumhpone.database.model.ContactEntity
-import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
+import org.ethereumphone.dgenlibrary.components.SimpleDgenTextfield
+import androidx.compose.ui.platform.LocalView
+import com.example.dgenlibrary.ui.theme.body2_fontSize
 import org.ethereumphone.contacts.BuildConfig
 
 @Composable
@@ -60,6 +62,7 @@ fun EditGroupInfoSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val view = LocalView.current
     
     // Group name state
     var groupNameState by rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -134,36 +137,55 @@ fun EditGroupInfoSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .padding(horizontal = 12.dp, vertical = 16.dp)
                 ) {
-                    DgenCursorSearchTextfield(
+                    SimpleDgenTextfield(
+                        modifier = Modifier.fillMaxWidth(),
                         value = groupNameState,
                         onValueChange = { newValue ->
                             groupNameState = newValue
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardtype = KeyboardType.Text,
                         textfieldFocusManager = focusManager,
-                        singleLine = true,
-                        cursorColor = primaryColor,
-                        placeholder = {
-                            Text(
-                                text = "GROUP NAME".uppercase(),
-                                style = TextStyle(
-                                    fontFamily = SpaceMono,
-                                    color = primaryColor.copy(0.45f),
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = label_fontSize
-                                )
-                            )
-                        },
+                        keyboardtype = KeyboardType.Text,
                         textStyle = TextStyle(
                             fontFamily = PitagonsSans,
                             color = dgenWhite,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp
+                            fontSize = body2_fontSize
+                        ),
+                        activeColor = primaryColor,
+                        cursorColor = primaryColor,
+                        cursorWidth = 16.dp,
+                        cursorHeight = 32.dp,
+                        singleLine = true,
+                        maxLines = 1,
+                        onEditDone = {},
+                        placeholder = if (groupNameState.text.isEmpty()) {
+                            {
+                                Text(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    text = "ENTER",
+                                    style = TextStyle(
+                                        fontFamily = PitagonsSans,
+                                        color = dgenWhite.copy(alpha = 0.45f),
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = body2_fontSize
+                                    )
+                                )
+                            }
+                        } else null,
+                        view = view,
+                    ) {
+                        Text(
+                            text = "GROUP NAME".uppercase(),
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = label_fontSize
+                            )
                         )
-                    )
+                    }
                 }
                 
                 // Members Count Label
