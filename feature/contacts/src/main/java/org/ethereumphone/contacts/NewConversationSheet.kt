@@ -80,10 +80,9 @@ import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import kotlinx.coroutines.flow.collectLatest
 import org.ethereumhpone.chat.components.InputSelector
-import org.ethereumphone.contacts.components.CreateGroupSheet
 import org.ethereumphone.contacts.components.NewConversationHeader
-import org.ethereumphone.contacts.components.SelectMembersSheet
 import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
+import com.messenger.terminalsdk.TerminalSDK
 import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.dgenlibrary.components.ActionButton
@@ -100,7 +99,8 @@ fun NewConversationSheet(
     onConversationCreated: (String) -> Unit,
     primaryColor: Color,
     secondaryColor: Color,
-    viewModel: ContactViewModel = hiltViewModel()
+    viewModel: ContactViewModel = hiltViewModel(),
+    terminalSDK: TerminalSDK? = null
 ) {
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -113,7 +113,8 @@ fun NewConversationSheet(
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
         onDismiss = onDismiss,
         primaryColor = primaryColor,
-        secondaryColor = secondaryColor
+        secondaryColor = secondaryColor,
+        terminalSDK = terminalSDK
     )
 
     val context = LocalContext.current
@@ -153,6 +154,7 @@ internal fun ConversationSheet(
     onDismiss: () -> Unit,
     primaryColor: Color,
     secondaryColor: Color,
+    terminalSDK: TerminalSDK? = null
 ) {
     val context = LocalContext.current
 
@@ -592,7 +594,7 @@ internal fun ConversationSheet(
                 }
                 1 -> {
                     // Multi-select mode for group creation
-                    SelectMembersSheet(
+                    AddGroupMembersSheet(
                         queryResultUiState = queryResultUiState,
                         onSearchQueryChanged = onSearchQueryChanged,
                         onBackClick = { 
@@ -605,12 +607,13 @@ internal fun ConversationSheet(
                             showGroupCreation = true
                         },
                         primaryColor = primaryColor,
-                        secondaryColor = secondaryColor
+                        secondaryColor = secondaryColor,
+                        terminalSDK = terminalSDK
                     )
                 }
                 2 -> {
                     // Group creation screen
-                    CreateGroupSheet(
+                    EditGroupInfoSheet(
                         members = selectedItems,
                         onBackClick = { showGroupCreation = false },
                         onCreateGroup = { members, groupName ->
@@ -621,7 +624,8 @@ internal fun ConversationSheet(
                             }
                         },
                         primaryColor = primaryColor,
-                        secondaryColor = secondaryColor
+                        secondaryColor = secondaryColor,
+                        terminalSDK = terminalSDK
                     )
                 }
             }
@@ -708,7 +712,7 @@ fun previewGroup() {
 
     val queryResultUiState = QueryResultUiState.Success(ContactEntity(name = "Nicola"), contactEntities)
 
-    CreateGroupSheet(
+    EditGroupInfoSheet(
         members = contactEntities,
         onBackClick = {},
         onCreateGroup = { _, _ -> },

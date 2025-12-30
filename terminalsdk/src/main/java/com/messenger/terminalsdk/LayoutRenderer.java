@@ -165,4 +165,69 @@ public class LayoutRenderer {
 
         return accentColor;
     }
+
+    /**
+     * Renders the NEXT button using next_terminal_layout.xml
+     * Used when AddGroupMembersSheet is displayed
+     */
+    public Bitmap renderNext() {
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.next_terminal_layout, null);
+
+        int accentColor = getColorForRender();
+
+        ImageView copyIcon = view.findViewById(R.id.copy_icon);
+        if (copyIcon != null) {
+            copyIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
+        }
+
+        TextView copyLabel = view.findViewById(R.id.copy_label);
+        if (copyLabel != null) {
+            copyLabel.setTextColor(accentColor);
+        }
+
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(428, View.MeasureSpec.EXACTLY);
+        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(142, View.MeasureSpec.EXACTLY);
+        view.measure(widthMeasureSpec, heightMeasureSpec);
+        view.layout(0, 0, 428, 142);
+
+        Bitmap bitmap = Bitmap.createBitmap(428, 142, Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+
+        return bitmap;
+    }
+
+    /**
+     * Renders CREATE GROUP button using next_terminal_layout.xml with modified text
+     * Used when EditGroupInfoSheet is displayed
+     */
+    public Bitmap renderCreateGroup() {
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.next_terminal_layout, null);
+
+        int accentColor = getColorForRender();
+
+        ImageView copyIcon = view.findViewById(R.id.copy_icon);
+        if (copyIcon != null) {
+            copyIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
+        }
+
+        TextView copyLabel = view.findViewById(R.id.copy_label);
+        if (copyLabel != null) {
+            copyLabel.setText("CREATE GROUP");  // Override text from "NEXT" to "CREATE GROUP"
+            copyLabel.setTextColor(accentColor);
+        }
+
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(428, View.MeasureSpec.EXACTLY);
+        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(142, View.MeasureSpec.EXACTLY);
+        view.measure(widthMeasureSpec, heightMeasureSpec);
+        view.layout(0, 0, 428, 142);
+
+        Bitmap bitmap = Bitmap.createBitmap(428, 142, Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+
+        return bitmap;
+    }
 }

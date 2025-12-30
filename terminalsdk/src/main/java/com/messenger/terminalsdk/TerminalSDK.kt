@@ -185,6 +185,71 @@ class TerminalSDK(private val context: Context) {
     }
 
     /**
+     * Displays "NEXT" terminal button using next_terminal_layout.xml
+     * Used when AddGroupMembersSheet is shown
+     */
+    suspend fun displayNext(onNext: () -> Unit) {
+        println("ETHOSDEBUGTERMINAL displayNext")
+        destroyTouchHandler()
+
+        val layoutRenderer = LayoutRenderer(context)
+        val nextBitmap = layoutRenderer.renderNext()
+
+        refresh(nextBitmap, ID_PERSISTENT)
+
+        miniDisplayTouchHandler = MiniDisplayTouchHandler(
+            context,
+            MiniDisplayTouchHandler.OnTouchListener { x, y, action ->
+                if (action != MotionEvent.ACTION_DOWN) {
+                    return@OnTouchListener
+                }
+                try {
+                    onNext()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        )
+    }
+
+    /**
+     * Displays "CREATE GROUP" terminal button using next_terminal_layout.xml with modified text
+     * Used when EditGroupInfoSheet is shown
+     */
+    suspend fun displayCreateGroup(onCreateGroup: () -> Unit) {
+        println("ETHOSDEBUGTERMINAL displayCreateGroup")
+        destroyTouchHandler()
+
+        val layoutRenderer = LayoutRenderer(context)
+        val createGroupBitmap = layoutRenderer.renderCreateGroup()
+
+        refresh(createGroupBitmap, ID_PERSISTENT)
+
+        miniDisplayTouchHandler = MiniDisplayTouchHandler(
+            context,
+            MiniDisplayTouchHandler.OnTouchListener { x, y, action ->
+                if (action != MotionEvent.ACTION_DOWN) {
+                    return@OnTouchListener
+                }
+                try {
+                    onCreateGroup()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        )
+    }
+
+    /**
+     * Removes the terminal button and restores status bar
+     */
+    suspend fun removeTerminalButton() {
+        println("ETHOSDEBUGTERMINAL removeTerminalButton")
+        resume(ID_STATUSBAR)
+        destroyTouchHandler()
+    }
+
+    /**
      * Displays a simple black screen with the supplied [text] rendered in red and centred.
      * Uses the same dimensions as the existing `black_layout.xml` (428 × 142 px).
      *

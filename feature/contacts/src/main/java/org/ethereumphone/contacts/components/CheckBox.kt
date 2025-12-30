@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -62,9 +63,42 @@ fun CheckBox(
     }
 }
 
-/*
-
+/**
+ * Square checkbox with 0dp corner radius as per the new design spec.
+ * Used in AddGroupMembersSheet for member selection.
  */
+@Composable
+fun SquareCheckBox(
+    checked: Boolean,
+    primaryColor: Color,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(0.dp)
+    Box(
+        modifier = modifier
+            .size(24.dp)
+            .border(
+                width = 2.dp,
+                color = primaryColor,
+                shape = shape
+            )
+            .clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.Center
+    ) {
+        if (checked) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .background(
+                        color = primaryColor,
+                        shape = shape
+                    )
+            )
+        }
+    }
+}
+
 @Preview
 @Composable
 fun MyScreenPreview() {
@@ -72,6 +106,19 @@ fun MyScreenPreview() {
 
     CheckBox(
         checked = isChecked,
+        onCheckedChange = { isChecked = it },
+        modifier = Modifier.padding(16.dp)
+    )
+}
+
+@Preview
+@Composable
+fun SquareCheckBoxPreview() {
+    var isChecked by remember { mutableStateOf(false) }
+
+    SquareCheckBox(
+        checked = isChecked,
+        primaryColor = dgenTurqoise,
         onCheckedChange = { isChecked = it },
         modifier = Modifier.padding(16.dp)
     )

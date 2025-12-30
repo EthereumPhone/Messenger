@@ -1,6 +1,5 @@
-package org.ethereumphone.contacts.components
+package org.ethereumphone.contacts
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -53,24 +52,23 @@ import com.example.dgenlibrary.ui.theme.mediumEnterDuration
 import com.example.dgenlibrary.ui.theme.mediumExitDuration
 import com.messenger.terminalsdk.TerminalSDK
 import kotlinx.coroutines.launch
-import org.ethereumphone.contacts.BuildConfig
 import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
-import org.ethereumphone.dgenlibrary.theme.dgenOcean
-import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
-import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.contacts.QueryResultUiState
+import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
+import org.ethereumphone.contacts.components.SquareCheckBox
+import org.ethereumphone.contacts.BuildConfig
 
 @Composable
-fun SelectMembersSheet(
+fun AddGroupMembersSheet(
     queryResultUiState: QueryResultUiState,
     onSearchQueryChanged: (String) -> Unit,
-    onContactsSelected: (List<ContactEntity>) -> Unit,
     onBackClick: () -> Unit,
-    primaryColor: Color = dgenTurqoise,
-    secondaryColor: Color = dgenOcean,
+    onContactsSelected: (List<ContactEntity>) -> Unit,
+    primaryColor: Color,
+    secondaryColor: Color,
     terminalSDK: TerminalSDK? = null
 ) {
     val context = LocalContext.current
@@ -180,11 +178,8 @@ fun SelectMembersSheet(
                     DgenCursorSearchTextfield(
                         value = searchTextState,
                         onValueChange = { newValue ->
-                            // Process the text to remove spaces after periods
-                            val processedText = newValue.text.replace(Regex("\\.\\s+"), ".")
-                            val newProcessedValue = newValue.copy(text = processedText)
-                            searchTextState = newProcessedValue
-                            onSearchQueryChanged(newProcessedValue.text)
+                            searchTextState = newValue
+                            onSearchQueryChanged(newValue.text)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -280,84 +275,6 @@ fun SelectMembersSheet(
                         .padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Show manual entry option when text is entered
-                    if (searchTextState.text.isNotEmpty() && queryResultUiState is QueryResultUiState.Success) {
-                        queryResultUiState.manualContactEntity?.let { manualEntry ->
-                            val isManualSelected = selectedMembers.any { 
-                                it.lookupKey == manualEntry.lookupKey || 
-                                it.ethAddress == manualEntry.ethAddress 
-                            }
-                            
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            if (isManualSelected) {
-                                                selectedMembers.removeAll { 
-                                                    it.lookupKey == manualEntry.lookupKey ||
-                                                    it.ethAddress == manualEntry.ethAddress
-                                                }
-                                            } else {
-                                                selectedMembers.add(manualEntry)
-                                            }
-                                        }
-                                        .padding(vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "Add \"${manualEntry.lookupKey}\"",
-                                            overflow = TextOverflow.Ellipsis,
-                                            style = TextStyle(
-                                                fontFamily = PitagonsSans,
-                                                color = primaryColor,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 22.sp,
-                                                lineHeight = 22.sp,
-                                                letterSpacing = 0.sp,
-                                                textDecoration = TextDecoration.None
-                                            )
-                                        )
-                                        Text(
-                                            text = if (manualEntry.lookupKey.contains(".eth")) "ENS name" else "Ethereum address",
-                                            style = TextStyle(
-                                                fontFamily = PitagonsSans,
-                                                color = dgenWhite,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 16.sp,
-                                                lineHeight = 16.sp,
-                                                letterSpacing = 0.sp,
-                                                textDecoration = TextDecoration.None
-                                            ),
-                                            modifier = Modifier.padding(top = 2.dp)
-                                        )
-                                    }
-                                    
-                                    SquareCheckBox(
-                                        checked = isManualSelected,
-                                        primaryColor = primaryColor,
-                                        onCheckedChange = {
-                                            if (it) {
-                                                selectedMembers.add(manualEntry)
-                                            } else {
-                                                selectedMembers.removeAll { contact ->
-                                                    contact.lookupKey == manualEntry.lookupKey ||
-                                                    contact.ethAddress == manualEntry.ethAddress
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                            
-                            item {
-                                Spacer(Modifier.height(8.dp))
-                            }
-                        }
-                    }
-                    
                     items(contactsWithEthAddress) { contact ->
                         val ethAddr = contact.ethAddress?.trim().orEmpty()
                         val isSelected = selectedMembers.contains(contact)

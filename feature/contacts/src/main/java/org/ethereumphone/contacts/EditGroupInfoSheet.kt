@@ -1,0 +1,354 @@
+package org.ethereumphone.contacts
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.label_fontSize
+import com.messenger.terminalsdk.TerminalSDK
+import kotlinx.coroutines.launch
+import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
+import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
+import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenWhite
+import org.ethereumhpone.database.model.ContactEntity
+import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
+import org.ethereumphone.contacts.BuildConfig
+
+@Composable
+fun EditGroupInfoSheet(
+    members: List<ContactEntity>,
+    onBackClick: () -> Unit,
+    onCreateGroup: (List<ContactEntity>, String) -> Unit,
+    onMemberRemoved: (String) -> Unit = {},
+    primaryColor: Color,
+    secondaryColor: Color,
+    terminalSDK: TerminalSDK? = null
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    
+    // Group name state
+    var groupNameState by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue())
+    }
+    
+    // Loading state to prevent multiple clicks
+    var isCreating by remember { mutableStateOf(false) }
+    
+    // Mutable list of members for removal
+    val currentMembers = remember { mutableStateListOf<ContactEntity>() }
+    LaunchedEffect(members) {
+        currentMembers.clear()
+        currentMembers.addAll(members)
+    }
+    
+    // Terminal button setup - display CREATE GROUP button when sheet appears
+    LaunchedEffect(Unit) {
+        terminalSDK?.displayCreateGroup { 
+            // Trigger group creation
+            if (groupNameState.text.isNotBlank() && currentMembers.isNotEmpty()) {
+                isCreating = true
+                onCreateGroup(currentMembers.toList(), groupNameState.text.trim())
+            }
+        }
+    }
+    
+    // Clean up terminal button on dispose
+    DisposableEffect(Unit) { 
+        onDispose { 
+            scope.launch { terminalSDK?.removeTerminalButton() } 
+        } 
+    }
+    
+    // Show loading screen when creating
+    if (isCreating) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(dgenBlack),
+            contentAlignment = Alignment.Center
+        ) {
+            DgenLoadingMatrix(
+                unactiveLEDColor = secondaryColor,
+                activeLEDColor = primaryColor
+            )
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(dgenBlack)
+                .pointerInput(Unit) {
+                    detectTapGestures { 
+                        // Consume touch events to prevent dismissal
+                    }
+                }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 16.dp)
+            ) {
+                // Header
+                SecondaryScreenHeader(
+                    title = "EDIT GROUP".uppercase(),
+                    primaryColor = primaryColor,
+                    onDismiss = onBackClick,
+                )
+                
+                // Group Name Field
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                ) {
+                    DgenCursorSearchTextfield(
+                        value = groupNameState,
+                        onValueChange = { newValue ->
+                            groupNameState = newValue
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardtype = KeyboardType.Text,
+                        textfieldFocusManager = focusManager,
+                        singleLine = true,
+                        cursorColor = primaryColor,
+                        placeholder = {
+                            Text(
+                                text = "GROUP NAME".uppercase(),
+                                style = TextStyle(
+                                    fontFamily = SpaceMono,
+                                    color = primaryColor.copy(0.45f),
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = label_fontSize
+                                )
+                            )
+                        },
+                        textStyle = TextStyle(
+                            fontFamily = PitagonsSans,
+                            color = dgenWhite,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp
+                        )
+                    )
+                }
+                
+                // Members Count Label
+                Text(
+                    text = buildAnnotatedString {
+                        append("MEMBERS ")
+                        withStyle(
+                            style = SpanStyle(
+                                fontFamily = PitagonsSans,
+                                color = dgenWhite,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None
+                            )
+                        ) {
+                            append("${currentMembers.size}")
+                        }
+                    },
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        color = primaryColor,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        lineHeight = 16.sp,
+                        letterSpacing = 0.sp,
+                        textDecoration = TextDecoration.None
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp, horizontal = 24.dp)
+                )
+                
+                // Member List with remove button
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(currentMembers) { contact ->
+                            val ethAddr = contact.ethAddress?.trim().orEmpty()
+                            
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = contact.name.ifBlank { 
+                                            ethAddr.let { addr ->
+                                                when {
+                                                    addr.endsWith(".eth") -> addr
+                                                    addr.length > 16 -> addr.take(8) + "..." + addr.takeLast(6)
+                                                    else -> addr
+                                                }
+                                            }
+                                        },
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = TextStyle(
+                                            fontFamily = PitagonsSans,
+                                            color = primaryColor,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 22.sp,
+                                            lineHeight = 22.sp,
+                                            letterSpacing = 0.sp,
+                                            textDecoration = TextDecoration.None
+                                        )
+                                    )
+                                    
+                                    if (ethAddr.isNotBlank() && contact.name.isNotBlank()) {
+                                        Text(
+                                            text = when {
+                                                ethAddr.endsWith(".eth") -> ethAddr
+                                                ethAddr.length > 10 -> ethAddr.take(6) + "..." + ethAddr.takeLast(6)
+                                                else -> ethAddr
+                                            },
+                                            overflow = TextOverflow.Ellipsis,
+                                            style = TextStyle(
+                                                fontFamily = PitagonsSans,
+                                                color = dgenWhite,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 16.sp,
+                                                lineHeight = 16.sp,
+                                                letterSpacing = 0.sp,
+                                                textDecoration = TextDecoration.None
+                                            ),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                                
+                                Icon(
+                                    imageVector = Icons.Rounded.Clear,
+                                    contentDescription = "Remove",
+                                    tint = primaryColor,
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable {
+                                            if (ethAddr.isNotBlank()) {
+                                                currentMembers.remove(contact)
+                                                onMemberRemoved(ethAddr)
+                                            }
+                                        }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Top gradient
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .align(Alignment.TopCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(dgenBlack, Color.Transparent)
+                                )
+                            )
+                    )
+                    
+                    // Bottom gradient
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .align(Alignment.BottomCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, dgenBlack)
+                                )
+                            )
+                    )
+                }
+            }
+            
+            // DEBUG Button
+            if (BuildConfig.DEBUG) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .align(Alignment.BottomEnd),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = primaryColor.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = primaryColor,
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .alpha(if (groupNameState.text.isNotBlank() && currentMembers.isNotEmpty()) 1f else 0.35f)
+                            .clickable(enabled = groupNameState.text.isNotBlank() && currentMembers.isNotEmpty()) {
+                                // Debug action - trigger existing create group logic
+                                println("DEBUG: Creating group with name=${groupNameState.text}, members=${currentMembers.size}")
+                                isCreating = true
+                                onCreateGroup(currentMembers.toList(), groupNameState.text.trim())
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "DEBUG: CREATE GROUP",
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = primaryColor,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
