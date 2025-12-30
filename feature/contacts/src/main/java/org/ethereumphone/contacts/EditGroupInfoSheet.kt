@@ -1,5 +1,13 @@
 package org.ethereumphone.contacts
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +39,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -42,6 +51,8 @@ import kotlinx.coroutines.launch
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
+import org.ethereumphone.dgenlibrary.theme.dgenOcean
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.dgenlibrary.components.SimpleDgenTextfield
@@ -97,20 +108,65 @@ fun EditGroupInfoSheet(
         } 
     }
     
-    // Show loading screen when creating
-    if (isCreating) {
+    // Show loading screen when creating with fade animation
+    AnimatedVisibility(
+        visible = isCreating,
+        enter = fadeIn(
+            animationSpec = tween(
+                durationMillis = 300,
+                delayMillis = 50
+            )
+        ),
+        exit = fadeOut(
+            animationSpec = tween(
+                durationMillis = 300
+            )
+        )
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(dgenBlack),
             contentAlignment = Alignment.Center
         ) {
-            DgenLoadingMatrix(
-                unactiveLEDColor = secondaryColor,
-                activeLEDColor = primaryColor
+            // Pulsing animation for text
+            val infiniteTransition = rememberInfiniteTransition(label = "textPulse")
+            val textAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 800),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "textAlpha"
             )
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(40.dp)
+            ) {
+                DgenLoadingMatrix(
+                    unactiveLEDColor = secondaryColor,
+                    activeLEDColor = primaryColor
+                )
+                
+                Text(
+                    text = "CREATING GROUP",
+                    modifier = Modifier.alpha(textAlpha),
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        color = primaryColor,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 24.sp,
+                        letterSpacing = 0.sp
+                    )
+                )
+            }
         }
-    } else {
+    }
+    
+    // Show main content when not creating
+    if (!isCreating) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -371,6 +427,51 @@ fun EditGroupInfoSheet(
                     }
                 }
             }
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000, device = "spec:width=720px,height=720px,dpi=240", name = "DDevice")
+@Composable
+private fun EditGroupInfoSheet_CreatingPreview() {
+    // Pulsing animation for text
+    val infiniteTransition = rememberInfiniteTransition(label = "textPulsePreview")
+    val textAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "textAlphaPreview"
+    )
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(dgenBlack),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(40.dp)
+        ) {
+            DgenLoadingMatrix(
+                unactiveLEDColor = dgenOcean,
+                activeLEDColor = dgenTurqoise
+            )
+            
+            Text(
+                text = "CREATING GROUP",
+                modifier = Modifier.alpha(textAlpha),
+                style = TextStyle(
+                    fontFamily = SpaceMono,
+                    color = dgenTurqoise,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 24.sp,
+                    letterSpacing = 0.sp
+                )
+            )
         }
     }
 }
