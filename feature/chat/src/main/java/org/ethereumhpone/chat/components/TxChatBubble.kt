@@ -220,7 +220,8 @@ fun TxBubble(
                     .padding(start = 16.dp, top = 4.dp)
                     .fillMaxHeight(),
                 secondaryColor = secondaryColor,
-                primaryColor = primaryColor
+                primaryColor = primaryColor,
+                showTime = !isGroup
             )
 
 

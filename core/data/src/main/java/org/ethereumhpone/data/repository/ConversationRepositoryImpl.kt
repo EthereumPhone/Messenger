@@ -712,6 +712,30 @@ class ConversationRepositoryImpl @Inject constructor(
             Result.Error(e.message ?: "Failed to leave group")
         }
     }
+    
+    override suspend fun isGroupAdmin(conversationId: String): Boolean {
+        return try {
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            val client = xmtpClientManager.client
+            
+            val conversation = client.conversations.findConversation(conversationId)
+            if (conversation == null) {
+                return false
+            }
+            
+            if (conversation.type != XmtpConversation.Type.GROUP) {
+                return false
+            }
+            
+            val group = (conversation as XmtpConversation.Group).group
+            
+            // Check if current user is admin or super admin
+            group.isAdmin(client.inboxId) || group.isSuperAdmin(client.inboxId)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to check admin status", e)
+            false
+        }
+    }
 }
 
 // Extension functions for ENS validation and string normalization

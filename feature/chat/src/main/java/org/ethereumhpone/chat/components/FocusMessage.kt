@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -39,11 +41,15 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.ui.theme.SpaceMono
 import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
 import org.ethereumhpone.chat.components.message.ChatBubbleShape
@@ -55,11 +61,17 @@ import org.ethereumhpone.chat.components.message.parts.MediaBinder
 import org.ethereumhpone.chat.components.message.parts.VCardBinder
 import org.ethereumhpone.chat.model.SymbolAnnotationType
 import org.ethereumhpone.chat.model.messageFormatter
+import org.ethereumhpone.chat.util.colorFor
 import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumphone.dgenlibrary.SystemColorManager
+import org.ethereumphone.dgenlibrary.theme.dgenGray
+import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @SuppressLint("CoroutineCreationDuringComposition")
@@ -73,7 +85,8 @@ fun FocusMessage(
     composablePositionState: MutableState<ComposablePosition>,
     onLongClick: () -> Unit = {},
     onDeleteMessage: () -> Unit = {},
-    onDetailMessage: () -> Unit = {}
+    onDetailMessage: () -> Unit = {},
+    isGroup: Boolean = false
 
 ) {
 
@@ -158,7 +171,8 @@ fun FocusMessage(
             videoPlayer = null,
             onPlayVideo = {},
             primaryColor = SystemColorManager.openGLColor,
-            secondaryColor = SystemColorManager.secondaryColor
+            secondaryColor = SystemColorManager.secondaryColor,
+            isGroup = isGroup
         )
 
        MessageActionList(isUserMe = isUserMe, message = msg, focusMode = focusMode, onDeleteMessage = onDeleteMessage,onDetailMessage = onDetailMessage)
@@ -189,6 +203,7 @@ fun FocusChatItemBubble(
     onDoubleClick: () -> Unit = {},
     primaryColor: Color,
     secondaryColor: Color,
+    isGroup: Boolean = false,
 ) {
 
     //TODO: Add replies
@@ -221,6 +236,47 @@ fun FocusChatItemBubble(
             ),
 
         ){
+        // Show time and sender name in group chats on the first message of the block
+        if (isGroup && isFirstMessageByAuthor) {
+            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val time = sdf.format(Date(message.date.toEpochMilliseconds()))
+            val displayName = if (isUserMe) "ME" else message.recipient.contact?.name.toString()
+            val nameColor = if (isUserMe) primaryColor else colorFor(message.recipient)
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
+            ) {
+                Text(
+                    text = time,
+                    style = TextStyle(
+                        textAlign = if (isUserMe) TextAlign.End else TextAlign.Start,
+                        fontFamily = PitagonsSans,
+                        color = dgenGray,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                        textDecoration = TextDecoration.None
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    displayName,
+                    style = TextStyle(
+                        textAlign = if (isUserMe) TextAlign.End else TextAlign.Start,
+                        fontFamily = SpaceMono,
+                        color = nameColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        lineHeight = 18.sp,
+                        textDecoration = TextDecoration.None
+                    )
+                )
+            }
+        }
+
         val media = emptyList<MessageEntity>()//message.parts.filter { it.isImage() || it.isVideo() }
 
         if (media.isNotEmpty()) {
@@ -299,9 +355,10 @@ fun FocusChatItemBubble(
 
             AuthorNameTimestamp(
                 message,
-                isUserMe = false,
+                isUserMe = isUserMe,
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
+                showTime = !isGroup
             )
 
 

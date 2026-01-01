@@ -59,6 +59,12 @@ interface ConversationRepository {
      */
     suspend fun leaveGroup(conversationId: String): Result<Unit>
     
+    /**
+     * Checks if the current user is an admin of the group conversation.
+     * Returns false for non-group conversations.
+     */
+    suspend fun isGroupAdmin(conversationId: String): Boolean
+    
     suspend fun updatePinnedConversation(id: String, pinned: Boolean)
     suspend fun updateArchivedConversation(id: String, archived: Boolean)
     suspend fun updateBlockedConversation(id: String, blocked: Boolean)

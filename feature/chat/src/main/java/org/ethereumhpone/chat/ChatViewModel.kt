@@ -156,6 +156,22 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
+    // Admin status for group conversations
+    private val _isGroupAdmin = MutableStateFlow(false)
+    val isGroupAdmin: StateFlow<Boolean> = _isGroupAdmin.asStateFlow()
+    
+    init {
+        // Check admin status when conversation changes
+        viewModelScope.launch {
+            conversation.collect { state ->
+                if (state is ConversationUiState.Success && state.conversation.isGroup) {
+                    _isGroupAdmin.value = conversationRepository.isGroupAdmin(threadId)
+                } else {
+                    _isGroupAdmin.value = false
+                }
+            }
+        }
+    }
 
     // contacts state
     val contacts: StateFlow<List<ContactEntity>> = contactRepository.getContacts()

@@ -74,7 +74,6 @@ import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.body1_fontSize
 import com.example.dgenlibrary.ui.theme.mediumEnterDuration
 import com.example.dgenlibrary.ui.theme.mediumExitDuration
-import com.example.dgenlibrary.ui.theme.pulseOpacity
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
@@ -532,7 +531,7 @@ internal fun ConversationSheet(
                                                             overflow = TextOverflow.Ellipsis,
                                                             style = TextStyle(
                                                                 fontFamily = PitagonsSans,
-                                                                color = primaryColor.copy(pulseOpacity),
+                                                                color = dgenWhite,
                                                                 fontWeight = FontWeight.SemiBold,
                                                                 fontSize = 16.sp,
                                                                 lineHeight = 16.sp,

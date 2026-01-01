@@ -184,7 +184,8 @@ fun MessageItem(
                         messageEntity = msg,
                         isUserMe = isUserMe,
                         primaryColor = primaryColor,
-                        secondaryColor = secondaryColor
+                        secondaryColor = secondaryColor,
+                        showTime = !isGroup
                     )
                 }
             } else {
@@ -226,6 +227,7 @@ fun AuthorNameTimestamp(
     secondaryColor: Color,
     isUserMe: Boolean,
     modifier: Modifier = Modifier,
+    showTime: Boolean = true,
 ) {
 
     //Date formating
@@ -239,17 +241,21 @@ fun AuthorNameTimestamp(
         modifier = modifier
     ) {
 
-        Text(
-            text = "$time",
-            fontSize = 12.sp,
-            fontFamily = SpaceMono,
-            modifier = Modifier
-                .alignBy(LastBaseline),
-            color = if (isUserMe) dgenWhite else primaryColor,
-        )
+        if (showTime) {
+            Text(
+                text = "$time",
+                fontSize = 12.sp,
+                fontFamily = SpaceMono,
+                modifier = Modifier
+                    .alignBy(LastBaseline),
+                color = if (isUserMe) dgenWhite else primaryColor,
+            )
+        }
 
         if (isUserMe){
-            Spacer(modifier = Modifier.width(4.dp))
+            if (showTime) {
+                Spacer(modifier = Modifier.width(4.dp))
+            }
 
             when {
                 messageEntity.isFailedMessage() -> Icon(

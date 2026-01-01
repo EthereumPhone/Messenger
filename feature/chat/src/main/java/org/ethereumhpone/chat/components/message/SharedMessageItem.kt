@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,9 +21,14 @@ import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import org.ethereumhpone.chat.model.messageFormatter
+import org.ethereumhpone.chat.util.colorFor
+import org.ethereumphone.dgenlibrary.theme.dgenGray
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import androidx.compose.ui.graphics.Color
 import org.ethereumphone.model.Message
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Overlay-specific lightweight message item.
@@ -35,6 +41,8 @@ fun OverlayMessageItem(
     primaryColor: Color,
     secondaryColor: Color,
     modifier: Modifier = Modifier,
+    isGroup: Boolean = false,
+    isFirstMessageByAuthor: Boolean = true,
 ) {
     val isUserMe = msg.isMe
     val textColor = if (isUserMe) dgenWhite else primaryColor
@@ -44,6 +52,46 @@ fun OverlayMessageItem(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
+        // Show time and sender name in group chats
+        if (isGroup && isFirstMessageByAuthor) {
+            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val time = sdf.format(Date(msg.date.toEpochMilliseconds()))
+            val displayName = if (isUserMe) "ME" else msg.recipient.contact?.name.toString()
+            val nameColor = if (isUserMe) primaryColor else colorFor(msg.recipient)
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
+                modifier = Modifier.padding(bottom = 4.dp)
+            ) {
+                Text(
+                    text = time,
+                    style = TextStyle(
+                        textAlign = if (isUserMe) TextAlign.End else TextAlign.Start,
+                        fontFamily = PitagonsSans,
+                        color = dgenGray,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                        textDecoration = TextDecoration.None
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    displayName,
+                    style = TextStyle(
+                        textAlign = if (isUserMe) TextAlign.End else TextAlign.Start,
+                        fontFamily = SpaceMono,
+                        color = nameColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        lineHeight = 18.sp,
+                        textDecoration = TextDecoration.None
+                    )
+                )
+            }
+        }
+
         Row(
             horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
             verticalAlignment = Alignment.Bottom
@@ -96,7 +144,8 @@ fun OverlayMessageItem(
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
                 isUserMe = isUserMe,
-                modifier = Modifier.alignBy(LastBaseline)
+                modifier = Modifier.alignBy(LastBaseline),
+                showTime = !isGroup
             )
         }
     }

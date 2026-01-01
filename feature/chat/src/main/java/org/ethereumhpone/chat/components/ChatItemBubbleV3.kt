@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -27,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import org.ethereumphone.dgenlibrary.theme.dgenGray
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import kotlinx.datetime.Instant
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
@@ -38,6 +42,9 @@ import org.ethereumphone.model.Contact
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -79,21 +86,44 @@ fun ChatItemBubbleV3(
                 bottom = 0.dp
             )
     ) {
-        // Show sender name in group chats on the first message of the block (recipient side only)
-        if (isGroup && !isUserMe && isFirstMessageByAuthor) {
-            Text(
-                messageEntity.recipient.contact?.name.toString(),
-                style = TextStyle(
-                    textAlign = TextAlign.Start,
-                    fontFamily = SpaceMono,
-                    color = colorFor(messageEntity.recipient),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    lineHeight = 18.sp,
-                    textDecoration = TextDecoration.None
-                ),
+        // Show time and sender name in group chats on the first message of the block
+        if (isGroup && isFirstMessageByAuthor) {
+            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val time = sdf.format(Date(messageEntity.date.toEpochMilliseconds()))
+            val displayName = if (isUserMe) "ME" else messageEntity.recipient.contact?.name.toString()
+            val nameColor = if (isUserMe) primaryColor else colorFor(messageEntity.recipient)
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
                 modifier = Modifier.padding(bottom = 4.dp)
-            )
+            ) {
+                Text(
+                    text = time,
+                    style = TextStyle(
+                        textAlign = if (isUserMe) TextAlign.End else TextAlign.Start,
+                        fontFamily = PitagonsSans,
+                        color = dgenGray,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                        textDecoration = TextDecoration.None
+                    )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    displayName,
+                    style = TextStyle(
+                        textAlign = if (isUserMe) TextAlign.End else TextAlign.Start,
+                        fontFamily = SpaceMono,
+                        color = nameColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        lineHeight = 18.sp,
+                        textDecoration = TextDecoration.None
+                    )
+                )
+            }
         }
 
         FlowRow(
@@ -163,7 +193,9 @@ fun ChatItemBubbleV3(
                     .padding(start = 16.dp, top = 4.dp)
                     .fillMaxHeight(),
                 primaryColor = primaryColor,
-                secondaryColor = secondaryColor
+                secondaryColor = secondaryColor,
+                // Hide time for group messages since it's shown next to the sender name
+                showTime = !isGroup
             )
 
             // Removed trailing arrow for user messages per new design

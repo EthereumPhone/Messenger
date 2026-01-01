@@ -159,6 +159,7 @@ fun ChatRoute(
     val selectMode by chatViewModel.selectMode.collectAsStateWithLifecycle()
 
     val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
+    val isGroupAdmin by chatViewModel.isGroupAdmin.collectAsStateWithLifecycle()
 
     //TODO: Add Media Selection
     /*val mediaItems by mediaViewModel.mediaItems.collectAsState()
@@ -208,7 +209,8 @@ fun ChatRoute(
         onUpdateGroupName = chatViewModel::updateGroupName,
         onUpdateGroupDescription = chatViewModel::updateGroupDescription,
         onRemoveGroupMember = chatViewModel::removeGroupMember,
-        onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) }
+        onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) },
+        isGroupAdmin = isGroupAdmin
     )
 
     // Mark messages as seen when leaving the chat screen
@@ -258,6 +260,7 @@ fun ChatScreen(
     onUpdateGroupDescription: (String) -> Unit = {},
     onRemoveGroupMember: (String) -> Unit = {},
     onLeaveGroup: () -> Unit = {},
+    isGroupAdmin: Boolean = false,
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -628,7 +631,9 @@ fun ChatScreen(
                                     val msgPosition = composablePositionState.value.offset
                                     Log.d("ChatOverlay", "Long-pressed message XY: ${msgPosition.x}, ${msgPosition.y}")
                                     Log.d("ChatOverlay", "OverlayMessageItem XY: ${pos.x}, ${pos.y}")
-                                }
+                                },
+                                isGroup = chatConversion?.isGroup ?: false,
+                                isFirstMessageByAuthor = true
                             )
                         }
                     }
@@ -695,6 +700,7 @@ fun ChatScreen(
                 conversation = chatConversion,
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
+                isAdmin = isGroupAdmin,
                 onBackClick = { showGroupDetails = false },
                 onUpdateGroupName = onUpdateGroupName,
                 onUpdateGroupDescription = onUpdateGroupDescription,

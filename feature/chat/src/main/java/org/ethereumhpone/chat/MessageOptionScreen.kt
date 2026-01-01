@@ -74,7 +74,8 @@ fun MessageOptionsScreen(
     composablePositionState: MutableState<ComposablePosition>,
     focusMode: MutableState<Boolean>,
     onDeleteMessage: (String) -> Unit = {},
-    onDetailMessage: () -> Unit = {}
+    onDetailMessage: () -> Unit = {},
+    isGroup: Boolean = false
 ){
     var deleteConfirmation = remember {
         mutableStateOf(false)
@@ -105,7 +106,8 @@ fun MessageOptionsScreen(
                 onDeleteMessage = {
                     deleteConfirmation.value = true
                 },
-                onDetailMessage = onDetailMessage
+                onDetailMessage = onDetailMessage,
+                isGroup = isGroup
             )
         }
 
