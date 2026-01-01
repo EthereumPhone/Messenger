@@ -111,6 +111,7 @@ import org.ethereumphone.dgenlibrary.components.SelectionOverlay
 import org.ethereumphone.dgenlibrary.components.SelectionBarColumn
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Chat
 // removed LocalDensity/zIndex imports; overlay content is centered, not positioned
 import org.ethereumphone.dgenlibrary.theme.dgenRed
 import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
@@ -142,6 +143,7 @@ import androidx.compose.ui.platform.LocalDensity
 @Composable
 fun ChatRoute(
     onBackClick: () -> Unit,
+    onNavigateToPrivateChat: (address: String, contactName: String?) -> Unit = { _, _ -> },
     chatViewModel: ChatViewModel = hiltViewModel(),
     mediaViewModel: MediaViewModel = hiltViewModel()
 ) {
@@ -210,7 +212,8 @@ fun ChatRoute(
         onUpdateGroupDescription = chatViewModel::updateGroupDescription,
         onRemoveGroupMember = chatViewModel::removeGroupMember,
         onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) },
-        isGroupAdmin = isGroupAdmin
+        isGroupAdmin = isGroupAdmin,
+        onNavigateToPrivateChat = onNavigateToPrivateChat
     )
 
     // Mark messages as seen when leaving the chat screen
@@ -261,6 +264,7 @@ fun ChatScreen(
     onRemoveGroupMember: (String) -> Unit = {},
     onLeaveGroup: () -> Unit = {},
     isGroupAdmin: Boolean = false,
+    onNavigateToPrivateChat: (address: String, contactName: String?) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -668,6 +672,25 @@ fun ChatScreen(
                         longPressedMessage.value = null
                     }
                 )
+                
+                // Show "Message" action only in group chats and for messages from others
+                if (chatConversion?.isGroup == true && longPressedMessage.value?.isMe == false) {
+                    SelectionBarColumn(
+                        imageVector = Icons.Outlined.Chat,
+                        title = "Message",
+                        primaryColor = primaryColor,
+                        onClick = {
+                            longPressedMessage.value?.let { msg ->
+                                val senderAddress = msg.recipient.address
+                                val senderName = msg.recipient.contact?.name ?: msg.recipient.ens
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onNavigateToPrivateChat(senderAddress, senderName)
+                            }
+                            showOverlay.value = false
+                            longPressedMessage.value = null
+                        }
+                    )
+                }
             }
         )
 

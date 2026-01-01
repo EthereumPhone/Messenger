@@ -96,7 +96,14 @@ fun NavGraphBuilder.chatScreen(
         arguments = listOf(
             navArgument(threadIdArg) { type = NavType.StringType }
         ),
-    ) { ChatRoute(onBackClick = onBackClick) }
+    ) { 
+        ChatRoute(
+            onBackClick = onBackClick,
+            onNavigateToPrivateChat = { address, contactName ->
+                navController.navigateToChatLoading(listOf(address), contactName)
+            }
+        ) 
+    }
 
     composable(
         route = "$chatRoute/addresses/{$addressesArg}?contactName={$contactArg}",
@@ -108,7 +115,14 @@ fun NavGraphBuilder.chatScreen(
                 defaultValue = null
             }
         ),
-    ) { ChatRoute(onBackClick = onBackClick) }
+    ) { 
+        ChatRoute(
+            onBackClick = onBackClick,
+            onNavigateToPrivateChat = { address, contactName ->
+                navController.navigateToChatLoading(listOf(address), contactName)
+            }
+        ) 
+    }
     
     composable(
         route = "$chatLoadingRoute/{$addressesArg}?contactName={$contactArg}",
