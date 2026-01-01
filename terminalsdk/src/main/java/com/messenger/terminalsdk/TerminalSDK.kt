@@ -174,8 +174,8 @@ class TerminalSDK(private val context: Context) {
         println("ETHOSDEBUGTERMINAL destroyTouchHandlerSync")
         miniDisplayTouchHandler?.destroy()
         miniDisplayTouchHandler = null
-        // Also clean up any static instance as a failsafe
-        MiniDisplayTouchHandler.cleanupActiveInstance()
+        // Note: The new service-based MiniDisplayTouchHandler.destroy() already
+        // handles cleanup of the static activeInstance internally
     }
 
     suspend fun finishScreen() {

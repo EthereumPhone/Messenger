@@ -222,6 +222,17 @@ fun ChatRoute(
             chatViewModel.markSeenOnExit()
         }
     }
+    
+    // Clean up terminal screen when entering chat (e.g., after group creation)
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                TerminalLEDController.finishScreen()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 }
 
 @OptIn(

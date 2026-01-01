@@ -199,24 +199,23 @@ public class LayoutRenderer {
     }
 
     /**
-     * Renders CREATE GROUP button using next_terminal_layout.xml with modified text
+     * Renders CREATE GROUP button using dedicated create_group_terminal_layout.xml
      * Used when EditGroupInfoSheet is displayed
      */
     public Bitmap renderCreateGroup() {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.next_terminal_layout, null);
+        View view = inflater.inflate(R.layout.create_group_terminal_layout, null);
 
         int accentColor = getColorForRender();
 
-        ImageView copyIcon = view.findViewById(R.id.copy_icon);
-        if (copyIcon != null) {
-            copyIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
+        ImageView createGroupIcon = view.findViewById(R.id.create_group_icon);
+        if (createGroupIcon != null) {
+            createGroupIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
         }
 
-        TextView copyLabel = view.findViewById(R.id.copy_label);
-        if (copyLabel != null) {
-            copyLabel.setText("CREATE GROUP");  // Override text from "NEXT" to "CREATE GROUP"
-            copyLabel.setTextColor(accentColor);
+        TextView createGroupLabel = view.findViewById(R.id.create_group_label);
+        if (createGroupLabel != null) {
+            createGroupLabel.setTextColor(accentColor);
         }
 
         int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(428, View.MeasureSpec.EXACTLY);

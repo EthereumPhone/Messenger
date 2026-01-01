@@ -32,8 +32,10 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -52,6 +54,8 @@ import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.mediumEnterDuration
 import com.example.dgenlibrary.ui.theme.mediumExitDuration
 import com.messenger.terminalsdk.TerminalSDK
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.ethereumphone.contacts.BuildConfig
 import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
@@ -75,6 +79,7 @@ fun SelectMembersSheet(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
     
     // Search bar state
     var isSearchFocused by remember { mutableStateOf(false) }
@@ -116,19 +121,38 @@ fun SelectMembersSheet(
     )
     
     // Terminal button setup - display NEXT button when sheet appears
-    LaunchedEffect(Unit) {
-        terminalSDK?.displayNext { 
-            // Navigate to next screen with selected members
-            if (selectedMembers.isNotEmpty()) {
-                onContactsSelected(selectedMembers.toList())
+    // Following the same pattern as TokenLauncherScreen for proper terminal lifecycle
+    DisposableEffect(Unit) {
+        // Display NEXT button when entering this sheet
+        scope.launch(Dispatchers.IO) {
+            try {
+                // Small delay to ensure smooth transition
+                delay(100)
+                terminalSDK?.displayNext { 
+                    // Navigate to next screen with selected members
+                    // Must dispatch to Main thread since this callback runs on a background thread
+                    // and onContactsSelected modifies Compose state
+                    scope.launch(Dispatchers.Main) {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (selectedMembers.isNotEmpty()) {
+                            onContactsSelected(selectedMembers.toList())
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
-    }
-    
-    // Clean up terminal button on dispose
-    DisposableEffect(Unit) { 
+        
+        // Clean up terminal button when leaving this sheet
         onDispose { 
-            scope.launch { terminalSDK?.removeTerminalButton() } 
+            scope.launch(Dispatchers.IO) { 
+                try {
+                    terminalSDK?.finishScreen()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            } 
         } 
     }
     

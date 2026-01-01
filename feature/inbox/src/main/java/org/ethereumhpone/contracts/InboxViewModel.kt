@@ -23,6 +23,7 @@ import org.ethereumphone.model.Conversation
 import org.kethereum.eip137.model.ENSName
 import org.kethereum.ens.ENS
 import org.kethereum.ens.isPotentialENSDomain
+import com.messenger.terminalsdk.TerminalSDK
 import javax.inject.Inject
 import kotlin.math.acos
 
@@ -35,6 +36,7 @@ class InboxViewModel @Inject constructor(
     private val ensResolver: ENS,
     private val syncRepository: SyncRepository,
     private val networkManager: NetworkManager,
+    val terminalSDK: TerminalSDK?,
 ): ViewModel() {
 
     // Expose network connectivity status separately

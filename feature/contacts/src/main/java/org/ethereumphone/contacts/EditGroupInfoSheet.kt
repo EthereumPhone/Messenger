@@ -28,8 +28,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -47,6 +49,8 @@ import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.label_fontSize
 import com.messenger.terminalsdk.TerminalSDK
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
@@ -74,6 +78,7 @@ fun EditGroupInfoSheet(
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val view = LocalView.current
+    val haptics = LocalHapticFeedback.current
     
     // Group name state
     var groupNameState by rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -91,20 +96,38 @@ fun EditGroupInfoSheet(
     }
     
     // Terminal button setup - display CREATE GROUP button when sheet appears
-    LaunchedEffect(Unit) {
-        terminalSDK?.displayCreateGroup { 
-            // Trigger group creation
-            if (groupNameState.text.isNotBlank() && currentMembers.isNotEmpty()) {
-                isCreating = true
-                onCreateGroup(currentMembers.toList(), groupNameState.text.trim())
+    // Following the same pattern as TokenLauncherScreen for proper terminal lifecycle
+    DisposableEffect(Unit) {
+        // Display CREATE GROUP button when entering this sheet
+        scope.launch(Dispatchers.IO) {
+            try {
+                // Small delay to ensure smooth transition
+                delay(100)
+                terminalSDK?.displayCreateGroup { 
+                    // Trigger group creation
+                    // The callback already runs on Main thread via MiniDisplayTouchHandler.getMainExecutor()
+                    // so we can directly access Compose state and haptics
+                    if (groupNameState.text.isNotBlank() && currentMembers.isNotEmpty()) {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        println("DEBUG: Creating group with name=${groupNameState.text}, members=${currentMembers.size}")
+                        isCreating = true
+                        onCreateGroup(currentMembers.toList(), groupNameState.text.trim())
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
-    }
-    
-    // Clean up terminal button on dispose
-    DisposableEffect(Unit) { 
+        
+        // Clean up terminal button when leaving this sheet
         onDispose { 
-            scope.launch { terminalSDK?.removeTerminalButton() } 
+            scope.launch(Dispatchers.IO) { 
+                try {
+                    terminalSDK?.finishScreen()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            } 
         } 
     }
     
@@ -407,7 +430,8 @@ fun EditGroupInfoSheet(
                             )
                             .alpha(if (groupNameState.text.isNotBlank() && currentMembers.isNotEmpty()) 1f else 0.35f)
                             .clickable(enabled = groupNameState.text.isNotBlank() && currentMembers.isNotEmpty()) {
-                                // Debug action - trigger existing create group logic
+                                // Debug action - trigger existing create group logic (same as terminal screen click)
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 println("DEBUG: Creating group with name=${groupNameState.text}, members=${currentMembers.size}")
                                 isCreating = true
                                 onCreateGroup(currentMembers.toList(), groupNameState.text.trim())

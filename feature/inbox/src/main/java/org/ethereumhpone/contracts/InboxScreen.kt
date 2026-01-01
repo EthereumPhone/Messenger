@@ -78,6 +78,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.messenger.terminalsdk.TerminalLEDController
+import com.messenger.terminalsdk.TerminalSDK
 import org.ethosmobile.components.library.theme.Colors
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.ImageLoader
@@ -157,7 +158,8 @@ fun ContactRoute(
             onConversationClick(id)
         },
         primaryColor = primaryColor,
-        secondaryColor  = secondaryColor
+        secondaryColor = secondaryColor,
+        terminalSDK = viewModel.terminalSDK
     )
 }
 
@@ -176,7 +178,8 @@ fun InboxScreen(
     resolveENS: (String) -> Unit,
     primaryColor: Color,
     secondaryColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    terminalSDK: TerminalSDK? = null
 ) {
 
     val context = LocalContext.current
@@ -597,7 +600,8 @@ fun InboxScreen(
                     showNewConversationSheet = false
                     //TODO: CHANGE TO NOT ONLY LOOK FOR PHONE NUMBER !!!URGENT!!!
                     onNewConversationCreated(it)
-                }
+                },
+                terminalSDK = terminalSDK
             )
         }
 
