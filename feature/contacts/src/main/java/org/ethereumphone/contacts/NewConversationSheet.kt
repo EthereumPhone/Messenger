@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -88,6 +89,8 @@ import org.ethereumphone.dgenlibrary.components.ActionButton
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import com.example.dgenlibrary.ui.theme.body2_fontSize
+import com.example.dgenlibrary.ui.theme.label_fontSize
 import org.ethereumphone.dgenlibrary.screens.InfoScreen
 import org.ethereumphone.dgenlibrary.showDgenToast
 
@@ -263,35 +266,6 @@ internal fun ConversationSheet(
                         primaryColor = primaryColor,
                         onDismiss = onDismiss,
                     )
-                    
-                    // Add "Create Group" button
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                            .clickable(enabled = !multiSelectMode && !showGroupCreation) { multiSelectMode = true },
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "Create Group",
-                            tint = primaryColor,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = "CREATE GROUP".uppercase(),
-                            style = TextStyle(
-                                fontFamily = SpaceMono,
-                                color = primaryColor,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 18.sp,
-                                lineHeight = 18.sp,
-                                letterSpacing = 0.sp,
-                                textDecoration = TextDecoration.None
-                            )
-                        )
-                    }
 
 
                     Row(
@@ -417,6 +391,37 @@ internal fun ConversationSheet(
                             }
                         }
 
+                    // Add "Create Group" button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .clickable(enabled = !multiSelectMode && !showGroupCreation) { multiSelectMode = true },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "CREATE GROUP",
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = label_fontSize,
+                                lineHeight = label_fontSize,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None
+                            )
+                        )
+
+                        Icon(
+                            imageVector = Icons.Filled.ChevronRight,
+                            contentDescription = "Create Group",
+                            tint = primaryColor,
+                            modifier = Modifier.size(32.dp)
+                        )
+
+                    }
+
 
 
 
@@ -491,11 +496,6 @@ internal fun ConversationSheet(
                                         }
                                     }
                                     else {
-                                        item {
-                                            Spacer(modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(16.dp))
-                                        }
                                         
                                         items(contactsWithEthAddress) { contact ->
                                             // add onCLick behaviour - disabled when in multi-select mode to prevent accidental navigation
