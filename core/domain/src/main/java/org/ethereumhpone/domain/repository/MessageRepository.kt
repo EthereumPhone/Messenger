@@ -5,7 +5,9 @@ import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Reaction
+import org.ethereumphone.model.TransactionRequest
 import org.xmtp.android.library.Conversation
+import org.xmtp.android.library.codecs.ReactionAction
 
 interface MessageRepository {
 
@@ -39,5 +41,46 @@ interface MessageRepository {
     suspend fun markFailed(id: String, resultCode: Int)
     suspend fun markDelivered(id: String)
     suspend fun deleteMessage(vararg messageIds: String)
+    
+    /**
+     * Send a transaction request via XMTP.
+     */
+    suspend fun sendTransactionRequest(
+        xmtpConversation: Conversation,
+        threadId: String,
+        transactionRequest: TransactionRequest
+    ): String?
+    
+    /**
+     * Update the transaction status of a message.
+     */
+    suspend fun updateTransactionStatus(
+        messageId: String,
+        status: String,
+        txHash: String?
+    )
+    
+    /**
+     * Send a reaction to a message via XMTP.
+     * @param xmtpConversation The conversation to send the reaction in
+     * @param messageId The ID of the message being reacted to
+     * @param emoji The emoji/reaction content
+     * @param action Whether to add or remove the reaction
+     */
+    suspend fun sendReaction(
+        xmtpConversation: Conversation,
+        messageId: String,
+        emoji: String,
+        action: ReactionAction
+    )
+    
+    /**
+     * Remove a reaction from a message.
+     */
+    suspend fun removeReaction(
+        xmtpConversation: Conversation,
+        messageId: String,
+        emoji: String
+    )
 
 }

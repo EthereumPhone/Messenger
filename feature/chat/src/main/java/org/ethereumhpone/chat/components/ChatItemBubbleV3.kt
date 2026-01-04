@@ -2,6 +2,7 @@ package org.ethereumhpone.chat.components
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -78,6 +80,13 @@ fun ChatItemBubbleV3(
                 top = 0.dp,
                 bottom = 0.dp
             )
+            // Add long-press detection to the entire message bubble
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongClick() },
+                    onDoubleTap = { onDoubleClick() }
+                )
+            }
     ) {
         // Show sender name in group chats on the first message of the block (recipient side only)
         if (isGroup && !isUserMe && isFirstMessageByAuthor) {

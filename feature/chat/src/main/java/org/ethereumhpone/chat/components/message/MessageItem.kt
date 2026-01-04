@@ -69,6 +69,9 @@ import org.ethereumphone.model.Message
 import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
+import org.ethereumphone.model.TransactionRequest
+import org.ethereumhpone.chat.components.TransactionRequestBubble
+import org.ethereumhpone.chat.components.ReactionsDisplay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -105,7 +108,11 @@ fun MessageItem(
     secondaryColor: Color,
     openGLColor: Color,
     fullWidth: Boolean = true,
-    applyOuterPadding: Boolean = true
+    applyOuterPadding: Boolean = true,
+    onExecuteTransaction: (TransactionRequest) -> Unit = {},
+    onRejectTransaction: (Message) -> Unit = {},
+    myInboxId: String = "",
+    onReactionClick: (String) -> Unit = {}
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
@@ -187,6 +194,22 @@ fun MessageItem(
                         secondaryColor = secondaryColor
                     )
                 }
+            } else if (msg.isTransactionRequest()) {
+                // Render transaction request bubble
+                val txRequest = msg.transactionRequest
+                if (txRequest != null) {
+                    TransactionRequestBubble(
+                        modifier = alignmessage,
+                        message = msg,
+                        transactionRequest = txRequest,
+                        isUserMe = msg.isMe,
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor,
+                        onExecuteTransaction = onExecuteTransaction,
+                        onRejectTransaction = { onRejectTransaction(msg) },
+                        isFirstMessageByAuthor = isFirstMessageByAuthor
+                    )
+                }
             } else {
                 ChatItemBubbleV3(
                     modifier = alignmessage,
@@ -208,6 +231,17 @@ fun MessageItem(
                     primaryColor = primaryColor,
                     secondaryColor = secondaryColor,
                     openGLColor = openGLColor
+                )
+            }
+            
+            // Display reactions below the message bubble
+            if (msg.reactions.isNotEmpty()) {
+                ReactionsDisplay(
+                    reactions = msg.reactions,
+                    myInboxId = myInboxId,
+                    isUserMe = msg.isMe,
+                    primaryColor = primaryColor,
+                    onReactionClick = onReactionClick
                 )
             }
 

@@ -52,3 +52,12 @@ val migration5To6 = object: Migration(5,6) {
         db.execSQL("ALTER TABLE conversation ADD COLUMN imageUrl TEXT DEFAULT NULL")
     }
 }
+
+val migration6To7 = object: Migration(6,7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add transaction request support to messages
+        db.execSQL("ALTER TABLE message ADD COLUMN transactionRequest TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE message ADD COLUMN transactionStatus TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE message ADD COLUMN transactionHash TEXT DEFAULT NULL")
+    }
+}

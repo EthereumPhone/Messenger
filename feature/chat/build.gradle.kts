@@ -25,6 +25,7 @@ android {
 
         //TODO: change with more secure impl.
         buildConfigField("String", "ALCHEMY_API", "\"${properties.getProperty("ALCHEMY_API")}\"")
+        buildConfigField("String", "BUNDLER_API", "\"${properties.getProperty("BUNDLER_API")}\"")
 
     }
 

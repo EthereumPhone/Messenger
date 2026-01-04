@@ -84,5 +84,15 @@ interface MessageDao {
      */
     @Query("SELECT MAX(date) FROM message")
     suspend fun getLatestMessageTime(): Long?
+    
+    /**
+     * Updates the transaction status for a message.
+     */
+    @Query("""
+        UPDATE message 
+        SET transactionStatus = :status, transactionHash = :txHash
+        WHERE id = :messageId
+    """)
+    suspend fun updateTransactionStatus(messageId: String, status: String, txHash: String?)
 
 }

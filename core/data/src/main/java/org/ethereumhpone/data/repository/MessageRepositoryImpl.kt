@@ -17,6 +17,8 @@ import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.data.util.PhoneNumberUtils
 import org.ethereumhpone.database.dao.ConversationDao
 import org.ethereumhpone.database.dao.MessageDao
+import org.ethereumhpone.database.dao.ReactionDao
+import org.ethereumhpone.database.model.ReactionEntity
 import org.ethereumhpone.database.model.MessageEntity
 import org.ethereumhpone.database.model.relation.toExternalMessage
 import org.ethereumhpone.datastore.MessengerPreferences
@@ -26,16 +28,26 @@ import org.ethereumhpone.domain.repository.MessageRepository
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Reaction
+import org.ethereumphone.model.TransactionRequest
 import org.xmtp.android.library.Conversation
+import org.xmtp.android.library.SendOptions
 import org.xmtp.android.library.codecs.ContentTypeText
+import org.xmtp.android.library.codecs.Reaction as XmtpReaction
+import org.xmtp.android.library.codecs.ReactionAction
+import org.xmtp.android.library.codecs.ReactionCodec
+import org.xmtp.android.library.codecs.ReactionSchema
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.android.library.libxmtp.DecodedMessage
+import org.ethereumhpone.data.codec.ContentTypeTransactionRequest
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.time.Instant
 import javax.inject.Inject
 
 class MessageRepositoryImpl @Inject constructor(
     private val messageDao: MessageDao,
     private val conversationDao: ConversationDao,
+    private val reactionDao: ReactionDao,
     private val messengerPreferences: MessengerPreferences,
     private val phoneNumberUtils: PhoneNumberUtils,
     private val syncRepository: SyncRepository,
@@ -249,6 +261,143 @@ class MessageRepositoryImpl @Inject constructor(
 
     override suspend fun deleteMessage(vararg messageIds: String) {
 
+    }
+    
+    private val jsonSerializer = Json { 
+        ignoreUnknownKeys = true 
+        encodeDefaults = true
+    }
+    
+    override suspend fun sendTransactionRequest(
+        xmtpConversation: Conversation,
+        threadId: String,
+        transactionRequest: TransactionRequest
+    ): String? = coroutineScope {
+        // Wait until the XMTP client is ready
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+        
+        try {
+            // Prepare the transaction request message
+            val messageId = xmtpConversation.prepareMessage(
+                content = transactionRequest,
+                options = SendOptions(contentType = ContentTypeTransactionRequest)
+            )
+            
+            Log.d("TRANSACTION REQUEST MESSAGE ID", messageId)
+            
+            // Build fallback body for display
+            val fallbackBody = buildTransactionRequestBody(transactionRequest)
+            val txRequestJson = jsonSerializer.encodeToString(transactionRequest)
+            
+            val messageEntity = MessageEntity(
+                id = messageId,
+                threadId = threadId,
+                dateSent = System.currentTimeMillis(),
+                date = System.currentTimeMillis(),
+                senderInboxId = xmtpClientManager.client.inboxId,
+                body = fallbackBody,
+                deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
+                isMe = true,
+                replyReference = null,
+                seen = true,
+                read = true,
+                transactionRequest = txRequestJson,
+                transactionStatus = "PENDING"
+            )
+            
+            launch { messageDao.upsertMessages(listOf(messageEntity)) }
+            launch { xmtpConversation.publishMessages() }
+            
+            messageId
+        } catch (e: Exception) {
+            AndroidLog.e("MessageRepository", "Failed to send transaction request", e)
+            null
+        }
+    }
+    
+    override suspend fun updateTransactionStatus(
+        messageId: String,
+        status: String,
+        txHash: String?
+    ) {
+        messageDao.updateTransactionStatus(messageId, status, txHash)
+    }
+    
+    private fun buildTransactionRequestBody(txRequest: TransactionRequest): String {
+        val chainName = chainIdToName(txRequest.chainId)
+        val metadata = txRequest.metadata
+        
+        return if (metadata?.tokenAmount != null && metadata.tokenSymbol != null) {
+            "Transaction Request: ${metadata.tokenAmount} ${metadata.tokenSymbol} on $chainName"
+        } else {
+            "Transaction Request: ${txRequest.calls.size} call(s) on $chainName"
+        }
+    }
+    
+    private fun chainIdToName(chainId: Long): String = when (chainId) {
+        1L -> "Ethereum"
+        10L -> "Optimism"
+        137L -> "Polygon"
+        42161L -> "Arbitrum"
+        8453L -> "Base"
+        11155111L -> "Sepolia"
+        else -> "Chain $chainId"
+    }
+    
+    override suspend fun sendReaction(
+        xmtpConversation: Conversation,
+        messageId: String,
+        emoji: String,
+        action: ReactionAction
+    ) {
+        // Wait until the XMTP client is ready
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+        
+        try {
+            // Create the XMTP Reaction object
+            val reaction = XmtpReaction(
+                reference = messageId,
+                action = action,
+                content = emoji,
+                schema = ReactionSchema.Unicode
+            )
+            
+            // Send the reaction using XMTP codec
+            // Use ReactionCodec's content type to ensure correct encoding
+            xmtpConversation.send(
+                content = reaction,
+                options = SendOptions(contentType = ReactionCodec().contentType)
+            )
+            
+            // Update local database
+            val myInboxId = xmtpClientManager.client.inboxId
+            val reactionId = "${myInboxId}_${messageId}_${emoji}"
+            
+            if (action == ReactionAction.Added) {
+                val reactionEntity = ReactionEntity(
+                    id = reactionId,
+                    messageId = messageId,
+                    inboxId = myInboxId,
+                    content = emoji
+                )
+                reactionDao.upsertReaction(reactionEntity)
+            } else {
+                reactionDao.deleteReaction(reactionId)
+            }
+            
+            AndroidLog.d("MessageRepository", "Reaction $action sent: $emoji to message $messageId")
+        } catch (e: Exception) {
+            AndroidLog.e("MessageRepository", "Failed to send reaction", e)
+            throw e
+        }
+    }
+    
+    override suspend fun removeReaction(
+        xmtpConversation: Conversation,
+        messageId: String,
+        emoji: String
+    ) {
+        sendReaction(xmtpConversation, messageId, emoji, ReactionAction.Removed)
     }
 
 }

@@ -73,7 +73,8 @@ fun FocusMessage(
     composablePositionState: MutableState<ComposablePosition>,
     onLongClick: () -> Unit = {},
     onDeleteMessage: () -> Unit = {},
-    onDetailMessage: () -> Unit = {}
+    onDetailMessage: () -> Unit = {},
+    onReactionSelected: (String) -> Unit = {}
 
 ) {
 
@@ -146,8 +147,19 @@ fun FocusMessage(
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        //TODO: Add Reaction
-        //MessageReactions()
+        // Reaction picker appears above the message
+        ReactionPicker(
+            isVisible = focusMode.value,
+            isUserMe = isUserMe,
+            onReactionSelected = { emoji ->
+                onReactionSelected(emoji)
+                focusMode.value = false
+            },
+            onExpandPicker = {
+                // TODO: Show expanded picker in a dialog or bottom sheet
+            },
+            modifier = Modifier.align(if (isUserMe) Alignment.End else Alignment.Start)
+        )
 
         FocusChatItemBubble(
             message = msg,

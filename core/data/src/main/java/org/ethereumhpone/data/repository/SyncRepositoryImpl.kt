@@ -47,13 +47,17 @@ import org.kethereum.model.Address
 import org.xmtp.android.library.ConsentState
 import org.xmtp.android.library.Conversation
 import org.xmtp.android.library.codecs.ContentTypeAttachment
-import org.xmtp.android.library.codecs.ContentTypeReactionV2
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
 import org.xmtp.android.library.codecs.ContentTypeRemoteAttachment
 import org.xmtp.android.library.codecs.ContentTypeReply
 import org.xmtp.android.library.codecs.Reaction
 import org.xmtp.android.library.codecs.ReactionAction
+import org.xmtp.android.library.codecs.ReactionCodec
 import org.xmtp.android.library.codecs.Reply
+import org.ethereumhpone.data.codec.ContentTypeTransactionRequest
+import org.ethereumphone.model.TransactionRequest
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.proto.message.contents.Content
 import javax.inject.Inject
@@ -720,18 +724,32 @@ class SyncRepositoryImpl @Inject constructor(
         }
     }
 
+    private val jsonSerializer = Json { 
+        ignoreUnknownKeys = true 
+        encodeDefaults = true
+    }
+    
     private suspend fun processContent(messageEntity: MessageEntity, contentType: Content.ContentTypeId, content: Any?): MessageEntity? {
+        // Get the reaction codec's content type for comparison
+        val reactionContentType = ReactionCodec().contentType
+        
         return when(contentType) {
             // Handle reactions
-            ContentTypeReactionV2 -> {
+            reactionContentType -> {
                 val xmtpReaction = content as Reaction
+                
+                // The reaction's reference points to the message being reacted to
+                val targetMessageId = xmtpReaction.reference
+                
+                // Generate a unique ID for this reaction based on sender + message + content
+                val reactionId = "${messageEntity.senderInboxId}_${targetMessageId}_${xmtpReaction.content}"
 
                 if (xmtpReaction.action == ReactionAction.Removed) {
-                    reactionDao.deleteReaction(messageEntity.id)
-                }
-                if(xmtpReaction.action == ReactionAction.Added) {
+                    reactionDao.deleteReaction(reactionId)
+                } else if (xmtpReaction.action == ReactionAction.Added) {
                     val reactionEntity = org.ethereumhpone.database.model.ReactionEntity(
-                        id = messageEntity.id,
+                        id = reactionId,
+                        messageId = targetMessageId,
                         inboxId = messageEntity.senderInboxId,
                         content = xmtpReaction.content
                     )
@@ -751,6 +769,25 @@ class SyncRepositoryImpl @Inject constructor(
                 val updatedMessage = messageEntity.copy(replyReference = reply.reference)
                 processContent(updatedMessage, reply.contentType, reply.content)
             }
+            // Handle transaction requests
+            ContentTypeTransactionRequest -> {
+                try {
+                    val txRequest = content as TransactionRequest
+                    val txRequestJson = jsonSerializer.encodeToString(txRequest)
+                    
+                    // Create a body message for fallback display
+                    val fallbackBody = buildTransactionRequestBody(txRequest)
+                    
+                    messageEntity.copy(
+                        body = fallbackBody,
+                        transactionRequest = txRequestJson,
+                        transactionStatus = "PENDING"
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to process transaction request", e)
+                    null
+                }
+            }
 
             ContentTypeAttachment, ContentTypeRemoteAttachment -> {
                 null
@@ -763,5 +800,26 @@ class SyncRepositoryImpl @Inject constructor(
                 messageEntity // assume plain text
             }
         }
+    }
+    
+    private fun buildTransactionRequestBody(txRequest: TransactionRequest): String {
+        val chainName = chainIdToName(txRequest.chainId)
+        val metadata = txRequest.metadata
+        
+        return if (metadata?.tokenAmount != null && metadata.tokenSymbol != null) {
+            "Transaction Request: ${metadata.tokenAmount} ${metadata.tokenSymbol} on $chainName"
+        } else {
+            "Transaction Request: ${txRequest.calls.size} call(s) on $chainName"
+        }
+    }
+    
+    private fun chainIdToName(chainId: Long): String = when (chainId) {
+        1L -> "Ethereum"
+        10L -> "Optimism"
+        137L -> "Polygon"
+        42161L -> "Arbitrum"
+        8453L -> "Base"
+        11155111L -> "Sepolia"
+        else -> "Chain $chainId"
     }
 }

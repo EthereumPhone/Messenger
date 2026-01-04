@@ -92,6 +92,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
+import org.ethereumhpone.chat.components.ReactionPicker
 import org.ethereumhpone.chat.components.GroupDetailsSheet
 import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.message.ComposablePosition
@@ -123,6 +124,7 @@ import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
+import org.ethereumphone.model.TransactionRequest
 import java.io.ByteArrayOutputStream
 import kotlin.time.Duration.Companion.seconds
 import com.messenger.terminalsdk.TerminalLEDController
@@ -157,6 +159,7 @@ fun ChatRoute(
 
     val selectedMessages by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
     val selectMode by chatViewModel.selectMode.collectAsStateWithLifecycle()
+    val myInboxId by chatViewModel.myInboxId.collectAsStateWithLifecycle()
 
     val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
 
@@ -208,7 +211,11 @@ fun ChatRoute(
         onUpdateGroupName = chatViewModel::updateGroupName,
         onUpdateGroupDescription = chatViewModel::updateGroupDescription,
         onRemoveGroupMember = chatViewModel::removeGroupMember,
-        onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) }
+        onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) },
+        onExecuteTransaction = chatViewModel::executeTransaction,
+        onRejectTransaction = chatViewModel::rejectTransaction,
+        onSendReaction = chatViewModel::sendReaction,
+        myInboxId = myInboxId
     )
 
     // Mark messages as seen when leaving the chat screen
@@ -258,6 +265,10 @@ fun ChatScreen(
     onUpdateGroupDescription: (String) -> Unit = {},
     onRemoveGroupMember: (String) -> Unit = {},
     onLeaveGroup: () -> Unit = {},
+    onExecuteTransaction: (TransactionRequest) -> Unit = {},
+    onRejectTransaction: (Message) -> Unit = {},
+    onSendReaction: (messageId: String, emoji: String) -> Unit = { _, _ -> },
+    myInboxId: String = "",
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -558,7 +569,11 @@ fun ChatScreen(
                                     secondaryColor = secondaryColor,
                                     openGLColor = openGLColor,
                                     deletedMessageIds = softDeletedMessageIds,
-                                    onUpdateSeenCount = { seenCount = it }
+                                    onUpdateSeenCount = { seenCount = it },
+                                    onExecuteTransaction = onExecuteTransaction,
+                                    onRejectTransaction = onRejectTransaction,
+                                    myInboxId = myInboxId,
+                                    onReactionClick = onSendReaction
                                 )
                             }
 
@@ -615,10 +630,28 @@ fun ChatScreen(
                     Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Box(
+                        Column(
                             modifier = Modifier
-                                .offset { IntOffset(startX.roundToInt(), yAnim.value.roundToInt()) }
+                                .offset { IntOffset(startX.roundToInt(), yAnim.value.roundToInt()) },
+                            horizontalAlignment = if (selected.isMe) Alignment.End else Alignment.Start,
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
                         ) {
+                            // Reaction picker above the message
+                            ReactionPicker(
+                                isVisible = true,
+                                isUserMe = selected.isMe,
+                                primaryColor = primaryColor,
+                                onReactionSelected = { emoji ->
+                                    onSendReaction(selected.id, emoji)
+                                    showOverlay.value = false
+                                    longPressedMessage.value = null
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                onExpandPicker = {
+                                    // TODO: Show expanded picker
+                                }
+                            )
+                            
                             OverlayMessageItem(
                                 msg = selected,
                                 primaryColor = primaryColor,

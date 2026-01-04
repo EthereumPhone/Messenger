@@ -50,6 +50,7 @@ import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.Message
+import org.ethereumphone.model.TransactionRequest
 import kotlin.math.max
 
 
@@ -73,7 +74,11 @@ fun MessageList(
     secondaryColor: Color,
     openGLColor: Color,
     deletedMessageIds: Map<String, Boolean>,
-    onUpdateSeenCount: (Int) -> Unit
+    onUpdateSeenCount: (Int) -> Unit,
+    onExecuteTransaction: (TransactionRequest) -> Unit = {},
+    onRejectTransaction: (Message) -> Unit = {},
+    myInboxId: String = "",
+    onReactionClick: (messageId: String, emoji: String) -> Unit = { _, _ -> }
 ) {
     // Lock the divider position/count for the lifetime of this screen
     val lockedDividerIndexState = remember { mutableStateOf<Int?>(null) }
@@ -173,6 +178,10 @@ fun MessageList(
                             primaryColor = primaryColor,
                             secondaryColor = secondaryColor,
                             openGLColor = openGLColor,
+                            onExecuteTransaction = onExecuteTransaction,
+                            onRejectTransaction = onRejectTransaction,
+                            myInboxId = myInboxId,
+                            onReactionClick = { emoji -> onReactionClick(message.id, emoji) }
                     )
                 }
             }

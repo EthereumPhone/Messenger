@@ -41,17 +41,47 @@ data class MessageEntity(
     val seenDate: Long = 0,
     val deliveryStatus: DecodedMessage.MessageDeliveryStatus = DecodedMessage.MessageDeliveryStatus.PUBLISHED,
     val isMe: Boolean = false,
+    // Transaction request data (JSON serialized TransactionRequest)
+    val transactionRequest: String? = null,
+    // Transaction execution status: PENDING, EXECUTING, SUCCESS, FAILED, REJECTED
+    val transactionStatus: String? = null,
+    // Transaction hash after successful execution
+    val transactionHash: String? = null,
 ) {
-    fun getSummary(): String = body //TODO: Change this
+    fun getSummary(): String = if (transactionRequest != null) {
+        "Transaction Request"
+    } else {
+        body
+    }
 
     fun isFailedMessage(): Boolean = deliveryStatus == DecodedMessage.MessageDeliveryStatus.FAILED
 
     fun isDelivered(): Boolean = deliveryStatus == DecodedMessage.MessageDeliveryStatus.PUBLISHED
+    
+    fun isTransactionRequest(): Boolean = transactionRequest != null
 
 }
 
-fun MessageEntity.toExternalModel(recipient: Recipient): Message = 
-    Message(
+fun MessageEntity.toExternalModel(recipient: Recipient): Message {
+    // Parse transaction request if present
+    val txRequest: org.ethereumphone.model.TransactionRequest? = transactionRequest?.let { json ->
+        try {
+            kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                .decodeFromString(org.ethereumphone.model.TransactionRequest.serializer(), json)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    val txStatus = transactionStatus?.let { status ->
+        try {
+            org.ethereumphone.model.TransactionRequestStatus.valueOf(status)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    return Message(
         id = id,
         threadId = threadId,
         recipient = recipient,
@@ -63,6 +93,10 @@ fun MessageEntity.toExternalModel(recipient: Recipient): Message =
         isMe = isMe,
         attachments = emptyList(),
         reactions = emptyList(),
-        body = body
+        body = body,
+        transactionRequest = txRequest,
+        transactionStatus = txStatus,
+        transactionHash = transactionHash
     )
+}
 

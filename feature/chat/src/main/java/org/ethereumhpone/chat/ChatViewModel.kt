@@ -59,8 +59,14 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import javax.inject.Inject
 import org.xmtp.android.library.codecs.ContentTypeReadReceipt
+import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.ReadReceipt
 import org.xmtp.android.library.SendOptions
+import org.ethereumphone.model.TransactionRequest
+import org.ethereumphone.model.TransactionRequestStatus
+import org.ethereumhpone.data.util.GasEstimationHelper
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.http.HttpService
 
 
 @HiltViewModel
@@ -183,6 +189,21 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
 
     private val _selectMode = MutableStateFlow(false)
     val selectMode: StateFlow<Boolean> = _selectMode
+    
+    // Current user's inbox ID for reaction display
+    val myInboxId: StateFlow<String> = xmtpClientManager.clientState
+        .map { state ->
+            if (state == XmtpClientManager.ClientState.Ready) {
+                xmtpClientManager.client.inboxId
+            } else {
+                ""
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = "",
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
 
     fun toggleSelection(message: Message) {
         _selectedMessages.update { current ->
@@ -384,18 +405,60 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
 
 
+    /**
+     * Send a reaction to a message.
+     * @param messageId The ID of the message to react to
+     * @param emoji The emoji reaction (e.g., "👍", "❤️", "😂")
+     */
     fun sendReaction(
-        reactionUri: String
+        messageId: String,
+        emoji: String
     ) {
-        viewModelScope.launch { 
-            val reaction = Reaction(
-                id = TODO(),
-                messageId = TODO(),
-                reactionSchema = TODO(),
-                content = TODO(),
-                senderInboxId = TODO()
-            )
-            
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!::xmtpConversation.isInitialized) {
+                    Log.e("ChatViewModel", "Cannot send reaction: xmtpConversation not initialized")
+                    return@launch
+                }
+                
+                messageRepository.sendReaction(
+                    xmtpConversation = xmtpConversation,
+                    messageId = messageId,
+                    emoji = emoji,
+                    action = ReactionAction.Added
+                )
+                Log.d("ChatViewModel", "Reaction sent: $emoji to message $messageId")
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to send reaction", e)
+            }
+        }
+    }
+    
+    /**
+     * Remove a reaction from a message.
+     * @param messageId The ID of the message to remove reaction from
+     * @param emoji The emoji reaction to remove
+     */
+    fun removeReaction(
+        messageId: String,
+        emoji: String
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!::xmtpConversation.isInitialized) {
+                    Log.e("ChatViewModel", "Cannot remove reaction: xmtpConversation not initialized")
+                    return@launch
+                }
+                
+                messageRepository.removeReaction(
+                    xmtpConversation = xmtpConversation,
+                    messageId = messageId,
+                    emoji = emoji
+                )
+                Log.d("ChatViewModel", "Reaction removed: $emoji from message $messageId")
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to remove reaction", e)
+            }
         }
     }
 
@@ -572,6 +635,143 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Failed to send read receipt", e)
             }
+        }
+    }
+    
+    /**
+     * Execute a transaction request received via XMTP message.
+     */
+    fun executeTransaction(transactionRequest: TransactionRequest) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                _transactionStatus.value = TransactionStatus.PENDING
+                Log.d("ChatViewModel", "Executing transaction request: chainId=${transactionRequest.chainId}, calls=${transactionRequest.calls.size}")
+                
+                // Switch chain if necessary
+                val targetChainId = transactionRequest.chainId.toInt()
+                val currentChain = walletSDK.getChainId()
+                
+                if (currentChain != targetChainId) {
+                    Log.d("ChatViewModel", "Switching chain from $currentChain to $targetChainId")
+                    val rpcUrl = chainIdToRPC(targetChainId)
+                    val bundlerUrl = chainIdToBundler(targetChainId)
+                    val switchResult = walletSDK.changeChain(targetChainId, rpcUrl, bundlerUrl)
+                    if (switchResult == "decline") {
+                        Log.e("ChatViewModel", "User declined chain switch")
+                        _transactionStatus.value = TransactionStatus.FAILURE
+                        return@launch
+                    }
+                }
+                
+                val rpcUrl = chainIdToRPC(targetChainId)
+                val bundlerUrl = chainIdToBundler(targetChainId)
+                
+                // Build transaction params list
+                val txParamsList = transactionRequest.calls.map { call ->
+                    WalletSDK.TxParams(
+                        to = call.to,
+                        value = hexToDecimalString(call.value),
+                        data = call.data
+                    )
+                }
+                
+                // Create gas provider
+                val gasProvider: suspend (WalletSDK.UserOperation) -> WalletSDK.GasEstimation = { userOp ->
+                    GasEstimationHelper.estimateGas(userOp, rpcUrl)
+                }
+                
+                // Send the transaction
+                val result = if (txParamsList.size == 1) {
+                    val tx = txParamsList.first()
+                    walletSDK.sendTransaction(
+                        to = tx.to,
+                        value = tx.value,
+                        data = tx.data,
+                        callGas = null,
+                        chainId = targetChainId,
+                        gasProvider = gasProvider
+                    )
+                } else {
+                    // Batched transaction
+                    walletSDK.sendTransaction(
+                        txParamsList = txParamsList,
+                        callGas = null,
+                        chainId = targetChainId,
+                        gasProvider = gasProvider
+                    )
+                }
+                
+                Log.d("ChatViewModel", "Transaction result: $result")
+                
+                // Check result
+                when {
+                    result.startsWith("0x") -> {
+                        _transactionStatus.value = TransactionStatus.SUCCESS
+                        // Send confirmation message
+                        val confirmationMessage = buildTransactionConfirmationMessage(transactionRequest, result, targetChainId)
+                        sendMessage(confirmationMessage)
+                        Log.d("ChatViewModel", "Transaction successful: $result")
+                    }
+                    result.equals("decline", ignoreCase = true) -> {
+                        _transactionStatus.value = TransactionStatus.FAILURE
+                        Log.d("ChatViewModel", "Transaction declined by user")
+                    }
+                    else -> {
+                        _transactionStatus.value = TransactionStatus.FAILURE
+                        Log.e("ChatViewModel", "Transaction failed: $result")
+                    }
+                }
+                
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Transaction execution failed", e)
+                _transactionStatus.value = TransactionStatus.FAILURE
+            }
+        }
+    }
+    
+    /**
+     * Reject a transaction request.
+     */
+    fun rejectTransaction(message: Message) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d("ChatViewModel", "Transaction rejected for message: ${message.id}")
+                // Optionally send a rejection message
+                // sendMessage("Transaction request rejected")
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to reject transaction", e)
+            }
+        }
+    }
+    
+    private fun chainIdToBundler(chainId: Int): String {
+        return "https://api.pimlico.io/v2/$chainId/rpc?apikey=${BuildConfig.BUNDLER_API}"
+    }
+    
+    private fun buildTransactionConfirmationMessage(
+        txRequest: TransactionRequest,
+        txHash: String,
+        chainId: Int
+    ): String {
+        val etherscanUrl = chainIdToEtherscan(chainId)
+        val metadata = txRequest.metadata
+        
+        return if (metadata?.tokenAmount != null && metadata.tokenSymbol != null) {
+            "Sent ${metadata.tokenAmount} ${metadata.tokenSymbol}: $etherscanUrl/tx/$txHash"
+        } else {
+            "Transaction executed: $etherscanUrl/tx/$txHash"
+        }
+    }
+    
+    private fun hexToDecimalString(hex: String): String {
+        return try {
+            if (hex.startsWith("0x")) {
+                BigInteger(hex.removePrefix("0x"), 16).toString()
+            } else {
+                hex
+            }
+        } catch (e: Exception) {
+            "0"
         }
     }
 }

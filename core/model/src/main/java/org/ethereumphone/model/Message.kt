@@ -14,10 +14,19 @@ data class Message(
     val isMe: Boolean,
     val attachments: List<Attachment>,
     val reactions: List<Reaction>,
-    val body: String
+    val body: String,
+    // Transaction request data
+    val transactionRequest: TransactionRequest? = null,
+    val transactionStatus: TransactionRequestStatus? = null,
+    val transactionHash: String? = null
 ) {
 
-    fun getSummary(): String = body
+    fun getSummary(): String = if (transactionRequest != null) {
+        "Transaction Request"
+    } else {
+        body
+    }
     fun isFailedMessage(): Boolean = deliveryStatus == DeliveryStatus.FAILED
     fun isDelivered(): Boolean = deliveryStatus == DeliveryStatus.PUBLISHED
+    fun isTransactionRequest(): Boolean = transactionRequest != null
 }
