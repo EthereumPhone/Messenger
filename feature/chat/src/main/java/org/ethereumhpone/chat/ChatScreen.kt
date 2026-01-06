@@ -92,6 +92,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
+import org.ethereumhpone.chat.components.ExpandedReactionPicker
 import org.ethereumhpone.chat.components.ReactionPicker
 import org.ethereumhpone.chat.components.GroupDetailsSheet
 import org.ethereumhpone.chat.components.OverlaySendScreen
@@ -301,6 +302,7 @@ fun ChatScreen(
 
     var showOverlay = remember { mutableStateOf(false) }
     val longPressedMessage = remember { mutableStateOf<Message?>(null) }
+    var showExpandedReactionPicker = remember { mutableStateOf(false) }
 
     var shouldRotate = remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
@@ -604,6 +606,7 @@ fun ChatScreen(
             onCancelClick = {
                 showOverlay.value = false
                 longPressedMessage.value = null
+                showExpandedReactionPicker.value = false
             },
             dismissOnBackgroundClick = true,
             content = {
@@ -636,19 +639,40 @@ fun ChatScreen(
                             horizontalAlignment = if (selected.isMe) Alignment.End else Alignment.Start,
                             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
                         ) {
-                            // Reaction picker above the message
+                            // Expanded reaction picker (shown when + is clicked)
+                            // Offset it up so it doesn't get cut off at the bottom
+                            ExpandedReactionPicker(
+                                isVisible = showExpandedReactionPicker.value,
+                                onReactionSelected = { emoji ->
+                                    Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker selected emoji=$emoji")
+                                    onSendReaction(selected.id, emoji)
+                                    showExpandedReactionPicker.value = false
+                                    showOverlay.value = false
+                                    longPressedMessage.value = null
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                onDismiss = {
+                                    Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker dismissed")
+                                    showExpandedReactionPicker.value = false
+                                },
+                                modifier = Modifier.offset(y = (-80).dp)
+                            )
+                            
+                            // Quick reaction picker above the message
                             ReactionPicker(
-                                isVisible = true,
+                                isVisible = !showExpandedReactionPicker.value,
                                 isUserMe = selected.isMe,
                                 primaryColor = primaryColor,
                                 onReactionSelected = { emoji ->
+                                    Log.d("REACTION_DEBUG", "ChatScreen: ReactionPicker selected emoji=$emoji")
                                     onSendReaction(selected.id, emoji)
                                     showOverlay.value = false
                                     longPressedMessage.value = null
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 },
                                 onExpandPicker = {
-                                    // TODO: Show expanded picker
+                                    Log.d("REACTION_DEBUG", "ChatScreen: onExpandPicker - setting showExpandedReactionPicker=true")
+                                    showExpandedReactionPicker.value = true
                                 }
                             )
                             

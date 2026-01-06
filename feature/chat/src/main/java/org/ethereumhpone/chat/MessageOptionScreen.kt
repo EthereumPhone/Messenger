@@ -1,6 +1,7 @@
 package org.ethereumhpone.chat
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -86,6 +87,7 @@ fun MessageOptionsScreen(
        modifier = Modifier
            .fillMaxSize()
            .clickable {
+               Log.d("REACTION_DEBUG", "MessageOptionsScreen: OVERLAY BOX CLICKED - setting focusMode=false")
                focusMode.value = false //else focusMode = true
            },
    ) {

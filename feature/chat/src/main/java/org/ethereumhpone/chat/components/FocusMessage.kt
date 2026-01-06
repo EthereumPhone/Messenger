@@ -2,10 +2,13 @@ package org.ethereumhpone.chat.components
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,9 +26,11 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,6 +82,8 @@ fun FocusMessage(
     onReactionSelected: (String) -> Unit = {}
 
 ) {
+    // DEBUG: Log when FocusMessage is being composed
+    Log.d("REACTION_DEBUG", "FocusMessage: COMPOSING - focusMode=${focusMode.value}")
 
     //animation
 
@@ -142,22 +149,68 @@ fun FocusMessage(
 
 
 
+    // State for showing expanded emoji picker
+    var showExpandedPicker by remember { mutableStateOf(false) }
+    
+    // Log state changes
+    LaunchedEffect(showExpandedPicker) {
+        Log.d("REACTION_DEBUG", "FocusMessage: showExpandedPicker changed to $showExpandedPicker")
+    }
+    
+    LaunchedEffect(focusMode.value) {
+        Log.d("REACTION_DEBUG", "FocusMessage: focusMode changed to ${focusMode.value}")
+    }
+    
+    // Log visibility calculations
+    val reactionPickerVisible = focusMode.value && !showExpandedPicker
+    Log.d("REACTION_DEBUG", "FocusMessage: ReactionPicker should be visible = $reactionPickerVisible (focusMode=${focusMode.value}, showExpandedPicker=$showExpandedPicker)")
+    Log.d("REACTION_DEBUG", "FocusMessage: ExpandedReactionPicker should be visible = $showExpandedPicker")
+
     Column(
-        modifier = alignmessage,
+        modifier = alignmessage
+            // Consume clicks on this column so they don't propagate to the parent overlay
+            // This prevents the overlay from dismissing when clicking on the reaction picker
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { /* consume click */ },
         horizontalAlignment = if(isUserMe) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Reaction picker appears above the message
+        // Expanded reaction picker (shown when + is clicked)
+        ExpandedReactionPicker(
+            isVisible = showExpandedPicker,
+            onReactionSelected = { emoji ->
+                Log.d("REACTION_DEBUG", "FocusMessage: ExpandedReactionPicker onReactionSelected called with emoji=$emoji")
+                onReactionSelected(emoji)
+                showExpandedPicker = false
+                focusMode.value = false
+            },
+            onDismiss = {
+                Log.d("REACTION_DEBUG", "FocusMessage: ExpandedReactionPicker onDismiss called")
+                showExpandedPicker = false
+            },
+            modifier = Modifier.align(if (isUserMe) Alignment.End else Alignment.Start)
+        )
+        
+        // Quick reaction picker appears above the message
+        // Create the callback with logging
+        val expandPickerCallback: () -> Unit = {
+            Log.d("REACTION_DEBUG", "FocusMessage: onExpandPicker RECEIVED - setting showExpandedPicker=true")
+            showExpandedPicker = true
+            Log.d("REACTION_DEBUG", "FocusMessage: showExpandedPicker is now $showExpandedPicker")
+        }
+        Log.d("REACTION_DEBUG", "FocusMessage: Creating ReactionPicker with callback hashCode=${expandPickerCallback.hashCode()}")
+        
         ReactionPicker(
-            isVisible = focusMode.value,
+            isVisible = focusMode.value && !showExpandedPicker,
             isUserMe = isUserMe,
             onReactionSelected = { emoji ->
+                Log.d("REACTION_DEBUG", "FocusMessage: onReactionSelected called with emoji=$emoji")
                 onReactionSelected(emoji)
                 focusMode.value = false
             },
-            onExpandPicker = {
-                // TODO: Show expanded picker in a dialog or bottom sheet
-            },
+            onExpandPicker = expandPickerCallback,
             modifier = Modifier.align(if (isUserMe) Alignment.End else Alignment.Start)
         )
 
