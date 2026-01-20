@@ -151,7 +151,7 @@ fun SendTransactionOverlay(
     recipientDisplay: String,
     onReadyToSendChanged: (Boolean) -> Unit,
     showDebugAction: Boolean = false,
-    onDebugSend: (String) -> Unit = {}
+    onDebugSend: (DebugSendPayload) -> Unit = {}
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -180,6 +180,7 @@ fun SendTransactionOverlay(
     var description by remember { mutableStateOf("") }
     var fiatPrice by remember { mutableStateOf(0.0) }
     var selectedTokenIndex by remember { mutableStateOf(-1) }
+    var selectedAsset by remember { mutableStateOf<org.ethereumphone.model.TokenAsset?>(null) }
     
     val isReadyToSend = currentScreen == SendScreenState.AMOUNT_INPUT
     
@@ -229,6 +230,7 @@ fun SendTransactionOverlay(
                             token = asset.symbol
                             max = asset.balance
                             fiatPrice = asset.price
+                            selectedAsset = asset
                             currentScreen = SendScreenState.AMOUNT_INPUT
                         }
                     )
@@ -242,17 +244,6 @@ fun SendTransactionOverlay(
                         amountText
                     }
                     val displayToken = if (token.isNotBlank()) token.uppercase() else "TOKEN"
-                    val debugMessage = buildString {
-                        if (displayAmount.isNotBlank()) {
-                            append("Send $displayAmount $displayToken")
-                        } else {
-                            append("Send $displayToken")
-                        }
-                        if (description.isNotBlank()) {
-                            append(" - $description")
-                        }
-                    }
-
                     AmountInputContent(
                         amount = amount,
                         onAmountChange = { amount = it },
@@ -275,7 +266,17 @@ fun SendTransactionOverlay(
                         },
                         showDebugAction = showDebugAction,
                         debugEnabled = amountText.isNotBlank() && token.isNotBlank(),
-                        onDebugSend = { onDebugSend(debugMessage) }
+                        onDebugSend = {
+                            onDebugSend(
+                                DebugSendPayload(
+                                    amount = amountText,
+                                    tokenSymbol = displayToken,
+                                    tokenDecimals = selectedAsset?.decimals ?: 18,
+                                    chainId = selectedAsset?.chainId?.toLong() ?: 1L,
+                                    description = description
+                                )
+                            )
+                        }
                     )
                 }
             }
@@ -309,7 +310,7 @@ private fun TokenSelectionContent(
         AssetsUiState.Empty -> {
             val fallbackAssets = CommonTokens.allTokens.map { token ->
                 org.ethereumphone.model.TokenAsset(
-                    address = token.contractAddress!!,
+                    address = token.contractAddress ?: "0x0000000000000000000000000000000000000000",
                     chainId = token.chainId.toInt(),
                     symbol = token.symbol,
                     name = token.name,
@@ -715,6 +716,14 @@ private fun AmountInputContent(
         }
     }
 }
+
+data class DebugSendPayload(
+    val amount: String,
+    val tokenSymbol: String,
+    val tokenDecimals: Int,
+    val chainId: Long,
+    val description: String
+)
 
 // Utility mapping functions for chain abbreviations
 private fun chainIdToAbbrev(chainId: Int): String = when (chainId) {
