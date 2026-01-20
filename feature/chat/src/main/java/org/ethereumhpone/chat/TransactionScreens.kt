@@ -7,8 +7,14 @@ import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.ethereumhpone.chat.components.RequestTransactionOverlay
+import org.ethereumhpone.chat.components.DebugSendPayload
 import org.ethereumhpone.chat.components.SendTransactionOverlay
 import org.ethereumphone.dgenlibrary.SystemColorManager
+import org.ethereumphone.model.TransactionReference
+import org.ethereumphone.model.TransactionReferenceMetadata
+import org.ethereumphone.model.TransactionTypes
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 @Composable
 fun SendTransactionScreenRoute(
@@ -42,8 +48,8 @@ fun SendTransactionScreenRoute(
                 sendViewModel.onScreenClosed()
             }
         },
-        onDebugSend = { message ->
-            chatViewModel.sendMessage(message)
+        onDebugSend = { payload ->
+            chatViewModel.sendTransactionReference(buildTransactionReference(payload))
             onBackClick()
         }
     )
@@ -55,7 +61,7 @@ fun SendTransactionScreen(
     recipientDisplay: String,
     onBackClick: () -> Unit,
     onReadyToSendChanged: (Boolean) -> Unit,
-    onDebugSend: (String) -> Unit
+    onDebugSend: (DebugSendPayload) -> Unit
 ) {
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
@@ -102,18 +108,34 @@ fun RequestTransactionScreenRoute(
         recipientName = recipientName,
         onDismiss = onBackClick,
         onSendRequest = { request ->
-            val amount = request.metadata?.tokenAmount?.takeIf { it.isNotBlank() } ?: "0"
-            val symbol = request.metadata?.tokenSymbol?.takeIf { it.isNotBlank() } ?: "TOKEN"
-            val description = request.metadata?.description?.takeIf { it.isNotBlank() }
-            val message = buildString {
-                append("Request $amount $symbol")
-                if (description != null && !description.equals("Request $symbol", ignoreCase = true)) {
-                    append(" - $description")
-                }
-            }
-            chatViewModel.sendMessage(message)
+            chatViewModel.sendTransactionRequest(request)
             onBackClick()
         },
         primaryColor = SystemColorManager.primaryColor
+    )
+}
+
+private fun buildTransactionReference(payload: DebugSendPayload): TransactionReference {
+    val amount = payload.amount.toBigDecimalOrNull() ?: BigDecimal.ZERO
+    val baseUnits = try {
+        amount
+            .setScale(payload.tokenDecimals, RoundingMode.DOWN)
+            .multiply(BigDecimal.TEN.pow(payload.tokenDecimals))
+            .toLong()
+    } catch (_: Exception) {
+        0L
+    }
+    val reference = "0x" + "0".repeat(64)
+
+    return TransactionReference(
+        namespace = "eip155",
+        networkId = payload.chainId,
+        reference = reference,
+        metadata = TransactionReferenceMetadata(
+            transactionType = TransactionTypes.TRANSFER,
+            currency = payload.tokenSymbol,
+            amount = baseUnits,
+            decimals = payload.tokenDecimals
+        )
     )
 }
