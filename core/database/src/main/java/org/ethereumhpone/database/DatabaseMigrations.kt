@@ -61,3 +61,10 @@ val migration6To7 = object: Migration(6,7) {
         db.execSQL("ALTER TABLE message ADD COLUMN transactionHash TEXT DEFAULT NULL")
     }
 }
+
+val migration7To8 = object: Migration(7,8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add transaction reference support to messages (for completed transactions)
+        db.execSQL("ALTER TABLE message ADD COLUMN transactionReference TEXT DEFAULT NULL")
+    }
+}

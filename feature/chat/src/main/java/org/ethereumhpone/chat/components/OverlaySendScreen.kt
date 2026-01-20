@@ -93,6 +93,7 @@ import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.dgenlibrary.theme.dgenOcean
 import org.ethereumphone.model.Recipient
 import org.ethosmobile.components.library.models.TransferItem
+import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -105,6 +106,19 @@ import org.ethereumphone.dgenlibrary.components.SelectableCarousel
 import org.ethereumphone.dgenlibrary.formatWithSuffix
 import org.ethereumhpone.chat.ConversationUiState
 import org.ethereumphone.dgenlibrary.screens.InfoScreen
+import org.ethereumphone.model.TokenAsset
+
+/**
+ * Data class to hold transaction parameters from the send screen
+ */
+data class SendTransactionParams(
+    val amount: String,
+    val token: String,
+    val chainId: Int,
+    val recipientAddress: String,
+    val useDollarAmount: Boolean,
+    val fiatPrice: Double
+)
 
 @Composable
 fun OverlaySendScreenRoute(
@@ -117,12 +131,38 @@ fun OverlaySendScreenRoute(
 ){
 
     val assetsUiState by viewModel.tokenAssetState.collectAsStateWithLifecycle()
+    val sendTransactionTriggered by viewModel.sendTransactionTriggered.collectAsStateWithLifecycle()
+
+    // Log the assets state for debugging
+    LaunchedEffect(assetsUiState) {
+        android.util.Log.d("OverlaySendScreen", "AssetsUiState changed: $assetsUiState")
+        when (assetsUiState) {
+            is AssetsUiState.Loading -> android.util.Log.d("OverlaySendScreen", "State: Loading")
+            is AssetsUiState.Empty -> android.util.Log.d("OverlaySendScreen", "State: Empty (no assets)")
+            is AssetsUiState.Error -> android.util.Log.d("OverlaySendScreen", "State: Error")
+            is AssetsUiState.Success -> {
+                val assets = (assetsUiState as AssetsUiState.Success).assets
+                android.util.Log.d("OverlaySendScreen", "State: Success with ${assets.size} assets")
+                assets.forEachIndexed { index, asset ->
+                    android.util.Log.d("OverlaySendScreen", "  Asset[$index]: ${asset.symbol} balance=${asset.balance} price=${asset.price}")
+                }
+            }
+        }
+    }
 
     val conversationState by viewModel.conversation.collectAsStateWithLifecycle()
     val recipientDisplay = remember(conversationState) {
         if (conversationState is ConversationUiState.Success) {
             (conversationState as ConversationUiState.Success).conversation.getHeader()
         } else ""
+    }
+    
+    // Track if terminal button was pressed to trigger send
+    LaunchedEffect(sendTransactionTriggered) {
+        if (sendTransactionTriggered) {
+            // Terminal button was pressed, execute send
+            onDone()
+        }
     }
 
     // Ensure QR code removed when composable is disposed
@@ -206,7 +246,8 @@ fun OverlaySendScreen(
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
-        ){
+        )
+        {
 
             Text(
                 text = title,
@@ -270,6 +311,9 @@ fun OverlaySendScreen(
                     }
                     is AssetsUiState.Success -> {
                         val assets = assetsUiState.assets
+                        // Track selected token index for visual feedback
+                        var selectedTokenIndex by remember { mutableStateOf(-1) }
+                        
                         Box {
                             LazyColumn(
                                 state = scrollState,
@@ -285,31 +329,32 @@ fun OverlaySendScreen(
                                     )
                                     .fillMaxSize()
                                     .background(dgenBlack),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(
+                                    start = 24.dp,
+                                    end = 24.dp,
+                                    top = 8.dp,
+                                    bottom = 16.dp
+                                )
                             ) {
-                                item { Spacer(Modifier.height(1.dp)) }
                                 items(assets.size) { index ->
                                     val asset = assets[index]
-                                    val tokenPrice = asset.price
-                                    AvailableToken(
-                                        logoUrl = asset.logoUrl ?: "",
-                                        name = asset.symbol,
-                                        balance = asset.balance,
-                                        fiatamount = tokenPrice,
-                                        modifier = Modifier
-                                            .padding(start = 24.dp, end = 40.dp)
-                                            .pointerInput(Unit) {
-                                                detectTapGestures {
-                                                    token = asset.symbol
-                                                    max = asset.balance
-                                                    fiatPrice = tokenPrice
-                                                    readyToSend = true
-                                                }
-                                            },
-                                        primaryColor = primaryColor
+                                    val tokenData = asset.toOwnedTokenData()
+                                    
+                                    AssetTokenCard(
+                                        token = tokenData,
+                                        primaryColor = primaryColor,
+                                        secondaryColor = secondaryColor,
+                                        isSelected = selectedTokenIndex == index,
+                                        onClick = {
+                                            selectedTokenIndex = index
+                                            token = asset.symbol
+                                            max = asset.balance
+                                            fiatPrice = asset.price
+                                            readyToSend = true
+                                        }
                                     )
                                 }
-                                item { Spacer(Modifier.height(8.dp)) }
                             }
                             Spacer(
                                 modifier = Modifier
@@ -336,7 +381,7 @@ fun OverlaySendScreen(
                         InfoScreen(
                             gifEnabledLoader = gifEnabledLoader,
                             primaryColor = primaryColor,
-                            description = "Empty"
+                            description = "Error loading assets from WalletManager"
                         )
                     }
                 }
@@ -783,4 +828,23 @@ private fun abbrevToChainId(abbrev: String): Int = when (abbrev) {
     "base" -> 8453
     "zora" -> 7777777
     else -> 1
+}
+
+/**
+ * Extension function to convert TokenAsset to OwnedTokenProviderContract.OwnedTokenData
+ * for use with AssetTokenCard in the Messenger app.
+ */
+private fun TokenAsset.toOwnedTokenData(): OwnedTokenProviderContract.OwnedTokenData {
+    return OwnedTokenProviderContract.OwnedTokenData(
+        contractAddress = this.address,
+        decimals = this.decimals,
+        name = this.name,
+        symbol = this.symbol,
+        logo = this.logoUrl,
+        chainId = this.chainId,
+        swappable = this.swappable,
+        balance = BigDecimal.valueOf(this.balance),
+        price = this.price,
+        chains = listOf(this.chainId)
+    )
 }

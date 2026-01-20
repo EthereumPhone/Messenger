@@ -6,6 +6,7 @@ import org.ethereumhpone.domain.model.Attachment
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Reaction
 import org.ethereumphone.model.TransactionRequest
+import org.ethereumphone.model.TransactionReference
 import org.xmtp.android.library.Conversation
 import org.xmtp.android.library.codecs.ReactionAction
 
@@ -59,6 +60,15 @@ interface MessageRepository {
         status: String,
         txHash: String?
     )
+    
+    /**
+     * Send a transaction reference (completed transaction) via XMTP.
+     */
+    suspend fun sendTransactionReference(
+        xmtpConversation: Conversation,
+        threadId: String,
+        transactionReference: TransactionReference
+    ): String?
     
     /**
      * Send a reaction to a message via XMTP.
