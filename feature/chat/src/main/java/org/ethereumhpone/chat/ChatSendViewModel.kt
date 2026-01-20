@@ -20,11 +20,12 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.ethereumhpone.chat.components.OwnedTokenProviderContract
 import org.ethereumhpone.chat.navigation.AddressesArgs
 import org.ethereumhpone.chat.navigation.ThreadIdArgs
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumhpone.domain.manager.ActiveConversationManager
-import org.ethereumhpone.domain.manager.WalletContentProvider
 import org.ethereumhpone.domain.model.UserData
 import org.ethereumhpone.domain.repository.ContactRepository
 import org.ethereumhpone.domain.repository.ConversationRepository
@@ -46,19 +47,25 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
     private var walletSDK: WalletSDK,
     private val terminalSDK: TerminalSDK?,
     private val _getAllTokensUseCase: GetAllTokensUseCase,
-    private val walletContentProvider: WalletContentProvider,
     @ApplicationContext private val context: Context
 ): ViewModel() {
 
+    companion object {
+        private const val TAG = "ChatSendViewModel"
+    }
+
     init {
+        // Log owned tokens on init for debugging (using direct content resolver like TokenLauncher)
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val ownedTokens = walletContentProvider.getAllOwnedTokens()
+                Log.d(TAG, "=== Querying owned tokens directly via ContentResolver ===")
+                val ownedTokens = OwnedTokenProviderContract.getAllOwnedTokens(context.contentResolver)
+                Log.d(TAG, "Found ${ownedTokens.size} owned tokens")
                 ownedTokens.forEach { token ->
-                    Log.d("ChatSendViewModel", "OwnedToken: $token")
+                    Log.d(TAG, "OwnedToken: ${token.symbol} balance=${token.balance} price=${token.price} chainId=${token.chainId}")
                 }
             } catch (e: Exception) {
-                Log.e("ChatSendViewModel", "Error querying owned tokens", e)
+                Log.e(TAG, "Error querying owned tokens", e)
             }
         }
     }
@@ -133,56 +140,73 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
         )
 
 
+    /**
+     * Token asset state - fetches owned tokens directly from WalletManager's ContentProvider
+     * using the same approach as TokenLauncher (OwnedTokenProviderContract with context.contentResolver)
+     */
     val tokenAssetState: StateFlow<AssetsUiState> = flow {
-        // Continuously poll owned tokens; in future this can be replaced by a content-observer pattern
+        // Continuously poll owned tokens using direct ContentResolver query (like TokenLauncher)
         while (true) {
-            val ownedTokens = walletContentProvider.getAllOwnedTokens()
-            emit(ownedTokens)
-            delay(2_000) // refresh every 2s
-        }
-    }
-        .map { ownedTokens ->
-            // Convert OwnedToken -> TokenAsset with balance scaled by decimals
-            val tokenAssets = ownedTokens.mapNotNull { ownedToken ->
-                try {
-                    val scaledBalance = ownedToken.balance.toDouble()
-                    TokenAsset(
-                        address = ownedToken.contractAddress,
-                        chainId = ownedToken.chainId,
-                        symbol = ownedToken.symbol,
-                        name = ownedToken.name,
-                        balance = scaledBalance,
-                        decimals = ownedToken.decimals,
-                        logoUrl = ownedToken.logo ?: "",
-                        swappable = ownedToken.swappable,
-                        price = ownedToken.price
-                    )
-                } catch (e: Exception) {
-                    null // skip token if conversion fails
+            try {
+                Log.d(TAG, "=== Fetching owned tokens via ContentResolver ===")
+                val ownedTokens = withContext(Dispatchers.IO) {
+                    OwnedTokenProviderContract.getAllOwnedTokens(context.contentResolver)
                 }
-            }
-
-            val filteredTokens = tokenAssets
-                .filter { it.balance > 0 }
-                .filter { token ->
-                    val name = token.name.lowercase()
-                    val symbol = token.symbol.lowercase()
-                    val urlPatterns = listOf(
-                        "http://", "https://", "www.",
-                        ".com", ".io", ".org", ".net", ".xyz",
-                        "/", "t.me", "telegram", "twitter", "discord", "t.ly"
-                    )
-                    urlPatterns.none { pattern ->
-                        name.contains(pattern) || symbol.contains(pattern)
+                Log.d(TAG, "Fetched ${ownedTokens.size} tokens from ContentProvider")
+                
+                // Convert OwnedTokenData -> TokenAsset
+                val tokenAssets = ownedTokens.mapNotNull { ownedToken ->
+                    try {
+                        val balance = ownedToken.balance.toDouble()
+                        Log.d(TAG, "Token: ${ownedToken.symbol} balance=$balance price=${ownedToken.price}")
+                        TokenAsset(
+                            address = ownedToken.contractAddress,
+                            chainId = ownedToken.chainId,
+                            symbol = ownedToken.symbol,
+                            name = ownedToken.name,
+                            balance = balance,
+                            decimals = ownedToken.decimals,
+                            logoUrl = ownedToken.logo ?: "",
+                            swappable = ownedToken.swappable,
+                            price = ownedToken.price
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error converting token ${ownedToken.symbol}", e)
+                        null
                     }
                 }
 
-            if (filteredTokens.isEmpty()) {
-                AssetsUiState.Empty
-            } else {
-                AssetsUiState.Success(filteredTokens)
+                // Filter out spam tokens and zero balances
+                val filteredTokens = tokenAssets
+                    .filter { it.balance > 0 }
+                    .filter { token ->
+                        val name = token.name.lowercase()
+                        val symbol = token.symbol.lowercase()
+                        val urlPatterns = listOf(
+                            "http://", "https://", "www.",
+                            ".com", ".io", ".org", ".net", ".xyz",
+                            "/", "t.me", "telegram", "twitter", "discord", "t.ly"
+                        )
+                        urlPatterns.none { pattern ->
+                            name.contains(pattern) || symbol.contains(pattern)
+                        }
+                    }
+
+                Log.d(TAG, "After filtering: ${filteredTokens.size} tokens")
+                
+                if (filteredTokens.isEmpty()) {
+                    emit(AssetsUiState.Empty)
+                } else {
+                    emit(AssetsUiState.Success(filteredTokens))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching tokens", e)
+                emit(AssetsUiState.Error)
             }
+            
+            delay(2_000) // refresh every 2s
         }
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

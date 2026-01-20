@@ -3,150 +3,290 @@ package org.ethereumhpone.data.manager
 import android.content.Context
 import android.net.Uri
 import android.database.Cursor
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.ethereumhpone.domain.manager.WalletContentProvider
 import org.ethereumhpone.domain.model.OwnedToken
 import org.ethereumhpone.domain.model.TokenMetadata
 import javax.inject.Inject
 
+/**
+ * Implementation of WalletContentProvider that queries WalletManager's ContentProviders.
+ * 
+ * Uses the same approach as TokenLauncher:
+ * - TokenBalanceContentProvider (com.walletmanager.tokenbalance.provider)
+ * - TokenMetadataContentProvider (com.walletmanager.tokenmetadata.provider)
+ */
 class WalletContentProviderImpl @Inject constructor(
     @ApplicationContext private val context: Context
 ) : WalletContentProvider {
 
-    private fun buildBaseUri(authoritySuffix: String): Uri.Builder {
-        val authority = "$WALLET_PKG.$authoritySuffix"
-        return Uri.parse("content://$authority").buildUpon()
+    companion object {
+        private const val TAG = "WalletContentProviderImpl"
+        
+        // TokenBalance provider (same as TokenLauncher)
+        private const val BALANCE_AUTHORITY = "com.walletmanager.tokenbalance.provider"
+        private val BALANCE_URI: Uri = Uri.parse("content://$BALANCE_AUTHORITY")
+        
+        // TokenMetadata provider (same as TokenLauncher)
+        private const val METADATA_AUTHORITY = "com.walletmanager.tokenmetadata.provider"
+        private val METADATA_URI: Uri = Uri.parse("content://$METADATA_AUTHORITY")
+        
+        // Column names for TokenBalance provider
+        private const val COL_CONTRACT_ADDRESS = "contract_address"
+        private const val COL_CHAIN_ID = "chain_id"
+        private const val COL_TOKEN_BALANCE = "token_balance"
+        
+        // Column names for TokenMetadata provider
+        private const val COL_DECIMALS = "decimals"
+        private const val COL_NAME = "name"
+        private const val COL_SYMBOL = "symbol"
+        private const val COL_LOGO = "logo"
+        private const val COL_SWAPPABLE = "swappable"
+        private const val COL_PRICE = "price"
     }
 
     override fun getTokenMetadata(
         chainId: String,
         contractAddress: String
     ): TokenMetadata? {
-        val uri = buildBaseUri(TOKEN_METADATA_AUTHORITY)
+        val uri = METADATA_URI.buildUpon()
             .appendPath("token")
             .appendPath(chainId)
             .appendPath(contractAddress)
             .build()
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-                return parseTokenMetadataCursor(it)
+        
+        return try {
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    parseTokenMetadataCursor(it)
+                } else null
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying token metadata for $contractAddress on chain $chainId", e)
+            null
         }
-        return null
     }
 
     override fun getTokensMetadataForChain(chainId: String): List<TokenMetadata> {
-        val uri = buildBaseUri(TOKEN_METADATA_AUTHORITY)
+        val uri = METADATA_URI.buildUpon()
             .appendPath("tokens")
             .appendPath(chainId)
             .build()
-        val list = mutableListOf<TokenMetadata>()
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
-        cursor?.use {
-            while (it.moveToNext()) {
-                parseTokenMetadataCursor(it)?.let(list::add)
+        
+        return try {
+            val list = mutableListOf<TokenMetadata>()
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                while (it.moveToNext()) {
+                    parseTokenMetadataCursor(it)?.let(list::add)
+                }
             }
+            list
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying tokens metadata for chain $chainId", e)
+            emptyList()
         }
-        return list
     }
 
     override fun getOwnedToken(
         chainId: String,
         contractAddress: String
     ): OwnedToken? {
-        val uri = buildBaseUri(OWNED_TOKEN_AUTHORITY)
-            .appendPath("ownedToken")
+        // Get balance
+        val balanceUri = BALANCE_URI.buildUpon()
+            .appendPath("balance")
             .appendPath(chainId)
             .appendPath(contractAddress)
             .build()
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-                return parseOwnedTokenCursor(it)
+        
+        val balance = try {
+            val cursor = context.contentResolver.query(balanceUri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    it.getString(it.getColumnIndexOrThrow(COL_TOKEN_BALANCE))
+                } else null
             }
-        }
-        return null
-    }
-
-    override fun getOwnedTokensForChain(chainId: String): List<OwnedToken> {
-        val uri = buildBaseUri(OWNED_TOKEN_AUTHORITY)
-            .appendPath("ownedTokens")
-            .appendPath(chainId)
-            .build()
-        return queryOwnedTokens(uri)
-    }
-
-    override fun getAllOwnedTokens(): List<OwnedToken> {
-        val uri = buildBaseUri(OWNED_TOKEN_AUTHORITY)
-            .appendPath("ownedTokens")
-            .build()
-        return queryOwnedTokens(uri)
-    }
-
-    private fun queryOwnedTokens(uri: Uri): List<OwnedToken> {
-        val list = mutableListOf<OwnedToken>()
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
-        cursor?.use {
-            while (it.moveToNext()) {
-                parseOwnedTokenCursor(it)?.let(list::add)
-            }
-        }
-        return list
-    }
-
-    private fun parseTokenMetadataCursor(cursor: Cursor): TokenMetadata? {
-        val contractIdx = cursor.getColumnIndex("contract_address")
-        if (contractIdx == -1) return null
-        val decimalsIdx = cursor.getColumnIndex("decimals")
-        val nameIdx = cursor.getColumnIndex("name")
-        val symbolIdx = cursor.getColumnIndex("symbol")
-        val logoIdx = cursor.getColumnIndex("logo")
-        val chainIdx = cursor.getColumnIndex("chain_id")
-        val swapIdx = cursor.getColumnIndex("swappable")
-
-        val contractAddress = cursor.getString(contractIdx)
-        val decimals = cursor.getInt(decimalsIdx)
-        val name = cursor.getString(nameIdx)
-        val symbol = cursor.getString(symbolIdx)
-        val logo = cursor.getString(logoIdx)
-        val chainId = cursor.getInt(chainIdx)
-        val swappable = cursor.getInt(swapIdx) == 1
-
-        return TokenMetadata(
-            contractAddress = contractAddress,
-            decimals = decimals,
-            name = name,
-            symbol = symbol,
-            logo = logo,
-            chainId = chainId,
-            swappable = swappable
-        )
-    }
-
-    private fun parseOwnedTokenCursor(cursor: Cursor): OwnedToken? {
-        val meta = parseTokenMetadataCursor(cursor) ?: return null
-        val balanceIdx = cursor.getColumnIndex("balance")
-        val balance = if (balanceIdx != -1) cursor.getString(balanceIdx) else "0"
-
-        val priceIdx = cursor.getColumnIndex("price")
-        val price = if (priceIdx != -1) cursor.getDouble(priceIdx) else 0.0
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying balance", e)
+            null
+        } ?: return null
+        
+        // Get metadata
+        val metadata = getTokenMetadata(chainId, contractAddress) ?: return null
+        
+        // Get price
+        val price = getTokenPrice(chainId, contractAddress)
+        
         return OwnedToken(
-            contractAddress = meta.contractAddress,
-            decimals = meta.decimals,
-            name = meta.name,
-            symbol = meta.symbol,
-            logo = meta.logo,
-            chainId = meta.chainId,
-            swappable = meta.swappable,
+            contractAddress = metadata.contractAddress,
+            decimals = metadata.decimals,
+            name = metadata.name,
+            symbol = metadata.symbol,
+            logo = metadata.logo,
+            chainId = metadata.chainId,
+            swappable = metadata.swappable,
             balance = balance,
             price = price
         )
     }
 
-    companion object {
-        private const val TOKEN_METADATA_AUTHORITY = "tokenmetadata.provider"
-        private const val OWNED_TOKEN_AUTHORITY = "ownedtokens.provider"
-        private const val WALLET_PKG = "org.ethereumphone.walletmanager.testing123"
+    override fun getOwnedTokensForChain(chainId: String): List<OwnedToken> {
+        val balanceUri = BALANCE_URI.buildUpon()
+            .appendPath("balances")
+            .appendPath(chainId)
+            .build()
+        
+        Log.d(TAG, "Fetching owned tokens for chain $chainId")
+        
+        return try {
+            val balances = mutableListOf<Pair<String, String>>() // contractAddress to balance
+            val cursor = context.contentResolver.query(balanceUri, null, null, null, null)
+            cursor?.use {
+                while (it.moveToNext()) {
+                    try {
+                        val addr = it.getString(it.getColumnIndexOrThrow(COL_CONTRACT_ADDRESS))
+                        val bal = it.getString(it.getColumnIndexOrThrow(COL_TOKEN_BALANCE))
+                        balances.add(addr to bal)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing balance row", e)
+                    }
+                }
+            }
+            
+            Log.d(TAG, "Found ${balances.size} balances for chain $chainId")
+            
+            balances.mapNotNull { (contractAddress, balance) ->
+                val metadata = getTokenMetadata(chainId, contractAddress) ?: return@mapNotNull null
+                val price = getTokenPrice(chainId, contractAddress)
+                OwnedToken(
+                    contractAddress = metadata.contractAddress,
+                    decimals = metadata.decimals,
+                    name = metadata.name,
+                    symbol = metadata.symbol,
+                    logo = metadata.logo,
+                    chainId = metadata.chainId,
+                    swappable = metadata.swappable,
+                    balance = balance,
+                    price = price
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting owned tokens for chain $chainId", e)
+            emptyList()
+        }
+    }
+
+    override fun getAllOwnedTokens(): List<OwnedToken> {
+        val balanceUri = BALANCE_URI.buildUpon()
+            .appendPath("balances")
+            .appendPath("positive")
+            .build()
+        
+        Log.d(TAG, "=== Fetching all owned tokens from $balanceUri ===")
+        
+        return try {
+            data class BalanceInfo(val contractAddress: String, val chainId: Int, val balance: String)
+            val balances = mutableListOf<BalanceInfo>()
+            
+            val cursor = context.contentResolver.query(balanceUri, null, null, null, null)
+            cursor?.use {
+                Log.d(TAG, "Balance cursor has ${it.count} rows")
+                while (it.moveToNext()) {
+                    try {
+                        balances.add(
+                            BalanceInfo(
+                                contractAddress = it.getString(it.getColumnIndexOrThrow(COL_CONTRACT_ADDRESS)),
+                                chainId = it.getInt(it.getColumnIndexOrThrow(COL_CHAIN_ID)),
+                                balance = it.getString(it.getColumnIndexOrThrow(COL_TOKEN_BALANCE))
+                            )
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing balance row", e)
+                    }
+                }
+            } ?: run {
+                Log.w(TAG, "Balance cursor is null")
+            }
+            
+            Log.d(TAG, "Found ${balances.size} positive balances")
+            
+            val tokens = balances.mapNotNull { (contractAddress, chainId, balance) ->
+                val metadata = getTokenMetadata(chainId.toString(), contractAddress)
+                if (metadata == null) {
+                    Log.w(TAG, "No metadata for $contractAddress on chain $chainId")
+                    return@mapNotNull null
+                }
+                val price = getTokenPrice(chainId.toString(), contractAddress)
+                
+                OwnedToken(
+                    contractAddress = metadata.contractAddress,
+                    decimals = metadata.decimals,
+                    name = metadata.name,
+                    symbol = metadata.symbol,
+                    logo = metadata.logo,
+                    chainId = metadata.chainId,
+                    swappable = metadata.swappable,
+                    balance = balance,
+                    price = price
+                ).also {
+                    Log.d(TAG, "Created token: ${it.symbol} balance=${it.balance} price=${it.price}")
+                }
+            }
+            
+            Log.d(TAG, "Returning ${tokens.size} owned tokens")
+            tokens
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting all owned tokens", e)
+            emptyList()
+        }
+    }
+    
+    private fun getTokenPrice(chainId: String, contractAddress: String): Double {
+        val uri = METADATA_URI.buildUpon()
+            .appendPath("token")
+            .appendPath(chainId)
+            .appendPath(contractAddress)
+            .build()
+        
+        return try {
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val priceIdx = it.getColumnIndex(COL_PRICE)
+                    if (priceIdx != -1) it.getDouble(priceIdx) else 0.0
+                } else 0.0
+            } ?: 0.0
+        } catch (e: Exception) {
+            0.0
+        }
+    }
+
+    private fun parseTokenMetadataCursor(cursor: Cursor): TokenMetadata? {
+        val contractIdx = cursor.getColumnIndex(COL_CONTRACT_ADDRESS)
+        if (contractIdx == -1) return null
+        
+        val decimalsIdx = cursor.getColumnIndex(COL_DECIMALS)
+        val nameIdx = cursor.getColumnIndex(COL_NAME)
+        val symbolIdx = cursor.getColumnIndex(COL_SYMBOL)
+        val logoIdx = cursor.getColumnIndex(COL_LOGO)
+        val chainIdx = cursor.getColumnIndex(COL_CHAIN_ID)
+        val swapIdx = cursor.getColumnIndex(COL_SWAPPABLE)
+
+        return try {
+            TokenMetadata(
+                contractAddress = cursor.getString(contractIdx),
+                decimals = if (decimalsIdx != -1) cursor.getInt(decimalsIdx) else 18,
+                name = if (nameIdx != -1) cursor.getString(nameIdx) ?: "" else "",
+                symbol = if (symbolIdx != -1) cursor.getString(symbolIdx) ?: "" else "",
+                logo = if (logoIdx != -1) cursor.getString(logoIdx) else null,
+                chainId = if (chainIdx != -1) cursor.getInt(chainIdx) else 1,
+                swappable = if (swapIdx != -1) cursor.getInt(swapIdx) == 1 else false
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing token metadata cursor", e)
+            null
+        }
     }
 } 

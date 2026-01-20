@@ -70,7 +70,9 @@ import org.ethosmobile.components.library.theme.Colors
 import org.ethosmobile.components.library.theme.Fonts
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumphone.model.TransactionRequest
+import org.ethereumphone.model.TransactionReference
 import org.ethereumhpone.chat.components.TransactionRequestBubble
+import org.ethereumhpone.chat.components.TransactionReferenceBubble
 import org.ethereumhpone.chat.components.ReactionsDisplay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -207,6 +209,20 @@ fun MessageItem(
                         secondaryColor = secondaryColor,
                         onExecuteTransaction = onExecuteTransaction,
                         onRejectTransaction = { onRejectTransaction(msg) },
+                        isFirstMessageByAuthor = isFirstMessageByAuthor
+                    )
+                }
+            } else if (msg.isTransactionReference()) {
+                // Render transaction reference bubble (completed transaction)
+                val txReference = msg.transactionReference
+                if (txReference != null) {
+                    TransactionReferenceBubble(
+                        modifier = alignmessage,
+                        message = msg,
+                        transactionReference = txReference,
+                        isUserMe = msg.isMe,
+                        primaryColor = primaryColor,
+                        secondaryColor = secondaryColor,
                         isFirstMessageByAuthor = isFirstMessageByAuthor
                     )
                 }

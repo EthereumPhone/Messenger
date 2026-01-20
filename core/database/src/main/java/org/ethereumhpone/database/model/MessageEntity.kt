@@ -47,11 +47,13 @@ data class MessageEntity(
     val transactionStatus: String? = null,
     // Transaction hash after successful execution
     val transactionHash: String? = null,
+    // Transaction reference data (JSON serialized TransactionReference)
+    val transactionReference: String? = null,
 ) {
-    fun getSummary(): String = if (transactionRequest != null) {
-        "Transaction Request"
-    } else {
-        body
+    fun getSummary(): String = when {
+        transactionRequest != null -> "Transaction Request"
+        transactionReference != null -> "Transaction"
+        else -> body
     }
 
     fun isFailedMessage(): Boolean = deliveryStatus == DecodedMessage.MessageDeliveryStatus.FAILED
@@ -59,6 +61,8 @@ data class MessageEntity(
     fun isDelivered(): Boolean = deliveryStatus == DecodedMessage.MessageDeliveryStatus.PUBLISHED
     
     fun isTransactionRequest(): Boolean = transactionRequest != null
+    
+    fun isTransactionReference(): Boolean = transactionReference != null
 
 }
 
@@ -81,6 +85,16 @@ fun MessageEntity.toExternalModel(recipient: Recipient): Message {
         }
     }
     
+    // Parse transaction reference if present
+    val txReference: org.ethereumphone.model.TransactionReference? = transactionReference?.let { json ->
+        try {
+            kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                .decodeFromString(org.ethereumphone.model.TransactionReference.serializer(), json)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
     return Message(
         id = id,
         threadId = threadId,
@@ -96,7 +110,8 @@ fun MessageEntity.toExternalModel(recipient: Recipient): Message {
         body = body,
         transactionRequest = txRequest,
         transactionStatus = txStatus,
-        transactionHash = transactionHash
+        transactionHash = transactionHash,
+        transactionReference = txReference
     )
 }
 

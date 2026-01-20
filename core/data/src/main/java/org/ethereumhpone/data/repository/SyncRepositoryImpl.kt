@@ -55,7 +55,9 @@ import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.ReactionCodec
 import org.xmtp.android.library.codecs.Reply
 import org.ethereumhpone.data.codec.ContentTypeTransactionRequest
+import org.ethereumhpone.data.codec.ContentTypeTransactionReference
 import org.ethereumphone.model.TransactionRequest
+import org.ethereumphone.model.TransactionReference
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.xmtp.android.library.libxmtp.IdentityKind
@@ -937,6 +939,24 @@ class SyncRepositoryImpl @Inject constructor(
                     null
                 }
             }
+            // Handle transaction references (completed transactions)
+            ContentTypeTransactionReference -> {
+                try {
+                    val txReference = content as TransactionReference
+                    val txReferenceJson = jsonSerializer.encodeToString(txReference)
+                    
+                    // Create a body message for fallback display
+                    val fallbackBody = buildTransactionReferenceBody(txReference)
+                    
+                    messageEntity.copy(
+                        body = fallbackBody,
+                        transactionReference = txReferenceJson
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to process transaction reference", e)
+                    null
+                }
+            }
 
             ContentTypeAttachment, ContentTypeRemoteAttachment -> {
                 null
@@ -959,6 +979,49 @@ class SyncRepositoryImpl @Inject constructor(
             "Transaction Request: ${metadata.tokenAmount} ${metadata.tokenSymbol} on $chainName"
         } else {
             "Transaction Request: ${txRequest.calls.size} call(s) on $chainName"
+        }
+    }
+    
+    private fun buildTransactionReferenceBody(txReference: TransactionReference): String {
+        val chainName = chainIdToName(txReference.networkId)
+        val metadata = txReference.metadata
+        
+        // Capture nullable values to enable smart casting
+        val amount = metadata?.amount
+        val decimals = metadata?.decimals
+        val currency = metadata?.currency
+        val transactionType = metadata?.transactionType
+        
+        return when {
+            amount != null && currency != null && decimals != null -> {
+                val humanAmount = formatAmount(amount, decimals)
+                val txType = transactionType?.replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() } ?: "Transaction"
+                "$txType: $humanAmount $currency on $chainName"
+            }
+            transactionType != null -> {
+                "${transactionType.replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }} on $chainName"
+            }
+            else -> {
+                "Transaction on $chainName: ${truncateHash(txReference.reference)}"
+            }
+        }
+    }
+    
+    private fun formatAmount(amount: Long, decimals: Int): String {
+        val divisor = Math.pow(10.0, decimals.toDouble())
+        val result = amount.toDouble() / divisor
+        return if (result == result.toLong().toDouble()) {
+            result.toLong().toString()
+        } else {
+            String.format("%.6f", result).trimEnd('0').trimEnd('.')
+        }
+    }
+    
+    private fun truncateHash(hash: String): String {
+        return if (hash.length > 12) {
+            "${hash.take(6)}...${hash.takeLast(4)}"
+        } else {
+            hash
         }
     }
     

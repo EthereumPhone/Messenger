@@ -12,6 +12,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import org.ethereumhpone.chat.ChatRoute
 import org.ethereumhpone.chat.ChatLoadingRoute
+import org.ethereumhpone.chat.RequestTransactionScreenRoute
+import org.ethereumhpone.chat.SendTransactionScreenRoute
 import org.ethereumhpone.database.util.Converters
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -32,6 +34,8 @@ internal const val contactArg = "contact"
 const val chatGraphRoutePattern = "chat_graph"
 const val chatRoute = "chat_route"
 const val chatLoadingRoute = "chat_loading_route"
+private const val chatSendRouteSuffix = "send"
+private const val chatRequestRouteSuffix = "request"
 
 
 internal class ThreadIdArgs(val threadId: String?) {
@@ -87,6 +91,20 @@ fun NavController.navigateToChatLoading(addresses: List<String>, contactName: St
     }
 }
 
+fun NavController.navigateToChatSend(threadId: String) {
+    val encodedThreadId = URLEncoder.encode(threadId, URL_CHARACTER_ENCODING)
+    this.navigate("$chatRoute/thread/$encodedThreadId/$chatSendRouteSuffix") {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToChatRequest(threadId: String) {
+    val encodedThreadId = URLEncoder.encode(threadId, URL_CHARACTER_ENCODING)
+    this.navigate("$chatRoute/thread/$encodedThreadId/$chatRequestRouteSuffix") {
+        launchSingleTop = true
+    }
+}
+
 fun NavGraphBuilder.chatScreen(
     navController: NavController,
     onBackClick: () -> Unit,
@@ -96,7 +114,13 @@ fun NavGraphBuilder.chatScreen(
         arguments = listOf(
             navArgument(threadIdArg) { type = NavType.StringType }
         ),
-    ) { ChatRoute(onBackClick = onBackClick) }
+    ) {
+        ChatRoute(
+            onBackClick = onBackClick,
+            onNavigateToSend = navController::navigateToChatSend,
+            onNavigateToRequest = navController::navigateToChatRequest
+        )
+    }
 
     composable(
         route = "$chatRoute/addresses/{$addressesArg}?contactName={$contactArg}",
@@ -108,7 +132,13 @@ fun NavGraphBuilder.chatScreen(
                 defaultValue = null
             }
         ),
-    ) { ChatRoute(onBackClick = onBackClick) }
+    ) {
+        ChatRoute(
+            onBackClick = onBackClick,
+            onNavigateToSend = navController::navigateToChatSend,
+            onNavigateToRequest = navController::navigateToChatRequest
+        )
+    }
     
     composable(
         route = "$chatLoadingRoute/{$addressesArg}?contactName={$contactArg}",
@@ -148,5 +178,23 @@ fun NavGraphBuilder.chatScreen(
                 }
             }
         )
+    }
+
+    composable(
+        route = "$chatRoute/thread/{$threadIdArg}/$chatSendRouteSuffix",
+        arguments = listOf(
+            navArgument(threadIdArg) { type = NavType.StringType }
+        )
+    ) {
+        SendTransactionScreenRoute(onBackClick = { navController.popBackStack() })
+    }
+
+    composable(
+        route = "$chatRoute/thread/{$threadIdArg}/$chatRequestRouteSuffix",
+        arguments = listOf(
+            navArgument(threadIdArg) { type = NavType.StringType }
+        )
+    ) {
+        RequestTransactionScreenRoute(onBackClick = { navController.popBackStack() })
     }
 }

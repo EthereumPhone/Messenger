@@ -15,18 +15,21 @@ data class Message(
     val attachments: List<Attachment>,
     val reactions: List<Reaction>,
     val body: String,
-    // Transaction request data
+    // Transaction request data (wallet_sendCalls)
     val transactionRequest: TransactionRequest? = null,
     val transactionStatus: TransactionRequestStatus? = null,
-    val transactionHash: String? = null
+    val transactionHash: String? = null,
+    // Transaction reference data (transaction_reference)
+    val transactionReference: TransactionReference? = null
 ) {
 
-    fun getSummary(): String = if (transactionRequest != null) {
-        "Transaction Request"
-    } else {
-        body
+    fun getSummary(): String = when {
+        transactionRequest != null -> "Transaction Request"
+        transactionReference != null -> "Transaction"
+        else -> body
     }
     fun isFailedMessage(): Boolean = deliveryStatus == DeliveryStatus.FAILED
     fun isDelivered(): Boolean = deliveryStatus == DeliveryStatus.PUBLISHED
     fun isTransactionRequest(): Boolean = transactionRequest != null
+    fun isTransactionReference(): Boolean = transactionReference != null
 }

@@ -64,6 +64,9 @@ import org.xmtp.android.library.codecs.ReadReceipt
 import org.xmtp.android.library.SendOptions
 import org.ethereumphone.model.TransactionRequest
 import org.ethereumphone.model.TransactionRequestStatus
+import org.ethereumphone.model.TransactionReference
+import org.ethereumphone.model.TransactionReferenceMetadata
+import org.ethereumphone.model.TransactionTypes
 import org.ethereumhpone.data.util.GasEstimationHelper
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
@@ -742,6 +745,83 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 Log.e("ChatViewModel", "Failed to reject transaction", e)
             }
         }
+    }
+    
+    /**
+     * Send a transaction request to the current conversation.
+     * This allows users to request a transaction from the recipient.
+     */
+    fun sendTransactionRequest(transactionRequest: TransactionRequest) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!::xmtpConversation.isInitialized) {
+                    Log.e("ChatViewModel", "Cannot send transaction request: xmtpConversation not initialized")
+                    return@launch
+                }
+                
+                messageRepository.sendTransactionRequest(
+                    xmtpConversation = xmtpConversation,
+                    threadId = threadId,
+                    transactionRequest = transactionRequest
+                )
+                Log.d("ChatViewModel", "Transaction request sent: ${transactionRequest.metadata?.tokenAmount} ${transactionRequest.metadata?.tokenSymbol}")
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to send transaction request", e)
+            }
+        }
+    }
+    
+    /**
+     * Send a transaction reference (completed transaction) to the current conversation.
+     * This allows users to share proof of a completed transaction.
+     */
+    fun sendTransactionReference(transactionReference: TransactionReference) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!::xmtpConversation.isInitialized) {
+                    Log.e("ChatViewModel", "Cannot send transaction reference: xmtpConversation not initialized")
+                    return@launch
+                }
+                
+                messageRepository.sendTransactionReference(
+                    xmtpConversation = xmtpConversation,
+                    threadId = threadId,
+                    transactionReference = transactionReference
+                )
+                Log.d("ChatViewModel", "Transaction reference sent: ${transactionReference.reference}")
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to send transaction reference", e)
+            }
+        }
+    }
+    
+    /**
+     * Create and send a transaction reference after a successful transaction execution.
+     */
+    fun sendTransactionConfirmation(
+        txHash: String,
+        chainId: Long,
+        fromAddress: String,
+        toAddress: String,
+        amountWei: Long,
+        tokenSymbol: String = "ETH",
+        tokenDecimals: Int = 18
+    ) {
+        val txReference = TransactionReference(
+            namespace = "eip155",
+            networkId = chainId,
+            reference = txHash,
+            metadata = TransactionReferenceMetadata(
+                transactionType = TransactionTypes.TRANSFER,
+                currency = tokenSymbol,
+                amount = amountWei,
+                decimals = tokenDecimals,
+                fromAddress = fromAddress,
+                toAddress = toAddress,
+                blockExplorerUrl = "${chainIdToEtherscan(chainId.toInt())}/tx/$txHash"
+            )
+        )
+        sendTransactionReference(txReference)
     }
     
     private fun chainIdToBundler(chainId: Int): String {

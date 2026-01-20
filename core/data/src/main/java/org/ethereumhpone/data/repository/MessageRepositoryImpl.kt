@@ -29,6 +29,7 @@ import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Reaction
 import org.ethereumphone.model.TransactionRequest
+import org.ethereumphone.model.TransactionReference
 import org.xmtp.android.library.Conversation
 import org.xmtp.android.library.SendOptions
 import org.xmtp.android.library.codecs.ContentTypeText
@@ -39,6 +40,7 @@ import org.xmtp.android.library.codecs.ReactionSchema
 import org.xmtp.android.library.codecs.Reply
 import org.xmtp.android.library.libxmtp.DecodedMessage
 import org.ethereumhpone.data.codec.ContentTypeTransactionRequest
+import org.ethereumhpone.data.codec.ContentTypeTransactionReference
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -395,6 +397,99 @@ class MessageRepositoryImpl @Inject constructor(
         8453L -> "Base"
         11155111L -> "Sepolia"
         else -> "Chain $chainId"
+    }
+    
+    override suspend fun sendTransactionReference(
+        xmtpConversation: Conversation,
+        threadId: String,
+        transactionReference: TransactionReference
+    ): String? = coroutineScope {
+        // Wait until the XMTP client is ready
+        xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+        
+        try {
+            // Prepare the transaction reference message
+            val messageId = xmtpConversation.prepareMessage(
+                content = transactionReference,
+                options = SendOptions(contentType = ContentTypeTransactionReference)
+            )
+            
+            Log.d("TRANSACTION REFERENCE MESSAGE ID", messageId)
+            
+            // Build fallback body for display
+            val fallbackBody = buildTransactionReferenceBody(transactionReference)
+            val txReferenceJson = jsonSerializer.encodeToString(transactionReference)
+            
+            val messageEntity = MessageEntity(
+                id = messageId,
+                threadId = threadId,
+                dateSent = System.currentTimeMillis(),
+                date = System.currentTimeMillis(),
+                senderInboxId = xmtpClientManager.client.inboxId,
+                body = fallbackBody,
+                deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
+                isMe = true,
+                replyReference = null,
+                seen = true,
+                read = true,
+                transactionReference = txReferenceJson
+            )
+            
+            launch { messageDao.upsertMessages(listOf(messageEntity)) }
+            launch { xmtpConversation.publishMessages() }
+            
+            messageId
+        } catch (e: Exception) {
+            AndroidLog.e("MessageRepository", "Failed to send transaction reference", e)
+            null
+        }
+    }
+    
+    private fun buildTransactionReferenceBody(txReference: TransactionReference): String {
+        val chainName = chainIdToName(txReference.networkId)
+        val metadata = txReference.metadata
+        
+        // Capture nullable values to enable smart casting
+        val amount = metadata?.amount
+        val decimals = metadata?.decimals
+        val currency = metadata?.currency
+        val transactionType = metadata?.transactionType
+        
+        return when {
+            amount != null && currency != null && decimals != null -> {
+                val humanAmount = formatAmount(amount, decimals)
+                val txType = transactionType?.capitalize() ?: "Transaction"
+                "$txType: $humanAmount $currency on $chainName"
+            }
+            transactionType != null -> {
+                "${transactionType.capitalize()} on $chainName"
+            }
+            else -> {
+                "Transaction on $chainName: ${truncateHash(txReference.reference)}"
+            }
+        }
+    }
+    
+    private fun formatAmount(amount: Long, decimals: Int): String {
+        val divisor = Math.pow(10.0, decimals.toDouble())
+        val result = amount.toDouble() / divisor
+        return if (result == result.toLong().toDouble()) {
+            result.toLong().toString()
+        } else {
+            String.format("%.6f", result).trimEnd('0').trimEnd('.')
+        }
+    }
+    
+    private fun truncateHash(hash: String): String {
+        return if (hash.length > 12) {
+            "${hash.take(6)}...${hash.takeLast(4)}"
+        } else {
+            hash
+        }
+    }
+    
+    private fun String.capitalize(): String {
+        return this.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
     
     override suspend fun sendReaction(

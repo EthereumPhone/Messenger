@@ -48,6 +48,14 @@ import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import kotlinx.coroutines.delay
 
+/**
+ * Enum for transaction action types shown in the action overlay
+ */
+enum class TransactionAction {
+    TRANSFER,
+    TRANSFER_REQUEST
+}
+
 @Composable
 fun ActionOverlayScreen(
     showOverlay:  MutableState<Boolean>,
@@ -58,6 +66,31 @@ fun ActionOverlayScreen(
     openCamera: () -> Unit,
     primaryColor: Color
 ){
+    ActionOverlayScreen(
+        showOverlay = showOverlay,
+        shouldRotate = shouldRotate,
+        onActionSelected = { action ->
+            when (action) {
+                TransactionAction.TRANSFER -> openSend()
+                TransactionAction.TRANSFER_REQUEST -> openSend() // Default fallback
+            }
+        },
+        onDismiss = { showOverlay.value = false },
+        primaryColor = primaryColor
+    )
+}
+
+/**
+ * Main action overlay screen that shows Transfer and Transfer Request options
+ */
+@Composable
+fun ActionOverlayScreen(
+    showOverlay: MutableState<Boolean>,
+    shouldRotate: MutableState<Boolean>,
+    onActionSelected: (TransactionAction) -> Unit,
+    onDismiss: () -> Unit,
+    primaryColor: Color
+) {
     AnimatedVisibility(
         visible = showOverlay.value,
         enter = fadeIn(animationSpec = tween(300)),
@@ -76,9 +109,7 @@ fun ActionOverlayScreen(
 
         var alpha1 by remember { mutableStateOf(0f) }
         var alpha2 by remember { mutableStateOf(0f) }
-        var alpha3 by remember { mutableStateOf(0f) }
-        var alpha4 by remember { mutableStateOf(0f) }
-        val delayBetweenTexts = 25
+        val delayBetweenTexts = 50
 
         // Animation spec
         val animationSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
@@ -89,43 +120,25 @@ fun ActionOverlayScreen(
                 // Reset states
                 alpha1 = 0f
                 alpha2 = 0f
-                alpha3 = 0f
-                alpha4 = 0f
 
                 // Start sequential animations
                 delay(100) // Small initial delay
 
-                // Animate first text
+                // Animate first text (Transfer)
                 animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
                     alpha1 = value
                 }
 
                 delay(delayBetweenTexts.toLong())
 
-                // Animate second text
+                // Animate second text (Transfer Request)
                 animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
                     alpha2 = value
-                }
-
-                delay(delayBetweenTexts.toLong())
-
-                // Animate third text
-                animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
-                    alpha3 = value
-                }
-
-                delay(delayBetweenTexts.toLong())
-
-                // Animate third text
-                animate(0f, 1f, animationSpec = animationSpec) { value, _ ->
-                    alpha4 = value
                 }
             } else {
                 // Reset when hiding
                 alpha1 = 0f
                 alpha2 = 0f
-                alpha3 = 0f
-                alpha4 = 0f
             }
         }
 
@@ -143,15 +156,13 @@ fun ActionOverlayScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(dgenBlack)
-                .clickable { showOverlay.value = false },
+                .clickable { onDismiss() },
             contentAlignment = Alignment.BottomStart
         ) {
             // Your overlay content here
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-
-                    //.align(Alignment.Center)
                     // Prevent clicks on the content from closing the overlay
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -166,56 +177,9 @@ fun ActionOverlayScreen(
                         .padding(horizontal = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
-//                    Text(
-//                        text = "Camera",
-//                        style = TextStyle(
-//                            fontFamily = PitagonsSans,
-//                            color = primaryColor,
-//                            fontWeight = FontWeight.SemiBold,
-//                            fontSize = 40.sp,
-//                            letterSpacing = 0.sp,
-//                            textDecoration = TextDecoration.None
-//                        ),
-//                        modifier = Modifier.alpha(alpha4).pointerInput(Unit) {
-//                            detectTapGestures{
-//                                openCamera()
-//                            }
-//                        }
-//                    )
-//                    Text(
-//                        text = "Photos",
-//                        style = TextStyle(
-//                            fontFamily = PitagonsSans,
-//                            color = primaryColor,
-//                            fontWeight = FontWeight.SemiBold,
-//                            fontSize = 40.sp,
-//                            letterSpacing = 0.sp,
-//                            textDecoration = TextDecoration.None
-//                        ),
-//                        modifier = Modifier.alpha(alpha3).pointerInput(Unit) {
-//                            detectTapGestures{
-//                                openImage()
-//                            }
-//                        }
-//                    )
-//                    Text(
-//                        text = "Videos",
-//                        style = TextStyle(
-//                            fontFamily = PitagonsSans,
-//                            color = primaryColor,
-//                            fontWeight = FontWeight.SemiBold,
-//                            fontSize = 40.sp,
-//                            letterSpacing = 0.sp,
-//                            textDecoration = TextDecoration.None
-//                        ),
-//                        modifier = Modifier.alpha(alpha2).pointerInput(Unit) {
-//                            detectTapGestures{
-//                                openVideo()
-//                            }
-//                        }
-//                    )
+                    // Transfer option
                     Text(
-                        text = "Send",
+                        text = "Transfer",
                         style = TextStyle(
                             fontFamily = PitagonsSans,
                             color = primaryColor,
@@ -224,15 +188,35 @@ fun ActionOverlayScreen(
                             letterSpacing = 0.sp,
                             textDecoration = TextDecoration.None
                         ),
-                        modifier = Modifier.alpha(alpha1).pointerInput(Unit) {
-                            detectTapGestures{
-                                openSend()
+                        modifier = Modifier
+                            .alpha(alpha1)
+                            .pointerInput(Unit) {
+                                detectTapGestures {
+                                    onActionSelected(TransactionAction.TRANSFER)
+                                }
                             }
-                        }
+                    )
+                    
+                    // Transfer Request option
+                    Text(
+                        text = "Request",
+                        style = TextStyle(
+                            fontFamily = PitagonsSans,
+                            color = primaryColor,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 40.sp,
+                            letterSpacing = 0.sp,
+                            textDecoration = TextDecoration.None
+                        ),
+                        modifier = Modifier
+                            .alpha(alpha2)
+                            .pointerInput(Unit) {
+                                detectTapGestures {
+                                    onActionSelected(TransactionAction.TRANSFER_REQUEST)
+                                }
+                            }
                     )
                 }
-
-
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -241,20 +225,19 @@ fun ActionOverlayScreen(
                         .padding(vertical = 8.dp, horizontal = 16.dp),
                 ) {
                     IconButton(
-                        onClick = {
-                            showOverlay.value = false
-                        },
+                        onClick = { onDismiss() },
                         colors = IconButtonDefaults.iconButtonColors(
                             Color.Transparent,
                             primaryColor
                         ),
                         modifier = Modifier.size(56.dp)
                     ) {
-
                         Icon(
-                            modifier = Modifier.size(36.dp).graphicsLayer{
-                                rotationZ = rotation
-                            },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .graphicsLayer {
+                                    rotationZ = rotation
+                                },
                             imageVector = Icons.Outlined.Add,
                             tint = primaryColor,
                             contentDescription = "collapse"

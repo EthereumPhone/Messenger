@@ -96,6 +96,7 @@ import org.ethereumhpone.chat.components.ExpandedReactionPicker
 import org.ethereumhpone.chat.components.ReactionPicker
 import org.ethereumhpone.chat.components.GroupDetailsSheet
 import org.ethereumhpone.chat.components.OverlaySendScreen
+import org.ethereumhpone.chat.components.TransactionAction
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.OverlayMessageItem
 import org.ethereumhpone.chat.util.generateTestGroupMessages
@@ -145,6 +146,8 @@ import androidx.compose.ui.platform.LocalDensity
 @Composable
 fun ChatRoute(
     onBackClick: () -> Unit,
+    onNavigateToSend: (String) -> Unit,
+    onNavigateToRequest: (String) -> Unit,
     chatViewModel: ChatViewModel = hiltViewModel(),
     mediaViewModel: MediaViewModel = hiltViewModel()
 ) {
@@ -216,7 +219,10 @@ fun ChatRoute(
         onExecuteTransaction = chatViewModel::executeTransaction,
         onRejectTransaction = chatViewModel::rejectTransaction,
         onSendReaction = chatViewModel::sendReaction,
-        myInboxId = myInboxId
+        myInboxId = myInboxId,
+        onSendTransactionRequest = chatViewModel::sendTransactionRequest,
+        onNavigateToSend = onNavigateToSend,
+        onNavigateToRequest = onNavigateToRequest
     )
 
     // Mark messages as seen when leaving the chat screen
@@ -270,6 +276,9 @@ fun ChatScreen(
     onRejectTransaction: (Message) -> Unit = {},
     onSendReaction: (messageId: String, emoji: String) -> Unit = { _, _ -> },
     myInboxId: String = "",
+    onSendTransactionRequest: (TransactionRequest) -> Unit = {},
+    onNavigateToSend: (String) -> Unit = {},
+    onNavigateToRequest: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -304,21 +313,32 @@ fun ChatScreen(
     val longPressedMessage = remember { mutableStateOf<Message?>(null) }
     var showExpandedReactionPicker = remember { mutableStateOf(false) }
 
-    var shouldRotate = remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
 
     //for selecting images from gallery
     val showPicker = remember { mutableStateOf(false) }
+    
+    // Action overlay state
+    var showActionOverlay by remember { mutableStateOf(false) }
+    var currentAction by remember { mutableStateOf(Actions.IDLE) }
+    val shouldRotateAction = remember { mutableStateOf(false) }
+    
+    // Note: Transaction request is now handled via RequestTransactionOverlay in ChatOverlays
 
     val keyboardController = LocalSoftwareKeyboardController.current
     
     // Group details sheet state
     var showGroupDetails by remember { mutableStateOf(false) }
 
-    BackHandler(showOverlay.value || showPicker.value || (WindowInsets.isImeVisible && !showBottomSheet) || selectMode || showGroupDetails) {
+    BackHandler(showOverlay.value || showPicker.value || showActionOverlay || (WindowInsets.isImeVisible && !showBottomSheet) || selectMode || showGroupDetails) {
         when {
             showGroupDetails -> {
                 showGroupDetails = false
+            }
+            showActionOverlay -> {
+                showActionOverlay = false
+                currentAction = Actions.IDLE
+                shouldRotateAction.value = false
             }
             showOverlay.value -> {
                 showOverlay.value = false
@@ -495,9 +515,9 @@ fun ChatScreen(
                     expand = expand,
                     openAction = {
                         expand.value = false
-                        // Commented out overlay trigger - kept for future use if needed
-                        // Show overlay when this action is triggered
-                        // showOverlay.value = true
+                        // Show action overlay with Transfer and Request options
+                        showActionOverlay = true
+                        currentAction = Actions.ACTION_MENU
                         focusManager.clearFocus()
                         keyboardController?.hide()
                     },
@@ -506,7 +526,8 @@ fun ChatScreen(
                 )
             },
             containerColor = Color.Transparent,
-        ) { paddingValues ->
+        )
+        { paddingValues ->
 
 
             Box(
@@ -744,8 +765,6 @@ fun ChatScreen(
             }
         )
 
-        //Removed the ChatOverlays & ActionOverlayScreen
-        
         // Group Details Sheet
         if (showGroupDetails && chatConversion != null) {
             GroupDetailsSheet(
@@ -767,6 +786,58 @@ fun ChatScreen(
             )
         }
     }
+    
+    // Action Overlay (Transfer / Request menu)
+    ChatOverlays(
+        showPicker = showActionOverlay,
+        currentActions = currentAction,
+        onActionSelected = { action, showOverlayNext ->
+            when (action) {
+                Actions.IDLE -> {
+                    showActionOverlay = false
+                    currentAction = Actions.IDLE
+                    shouldRotateAction.value = false
+                }
+                Actions.SEND -> {
+                    val conversationId = chatConversion?.id
+                    showActionOverlay = false
+                    currentAction = Actions.IDLE
+                    shouldRotateAction.value = false
+                    if (!conversationId.isNullOrBlank()) {
+                        onNavigateToSend(conversationId)
+                    }
+                }
+                Actions.TRANSFER_REQUEST -> {
+                    val conversationId = chatConversion?.id
+                    showActionOverlay = false
+                    currentAction = Actions.IDLE
+                    shouldRotateAction.value = false
+                    if (!conversationId.isNullOrBlank()) {
+                        onNavigateToRequest(conversationId)
+                    }
+                }
+                else -> {
+                    currentAction = action
+                }
+            }
+        },
+        chatConversion = chatConversion,
+        recipientUiState = recipientUiState,
+        media = media,
+        selectedIndex = selectedIndex,
+        prevMedia = prevMedia,
+        nextMedia = nextMedia,
+        selectMedia = selectMedia,
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor,
+        onSendTransaction = {
+            // This is triggered by the terminal button in OverlaySendScreen
+            // The actual sending is handled by the ChatSendViewModel
+        },
+        onSendTransactionRequest = { request ->
+            onSendTransactionRequest(request)
+        }
+    )
 
 }
 
@@ -781,7 +852,7 @@ private fun getImageUri(context: Context, bitmap: Bitmap): Uri? {
 }
 
 enum class Actions {
-    IDLE, SEND, PHOTO, VIDEO, CONTACT
+    IDLE, SEND, TRANSFER_REQUEST, PHOTO, VIDEO, CONTACT, ACTION_MENU
 }
 
 
