@@ -186,7 +186,16 @@ fun NavGraphBuilder.chatScreen(
             navArgument(threadIdArg) { type = NavType.StringType }
         )
     ) {
-        SendTransactionScreenRoute(onBackClick = { navController.popBackStack() })
+        val threadId = it.arguments?.getString(threadIdArg).orEmpty()
+        SendTransactionScreenRoute(
+            onBackClick = {
+                if (threadId.isNotBlank()) {
+                    navController.popBackStack("$chatRoute/thread/$threadId", false)
+                } else {
+                    navController.popBackStack()
+                }
+            }
+        )
     }
 
     composable(
@@ -195,6 +204,15 @@ fun NavGraphBuilder.chatScreen(
             navArgument(threadIdArg) { type = NavType.StringType }
         )
     ) {
-        RequestTransactionScreenRoute(onBackClick = { navController.popBackStack() })
+        val threadId = it.arguments?.getString(threadIdArg).orEmpty()
+        RequestTransactionScreenRoute(
+            onBackClick = {
+                if (threadId.isNotBlank()) {
+                    navController.popBackStack("$chatRoute/thread/$threadId", false)
+                } else {
+                    navController.popBackStack()
+                }
+            }
+        )
     }
 }
