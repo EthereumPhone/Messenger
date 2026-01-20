@@ -104,8 +104,13 @@ fun RequestTransactionScreenRoute(
         onSendRequest = { request ->
             val amount = request.metadata?.tokenAmount?.takeIf { it.isNotBlank() } ?: "0"
             val symbol = request.metadata?.tokenSymbol?.takeIf { it.isNotBlank() } ?: "TOKEN"
-            val target = recipientName?.takeIf { it.isNotBlank() } ?: recipientAddress
-            val message = "Request $amount $symbol from $target"
+            val description = request.metadata?.description?.takeIf { it.isNotBlank() }
+            val message = buildString {
+                append("Request $amount $symbol")
+                if (description != null && !description.equals("Request $symbol", ignoreCase = true)) {
+                    append(" - $description")
+                }
+            }
             chatViewModel.sendMessage(message)
             onBackClick()
         },

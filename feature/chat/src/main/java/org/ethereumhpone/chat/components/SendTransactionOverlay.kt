@@ -177,6 +177,7 @@ fun SendTransactionOverlay(
     var token by remember { mutableStateOf("") }
     var useDollarAmount by remember { mutableStateOf(false) }
     var dollarAmount by remember { mutableStateOf(TextFieldValue()) }
+    var description by remember { mutableStateOf("") }
     var fiatPrice by remember { mutableStateOf(0.0) }
     var selectedTokenIndex by remember { mutableStateOf(-1) }
     
@@ -241,10 +242,15 @@ fun SendTransactionOverlay(
                         amountText
                     }
                     val displayToken = if (token.isNotBlank()) token.uppercase() else "TOKEN"
-                    val debugMessage = if (displayAmount.isNotBlank()) {
-                        "Send $displayAmount $displayToken to $recipientDisplay"
-                    } else {
-                        "Send $displayToken to $recipientDisplay"
+                    val debugMessage = buildString {
+                        if (displayAmount.isNotBlank()) {
+                            append("Send $displayAmount $displayToken")
+                        } else {
+                            append("Send $displayToken")
+                        }
+                        if (description.isNotBlank()) {
+                            append(" - $description")
+                        }
                     }
 
                     AmountInputContent(
@@ -258,6 +264,8 @@ fun SendTransactionOverlay(
                         max = max,
                         fiatPrice = fiatPrice,
                         recipientDisplay = recipientDisplay,
+                        description = description,
+                        onDescriptionChange = { description = it },
                         primaryColor = primaryColor,
                         secondaryColor = secondaryColor,
                         assetsUiState = assetsUiState,
@@ -299,75 +307,39 @@ private fun TokenSelectionContent(
         }
         
         AssetsUiState.Empty -> {
-            InfoScreen(
-                gifEnabledLoader = gifEnabledLoader,
+            val fallbackAssets = CommonTokens.allTokens.map { token ->
+                org.ethereumphone.model.TokenAsset(
+                    address = token.contractAddress!!,
+                    chainId = token.chainId.toInt(),
+                    symbol = token.symbol,
+                    name = token.name,
+                    balance = 0.0,
+                    decimals = token.decimals,
+                    logoUrl = token.logoUrl ?: "",
+                    swappable = false,
+                    price = token.price
+                )
+            }
+
+            TokenListContent(
+                assets = fallbackAssets,
                 primaryColor = primaryColor,
-                description = "No Assets available"
+                secondaryColor = secondaryColor,
+                scrollState = scrollState,
+                selectedTokenIndex = selectedTokenIndex,
+                onTokenSelected = onTokenSelected
             )
         }
         
         is AssetsUiState.Success -> {
-            val assets = assetsUiState.assets
-            
-            Box(modifier = Modifier.fillMaxSize()) {
-                LazyColumn(
-                    state = scrollState,
-                    modifier = Modifier
-                        .verticalLazyListScrollbar(
-                            scrollState,
-                            scrollBarTrackColor = secondaryColor,
-                            scrollBarColor = primaryColor,
-                            autoHide = true,
-                            fadeInDuration = 300,
-                            fadeOutDuration = 300,
-                            hideDelay = 1000L
-                        )
-                        .fillMaxSize()
-                        .background(Color.Transparent),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(
-                        top = 8.dp,
-                        bottom = 16.dp
-                    )
-                ) {
-                    items(assets.size) { index ->
-                        val asset = assets[index]
-                        val tokenData = asset.toOwnedTokenData()
-                        
-                        AssetTokenCard(
-                            token = tokenData,
-                            primaryColor = primaryColor,
-                            secondaryColor = secondaryColor,
-                            isSelected = selectedTokenIndex == index,
-                            onClick = {
-                                onTokenSelected(index, asset)
-                            }
-                        )
-                    }
-                }
-                
-                // Top gradient fade
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .align(Alignment.TopCenter)
-                        .background(
-                            Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))
-                        )
-                )
-                
-                // Bottom gradient fade
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))
-                        )
-                )
-            }
+            TokenListContent(
+                assets = assetsUiState.assets,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                scrollState = scrollState,
+                selectedTokenIndex = selectedTokenIndex,
+                onTokenSelected = onTokenSelected
+            )
         }
         
         AssetsUiState.Error -> {
@@ -377,6 +349,76 @@ private fun TokenSelectionContent(
                 description = "Error loading assets from WalletManager"
             )
         }
+    }
+}
+
+@Composable
+private fun TokenListContent(
+    assets: List<org.ethereumphone.model.TokenAsset>,
+    primaryColor: Color,
+    secondaryColor: Color,
+    scrollState: androidx.compose.foundation.lazy.LazyListState,
+    selectedTokenIndex: Int,
+    onTokenSelected: (Int, org.ethereumphone.model.TokenAsset) -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = scrollState,
+            modifier = Modifier
+                .verticalLazyListScrollbar(
+                    scrollState,
+                    scrollBarTrackColor = secondaryColor,
+                    scrollBarColor = primaryColor,
+                    autoHide = true,
+                    fadeInDuration = 300,
+                    fadeOutDuration = 300,
+                    hideDelay = 1000L
+                )
+                .fillMaxSize()
+                .background(Color.Transparent),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(
+                top = 8.dp,
+                bottom = 16.dp
+            )
+        ) {
+            items(assets.size) { index ->
+                val asset = assets[index]
+                val tokenData = asset.toOwnedTokenData()
+                
+                AssetTokenCard(
+                    token = tokenData,
+                    primaryColor = primaryColor,
+                    secondaryColor = secondaryColor,
+                    isSelected = selectedTokenIndex == index,
+                    onClick = {
+                        onTokenSelected(index, asset)
+                    }
+                )
+            }
+        }
+        
+        // Top gradient fade
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(listOf(dgenBlack, Color.Transparent))
+                )
+        )
+        
+        // Bottom gradient fade
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(listOf(Color.Transparent, dgenBlack))
+                )
+        )
     }
 }
 
@@ -395,6 +437,8 @@ private fun AmountInputContent(
     max: Double,
     fiatPrice: Double,
     recipientDisplay: String,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
     primaryColor: Color,
     secondaryColor: Color,
     assetsUiState: AssetsUiState,
@@ -635,6 +679,16 @@ private fun AmountInputContent(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+
+            DescriptionSection(
+                description = description,
+                onDescriptionChange = onDescriptionChange,
+                title = "NOTE",
+                placeholder = "Add a note (optional)",
+                primaryColor = primaryColor,
+                maxLines = 2,
+                maxLength = 100
+            )
             
             if (showDebugAction) {
                 Spacer(modifier = Modifier.weight(1f))
