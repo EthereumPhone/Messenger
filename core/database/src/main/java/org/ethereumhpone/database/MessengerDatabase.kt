@@ -36,7 +36,7 @@ import org.ethereumhpone.database.util.Converters
         SyncLog::class,
         ConversationRecipientCrossRef::class
     ],
-    version = 7,
+    version = 8,
     //autoMigrations = [AutoMigration(from = 1, to = 2)],
     exportSchema = true,
 )

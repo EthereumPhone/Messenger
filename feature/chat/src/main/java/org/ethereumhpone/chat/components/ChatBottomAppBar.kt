@@ -120,24 +120,22 @@ fun ChatBottomAppBar(
                 verticalAlignment = Alignment.CenterVertically,
 
             ) {
-                // Removed plus (Add) button - kept for future use if needed
-                // IconButton(
-                //     onClick = openAction,
-                //     colors = IconButtonDefaults.iconButtonColors(
-                //         Color.Transparent,
-                //         primaryColor
-                //     ),
-                //     modifier = Modifier.size(56.dp)
-                // ) {
-                //     Icon(
-                //         modifier = Modifier.size(36.dp),
-                //         imageVector = Icons.Outlined.Add,
-                //         tint = primaryColor,
-                //         contentDescription = "collapse"
-                //     )
-                // }
-
-
+                // Plus button to open actions overlay (Transfer/Request)
+                IconButton(
+                    onClick = openAction,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        Color.Transparent,
+                        primaryColor
+                    ),
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        modifier = Modifier.size(36.dp),
+                        imageVector = Icons.Outlined.Add,
+                        tint = primaryColor,
+                        contentDescription = "Open actions"
+                    )
+                }
 
                 Row(
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp,)

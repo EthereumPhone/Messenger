@@ -31,6 +31,7 @@ import org.xmtp.android.library.codecs.ReadReceiptCodec
 import org.xmtp.android.library.codecs.RemoteAttachmentCodec
 import org.xmtp.android.library.codecs.ReplyCodec
 import org.ethereumhpone.data.codec.TransactionRequestCodec
+import org.ethereumhpone.data.codec.TransactionReferenceCodec
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.android.library.libxmtp.PublicIdentity
 import org.xmtp.android.library.messages.walletAddress
@@ -98,6 +99,7 @@ object XmtpClientManager {
                 Client.register(codec = AttachmentCodec())
                 Client.register(codec = RemoteAttachmentCodec())
                 Client.register(codec = TransactionRequestCodec())
+                Client.register(codec = TransactionReferenceCodec())
 
                 _client = Client.create(
                     account = EOAWallet(walletSDK, address),
