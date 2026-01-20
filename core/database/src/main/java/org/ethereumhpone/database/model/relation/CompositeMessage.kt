@@ -33,18 +33,8 @@ data class CompositeMessage(
 
 
 fun CompositeMessage.toExternalMessage(): Message {
-    return Message(
-        id = message.id,
-        threadId = message.threadId,
-        recipient = recipient.recipientEntity.toExternalModel(recipient.contactEntity),
-        dateSent = Instant.fromEpochMilliseconds(message.dateSent),
-        date = Instant.fromEpochMilliseconds(message.date),
-        seen = message.seen,
-        deliveryStatus = DeliveryStatus.valueOf(message.deliveryStatus.name),
-        replyReference = message.replyReference,
-        isMe = message.isMe,
-        attachments = emptyList(),
-        reactions = reactions.map { it.toExternalModel() },
-        body = message.body
+    val recipientModel = recipient.recipientEntity.toExternalModel(recipient.contactEntity)
+    return message.toExternalModel(recipientModel).copy(
+        reactions = reactions.map { it.toExternalModel() }
     )
 }
