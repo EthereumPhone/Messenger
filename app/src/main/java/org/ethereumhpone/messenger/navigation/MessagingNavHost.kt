@@ -2,8 +2,8 @@ package org.ethereumhpone.messenger.navigation
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -97,30 +97,10 @@ fun MessagingNavHost(
                 // has a chance to run.
                 startDestination = if (onboardingFlag) onboardingRoute else conversationsGraphRoutePattern,
                 modifier = modifier,
-                enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { fullWidth -> fullWidth }, // Start from right
-                        animationSpec = tween(300)
-                    )
-                },
-                exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { fullWidth -> -fullWidth }, // Exit to left
-                        animationSpec = tween(300)
-                    )
-                },
-                popEnterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { fullWidth -> -fullWidth }, // Start from left
-                        animationSpec = tween(300)
-                    )
-                },
-                popExitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { fullWidth -> fullWidth }, // Exit to right
-                        animationSpec = tween(300)
-                    )
-                }
+                enterTransition = { fadeIn(animationSpec = tween(300)) },
+                exitTransition = { fadeOut(animationSpec = tween(300)) },
+                popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+                popExitTransition = { fadeOut(animationSpec = tween(300)) }
             ) {
                 conversationsGraph (
                     onConversationClick = navController::navigateToChatByThreadId,
