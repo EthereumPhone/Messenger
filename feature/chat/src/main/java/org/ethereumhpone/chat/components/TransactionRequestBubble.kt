@@ -3,6 +3,7 @@ package org.ethereumhpone.chat.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -70,7 +72,8 @@ fun TransactionRequestBubble(
     secondaryColor: Color,
     onExecuteTransaction: (TransactionRequest) -> Unit,
     onRejectTransaction: () -> Unit = {},
-    isFirstMessageByAuthor: Boolean = false
+    isFirstMessageByAuthor: Boolean = false,
+    onLongClick: () -> Unit = {}
 ) {
     val metadata = transactionRequest.metadata
     val chainName = chainIdToName(transactionRequest.chainId)
@@ -84,15 +87,20 @@ fun TransactionRequestBubble(
     Column(
         horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongClick() }
+                )
+            }
     ) {
-        // Transaction Request Card
+        // Transaction Request Card - constrained max width
         Column(
             modifier = Modifier
                 .clip(bubbleShape)
                 .background(bubbleBackground)
                 .border(1.dp, borderColor, bubbleShape)
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp)
-                .widthIn(min = 150.dp)
+                .widthIn(min = 150.dp, max = 260.dp)
         )
         {
             Row(
@@ -273,6 +281,168 @@ private fun chainIdToLogoRes(chainId: Long): Int? = when (chainId) {
     42161L -> R.drawable.arbitrum
     8453L -> R.drawable.base_square
     else -> null
+}
+
+/**
+ * Focus/Overlay version of TransactionRequestBubble.
+ * Used when the message is selected in the overlay.
+ * Constrained sizing for better overlay presentation.
+ */
+@Composable
+fun FocusTransactionRequestBubble(
+    modifier: Modifier = Modifier,
+    message: Message,
+    transactionRequest: TransactionRequest,
+    isUserMe: Boolean,
+    primaryColor: Color,
+    secondaryColor: Color,
+    onExecuteTransaction: (TransactionRequest) -> Unit = {}
+) {
+    val metadata = transactionRequest.metadata
+    val chainName = chainIdToName(transactionRequest.chainId)
+    
+    val bubbleShape = RoundedCornerShape(3.dp)
+    val bubbleBackground = secondaryColor
+    val borderColor = primaryColor.copy(alpha = pulseOpacity)
+    val senderName = resolveSenderName(message)
+    val headerText = if (isUserMe) "You requested" else "$senderName requested"
+    
+    Column(
+        horizontalAlignment = Alignment.Start, // Always left-align in focus mode
+        modifier = modifier
+    ) {
+        // Transaction Request Card - constrained width for overlay
+        Column(
+            modifier = Modifier
+                .clip(bubbleShape)
+                .background(bubbleBackground)
+                .border(1.dp, borderColor, bubbleShape)
+                .padding(start = 12.dp, end = 12.dp, top = 12.dp)
+                .fillMaxWidth() // Fill parent width (controlled by parent)
+        )
+        {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                Text(
+                    text = headerText.uppercase(),
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = label_fontSize,
+                        color = primaryColor
+                    )
+                )
+            }
+
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // Amount display (if available)
+            val tokenAmount = metadata?.tokenAmount
+            val tokenSymbol = metadata?.tokenSymbol
+            val amountText = when {
+                !tokenAmount.isNullOrBlank() && !tokenSymbol.isNullOrBlank() -> "$tokenAmount $tokenSymbol"
+                !tokenAmount.isNullOrBlank() -> tokenAmount
+                !tokenSymbol.isNullOrBlank() -> tokenSymbol
+                else -> null
+            }
+            if (amountText != null) {
+                Text(
+                    text = amountText,
+                    style = TextStyle(
+                        fontFamily = PitagonsSans,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = header3_fontSize,
+                        color = if (isUserMe) dgenWhite else primaryColor
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            {
+                Text(
+                    text = chainName.uppercase(),
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = primaryColor
+                    )
+                )
+                val chainLogoRes = chainIdToLogoRes(transactionRequest.chainId)
+                if (chainLogoRes != null) {
+                    Icon(
+                        painter = painterResource(id = chainLogoRes),
+                        contentDescription = "$chainName logo",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+            
+            // Description (if available) - with constrained lines for focus mode
+            val description = metadata?.description
+            if (description != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = description,
+                    style = TextStyle(
+                        fontFamily = PitagonsSans,
+                        fontSize = 12.sp,
+                        color = if (isUserMe) dgenWhite.copy(alpha = 0.8f) else primaryColor.copy(alpha = 0.8f)
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { onExecuteTransaction(transactionRequest) }
+                    .heightIn(min = 40.dp) // Slightly smaller for focus mode
+                    .padding(vertical = 4.dp)
+            ) {
+                Text(
+                    text = "SEND",
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = label_fontSize,
+                        color = primaryColor
+                    )
+                )
+                Icon(
+                    painter = painterResource(id = R.drawable.send_arrow),
+                    contentDescription = "Send",
+                    tint = primaryColor,
+                    modifier = Modifier.size(20.dp) // Slightly smaller icon
+                )
+            }
+        }
+        
+        // Timestamp - left aligned for focus mode
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            horizontalArrangement = Arrangement.Start
+        ){
+            AuthorNameTimestamp(
+                messageEntity = message,
+                isUserMe = isUserMe,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor
+            )
+        }
+    }
 }
 
 @Composable

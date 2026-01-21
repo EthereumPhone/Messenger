@@ -209,7 +209,14 @@ fun MessageItem(
                         secondaryColor = secondaryColor,
                         onExecuteTransaction = onExecuteTransaction,
                         onRejectTransaction = { onRejectTransaction(msg) },
-                        isFirstMessageByAuthor = isFirstMessageByAuthor
+                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+                        onLongClick = {
+                            composablePositionState.value.height = compSize
+                            composablePositionState.value.width = compWidth
+                            composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
+                            composablePositionState.value.isFirstByAuthor = isFirstMessageByAuthor
+                            onLongClick()
+                        }
                     )
                 }
             } else if (msg.isTransactionReference()) {
@@ -223,7 +230,14 @@ fun MessageItem(
                         isUserMe = msg.isMe,
                         primaryColor = primaryColor,
                         secondaryColor = secondaryColor,
-                        isFirstMessageByAuthor = isFirstMessageByAuthor
+                        isFirstMessageByAuthor = isFirstMessageByAuthor,
+                        onLongClick = {
+                            composablePositionState.value.height = compSize
+                            composablePositionState.value.width = compWidth
+                            composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
+                            composablePositionState.value.isFirstByAuthor = isFirstMessageByAuthor
+                            onLongClick()
+                        }
                     )
                 }
             } else {
