@@ -41,7 +41,7 @@ fun TimeHeader(
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            shape = RoundedCornerShape(0.dp),
+            shape = RoundedCornerShape(3.dp),
             border = BorderStroke(1.dp,primaryColor),
             color = secondaryColor
         ) {

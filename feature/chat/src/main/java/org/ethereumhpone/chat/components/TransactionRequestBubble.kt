@@ -1,56 +1,50 @@
 package org.ethereumhpone.chat.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CallMade
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.HourglassEmpty
-import androidx.compose.material.icons.outlined.ArrowForward
-import androidx.compose.material.icons.outlined.Token
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.body2_fontSize
+import com.example.dgenlibrary.ui.theme.header3_fontSize
+import com.example.dgenlibrary.ui.theme.label_fontSize
+import com.example.dgenlibrary.ui.theme.pulseOpacity
+import com.example.dgenlibrary.ui.theme.smalllabel_fontSize
 import kotlinx.datetime.Instant
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
+import org.ethereumhpone.chat.R
 import org.ethereumphone.dgenlibrary.theme.dgenGreen
-import org.ethereumphone.dgenlibrary.theme.dgenRed
-import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.DeliveryStatus
@@ -64,7 +58,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Composable for rendering a transaction request message bubble.
- * Displays transaction details and provides an execute button.
+ * Displays transaction request details.
  */
 @Composable
 fun TransactionRequestBubble(
@@ -78,22 +72,14 @@ fun TransactionRequestBubble(
     onRejectTransaction: () -> Unit = {},
     isFirstMessageByAuthor: Boolean = false
 ) {
-    val status = message.transactionStatus ?: TransactionRequestStatus.PENDING
-    val chainName = chainIdToName(transactionRequest.chainId)
     val metadata = transactionRequest.metadata
+    val chainName = chainIdToName(transactionRequest.chainId)
     
-    // Status-based colors
-    val statusColor = when (status) {
-        TransactionRequestStatus.PENDING -> dgenTurqoise
-        TransactionRequestStatus.EXECUTING -> Color(0xFFFFAA00) // Orange
-        TransactionRequestStatus.SUCCESS -> dgenGreen
-        TransactionRequestStatus.FAILED -> dgenRed
-        TransactionRequestStatus.REJECTED -> Color.Gray
-    }
-    
-    val bubbleShape = RoundedCornerShape(16.dp)
-    val bubbleBackground = if (isUserMe) primaryColor.copy(alpha = 0.15f) else secondaryColor.copy(alpha = 0.15f)
-    val borderColor = statusColor.copy(alpha = 0.5f)
+    val bubbleShape = RoundedCornerShape(3.dp)
+    val bubbleBackground = secondaryColor
+    val borderColor = primaryColor.copy(alpha = pulseOpacity)
+    val senderName = resolveSenderName(message)
+    val headerText = if (isUserMe) "You requested" else "$senderName requested"
     
     Column(
         horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
@@ -105,95 +91,95 @@ fun TransactionRequestBubble(
                 .clip(bubbleShape)
                 .background(bubbleBackground)
                 .border(1.dp, borderColor, bubbleShape)
-                .padding(16.dp)
-                .width(280.dp)
-        ) {
-            // Header: Transaction Request label with status indicator
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                .widthIn(min = 150.dp)
+        )
+        {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.Token,
-                        contentDescription = "Transaction",
-                        tint = statusColor,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Transaction Request",
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = if (isUserMe) dgenWhite else primaryColor
-                        )
-                    )
-                }
-                
-                // Status badge
-                StatusBadge(status = status, color = statusColor)
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Chain info
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+                verticalAlignment =  Alignment.CenterVertically
+            ){
                 Text(
-                    text = "Network:",
-                    style = TextStyle(
-                        fontFamily = PitagonsSans,
-                        fontSize = 12.sp,
-                        color = if (isUserMe) dgenWhite.copy(alpha = 0.7f) else primaryColor.copy(alpha = 0.7f)
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = chainName,
+                    text = headerText.uppercase(),
                     style = TextStyle(
                         fontFamily = SpaceMono,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp,
-                        color = statusColor
+                        fontWeight = FontWeight.Bold,
+                        fontSize = label_fontSize,
+                        color = primaryColor
                     )
                 )
+
+
+                // DO NOT DELETE
+                //TODO: displaying status of the request
+//                if (false)
+//                Text(
+//                    modifier = Modifier
+//                        .drawBehind {
+//                            drawRoundRect(
+//                                primaryColor,
+//                                cornerRadius = CornerRadius(3.dp.toPx())
+//                            )
+//                        }
+//                        .padding(horizontal = 6.dp, vertical = 2.dp),
+//                    text = "PAID",
+//                    style = TextStyle(
+//                        fontFamily = SpaceMono,
+//                        fontWeight = FontWeight.Bold,
+//                        fontSize = smalllabel_fontSize,
+//                        color = secondaryColor
+//                    )
+//                )
             }
+
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             
             // Amount display (if available)
             val tokenAmount = metadata?.tokenAmount
             val tokenSymbol = metadata?.tokenSymbol
-            if (tokenAmount != null && tokenSymbol != null) {
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                ) {
-                    Text(
-                        text = tokenAmount,
-                        style = TextStyle(
-                            fontFamily = PitagonsSans,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 32.sp,
-                            color = if (isUserMe) dgenWhite else primaryColor
-                        )
+            val amountText = when {
+                !tokenAmount.isNullOrBlank() && !tokenSymbol.isNullOrBlank() -> "$tokenAmount $tokenSymbol"
+                !tokenAmount.isNullOrBlank() -> tokenAmount
+                !tokenSymbol.isNullOrBlank() -> tokenSymbol
+                else -> null
+            }
+            if (amountText != null) {
+                Text(
+                    text = amountText,
+                    style = TextStyle(
+                        fontFamily = PitagonsSans,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = header3_fontSize,
+                        color = if (isUserMe) dgenWhite else primaryColor
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            {
+                Text(
+                    text = chainName.uppercase(),
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = primaryColor
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = tokenSymbol,
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp,
-                            color = if (isUserMe) dgenWhite.copy(alpha = 0.8f) else primaryColor.copy(alpha = 0.8f)
-                        ),
-                        modifier = Modifier.padding(bottom = 4.dp)
+                )
+                val chainLogoRes = chainIdToLogoRes(transactionRequest.chainId)
+                if (chainLogoRes != null) {
+                    Icon(
+                        painter = painterResource(id = chainLogoRes),
+                        contentDescription = "$chainName logo",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(12.dp)
                     )
                 }
             }
@@ -201,6 +187,7 @@ fun TransactionRequestBubble(
             // Description (if available)
             val description = metadata?.description
             if (description != null) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = description,
                     style = TextStyle(
@@ -211,150 +198,40 @@ fun TransactionRequestBubble(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(0.dp))
             }
-            
-            // Calls info
-            Text(
-                text = "${transactionRequest.calls.size} call${if (transactionRequest.calls.size > 1) "s" else ""} to execute",
-                style = TextStyle(
-                    fontFamily = SpaceMono,
-                    fontSize = 11.sp,
-                    color = if (isUserMe) dgenWhite.copy(alpha = 0.6f) else primaryColor.copy(alpha = 0.6f)
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { onExecuteTransaction(transactionRequest) }
+                    .heightIn(min = 48.dp)
+                    .padding(vertical = 4.dp)
+            ) {
+                Text(
+                    text = "SEND",
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = label_fontSize,
+                        color = primaryColor
+                    )
                 )
-            )
-            
-            // First call target address (truncated)
-            val firstCall = transactionRequest.calls.firstOrNull()
-            if (firstCall != null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.ArrowForward,
-                        contentDescription = "To",
-                        tint = if (isUserMe) dgenWhite.copy(alpha = 0.5f) else primaryColor.copy(alpha = 0.5f),
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = truncateAddress(firstCall.to),
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            fontSize = 11.sp,
-                            color = if (isUserMe) dgenWhite.copy(alpha = 0.5f) else primaryColor.copy(alpha = 0.5f)
-                        )
-                    )
-                }
+                Icon(
+                    painter = painterResource(id = R.drawable.send_arrow),
+                    contentDescription = "Send",
+                    tint = primaryColor,
+                    modifier = Modifier.size(24.dp)
+                )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Action buttons (only show if PENDING and not my own request)
-            if (status == TransactionRequestStatus.PENDING && !isUserMe) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Execute button
-                    Button(
-                        onClick = { onExecuteTransaction(transactionRequest) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = dgenGreen
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CallMade,
-                            contentDescription = "Execute",
-                            tint = dgenWhite,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Execute",
-                            style = TextStyle(
-                                fontFamily = SpaceMono,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = dgenWhite
-                            )
-                        )
-                    }
-                    
-                    // Reject button
-                    Button(
-                        onClick = onRejectTransaction,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .border(1.dp, dgenRed.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Reject",
-                            tint = dgenRed,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            } else if (status == TransactionRequestStatus.EXECUTING) {
-                // Loading state
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = statusColor,
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Executing...",
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            fontSize = 12.sp,
-                            color = statusColor
-                        )
-                    )
-                }
-            } else if (status == TransactionRequestStatus.SUCCESS) {
-                // Success state with tx hash
-                val txHash = message.transactionHash
-                if (txHash != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Success",
-                            tint = dgenGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Tx: ${truncateAddress(txHash)}",
-                            style = TextStyle(
-                                fontFamily = SpaceMono,
-                                fontSize = 11.sp,
-                                color = dgenGreen
-                            )
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Timestamp
+        }
+        
+        // Timestamp
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.End
+        ){
             AuthorNameTimestamp(
                 messageEntity = message,
                 isUserMe = isUserMe,
@@ -362,34 +239,6 @@ fun TransactionRequestBubble(
                 secondaryColor = secondaryColor
             )
         }
-    }
-}
-
-@Composable
-private fun StatusBadge(status: TransactionRequestStatus, color: Color) {
-    val text = when (status) {
-        TransactionRequestStatus.PENDING -> "PENDING"
-        TransactionRequestStatus.EXECUTING -> "EXECUTING"
-        TransactionRequestStatus.SUCCESS -> "SUCCESS"
-        TransactionRequestStatus.FAILED -> "FAILED"
-        TransactionRequestStatus.REJECTED -> "REJECTED"
-    }
-    
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(color.copy(alpha = 0.2f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-    ) {
-        Text(
-            text = text,
-            style = TextStyle(
-                fontFamily = SpaceMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = 9.sp,
-                color = color
-            )
-        )
     }
 }
 
@@ -401,14 +250,29 @@ private fun truncateAddress(address: String): String {
     }
 }
 
+private fun resolveSenderName(message: Message): String {
+    val contactName = message.recipient.contact?.name?.takeIf { it.isNotBlank() }
+    val ens = message.recipient.ens?.takeIf { it.isNotBlank() }
+    return contactName ?: ens ?: truncateAddress(message.recipient.address)
+}
+
 private fun chainIdToName(chainId: Long): String = when (chainId) {
-    1L -> "Ethereum"
+    1L -> "Mainnet"
     10L -> "Optimism"
     137L -> "Polygon"
     42161L -> "Arbitrum"
     8453L -> "Base"
     11155111L -> "Sepolia"
     else -> "Chain $chainId"
+}
+
+private fun chainIdToLogoRes(chainId: Long): Int? = when (chainId) {
+    1L -> R.drawable.mainnet
+    10L -> R.drawable.optimism
+    137L -> R.drawable.polygon
+    42161L -> R.drawable.arbitrum
+    8453L -> R.drawable.base_square
+    else -> null
 }
 
 @Composable
