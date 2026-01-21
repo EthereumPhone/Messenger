@@ -729,27 +729,36 @@ fun ChatScreen(
                                 horizontalAlignment = if (selected.isMe) Alignment.End else Alignment.Start,
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Expanded reaction picker - same logic as normal messages
-                                ExpandedReactionPicker(
-                                    isVisible = showExpandedReactionPicker.value,
-                                    onReactionSelected = { emoji ->
-                                        Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker (TX) selected emoji=$emoji")
-                                        onSendReaction(selected.id, emoji)
-                                        showExpandedReactionPicker.value = false
-                                        showOverlay.value = false
-                                        longPressedMessage.value = null
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    },
-                                    onDismiss = {
-                                        showExpandedReactionPicker.value = false
-                                    },
-                                    modifier = Modifier
-                                        .wrapContentWidth(
-                                            unbounded = true,
-                                            align = if (selected.isMe) Alignment.End else Alignment.Start
-                                        )
-                                        .offset(y = (-80).dp)
-                                )
+                                // Expanded reaction picker - same logic as normal messages, with animation
+                                AnimatedVisibility(
+                                    visible = showExpandedReactionPicker.value,
+                                    enter = fadeIn(animationSpec = tween(200)) + slideInVertically(
+                                        animationSpec = tween(200),
+                                        initialOffsetY = { it / 2 }
+                                    ),
+                                    exit = fadeOut(animationSpec = tween(150))
+                                ) {
+                                    ExpandedReactionPicker(
+                                        isVisible = true,
+                                        onReactionSelected = { emoji ->
+                                            Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker (TX) selected emoji=$emoji")
+                                            onSendReaction(selected.id, emoji)
+                                            showExpandedReactionPicker.value = false
+                                            showOverlay.value = false
+                                            longPressedMessage.value = null
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        },
+                                        onDismiss = {
+                                            showExpandedReactionPicker.value = false
+                                        },
+                                        modifier = Modifier
+                                            .wrapContentWidth(
+                                                unbounded = true,
+                                                align = if (selected.isMe) Alignment.End else Alignment.Start
+                                            )
+                                            .offset(y = (-16).dp)
+                                    )
+                                }
                                 
                                 // Quick reaction picker - same logic as normal messages
                                 ReactionPicker(
@@ -835,29 +844,38 @@ fun ChatScreen(
                                 horizontalAlignment = if (selected.isMe) Alignment.End else Alignment.Start,
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Expanded reaction picker - full width, unbounded from parent
+                                // Expanded reaction picker - full width, unbounded from parent, with animation
                                 // Position differs based on message sender
-                                ExpandedReactionPicker(
-                                    isVisible = showExpandedReactionPicker.value,
-                                    onReactionSelected = { emoji ->
-                                        Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker selected emoji=$emoji")
-                                        onSendReaction(selected.id, emoji)
-                                        showExpandedReactionPicker.value = false
-                                        showOverlay.value = false
-                                        longPressedMessage.value = null
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    },
-                                    onDismiss = {
-                                        Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker dismissed")
-                                        showExpandedReactionPicker.value = false
-                                    },
-                                    modifier = Modifier
-                                        .wrapContentWidth(
-                                            unbounded = true,
-                                            align = if (selected.isMe) Alignment.End else Alignment.Start
-                                        )
-                                        .offset(y = (-80).dp)
-                                )
+                                AnimatedVisibility(
+                                    visible = showExpandedReactionPicker.value,
+                                    enter = fadeIn(animationSpec = tween(200)) + slideInVertically(
+                                        animationSpec = tween(200),
+                                        initialOffsetY = { it / 2 }
+                                    ),
+                                    exit = fadeOut(animationSpec = tween(150))
+                                ) {
+                                    ExpandedReactionPicker(
+                                        isVisible = true,
+                                        onReactionSelected = { emoji ->
+                                            Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker selected emoji=$emoji")
+                                            onSendReaction(selected.id, emoji)
+                                            showExpandedReactionPicker.value = false
+                                            showOverlay.value = false
+                                            longPressedMessage.value = null
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        },
+                                        onDismiss = {
+                                            Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker dismissed")
+                                            showExpandedReactionPicker.value = false
+                                        },
+                                        modifier = Modifier
+                                            .wrapContentWidth(
+                                                unbounded = true,
+                                                align = if (selected.isMe) Alignment.End else Alignment.Start
+                                            )
+                                            .offset(y = (-16).dp)
+                                    )
+                                }
                                 
                                 // Quick reaction picker - full width, unbounded from parent
                                 // For user messages: anchored to end, extends LEFT
