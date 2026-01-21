@@ -1,5 +1,6 @@
 package org.ethereumphone.dgenlibrary.components
 
+import android.graphics.drawable.Drawable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -32,11 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -171,6 +174,60 @@ fun RowScope.SelectionBarColumn(
             contentDescription = title,
             modifier = Modifier
                 .height(40.dp)
+        )
+        Spacer(modifier = Modifier.size(4.dp))
+        Text(
+            text = title.uppercase(),
+            modifier = Modifier,
+            style = TextStyle(
+                fontFamily = SpaceMono,
+                color = primaryColor,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = smalllabel_fontSize,
+                letterSpacing = 0.sp,
+                textDecoration = TextDecoration.None,
+                textAlign = TextAlign.Center
+            ),
+            color = tintColor,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun RowScope.SelectionBarColumn(
+    icon: Int,
+    title: String,
+    primaryColor: Color,
+    onItemLongClick: (() -> Unit)? = null,
+    onClick: () -> Unit,
+) {
+    val tintColor = primaryColor
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .defaultMinSize(minHeight = 80.dp)
+            .weight(1f)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onLongPress = { onItemLongClick?.invoke() }
+                )
+            }
+//            .debouncedCombinedClickable(
+//                onClick = onClick,
+//                onLongClick = onItemLongClick
+//            )
+            .padding(top = 12.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(icon),
+            colorFilter = ColorFilter.tint(tintColor),
+            contentDescription = title,
+            modifier = Modifier
+                .height(40.dp).scale(1.2f)
         )
         Spacer(modifier = Modifier.size(4.dp))
         Text(

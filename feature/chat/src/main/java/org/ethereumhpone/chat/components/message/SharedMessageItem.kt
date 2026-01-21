@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +16,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
@@ -28,6 +30,7 @@ import org.ethereumphone.model.Message
  * Overlay-specific lightweight message item.
  * Aligns the message text, timestamp, and delivery checks on a single line (baseline-aligned),
  * styled consistently with ChatItemBubbleV3 but without extras (media, replies, gestures).
+ * Row layout ensures timestamp doesn't overflow for both user and incoming messages.
  */
 @Composable
 fun OverlayMessageItem(
@@ -39,45 +42,20 @@ fun OverlayMessageItem(
     val isUserMe = msg.isMe
     val textColor = if (isUserMe) dgenWhite else primaryColor
 
-    Column(
-        horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
-        modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+    Row(
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.Bottom,
+        modifier = Modifier
+            .then(modifier) // Apply external modifier
+            .padding(horizontal = 8.dp, vertical = 8.dp)
     ) {
-        Row(
-            horizontalArrangement = if (isUserMe) Arrangement.End else Arrangement.Start,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            // Terminal-style prompt for incoming messages
-            if (!isUserMe) {
-                Text(
-                    text = "> ",
-                    style = TextStyle(
-                        textAlign = TextAlign.Start,
-                        fontFamily = SpaceMono,
-                        color = textColor,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 16.sp,
-                        lineHeight = 20.sp,
-                        textDecoration = TextDecoration.None
-                    ),
-                    modifier = Modifier
-                        .padding(end = 2.dp)
-                        .alignBy(LastBaseline)
-                )
-            }
-
-            val styledMessage = messageFormatter(
-                text = msg.body,
-                primary = isUserMe
-            )
-
-            // Single-line aligned body; use Text for baseline alignment with metadata
+        // Terminal-style prompt for incoming messages
+        if (!isUserMe) {
             Text(
-                text = styledMessage,
+                text = "> ",
                 style = TextStyle(
                     textAlign = TextAlign.Start,
-                    fontFamily = PitagonsSans,
+                    fontFamily = SpaceMono,
                     color = textColor,
                     fontWeight = FontWeight.Normal,
                     fontSize = 16.sp,
@@ -85,20 +63,45 @@ fun OverlayMessageItem(
                     textDecoration = TextDecoration.None
                 ),
                 modifier = Modifier
-                    .widthIn(max = 300.dp)
+                    .padding(end = 2.dp)
                     .alignBy(LastBaseline)
             )
-
-            Spacer(modifier = Modifier.padding(start = 12.dp))
-
-            AuthorNameTimestamp(
-                messageEntity = msg,
-                primaryColor = primaryColor,
-                secondaryColor = secondaryColor,
-                isUserMe = isUserMe,
-                modifier = Modifier.alignBy(LastBaseline)
-            )
         }
+
+        val styledMessage = messageFormatter(
+            text = msg.body,
+            primary = isUserMe
+        )
+
+        // Message text - constrained width to leave room for timestamp
+        Text(
+            text = styledMessage,
+            style = TextStyle(
+                textAlign = TextAlign.Start,
+                fontFamily = PitagonsSans,
+                color = textColor,
+                fontWeight = FontWeight.Normal,
+                fontSize = 16.sp,
+                lineHeight = 20.sp,
+                textDecoration = TextDecoration.None
+            ),
+            maxLines = 10,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .widthIn(max = 200.dp) // Constrain text width to leave room for timestamp
+                .alignBy(LastBaseline)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Timestamp - always visible, never overflows
+        AuthorNameTimestamp(
+            messageEntity = msg,
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor,
+            isUserMe = isUserMe,
+            modifier = Modifier.alignBy(LastBaseline)
+        )
     }
 }
 
