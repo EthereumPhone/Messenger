@@ -655,12 +655,7 @@ fun ChatScreen(
                     val isTransactionMessage = selected.isTransactionReference() || selected.isTransactionRequest()
                     
                     // Screen dimensions
-                    val screenWidth = context.resources.displayMetrics.widthPixels.toFloat()
                     val screenHeight = context.resources.displayMetrics.heightPixels.toFloat()
-                    
-                    // Calculate bubble widths for proper positioning
-                    val transactionBubbleWidthDp = 220.dp
-                    val transactionBubblePaddingDp = 24.dp
                     
                     // For normal messages, we need both start and target X positions
                     val xAnim = remember { Animatable(0f) }
@@ -668,20 +663,23 @@ fun ChatScreen(
                     
                     // Calculate positions based on message type
                     val (initialX, targetY) = with(density) {
-                        if (isTransactionMessage) {
-                            val txInitialX = if (selected.isMe) {
-                                (screenWidth - transactionBubbleWidthDp.toPx() - transactionBubblePaddingDp.toPx()).coerceAtLeast(0f)
-                            } else {
-                                transactionBubblePaddingDp.toPx()
+                        when {
+                            selected.isTransactionRequest() -> {
+                                // Transaction request: position higher up (18% from top)
+                                val txInitialX = msgPos.x.coerceAtLeast(0f)
+                                Pair(txInitialX, screenHeight * 0.18f)
                             }
-                            // Transaction bubbles: Y animates to 30% from top
-                            Pair(txInitialX, screenHeight * 0.30f)
-                        } else {
-                            // Normal messages: X stays fixed at original position, only Y animates
-                            // Use the exact left edge of the message bubble
-                            val normalInitialX = msgPos.x.coerceAtLeast(0f)
-                            // Target Y: ~35% from top
-                            Pair(normalInitialX, screenHeight * 0.35f)
+                            selected.isTransactionReference() -> {
+                                // Transaction reference: position at 25% from top
+                                val txInitialX = msgPos.x.coerceAtLeast(0f)
+                                Pair(txInitialX, screenHeight * 0.25f)
+                            }
+                            else -> {
+                                // Normal messages: X stays fixed at original position, only Y animates
+                                val normalInitialX = msgPos.x.coerceAtLeast(0f)
+                                // Target Y: ~35% from top
+                                Pair(normalInitialX, screenHeight * 0.35f)
+                            }
                         }
                     }
                     
@@ -712,14 +710,26 @@ fun ChatScreen(
                         // Transaction messages use a different layout structure
                         if (isTransactionMessage) {
                             // Transaction message overlay layout
+                            // Width modifier: use original message width (same as chat bubbles)
+                            // For user messages: fixed width; for incoming: flexible to fit content
+                            val txWidthModifier = if (selected.isMe) {
+                                Modifier.width(with(density) { msgWidth.toDp() })
+                            } else {
+                                Modifier.widthIn(
+                                    min = with(density) { msgWidth.toDp() },
+                                    max = 300.dp
+                                )
+                            }
+                            
                             Column(
                                 modifier = Modifier
                                     .offset { IntOffset(xAnim.value.roundToInt(), yAnim.value.roundToInt()) }
-                                    .width(transactionBubbleWidthDp),
-                                horizontalAlignment = Alignment.Start, // Left-align content
+                                    .then(txWidthModifier),
+                                // Same alignment logic as normal messages
+                                horizontalAlignment = if (selected.isMe) Alignment.End else Alignment.Start,
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Expanded reaction picker - left aligned, overflows right
+                                // Expanded reaction picker - same logic as normal messages
                                 ExpandedReactionPicker(
                                     isVisible = showExpandedReactionPicker.value,
                                     onReactionSelected = { emoji ->
@@ -733,10 +743,15 @@ fun ChatScreen(
                                     onDismiss = {
                                         showExpandedReactionPicker.value = false
                                     },
-                                    modifier = Modifier.offset(y = (-60).dp)
+                                    modifier = Modifier
+                                        .wrapContentWidth(
+                                            unbounded = true,
+                                            align = if (selected.isMe) Alignment.End else Alignment.Start
+                                        )
+                                        .offset(y = (-80).dp)
                                 )
                                 
-                                // Quick reaction picker - left aligned, overflows right
+                                // Quick reaction picker - same logic as normal messages
                                 ReactionPicker(
                                     isVisible = !showExpandedReactionPicker.value,
                                     isUserMe = selected.isMe,
@@ -750,7 +765,12 @@ fun ChatScreen(
                                     },
                                     onExpandPicker = {
                                         showExpandedReactionPicker.value = true
-                                    }
+                                    },
+                                    modifier = Modifier
+                                        .wrapContentWidth(
+                                            unbounded = true,
+                                            align = if (selected.isMe) Alignment.End else Alignment.Start
+                                        )
                                 )
                                 
                                 // Display transaction bubble based on type
@@ -763,7 +783,6 @@ fun ChatScreen(
                                             primaryColor = primaryColor,
                                             secondaryColor = secondaryColor,
                                             modifier = Modifier
-                                                .width(transactionBubbleWidthDp)
                                                 .onGloballyPositioned { coordinates ->
                                                     val pos = coordinates.positionInRoot()
                                                     Log.d("ChatOverlay", "FocusTransactionReferenceBubble XY: ${pos.x}, ${pos.y}")
@@ -783,7 +802,6 @@ fun ChatScreen(
                                                 longPressedMessage.value = null
                                             },
                                             modifier = Modifier
-                                                .width(transactionBubbleWidthDp)
                                                 .onGloballyPositioned { coordinates ->
                                                     val pos = coordinates.positionInRoot()
                                                     Log.d("ChatOverlay", "FocusTransactionRequestBubble XY: ${pos.x}, ${pos.y}")
