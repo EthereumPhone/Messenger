@@ -2,6 +2,7 @@ package org.ethereumhpone.chat.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -19,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +58,8 @@ fun TransactionReferenceBubble(
     isUserMe: Boolean,
     primaryColor: Color,
     secondaryColor: Color,
-    isFirstMessageByAuthor: Boolean = false
+    isFirstMessageByAuthor: Boolean = false,
+    onLongClick: () -> Unit = {}
 ) {
     val metadata = transactionReference.metadata
     val chainName = chainIdToName(transactionReference.networkId)
@@ -69,15 +73,20 @@ fun TransactionReferenceBubble(
     Column(
         horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongClick() }
+                )
+            }
     ) {
-        // Transaction Reference Card
+        // Transaction Reference Card - constrained max width
         Column(
             modifier = Modifier
                 .clip(bubbleShape)
                 .background(bubbleBackground)
                 .border(1.dp, borderColor, bubbleShape)
                 .padding(16.dp)
-                .width(280.dp)
+                .widthIn(min = 180.dp, max = 260.dp)
         ) {
             Text(
                 text = headerText.uppercase(),
@@ -199,6 +208,115 @@ private fun chainIdToLogoRes(chainId: Long): Int? = when (chainId) {
     8453L -> R.drawable.base_square
     7777777L -> R.drawable.zorb
     else -> null
+}
+
+/**
+ * Focus/Overlay version of TransactionReferenceBubble.
+ * Used when the message is selected in the overlay.
+ * Constrained sizing for better overlay presentation.
+ */
+@Composable
+fun FocusTransactionReferenceBubble(
+    modifier: Modifier = Modifier,
+    message: Message,
+    transactionReference: TransactionReference,
+    isUserMe: Boolean,
+    primaryColor: Color,
+    secondaryColor: Color
+) {
+    val metadata = transactionReference.metadata
+    val chainName = chainIdToName(transactionReference.networkId)
+    
+    val bubbleShape = RoundedCornerShape(3.dp)
+    val bubbleBackground = secondaryColor
+    val borderColor = primaryColor.copy(alpha = pulseOpacity)
+    val senderName = resolveSenderName(message)
+    val headerText = if (isUserMe) "You sent" else "$senderName sent"
+    
+    Column(
+        horizontalAlignment = Alignment.Start, // Always left-align in focus mode
+        modifier = modifier
+    ) {
+        // Transaction Reference Card - constrained width for overlay
+        Column(
+            modifier = Modifier
+                .clip(bubbleShape)
+                .background(bubbleBackground)
+                .border(1.dp, borderColor, bubbleShape)
+                .padding(12.dp)
+                .fillMaxWidth() // Fill parent width (controlled by parent)
+        ) {
+            Text(
+                text = headerText.uppercase(),
+                style = TextStyle(
+                    fontFamily = SpaceMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = label_fontSize,
+                    color = primaryColor
+                )
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // Amount display (if available)
+            val amount = metadata?.amount
+            val currency = metadata?.currency
+            val decimals = metadata?.decimals
+            if (amount != null && currency != null && decimals != null) {
+                val humanAmount = formatAmount(amount, decimals)
+                Text(
+                    text = "$humanAmount $currency",
+                    style = TextStyle(
+                        fontFamily = PitagonsSans,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = header3_fontSize,
+                        color = if (isUserMe) dgenWhite else primaryColor
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Text(
+                    text = chainName.uppercase(),
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = primaryColor
+                    )
+                )
+                val chainLogoRes = chainIdToLogoRes(transactionReference.networkId)
+                if (chainLogoRes != null) {
+                    Icon(
+                        painter = painterResource(id = chainLogoRes),
+                        contentDescription = "$chainName logo",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        }
+
+        // Timestamp - left aligned for focus mode
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.Start
+        ) {
+            AuthorNameTimestamp(
+                messageEntity = message,
+                isUserMe = isUserMe,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor
+            )
+        }
+    }
 }
 
 @Composable

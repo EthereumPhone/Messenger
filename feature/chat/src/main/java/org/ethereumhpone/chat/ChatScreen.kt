@@ -34,6 +34,8 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -46,6 +48,15 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -93,12 +104,15 @@ import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.ExpandedReactionPicker
+import org.ethereumhpone.chat.components.FocusTransactionReferenceBubble
+import org.ethereumhpone.chat.components.FocusTransactionRequestBubble
 import org.ethereumhpone.chat.components.ReactionPicker
 import org.ethereumhpone.chat.components.GroupDetailsSheet
 import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.TransactionAction
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.OverlayMessageItem
+import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.util.generateTestGroupMessages
 import org.ethereumhpone.chat.util.generateTestMessages
 import org.ethereumhpone.database.model.ContactEntity
@@ -634,87 +648,237 @@ fun ChatScreen(
                 longPressedMessage.value?.let { selected ->
                     val density = LocalDensity.current
                     val msgPos = composablePositionState.value.offset
-                    // Adjust for OverlayMessageItem internal padding
-                    val xCorrectionPx = with(density) { 16.dp.toPx() }
-                    val yCorrectionPx = with(density) { 8.dp.toPx() }
-                    val startX = (msgPos.x - xCorrectionPx).coerceAtLeast(0f)
-
+                    val msgWidth = composablePositionState.value.width
+                    val msgHeight = composablePositionState.value.height
+                    
+                    // Determine message type for different positioning logic
+                    val isTransactionMessage = selected.isTransactionReference() || selected.isTransactionRequest()
+                    
+                    // Screen dimensions
+                    val screenWidth = context.resources.displayMetrics.widthPixels.toFloat()
+                    val screenHeight = context.resources.displayMetrics.heightPixels.toFloat()
+                    
+                    // Calculate bubble widths for proper positioning
+                    val transactionBubbleWidthDp = 220.dp
+                    val transactionBubblePaddingDp = 24.dp
+                    
+                    // For normal messages, we need both start and target X positions
+                    val xAnim = remember { Animatable(0f) }
                     val yAnim = remember { Animatable(0f) }
+                    
+                    // Calculate positions based on message type
+                    val (initialX, targetY) = with(density) {
+                        if (isTransactionMessage) {
+                            val txInitialX = if (selected.isMe) {
+                                (screenWidth - transactionBubbleWidthDp.toPx() - transactionBubblePaddingDp.toPx()).coerceAtLeast(0f)
+                            } else {
+                                transactionBubblePaddingDp.toPx()
+                            }
+                            // Transaction bubbles: Y animates to 30% from top
+                            Pair(txInitialX, screenHeight * 0.30f)
+                        } else {
+                            // Normal messages: X stays fixed at original position, only Y animates
+                            // Use the exact left edge of the message bubble
+                            val normalInitialX = msgPos.x.coerceAtLeast(0f)
+                            // Target Y: ~35% from top
+                            Pair(normalInitialX, screenHeight * 0.35f)
+                        }
+                    }
+                    
                     LaunchedEffect(selected.id, showOverlay.value) {
                         if (showOverlay.value) {
+                            val yCorrectionPx = with(density) { 8.dp.toPx() }
                             val startY = (msgPos.y - yCorrectionPx).coerceAtLeast(0f)
+                            
+                            // Snap to initial positions - X stays fixed, only Y animates
+                            xAnim.snapTo(initialX)
                             yAnim.snapTo(startY)
-                            Log.d("ChatOverlay", "Start XY (corrected): $startX, $startY")
+                            
+                            Log.d("ChatOverlay", "MessageType: ${if (isTransactionMessage) "Transaction" else "Normal"}")
+                            Log.d("ChatOverlay", "Fixed X: $initialX, Start Y: $startY")
+                            Log.d("ChatOverlay", "Target Y: $targetY")
+                            Log.d("ChatOverlay", "Message width: $msgWidth")
+                            
                             delay(500)
-                            yAnim.animateTo(332f, animationSpec = tween(durationMillis = 500))
-                            Log.d("ChatOverlay", "Animated to Y: 332.0")
+                            
+                            // Only animate Y (vertical movement)
+                            yAnim.animateTo(targetY, animationSpec = tween(durationMillis = 500))
                         }
                     }
 
                     Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .offset { IntOffset(
-                                    x = if (selected.isMe) 0 else startX.roundToInt(),
-                                    y = yAnim.value.roundToInt()
-                                ) }
-                                .then(
-                                    if (selected.isMe) Modifier.fillMaxWidth().padding(end = 8.dp)
-                                    else Modifier
-                                ),
-                            horizontalAlignment = if (selected.isMe) Alignment.End else Alignment.Start,
-                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Expanded reaction picker (shown when + is clicked)
-                            // Offset it up so it doesn't get cut off at the bottom
-                            ExpandedReactionPicker(
-                                isVisible = showExpandedReactionPicker.value,
-                                onReactionSelected = { emoji ->
-                                    Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker selected emoji=$emoji")
-                                    onSendReaction(selected.id, emoji)
-                                    showExpandedReactionPicker.value = false
-                                    showOverlay.value = false
-                                    longPressedMessage.value = null
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                },
-                                onDismiss = {
-                                    Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker dismissed")
-                                    showExpandedReactionPicker.value = false
-                                },
-                                modifier = Modifier.offset(y = (-80).dp)
-                            )
-                            
-                            // Quick reaction picker above the message
-                            ReactionPicker(
-                                isVisible = !showExpandedReactionPicker.value,
-                                isUserMe = selected.isMe,
-                                primaryColor = primaryColor,
-                                onReactionSelected = { emoji ->
-                                    Log.d("REACTION_DEBUG", "ChatScreen: ReactionPicker selected emoji=$emoji")
-                                    onSendReaction(selected.id, emoji)
-                                    showOverlay.value = false
-                                    longPressedMessage.value = null
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                },
-                                onExpandPicker = {
-                                    Log.d("REACTION_DEBUG", "ChatScreen: onExpandPicker - setting showExpandedReactionPicker=true")
-                                    showExpandedReactionPicker.value = true
+                        // Transaction messages use a different layout structure
+                        if (isTransactionMessage) {
+                            // Transaction message overlay layout
+                            Column(
+                                modifier = Modifier
+                                    .offset { IntOffset(xAnim.value.roundToInt(), yAnim.value.roundToInt()) }
+                                    .width(transactionBubbleWidthDp),
+                                horizontalAlignment = Alignment.Start, // Left-align content
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Expanded reaction picker - left aligned, overflows right
+                                ExpandedReactionPicker(
+                                    isVisible = showExpandedReactionPicker.value,
+                                    onReactionSelected = { emoji ->
+                                        Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker (TX) selected emoji=$emoji")
+                                        onSendReaction(selected.id, emoji)
+                                        showExpandedReactionPicker.value = false
+                                        showOverlay.value = false
+                                        longPressedMessage.value = null
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    onDismiss = {
+                                        showExpandedReactionPicker.value = false
+                                    },
+                                    modifier = Modifier.offset(y = (-60).dp)
+                                )
+
+                                // Quick reaction picker - left aligned, overflows right
+                                ReactionPicker(
+                                    isVisible = !showExpandedReactionPicker.value,
+                                    isUserMe = selected.isMe,
+                                    primaryColor = primaryColor,
+                                    onReactionSelected = { emoji ->
+                                        Log.d("REACTION_DEBUG", "ChatScreen: ReactionPicker (TX) selected emoji=$emoji")
+                                        onSendReaction(selected.id, emoji)
+                                        showOverlay.value = false
+                                        longPressedMessage.value = null
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    onExpandPicker = {
+                                        showExpandedReactionPicker.value = true
+                                    }
+                                )
+
+                                // Display transaction bubble based on type
+                                when {
+                                    selected.isTransactionReference() && selected.transactionReference != null -> {
+                                        FocusTransactionReferenceBubble(
+                                            message = selected,
+                                            transactionReference = selected.transactionReference!!,
+                                            isUserMe = selected.isMe,
+                                            primaryColor = primaryColor,
+                                            secondaryColor = secondaryColor,
+                                            modifier = Modifier
+                                                .width(transactionBubbleWidthDp)
+                                                .onGloballyPositioned { coordinates ->
+                                                    val pos = coordinates.positionInRoot()
+                                                    Log.d("ChatOverlay", "FocusTransactionReferenceBubble XY: ${pos.x}, ${pos.y}")
+                                                }
+                                        )
+                                    }
+                                    selected.isTransactionRequest() && selected.transactionRequest != null -> {
+                                        FocusTransactionRequestBubble(
+                                            message = selected,
+                                            transactionRequest = selected.transactionRequest!!,
+                                            isUserMe = selected.isMe,
+                                            primaryColor = primaryColor,
+                                            secondaryColor = secondaryColor,
+                                            onExecuteTransaction = { txRequest ->
+                                                onExecuteTransaction(txRequest)
+                                                showOverlay.value = false
+                                                longPressedMessage.value = null
+                                            },
+                                            modifier = Modifier
+                                                .width(transactionBubbleWidthDp)
+                                                .onGloballyPositioned { coordinates ->
+                                                    val pos = coordinates.positionInRoot()
+                                                    Log.d("ChatOverlay", "FocusTransactionRequestBubble XY: ${pos.x}, ${pos.y}")
+                                                }
+                                        )
+                                    }
                                 }
-                            )
+                            }
+                        }
+                        else {
+                            // Normal message overlay layout
+                            // For user messages (isMe): align to end, picker extends LEFT
+                            // For incoming messages (!isMe): align to start, picker extends RIGHT
                             
-                            OverlayMessageItem(
-                                msg = selected,
-                                primaryColor = primaryColor,
-                                secondaryColor = secondaryColor,
-                                modifier = Modifier.onGloballyPositioned { coordinates ->
-                                    val pos = coordinates.positionInRoot()
-                                    val msgPosition = composablePositionState.value.offset
-                                    Log.d("ChatOverlay", "Long-pressed message XY: ${msgPosition.x}, ${msgPosition.y}")
-                                    Log.d("ChatOverlay", "OverlayMessageItem XY: ${pos.x}, ${pos.y}")
-                                }
-                            )
+                            // Width modifier differs based on message sender:
+                            // - User messages: fixed width (original behavior, positions correctly)
+                            // - Incoming messages: flexible widthIn to prevent AuthorNameTimestamp overflow
+                            val widthModifier = if (selected.isMe) {
+                                Modifier.width(with(density) { msgWidth.toDp() })
+                            } else {
+                                Modifier.widthIn(
+                                    min = with(density) { msgWidth.toDp() },
+                                    max = 300.dp
+                                )
+                            }
+                            
+                            Column(
+                                modifier = Modifier
+                                    .offset { IntOffset(xAnim.value.roundToInt(), yAnim.value.roundToInt()) }
+                                    .then(widthModifier),
+                                horizontalAlignment = if (selected.isMe) Alignment.End else Alignment.Start,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Expanded reaction picker - full width, unbounded from parent
+                                // Position differs based on message sender
+                                ExpandedReactionPicker(
+                                    isVisible = showExpandedReactionPicker.value,
+                                    onReactionSelected = { emoji ->
+                                        Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker selected emoji=$emoji")
+                                        onSendReaction(selected.id, emoji)
+                                        showExpandedReactionPicker.value = false
+                                        showOverlay.value = false
+                                        longPressedMessage.value = null
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    onDismiss = {
+                                        Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker dismissed")
+                                        showExpandedReactionPicker.value = false
+                                    },
+                                    modifier = Modifier
+                                        .wrapContentWidth(
+                                            unbounded = true,
+                                            align = if (selected.isMe) Alignment.End else Alignment.Start
+                                        )
+                                        .offset(y = (-80).dp)
+                                )
+                                
+                                // Quick reaction picker - full width, unbounded from parent
+                                // For user messages: anchored to end, extends LEFT
+                                // For incoming messages: anchored to start, extends RIGHT
+                                ReactionPicker(
+                                    isVisible = !showExpandedReactionPicker.value,
+                                    isUserMe = selected.isMe,
+                                    primaryColor = primaryColor,
+                                    onReactionSelected = { emoji ->
+                                        Log.d("REACTION_DEBUG", "ChatScreen: ReactionPicker selected emoji=$emoji")
+                                        onSendReaction(selected.id, emoji)
+                                        showOverlay.value = false
+                                        longPressedMessage.value = null
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    onExpandPicker = {
+                                        Log.d("REACTION_DEBUG", "ChatScreen: onExpandPicker - setting showExpandedReactionPicker=true")
+                                        showExpandedReactionPicker.value = true
+                                    },
+                                    modifier = Modifier
+                                        .wrapContentWidth(
+                                            unbounded = true,
+                                            align = if (selected.isMe) Alignment.End else Alignment.Start
+                                        )
+                                )
+                                
+                                // Normal message bubble - constrained to max 300.dp
+                                OverlayMessageItem(
+                                    msg = selected,
+                                    primaryColor = primaryColor,
+                                    secondaryColor = secondaryColor,
+                                    modifier = Modifier
+                                        .widthIn(max = 300.dp)
+                                        .onGloballyPositioned { coordinates ->
+                                            val pos = coordinates.positionInRoot()
+                                            Log.d("ChatOverlay", "OverlayMessageItem XY: ${pos.x}, ${pos.y}")
+                                        }
+                                )
+                            }
                         }
                     }
                 }
@@ -732,6 +896,28 @@ fun ChatScreen(
 //                        }
 //                    )
 //                }
+                
+                // Show SEND button for transaction request messages (not transaction reference)
+                longPressedMessage.value?.let { msg ->
+                    if (msg.isTransactionRequest() && msg.transactionRequest != null) {
+                        SelectionBarColumn(
+                            icon = R.drawable.send_arrow,
+                            title = "Send",
+                            primaryColor = primaryColor,
+                            onClick = {
+                                msg.transactionRequest?.let { txRequest ->
+                                    onExecuteTransaction(txRequest)
+                                }
+                                showOverlay.value = false
+                                longPressedMessage.value = null
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        )
+                    }
+                }
+
+
+
                 SelectionBarColumn(
                     imageVector = Icons.Outlined.ContentCopy,
                     title = "Copy",
