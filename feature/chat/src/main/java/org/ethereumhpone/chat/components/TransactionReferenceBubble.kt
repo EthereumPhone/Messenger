@@ -2,9 +2,7 @@ package org.ethereumhpone.chat.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,12 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.outlined.Receipt
-import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material.icons.outlined.Token
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,20 +19,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.header3_fontSize
+import com.example.dgenlibrary.ui.theme.label_fontSize
+import com.example.dgenlibrary.ui.theme.pulseOpacity
 import kotlinx.datetime.Instant
+import org.ethereumhpone.chat.R
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
-import org.ethereumphone.dgenlibrary.theme.dgenGreen
-import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.DeliveryStatus
@@ -53,7 +45,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Composable for rendering a transaction reference message bubble.
- * Displays completed transaction details with a link to the block explorer.
+ * Displays completed transaction details.
  */
 @Composable
 fun TransactionReferenceBubble(
@@ -65,17 +57,14 @@ fun TransactionReferenceBubble(
     secondaryColor: Color,
     isFirstMessageByAuthor: Boolean = false
 ) {
-    val uriHandler = LocalUriHandler.current
-    val chainName = chainIdToName(transactionReference.networkId)
     val metadata = transactionReference.metadata
-    val blockExplorerUrl = metadata?.blockExplorerUrl ?: getBlockExplorerUrl(transactionReference.networkId, transactionReference.reference)
+    val chainName = chainIdToName(transactionReference.networkId)
     
-    val bubbleShape = RoundedCornerShape(16.dp)
-    val bubbleBackground = if (isUserMe) primaryColor.copy(alpha = 0.15f) else secondaryColor.copy(alpha = 0.15f)
-    val borderColor = dgenGreen.copy(alpha = 0.5f)
-    
-    // Get the appropriate icon based on transaction type
-    val txIcon = getTransactionIcon(metadata?.transactionType)
+    val bubbleShape = RoundedCornerShape(3.dp)
+    val bubbleBackground = secondaryColor
+    val borderColor = primaryColor.copy(alpha = pulseOpacity)
+    val senderName = resolveSenderName(message)
+    val headerText = if (isUserMe) "You sent" else "$senderName sent"
     
     Column(
         horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
@@ -87,71 +76,20 @@ fun TransactionReferenceBubble(
                 .clip(bubbleShape)
                 .background(bubbleBackground)
                 .border(1.dp, borderColor, bubbleShape)
-                .clickable { 
-                    if (blockExplorerUrl.isNotEmpty()) {
-                        uriHandler.openUri(blockExplorerUrl) 
-                    }
-                }
                 .padding(16.dp)
                 .width(280.dp)
         ) {
-            // Header: Transaction label with success indicator
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = txIcon,
-                        contentDescription = "Transaction",
-                        tint = dgenGreen,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = getTransactionTypeLabel(metadata?.transactionType),
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = if (isUserMe) dgenWhite else primaryColor
-                        )
-                    )
-                }
-                
-                // Success badge
-                SuccessBadge()
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Chain info
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Network:",
-                    style = TextStyle(
-                        fontFamily = PitagonsSans,
-                        fontSize = 12.sp,
-                        color = if (isUserMe) dgenWhite.copy(alpha = 0.7f) else primaryColor.copy(alpha = 0.7f)
-                    )
+            Text(
+                text = headerText.uppercase(),
+                style = TextStyle(
+                    fontFamily = SpaceMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = label_fontSize,
+                    color = primaryColor
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = chainName,
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp,
-                        color = dgenGreen
-                    )
-                )
-            }
+            )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             
             // Amount display (if available)
             val amount = metadata?.amount
@@ -159,118 +97,51 @@ fun TransactionReferenceBubble(
             val decimals = metadata?.decimals
             if (amount != null && currency != null && decimals != null) {
                 val humanAmount = formatAmount(amount, decimals)
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                ) {
-                    Text(
-                        text = humanAmount,
-                        style = TextStyle(
-                            fontFamily = PitagonsSans,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 32.sp,
-                            color = if (isUserMe) dgenWhite else primaryColor
-                        )
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = currency,
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp,
-                            color = if (isUserMe) dgenWhite.copy(alpha = 0.8f) else primaryColor.copy(alpha = 0.8f)
-                        ),
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
+                Text(
+                    text = "$humanAmount $currency",
+                    style = TextStyle(
+                        fontFamily = PitagonsSans,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = header3_fontSize,
+                        color = if (isUserMe) dgenWhite else primaryColor
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-            
-            // From/To addresses (if available)
-            val fromAddress = metadata?.fromAddress
-            val toAddress = metadata?.toAddress
-            if (fromAddress != null || toAddress != null) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    if (fromAddress != null) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "From:",
-                                style = TextStyle(
-                                    fontFamily = PitagonsSans,
-                                    fontSize = 11.sp,
-                                    color = if (isUserMe) dgenWhite.copy(alpha = 0.6f) else primaryColor.copy(alpha = 0.6f)
-                                ),
-                                modifier = Modifier.width(40.dp)
-                            )
-                            Text(
-                                text = truncateAddress(fromAddress),
-                                style = TextStyle(
-                                    fontFamily = SpaceMono,
-                                    fontSize = 11.sp,
-                                    color = if (isUserMe) dgenWhite.copy(alpha = 0.8f) else primaryColor.copy(alpha = 0.8f)
-                                )
-                            )
-                        }
-                    }
-                    if (toAddress != null) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "To:",
-                                style = TextStyle(
-                                    fontFamily = PitagonsSans,
-                                    fontSize = 11.sp,
-                                    color = if (isUserMe) dgenWhite.copy(alpha = 0.6f) else primaryColor.copy(alpha = 0.6f)
-                                ),
-                                modifier = Modifier.width(40.dp)
-                            )
-                            Text(
-                                text = truncateAddress(toAddress),
-                                style = TextStyle(
-                                    fontFamily = SpaceMono,
-                                    fontSize = 11.sp,
-                                    color = if (isUserMe) dgenWhite.copy(alpha = 0.8f) else primaryColor.copy(alpha = 0.8f)
-                                )
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            
-            // Transaction hash
+
             Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.padding(top = 4.dp)
             ) {
                 Text(
-                    text = "Tx: ${truncateAddress(transactionReference.reference)}",
+                    text = chainName.uppercase(),
                     style = TextStyle(
                         fontFamily = SpaceMono,
-                        fontSize = 11.sp,
-                        color = dgenGreen
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = primaryColor
                     )
                 )
-                if (blockExplorerUrl.isNotEmpty()) {
+                val chainLogoRes = chainIdToLogoRes(transactionReference.networkId)
+                if (chainLogoRes != null) {
                     Icon(
-                        imageVector = Icons.Default.OpenInNew,
-                        contentDescription = "View on explorer",
-                        tint = dgenGreen,
-                        modifier = Modifier.size(14.dp)
+                        painter = painterResource(id = chainLogoRes),
+                        contentDescription = "$chainName logo",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(12.dp)
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Timestamp
+        }
+
+        // Timestamp
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
             AuthorNameTimestamp(
                 messageEntity = message,
                 isUserMe = isUserMe,
@@ -278,58 +149,6 @@ fun TransactionReferenceBubble(
                 secondaryColor = secondaryColor
             )
         }
-    }
-}
-
-@Composable
-private fun SuccessBadge() {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(dgenGreen.copy(alpha = 0.2f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Confirmed",
-                tint = dgenGreen,
-                modifier = Modifier.size(10.dp)
-            )
-            Spacer(modifier = Modifier.width(2.dp))
-            Text(
-                text = "CONFIRMED",
-                style = TextStyle(
-                    fontFamily = SpaceMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 9.sp,
-                    color = dgenGreen
-                )
-            )
-        }
-    }
-}
-
-private fun getTransactionIcon(transactionType: String?): ImageVector {
-    return when (transactionType) {
-        TransactionTypes.SWAP -> Icons.Outlined.SwapHoriz
-        TransactionTypes.TRANSFER -> Icons.Outlined.Token
-        else -> Icons.Outlined.Receipt
-    }
-}
-
-private fun getTransactionTypeLabel(transactionType: String?): String {
-    return when (transactionType) {
-        TransactionTypes.TRANSFER -> "Transfer"
-        TransactionTypes.SWAP -> "Swap"
-        TransactionTypes.MINT -> "Mint"
-        TransactionTypes.LEND -> "Lend"
-        TransactionTypes.BORROW -> "Borrow"
-        TransactionTypes.STAKE -> "Stake"
-        TransactionTypes.UNSTAKE -> "Unstake"
-        TransactionTypes.APPROVE -> "Approval"
-        TransactionTypes.CONTRACT_INTERACTION -> "Contract Call"
-        else -> "Transaction"
     }
 }
 
@@ -351,24 +170,35 @@ private fun truncateAddress(address: String): String {
     }
 }
 
+private fun resolveSenderName(message: Message): String {
+    val contactName = message.recipient.contact?.name?.takeIf { it.isNotBlank() }
+    val ens = message.recipient.ens?.takeIf { it.isNotBlank() }
+    return contactName ?: ens ?: truncateAddress(message.recipient.address)
+}
+
 private fun chainIdToName(chainId: Long): String = when (chainId) {
-    1L -> "Ethereum"
+    1L -> "Mainnet"
+    56L -> "BNB Chain"
     10L -> "Optimism"
     137L -> "Polygon"
     42161L -> "Arbitrum"
+    43114L -> "Avalanche"
     8453L -> "Base"
+    7777777L -> "Zora"
     11155111L -> "Sepolia"
     else -> "Chain $chainId"
 }
 
-private fun getBlockExplorerUrl(networkId: Long, txHash: String): String = when (networkId) {
-    1L -> "https://etherscan.io/tx/$txHash"
-    10L -> "https://optimistic.etherscan.io/tx/$txHash"
-    137L -> "https://polygonscan.com/tx/$txHash"
-    42161L -> "https://arbiscan.io/tx/$txHash"
-    8453L -> "https://basescan.org/tx/$txHash"
-    11155111L -> "https://sepolia.etherscan.io/tx/$txHash"
-    else -> ""
+private fun chainIdToLogoRes(chainId: Long): Int? = when (chainId) {
+    1L -> R.drawable.mainnet
+    56L -> R.drawable.bnb
+    10L -> R.drawable.optimism
+    137L -> R.drawable.polygon
+    42161L -> R.drawable.arbitrum
+    43114L -> R.drawable.avalanche
+    8453L -> R.drawable.base_square
+    7777777L -> R.drawable.zorb
+    else -> null
 }
 
 @Composable
