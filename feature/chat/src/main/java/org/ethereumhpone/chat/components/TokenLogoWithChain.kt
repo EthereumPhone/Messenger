@@ -135,7 +135,7 @@ fun TokenLogoWithChain(
                 when (token.chainId) {
                     8453L, 84532L -> { // Base mainnet and testnet
                         Image(
-                            painter = painterResource(id = R.drawable.base),
+                            painter = painterResource(id = R.drawable.base_square),
                             modifier = Modifier
                                 .border(1.dp, secondaryColor, RoundedCornerShape(3.dp))
                                 .clip(RoundedCornerShape(3.dp)),

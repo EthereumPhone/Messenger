@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -36,7 +35,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
@@ -72,7 +70,7 @@ fun DgenSearchBar(
     keyboardController: SoftwareKeyboardController?,
     onClear: () -> Unit,
     onNavigateBack: () -> Unit = {},
-    leadingIconResId: Int = R.drawable.backicon,
+    leadingIconResId: Int = R.drawable.searchicon,
     selectedChainId: Int? = null,
     onNetworkClick: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -123,15 +121,10 @@ fun DgenSearchBar(
                 contentAlignment = Alignment.CenterStart,
                 modifier = modifier
                     .size(32.dp)
-                    .pointerInput(Unit) {
-                        detectTapGestures {
-                            onNavigateBack()
-                        }
-                    }
             ) {
                 Icon(
                     painter = painterResource(leadingIconResId),
-                    contentDescription = "Back",
+                    contentDescription = "Search",
                     tint = primaryColor,
                     modifier = modifier.size(24.dp)
                 )
