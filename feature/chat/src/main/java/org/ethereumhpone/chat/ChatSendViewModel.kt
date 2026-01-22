@@ -122,6 +122,10 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
     private val _sendTransactionTriggered = MutableStateFlow(false)
     val sendTransactionTriggered: StateFlow<Boolean> = _sendTransactionTriggered.asStateFlow()
 
+    // Add send request trigger state
+    private val _sendRequestTriggered = MutableStateFlow(false)
+    val sendRequestTriggered: StateFlow<Boolean> = _sendRequestTriggered.asStateFlow()
+
     private val _transactionStatus = MutableStateFlow<TransactionStatus?>(null)
     val transactionStatus: StateFlow<TransactionStatus?> = _transactionStatus.asStateFlow()
 
@@ -235,10 +239,31 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
         _sendTransactionTriggered.value = true
     }
 
+    /**
+     * Reset the send transaction trigger state after it's been consumed
+     */
+    fun resetSendTransactionTrigger() {
+        _sendTransactionTriggered.value = false
+    }
+
+    /**
+     * Function to trigger send request from secondary screen
+     */
+    fun triggerSendRequest() {
+        _sendRequestTriggered.value = true
+    }
+
+    /**
+     * Reset the send request trigger state after it's been consumed
+     */
+    fun resetSendRequestTrigger() {
+        _sendRequestTriggered.value = false
+    }
+
     //-----------------------------SENDING--------------------------------
 
     /**
-     * Call this function when the send screen is opened to secondary screen
+     * Call this function when the send screen is opened to display terminal button on secondary screen
      */
     fun onScreenOpened() {
         viewModelScope.launch(Dispatchers.Main) {
@@ -253,18 +278,18 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
                             triggerSendTransaction()
                         }
                     )
-                    Log.d("ChatSendViewModel", "QR code displayed on secondary screen")
+                    Log.d("ChatSendViewModel", "Send button displayed on secondary screen")
                 } else {
                     Log.w("ChatSendViewModel", "TerminalSDK not available")
                 }
             } catch (e: Exception) {
-                Log.e("ChatSendViewModel", "Error displaying QR code", e)
+                Log.e("ChatSendViewModel", "Error displaying send button", e)
             }
         }
     }
 
     /**
-     * Call this function when the send screen is closed/navigated away to remove QR code from secondary screen
+     * Call this function when the send screen is closed/navigated away to remove button from secondary screen
      */
     fun onScreenClosed() {
         viewModelScope.launch(Dispatchers.Main) {
@@ -277,6 +302,52 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
                 }
             } catch (e: Exception) {
                 Log.e("ChatSendViewModel", "Error removing Send", e)
+            }
+        }
+    }
+
+    //-----------------------------REQUEST--------------------------------
+
+    /**
+     * Call this function when the request screen is opened to display terminal button on secondary screen
+     */
+    fun onRequestScreenOpened() {
+        viewModelScope.launch(Dispatchers.Main) {
+            try {
+                val result = terminalSDK?.isAvailable() == false
+                println("TerminalSDK isAvailable: $result")
+
+                if (terminalSDK?.isAvailable() == true) {
+                    terminalSDK.displaySendRequest(
+                        sendRequest = {
+                            Log.d("ChatSendViewModel", "Send request touched on secondary screen - triggering send request")
+                            triggerSendRequest()
+                        }
+                    )
+                    Log.d("ChatSendViewModel", "Request button displayed on secondary screen")
+                } else {
+                    Log.w("ChatSendViewModel", "TerminalSDK not available")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatSendViewModel", "Error displaying request button", e)
+            }
+        }
+    }
+
+    /**
+     * Call this function when the request screen is closed/navigated away to remove button from secondary screen
+     */
+    fun onRequestScreenClosed() {
+        viewModelScope.launch(Dispatchers.Main) {
+            try {
+                if (terminalSDK?.isAvailable() == true) {
+                    terminalSDK.removeSendRequest()
+                    Log.d("ChatSendViewModel", "Removed request from secondary screen")
+                } else {
+                    Log.w("ChatSendViewModel", "TerminalSDK not available")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatSendViewModel", "Error removing Request", e)
             }
         }
     }
