@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -77,6 +79,7 @@ fun DgenBasicTextfield(
     ),
     placeholder: @Composable() (() -> Unit)? = null,
     onFocusChanged: ((Boolean) -> Unit)? = null,
+    focusRequester: FocusRequester? = null,
 ) {
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
@@ -178,6 +181,13 @@ fun DgenBasicTextfield(
             textStyle = textStyle,
             modifier = Modifier
                 .fillMaxWidth()
+                .then(
+                    if (focusRequester != null) {
+                        Modifier.focusRequester(focusRequester)
+                    } else {
+                        Modifier
+                    }
+                )
                 .then(
                     if (scrollHorizontally) {
                         Modifier.horizontalScroll(scrollState)

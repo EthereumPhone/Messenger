@@ -80,7 +80,7 @@ fun TransactionRequestBubble(
     
     val bubbleShape = RoundedCornerShape(3.dp)
     val bubbleBackground = secondaryColor
-    val borderColor = primaryColor.copy(alpha = pulseOpacity)
+    val borderColor = primaryColor //.copy(alpha = pulseOpacity)
     val senderName = resolveSenderName(message)
     val headerText = if (isUserMe) "You requested" else "$senderName requested"
     
@@ -303,7 +303,7 @@ fun FocusTransactionRequestBubble(
     
     val bubbleShape = RoundedCornerShape(3.dp)
     val bubbleBackground = secondaryColor
-    val borderColor = primaryColor.copy(alpha = pulseOpacity)
+    val borderColor = primaryColor //.copy(alpha = pulseOpacity)
     val senderName = resolveSenderName(message)
     val headerText = if (isUserMe) "You requested" else "$senderName requested"
     

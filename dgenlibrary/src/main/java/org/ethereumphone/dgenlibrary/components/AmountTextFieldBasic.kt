@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
@@ -75,7 +76,8 @@ fun AmountTextFieldBasic(
     showMaxAmount: Boolean = true,
     maxClickable: Boolean = !readOnly,
     secondarySelectable: Boolean = !readOnly,
-    primaryColor: Color = SystemColorManager.primaryColor
+    primaryColor: Color = SystemColorManager.primaryColor,
+    focusRequester: FocusRequester? = null
 ) {
     var toggleFiat by remember { mutableStateOf(false) }
 
@@ -230,7 +232,8 @@ fun AmountTextFieldBasic(
                     cursorHeight = 42.dp,
                     enabled = !readOnly,
                     readOnly = readOnly,
-                    isAnyFieldFocused = isAnyFieldFocused
+                    isAnyFieldFocused = isAnyFieldFocused,
+                    focusRequester = focusRequester
                 )
                 
                 Spacer(modifier = Modifier.width(16.dp))

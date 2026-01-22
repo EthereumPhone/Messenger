@@ -942,6 +942,14 @@ private fun AmountInputContent(
     onSelectToken: () -> Unit,
     onComplete: () -> Unit
 ) {
+    val amountFocusRequester = remember { FocusRequester() }
+    
+    // Request focus when the screen appears to open keyboard automatically
+    LaunchedEffect(Unit) {
+        delay(100) // Small delay to ensure the composable is fully composed
+        amountFocusRequester.requestFocus()
+    }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -977,7 +985,8 @@ private fun AmountInputContent(
             readOnly = false,
             maxClickable = mode == TransactionMode.SEND,
             secondarySelectable = true,
-            primaryColor = primaryColor
+            primaryColor = primaryColor,
+            focusRequester = amountFocusRequester
         )
         
         // Spacer pushes description to the bottom
