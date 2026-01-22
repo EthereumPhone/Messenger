@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -45,6 +46,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.ethereumphone.dgenlibrary.theme.oceanAbyss
+import org.ethereumphone.dgenlibrary.theme.oceanCore
 import org.ethosmobile.components.library.theme.Colors
 
 private const val TAG = "REACTION_DEBUG"
@@ -60,8 +63,10 @@ fun ReactionPicker(
     onReactionSelected: (String) -> Unit,
     onExpandPicker: () -> Unit = { Log.d(TAG, "ReactionPicker: DEFAULT EMPTY onExpandPicker called!") },
     modifier: Modifier = Modifier,
-    primaryColor: Color = Colors.WHITE
-) {
+    primaryColor: Color,
+    secondaryColor: Color,
+
+    ) {
     // Log when ReactionPicker visibility changes
     LaunchedEffect(isVisible) {
         Log.d(TAG, "ReactionPicker: isVisible changed to $isVisible")
@@ -82,8 +87,9 @@ fun ReactionPicker(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
-                .background(Colors.DARK_GRAY)
+                .clip(RoundedCornerShape(3.dp))
+                .background(secondaryColor)
+                .border(1.dp, primaryColor, RoundedCornerShape(3.dp))
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
             CommonReactions.quickReactions.forEach { emoji ->
@@ -97,8 +103,9 @@ fun ReactionPicker(
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Colors.GRAY.copy(alpha = 0.3f))
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(primaryColor)
+                    .border(1.dp, primaryColor, RoundedCornerShape(3.dp))
                     .clickable { 
                         Log.d(TAG, "ReactionPicker: PLUS BUTTON CLICKED - calling onExpandPicker()")
                         onExpandPicker() 
@@ -109,7 +116,7 @@ fun ReactionPicker(
                 Icon(
                     imageVector = Icons.Rounded.Add,
                     contentDescription = "More reactions",
-                    tint = Colors.WHITE,
+                    tint = secondaryColor,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -163,7 +170,9 @@ fun ExpandedReactionPicker(
     isVisible: Boolean,
     onReactionSelected: (String) -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    primaryColor: Color,
+    secondaryColor: Color,
 ) {
     // Log when ExpandedReactionPicker visibility changes
     LaunchedEffect(isVisible) {
@@ -180,8 +189,10 @@ fun ExpandedReactionPicker(
             modifier = Modifier
                 .widthIn(max = 280.dp)  // Wider to fit 6 emojis per row
                 .heightIn(max = 300.dp) // Allow vertical scrolling
-                .clip(RoundedCornerShape(16.dp))
-                .background(Colors.DARK_GRAY)
+                .clip(RoundedCornerShape(3.dp))
+                .background(secondaryColor)
+                .border(1.dp, primaryColor, RoundedCornerShape(3.dp))
+
                 // Consume clicks so they don't propagate to parent
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -217,7 +228,9 @@ fun ReactionPickerPreview() {
         isVisible = true,
         isUserMe = false,
         onReactionSelected = {},
-        onExpandPicker = {}
+        onExpandPicker = {},
+        primaryColor = oceanCore,
+        secondaryColor = oceanAbyss
     )
 }
 
@@ -227,7 +240,10 @@ fun ExpandedReactionPickerPreview() {
     ExpandedReactionPicker(
         isVisible = true,
         onReactionSelected = {},
-        onDismiss = {}
+        onDismiss = {},
+        primaryColor = oceanCore,
+        secondaryColor = oceanAbyss
+
     )
 }
 

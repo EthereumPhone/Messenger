@@ -66,7 +66,7 @@ fun TransactionReferenceBubble(
     
     val bubbleShape = RoundedCornerShape(3.dp)
     val bubbleBackground = secondaryColor
-    val borderColor = primaryColor.copy(alpha = pulseOpacity)
+    val borderColor = primaryColor //.copy(alpha = pulseOpacity)
     val senderName = resolveSenderName(message)
     val headerText = if (isUserMe) "You sent" else "$senderName sent"
     
@@ -229,7 +229,7 @@ fun FocusTransactionReferenceBubble(
     
     val bubbleShape = RoundedCornerShape(3.dp)
     val bubbleBackground = secondaryColor
-    val borderColor = primaryColor.copy(alpha = pulseOpacity)
+    val borderColor = primaryColor //.copy(alpha = pulseOpacity)
     val senderName = resolveSenderName(message)
     val headerText = if (isUserMe) "You sent" else "$senderName sent"
     
