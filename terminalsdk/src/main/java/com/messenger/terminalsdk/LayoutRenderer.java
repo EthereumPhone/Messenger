@@ -13,7 +13,6 @@ import android.graphics.Typeface;
 import androidx.core.content.res.ResourcesCompat;
 import android.graphics.PorterDuff;
 import android.widget.ImageView;
-import android.view.ViewGroup;
 
 public class LayoutRenderer {
 
@@ -24,7 +23,7 @@ public class LayoutRenderer {
     }
 
     /**
-     * Renders the qr_or_send with custom text into a bitmap
+     * Renders the send terminal layout with custom text into a bitmap
      * @return A bitmap of size 428x142 pixels containing the rendered layout
      */
     public Bitmap renderSend() {
@@ -42,7 +41,49 @@ public class LayoutRenderer {
         }
 
         // Re-color labels
-        TextView sendLabel = view.findViewById(R.id.send_label);
+        TextView sendLabel = view.findViewById(R.id.send_request_label);
+        if (sendLabel != null) {
+            sendLabel.setTextColor(accentColor);
+        }
+
+        // Measure and layout the view with exact dimensions (428x142 pixels)
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(428, View.MeasureSpec.EXACTLY);
+        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(142, View.MeasureSpec.EXACTLY);
+        view.measure(widthMeasureSpec, heightMeasureSpec);
+        view.layout(0, 0, 428, 142);
+
+        // Create a bitmap with the exact dimensions
+        Bitmap bitmap = Bitmap.createBitmap(428, 142, Bitmap.Config.RGB_565);
+
+        // Create a canvas to draw the view onto the bitmap
+        Canvas canvas = new Canvas(bitmap);
+
+        // Draw the view onto the canvas
+        view.draw(canvas);
+
+        return bitmap;
+    }
+
+    /**
+     * Renders the send request terminal layout with custom text into a bitmap
+     * @return A bitmap of size 428x142 pixels containing the rendered layout
+     */
+    public Bitmap renderSendRequest() {
+        // Inflate the layout
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.send_request_terminal_layout, null);
+
+        // Apply accent color to all interactive elements (icons + labels)
+        int accentColor = getColorForRender();
+
+        // Re-tint icons
+        ImageView sendIcon = view.findViewById(R.id.send_icon);
+        if (sendIcon != null) {
+            sendIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
+        }
+
+        // Re-color labels
+        TextView sendLabel = view.findViewById(R.id.send_request_label);
         if (sendLabel != null) {
             sendLabel.setTextColor(accentColor);
         }
