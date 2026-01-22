@@ -76,18 +76,18 @@ fun GlobeBackground(
             }
     )
     {
-        // Globe wireframe animation background - direct sibling of content
-        AsyncImage(
-            modifier = Modifier
-                .alpha(pulseOpacity)
-                .offset(x = 250.dp, y = 20.dp)
-                .scale(1.3f)
-                .aspectRatio(1f),
-            imageLoader = gifEnabledLoader,
-            model = R.drawable.globe_wireframe,
-            contentDescription = null,
-            colorFilter = ColorFilter.tint(primaryColor)
-        )
+//        // Globe wireframe animation background - direct sibling of content
+//        AsyncImage(
+//            modifier = Modifier
+//                .alpha(pulseOpacity)
+//                .offset(x = 250.dp, y = 20.dp)
+//                .scale(1.3f)
+//                .aspectRatio(1f),
+//            imageLoader = gifEnabledLoader,
+//            model = R.drawable.globe_wireframe,
+//            contentDescription = null,
+//            colorFilter = ColorFilter.tint(primaryColor)
+//        )
 
         Column(
             modifier = Modifier.fillMaxSize()
