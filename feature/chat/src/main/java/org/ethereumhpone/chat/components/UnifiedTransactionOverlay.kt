@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +46,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
@@ -63,7 +61,6 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.ImageLoader
-import coil.compose.AsyncImage
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import com.example.dgenlibrary.ui.theme.PitagonsSans
@@ -655,6 +652,7 @@ private fun TokenListView(
                     scrollState,
                     scrollBarTrackColor = secondaryColor,
                     scrollBarColor = primaryColor,
+                    endPadding = (-12).dp,
                     autoHide = true,
                     fadeInDuration = 300,
                     fadeOutDuration = 300,
@@ -792,74 +790,6 @@ private fun TokenRow(
 }
 
 /**
- * Token logo with chain badge overlay
- */
-@Composable
-private fun TokenLogoWithChainBadge(
-    logoUrl: String?,
-    symbol: String,
-    chainId: Int,
-    primaryColor: Color
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.size(40.dp)
-    ) {
-        if (!logoUrl.isNullOrEmpty()) {
-            AsyncImage(
-                model = logoUrl,
-                contentDescription = "$symbol logo",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            // Fallback to initials
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(primaryColor.copy(alpha = 0.2f))
-            ) {
-                Text(
-                    text = symbol.take(2).uppercase(),
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        color = primaryColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                )
-            }
-        }
-        
-        // Chain badge overlay
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = 4.dp, y = 4.dp)
-                .size(16.dp)
-                .clip(CircleShape)
-                .background(dgenBlack)
-                .border(1.dp, primaryColor.copy(alpha = 0.5f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = getChainAbbrev(chainId),
-                style = TextStyle(
-                    fontFamily = SpaceMono,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 6.sp
-                )
-            )
-        }
-    }
-}
-
-/**
  * Token selector component styled like WalletManager TokenSelector
  * Shows token logo with chain badge, symbol, and dropdown arrow
  */
@@ -896,11 +826,12 @@ private fun TokenSelector(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Token image with chain overlay
-                TokenLogoWithChainBadge(
-                    logoUrl = token.logo,
-                    symbol = token.symbol,
-                    chainId = token.chainId,
-                    primaryColor = primaryColor
+                TokenLogoWithChain(
+                    token = token.toTokenOption(),
+                    size = 40.dp,
+                    primaryColor = primaryColor,
+                    secondaryColor = secondaryColor,
+                    showChainOverlay = true
                 )
                 
                 // Token symbol
@@ -1049,16 +980,6 @@ private fun formatFiatValue(value: Double): String {
         value < 1000000 -> String.format("%.1fK", value / 1000)
         else -> String.format("%.2fM", value / 1000000)
     }
-}
-
-private fun getChainAbbrev(chainId: Int): String = when (chainId) {
-    1 -> "E"
-    10 -> "OP"
-    42161 -> "A"
-    137 -> "P"
-    8453 -> "B"
-    7777777 -> "Z"
-    else -> "?"
 }
 
 private fun buildTransactionRequest(

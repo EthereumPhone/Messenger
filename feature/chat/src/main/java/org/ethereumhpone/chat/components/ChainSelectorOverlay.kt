@@ -212,7 +212,7 @@ fun ChainIcon(
             tint = Color.Unspecified
         )
         8453 -> Icon(
-            painter = painterResource(id = R.drawable.base),
+            painter = painterResource(id = R.drawable.base_square),
             contentDescription = "Base",
             modifier = iconModifier,
             tint = Color.Unspecified
