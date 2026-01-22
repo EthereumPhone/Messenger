@@ -2,6 +2,10 @@ package com.messenger.terminalsdk
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.MotionEvent
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.CoroutineScope
@@ -123,14 +127,14 @@ class TerminalSDK(private val context: Context) {
         }
 
     suspend fun displaySend(sendTx: () -> Unit) {
-        println("ETHOSDEBUGTERMINAL displayQRCode")
+        println("ETHOSDEBUGTERMINAL displaySend")
         // Clean up any existing touch handler first
         destroyTouchHandler()
 
         val layoutRenderer = LayoutRenderer(context)
-        val qrCodeBitmap = layoutRenderer.renderSend()
+        val sendBitmap = layoutRenderer.renderSend()
 
-        refresh(qrCodeBitmap, ID_PERSISTENT)
+        refresh(sendBitmap, ID_PERSISTENT)
 
         miniDisplayTouchHandler = MiniDisplayTouchHandler(
             context,
@@ -139,6 +143,7 @@ class TerminalSDK(private val context: Context) {
                     return@OnTouchListener
                 }
                 try {
+                    performHapticFeedback()
                     sendTx()
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -149,6 +154,38 @@ class TerminalSDK(private val context: Context) {
 
     suspend fun removeSend() {
         println("ETHOSDEBUGTERMINAL removeSend")
+        resume(ID_STATUSBAR)
+        destroyTouchHandler()
+    }
+
+    suspend fun displaySendRequest(sendRequest: () -> Unit) {
+        println("ETHOSDEBUGTERMINAL displaySendRequest")
+        // Clean up any existing touch handler first
+        destroyTouchHandler()
+
+        val layoutRenderer = LayoutRenderer(context)
+        val requestBitmap = layoutRenderer.renderSendRequest()
+
+        refresh(requestBitmap, ID_PERSISTENT)
+
+        miniDisplayTouchHandler = MiniDisplayTouchHandler(
+            context,
+            MiniDisplayTouchHandler.OnTouchListener { x, y, action ->
+                if (action != MotionEvent.ACTION_DOWN) {
+                    return@OnTouchListener
+                }
+                try {
+                    performHapticFeedback()
+                    sendRequest()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        )
+    }
+
+    suspend fun removeSendRequest() {
+        println("ETHOSDEBUGTERMINAL removeSendRequest")
         resume(ID_STATUSBAR)
         destroyTouchHandler()
     }
@@ -182,6 +219,36 @@ class TerminalSDK(private val context: Context) {
         println("ETHOSDEBUGTERMINAL finishScreen")
         resume(ID_STATUSBAR)
         destroyTouchHandler()
+    }
+
+    /** Vibrator for haptic feedback */
+    private val vibrator: Vibrator by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+    }
+
+    /**
+     * Performs haptic feedback for terminal button presses.
+     * Uses EFFECT_HEAVY_CLICK to match the LongPress haptic feel used in WalletManager.
+     */
+    private fun performHapticFeedback() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK))
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(30)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     /**

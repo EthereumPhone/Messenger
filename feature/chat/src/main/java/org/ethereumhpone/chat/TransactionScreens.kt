@@ -28,9 +28,19 @@ fun SendTransactionScreenRoute(
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
 
+    // Ensure terminal button is removed when navigating away from this screen
+    DisposableEffect(Unit) {
+        onDispose {
+            sendViewModel.onScreenClosed()
+        }
+    }
+
     UnifiedTransactionOverlayRoute(
         mode = TransactionMode.SEND,
-        onDismiss = onBackClick,
+        onDismiss = {
+            sendViewModel.onScreenClosed()
+            onBackClick()
+        },
         onSendTransaction = { request ->
             // Convert TransactionRequest to TransactionReference for sending
             val payload = DebugSendPayload(
@@ -41,6 +51,7 @@ fun SendTransactionScreenRoute(
                 description = request.metadata?.description ?: ""
             )
             chatViewModel.sendTransactionReference(buildTransactionReference(payload))
+            sendViewModel.onScreenClosed()
             onBackClick()
         },
         primaryColor = primaryColor,
@@ -54,16 +65,28 @@ fun SendTransactionScreenRoute(
 @Composable
 fun RequestTransactionScreenRoute(
     onBackClick: () -> Unit,
+    sendViewModel: ChatSendViewModel = hiltViewModel(),
     chatViewModel: ChatViewModel = hiltViewModel()
 ) {
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
 
+    // Ensure terminal button is removed when navigating away from this screen
+    DisposableEffect(Unit) {
+        onDispose {
+            sendViewModel.onRequestScreenClosed()
+        }
+    }
+
     UnifiedTransactionOverlayRoute(
         mode = TransactionMode.REQUEST,
-        onDismiss = onBackClick,
+        onDismiss = {
+            sendViewModel.onRequestScreenClosed()
+            onBackClick()
+        },
         onSendRequest = { request ->
             chatViewModel.sendTransactionRequest(request)
+            sendViewModel.onRequestScreenClosed()
             onBackClick()
         },
         primaryColor = primaryColor,

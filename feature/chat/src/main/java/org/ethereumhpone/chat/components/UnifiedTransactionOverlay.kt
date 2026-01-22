@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -219,6 +220,7 @@ fun UnifiedTransactionOverlayRoute(
 ) {
     val assetsUiState by viewModel.tokenAssetState.collectAsStateWithLifecycle()
     val sendTransactionTriggered by viewModel.sendTransactionTriggered.collectAsStateWithLifecycle()
+    val sendRequestTriggered by viewModel.sendRequestTriggered.collectAsStateWithLifecycle()
     val conversationState by viewModel.conversation.collectAsStateWithLifecycle()
     
     val recipientDisplay = remember(conversationState) {
@@ -233,17 +235,44 @@ fun UnifiedTransactionOverlayRoute(
         } else ""
     }
     
-    // Track if terminal button was pressed to trigger action
+    // Track the completion callback to be triggered by terminal button
+    var pendingTransactionRequest by remember { mutableStateOf<TransactionRequest?>(null) }
+    var terminalActionTriggered by remember { mutableStateOf(false) }
+    
+    // Track if terminal button was pressed to trigger action for SEND mode
     LaunchedEffect(sendTransactionTriggered) {
         if (sendTransactionTriggered && mode == TransactionMode.SEND) {
-            // Terminal button was pressed for send
+            // Terminal button was pressed for send - trigger the action
+            terminalActionTriggered = true
+            viewModel.resetSendTransactionTrigger()
         }
     }
     
-    // Ensure screen state is cleaned when composable is disposed
-    DisposableEffect(Unit) {
+    // Track if terminal button was pressed to trigger action for REQUEST mode
+    LaunchedEffect(sendRequestTriggered) {
+        if (sendRequestTriggered && mode == TransactionMode.REQUEST) {
+            // Terminal button was pressed for request - trigger the action
+            terminalActionTriggered = true
+            viewModel.resetSendRequestTrigger()
+        }
+    }
+    
+    // Display terminal button when overlay opens (like WalletManager pattern)
+    // Terminal button is shown immediately when overlay appears
+    LaunchedEffect(mode) {
+        when (mode) {
+            TransactionMode.SEND -> viewModel.onScreenOpened()
+            TransactionMode.REQUEST -> viewModel.onRequestScreenOpened()
+        }
+    }
+    
+    // Ensure terminal button is removed when composable is disposed
+    DisposableEffect(mode) {
         onDispose {
-            viewModel.onScreenClosed()
+            when (mode) {
+                TransactionMode.SEND -> viewModel.onScreenClosed()
+                TransactionMode.REQUEST -> viewModel.onRequestScreenClosed()
+            }
         }
     }
     
@@ -261,12 +290,11 @@ fun UnifiedTransactionOverlayRoute(
         assetsUiState = assetsUiState,
         recipientDisplay = recipientDisplay,
         recipientAddress = recipientAddress,
+        terminalActionTriggered = terminalActionTriggered,
+        onTerminalActionConsumed = { terminalActionTriggered = false },
         onReadyToSendChanged = { ready ->
-            if (ready) {
-                viewModel.onScreenOpened()
-            } else {
-                viewModel.onScreenClosed()
-            }
+            // This callback can be used for additional state tracking if needed
+            // Terminal button display is now handled by LaunchedEffect above
         }
     )
 }
@@ -283,6 +311,8 @@ fun UnifiedTransactionOverlayRoute(
  * @param assetsUiState Current state of user's assets
  * @param recipientDisplay Display name/address for recipient
  * @param recipientAddress Actual address for recipient
+ * @param terminalActionTriggered Whether the terminal button was pressed
+ * @param onTerminalActionConsumed Callback when the terminal action has been consumed
  * @param onReadyToSendChanged Callback when ready state changes
  */
 @Composable
@@ -295,6 +325,8 @@ fun UnifiedTransactionOverlay(
     assetsUiState: AssetsUiState,
     recipientDisplay: String,
     recipientAddress: String,
+    terminalActionTriggered: Boolean = false,
+    onTerminalActionConsumed: () -> Unit = {},
     onReadyToSendChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
@@ -336,6 +368,26 @@ fun UnifiedTransactionOverlay(
     // Notify parent when ready state changes
     LaunchedEffect(isReadyToComplete) {
         onReadyToSendChanged(isReadyToComplete)
+    }
+    
+    // Handle terminal button action - trigger complete when terminal button is pressed
+    LaunchedEffect(terminalActionTriggered) {
+        if (terminalActionTriggered && isReadyToComplete && selectedToken != null) {
+            // Terminal button was pressed and we're ready to complete
+            val request = buildTransactionRequest(
+                amount = amount,
+                token = selectedToken!!.toTokenOption(),
+                recipientAddress = recipientAddress,
+                description = description.ifEmpty { null },
+                mode = mode
+            )
+            onComplete(request)
+            onTerminalActionConsumed()
+            onDismiss()
+        } else if (terminalActionTriggered) {
+            // Terminal button pressed but not ready - consume the action
+            onTerminalActionConsumed()
+        }
     }
     
     // Load tokens from WalletManager
@@ -890,76 +942,57 @@ private fun AmountInputContent(
     onSelectToken: () -> Unit,
     onComplete: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // Amount input section using AmountTextFieldBasic with TokenSelector
-            AmountTextFieldBasic(
-                currentAmount = amount,
-                currentFiatAmount = selectedToken?.let { 
-                    val amountDouble = amount.toDoubleOrNull() ?: 0.0
-                    String.format("%.2f", amountDouble * it.price) 
-                } ?: "0.00",
-                formattedMaxAmount = selectedToken?.balance?.let { formatTokenBalance(it) } ?: "0.00",
-                formattedMaxFiatAmount = selectedToken?.fiatValue?.let { formatFiatValue(it) } ?: "0.00",
-                useMaxAmount = useMaxAmount,
-                title = "AMOUNT",
-                showMaxAmount = mode == TransactionMode.SEND,
-                secondaryContent = { isSelectable ->
-                    TokenSelector(
-                        token = selectedToken,
-                        primaryColor = primaryColor,
-                        secondaryColor = secondaryColor,
-                        onClick = onSelectToken,
-                        isSelectable = isSelectable
-                    )
-                },
-                onAmountChange = { newAmount, _ ->
-                    onAmountChange(newAmount)
-                },
-                onMaxClick = onMaxClick,
-                readOnly = false,
-                maxClickable = mode == TransactionMode.SEND,
-                secondarySelectable = true,
-                primaryColor = primaryColor
-            )
-            
-            // Description section
-            DescriptionSection(
-                description = description,
-                onDescriptionChange = onDescriptionChange,
-                title = "NOTE",
-                placeholder = "Add a note (optional)",
-                primaryColor = primaryColor,
-                maxLines = 2,
-                maxLength = 100
-            )
-            
-            Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.height(100.dp))
-        }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+        // Amount input section using AmountTextFieldBasic with TokenSelector
+        AmountTextFieldBasic(
+            currentAmount = amount,
+            currentFiatAmount = selectedToken?.let { 
+                val amountDouble = amount.toDoubleOrNull() ?: 0.0
+                String.format("%.2f", amountDouble * it.price) 
+            } ?: "0.00",
+            formattedMaxAmount = selectedToken?.balance?.let { formatTokenBalance(it) } ?: "0.00",
+            formattedMaxFiatAmount = selectedToken?.fiatValue?.let { formatFiatValue(it) } ?: "0.00",
+            useMaxAmount = useMaxAmount,
+            title = "AMOUNT",
+            showMaxAmount = mode == TransactionMode.SEND,
+            secondaryContent = { isSelectable ->
+                TokenSelector(
+                    token = selectedToken,
+                    primaryColor = primaryColor,
+                    secondaryColor = secondaryColor,
+                    onClick = onSelectToken,
+                    isSelectable = isSelectable
+                )
+            },
+            onAmountChange = { newAmount, _ ->
+                onAmountChange(newAmount)
+            },
+            onMaxClick = onMaxClick,
+            readOnly = false,
+            maxClickable = mode == TransactionMode.SEND,
+            secondarySelectable = true,
+            primaryColor = primaryColor
+        )
         
-        // Action button
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 32.dp)
-        ) {
-            TerminalActionButton(
-                text = when (mode) {
-                    TransactionMode.SEND -> "SEND"
-                    TransactionMode.REQUEST -> "REQUEST"
-                },
-                icon = org.ethereumphone.dgenlibrary.R.drawable.ic_send_request,
-                primaryColor = primaryColor,
-                secondaryColor = secondaryColor,
-                onClick = onComplete,
-                enabled = isValidAmount && selectedToken != null,
-                isActive = isValidAmount && selectedToken != null
-            )
-        }
+        // Spacer pushes description to the bottom
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Description section - positioned at the bottom
+        DescriptionSection(
+            description = description,
+            onDescriptionChange = onDescriptionChange,
+            title = "NOTE",
+            placeholder = "Add a note (optional)",
+            primaryColor = primaryColor,
+            maxLines = 2,
+            maxLength = 100
+        )
     }
 }
 
