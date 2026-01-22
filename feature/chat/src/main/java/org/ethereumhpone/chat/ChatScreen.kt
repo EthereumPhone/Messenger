@@ -749,6 +749,8 @@ fun ChatScreen(
                                         onDismiss = {
                                             showExpandedReactionPicker.value = false
                                         },
+                                        primaryColor = primaryColor,
+                                        secondaryColor = secondaryColor,
                                         modifier = Modifier
                                             .wrapContentWidth(
                                                 unbounded = true,
@@ -763,6 +765,7 @@ fun ChatScreen(
                                     isVisible = !showExpandedReactionPicker.value,
                                     isUserMe = selected.isMe,
                                     primaryColor = primaryColor,
+                                    secondaryColor = secondaryColor,
                                     onReactionSelected = { emoji ->
                                         Log.d("REACTION_DEBUG", "ChatScreen: ReactionPicker (TX) selected emoji=$emoji")
                                         onSendReaction(selected.id, emoji)
@@ -866,6 +869,8 @@ fun ChatScreen(
                                             Log.d("REACTION_DEBUG", "ChatScreen: ExpandedReactionPicker dismissed")
                                             showExpandedReactionPicker.value = false
                                         },
+                                        primaryColor = primaryColor,
+                                        secondaryColor = secondaryColor,
                                         modifier = Modifier
                                             .wrapContentWidth(
                                                 unbounded = true,
@@ -882,6 +887,7 @@ fun ChatScreen(
                                     isVisible = !showExpandedReactionPicker.value,
                                     isUserMe = selected.isMe,
                                     primaryColor = primaryColor,
+                                    secondaryColor = secondaryColor,
                                     onReactionSelected = { emoji ->
                                         Log.d("REACTION_DEBUG", "ChatScreen: ReactionPicker selected emoji=$emoji")
                                         onSendReaction(selected.id, emoji)

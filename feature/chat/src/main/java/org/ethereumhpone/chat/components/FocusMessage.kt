@@ -102,6 +102,9 @@ fun FocusMessage(
 
     val animatedProgress = remember { Animatable(composablePositionState.value.offset.y) }//position
 
+    val primaryColor = SystemColorManager.primaryColor
+    val secondaryColor = SystemColorManager.secondaryColor
+
 
     LaunchedEffect(animatedProgress) {
         animatedProgress.animateTo(composablePositionState.value.offset.y + pxYToMove.toFloat(),
@@ -190,7 +193,9 @@ fun FocusMessage(
                 Log.d("REACTION_DEBUG", "FocusMessage: ExpandedReactionPicker onDismiss called")
                 showExpandedPicker = false
             },
-            modifier = Modifier.align(if (isUserMe) Alignment.End else Alignment.Start)
+            modifier = Modifier.align(if (isUserMe) Alignment.End else Alignment.Start) ,
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor,
         )
         
         // Quick reaction picker appears above the message
@@ -211,7 +216,9 @@ fun FocusMessage(
                 focusMode.value = false
             },
             onExpandPicker = expandPickerCallback,
-            modifier = Modifier.align(if (isUserMe) Alignment.End else Alignment.Start)
+            modifier = Modifier.align(if (isUserMe) Alignment.End else Alignment.Start),
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor
         )
 
         FocusChatItemBubble(
