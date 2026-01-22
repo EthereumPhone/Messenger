@@ -828,7 +828,7 @@ private fun TokenSelector(
                 // Token image with chain overlay
                 TokenLogoWithChain(
                     token = token.toTokenOption(),
-                    size = 40.dp,
+                    size = 32.dp,
                     primaryColor = primaryColor,
                     secondaryColor = secondaryColor,
                     showChainOverlay = true
