@@ -148,7 +148,7 @@ fun SelectableCarousel(
                                 "base" -> {
                                     Image(
                                         modifier = imageModifier,
-                                        painter = painterResource(R.drawable.base),
+                                        painter = painterResource(R.drawable.base_square),
                                         contentDescription = "Base"
                                     )
                                 }
