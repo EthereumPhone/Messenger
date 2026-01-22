@@ -6,9 +6,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.ethereumhpone.chat.components.RequestTransactionOverlay
 import org.ethereumhpone.chat.components.DebugSendPayload
-import org.ethereumhpone.chat.components.SendTransactionOverlay
+import org.ethereumhpone.chat.components.TransactionMode
+import org.ethereumhpone.chat.components.UnifiedTransactionOverlayRoute
 import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.model.TransactionReference
 import org.ethereumphone.model.TransactionReferenceMetadata
@@ -16,102 +16,58 @@ import org.ethereumphone.model.TransactionTypes
 import java.math.BigDecimal
 import java.math.RoundingMode
 
+/**
+ * Route for the Send Transaction screen using the unified overlay
+ */
 @Composable
 fun SendTransactionScreenRoute(
     onBackClick: () -> Unit,
     sendViewModel: ChatSendViewModel = hiltViewModel(),
     chatViewModel: ChatViewModel = hiltViewModel()
 ) {
-    val assetsUiState by sendViewModel.tokenAssetState.collectAsStateWithLifecycle()
-    val conversationState by sendViewModel.conversation.collectAsStateWithLifecycle()
-
-    val recipientDisplay = remember(conversationState) {
-        if (conversationState is ConversationUiState.Success) {
-            (conversationState as ConversationUiState.Success).conversation.getHeader()
-        } else {
-            ""
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { sendViewModel.onScreenClosed() }
-    }
-
-    SendTransactionScreen(
-        assetsUiState = assetsUiState,
-        recipientDisplay = recipientDisplay,
-        onBackClick = onBackClick,
-        onReadyToSendChanged = { ready ->
-            if (ready) {
-                sendViewModel.onScreenOpened()
-            } else {
-                sendViewModel.onScreenClosed()
-            }
-        },
-        onDebugSend = { payload ->
-            chatViewModel.sendTransactionReference(buildTransactionReference(payload))
-            onBackClick()
-        }
-    )
-}
-
-@Composable
-fun SendTransactionScreen(
-    assetsUiState: AssetsUiState,
-    recipientDisplay: String,
-    onBackClick: () -> Unit,
-    onReadyToSendChanged: (Boolean) -> Unit,
-    onDebugSend: (DebugSendPayload) -> Unit
-) {
     val primaryColor = SystemColorManager.primaryColor
     val secondaryColor = SystemColorManager.secondaryColor
 
-    SendTransactionOverlay(
+    UnifiedTransactionOverlayRoute(
+        mode = TransactionMode.SEND,
         onDismiss = onBackClick,
-        onSendTransaction = {},
+        onSendTransaction = { request ->
+            // Convert TransactionRequest to TransactionReference for sending
+            val payload = DebugSendPayload(
+                amount = request.metadata?.tokenAmount ?: "0",
+                tokenSymbol = request.metadata?.tokenSymbol ?: "ETH",
+                tokenDecimals = request.metadata?.tokenDecimals ?: 18,
+                chainId = request.chainId,
+                description = request.metadata?.description ?: ""
+            )
+            chatViewModel.sendTransactionReference(buildTransactionReference(payload))
+            onBackClick()
+        },
         primaryColor = primaryColor,
-        secondaryColor = secondaryColor,
-        assetsUiState = assetsUiState,
-        recipientDisplay = recipientDisplay,
-        onReadyToSendChanged = onReadyToSendChanged,
-        showDebugAction = true,
-        onDebugSend = onDebugSend
+        secondaryColor = secondaryColor
     )
 }
 
+/**
+ * Route for the Request Transaction screen using the unified overlay
+ */
 @Composable
 fun RequestTransactionScreenRoute(
     onBackClick: () -> Unit,
     chatViewModel: ChatViewModel = hiltViewModel()
 ) {
-    val recipientUiState by chatViewModel.recipients.collectAsStateWithLifecycle()
-    val conversationState by chatViewModel.conversation.collectAsStateWithLifecycle()
-    val currentRecipients = recipientUiState
+    val primaryColor = SystemColorManager.primaryColor
+    val secondaryColor = SystemColorManager.secondaryColor
 
-    val recipientAddress = when (currentRecipients) {
-        is RecipientUiState.Success -> {
-            currentRecipients.recipients.firstOrNull()?.address ?: ""
-        }
-        else -> ""
-    }
-
-    val recipientName = remember(conversationState) {
-        if (conversationState is ConversationUiState.Success) {
-            (conversationState as ConversationUiState.Success).conversation.getHeader()
-        } else {
-            null
-        }
-    }
-
-    RequestTransactionOverlay(
-        recipientAddress = recipientAddress,
-        recipientName = recipientName,
+    UnifiedTransactionOverlayRoute(
+        mode = TransactionMode.REQUEST,
         onDismiss = onBackClick,
         onSendRequest = { request ->
             chatViewModel.sendTransactionRequest(request)
             onBackClick()
         },
-        primaryColor = SystemColorManager.primaryColor
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor
     )
 }
 

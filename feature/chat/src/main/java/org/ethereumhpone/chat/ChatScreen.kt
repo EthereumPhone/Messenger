@@ -100,7 +100,6 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.ethereumhpone.chat.components.ActionOverlayScreen
 import org.ethereumhpone.chat.components.ChatBottomAppBar
 import org.ethereumhpone.chat.components.ChatTopAppBar
 import org.ethereumhpone.chat.components.ExpandedReactionPicker
@@ -108,7 +107,6 @@ import org.ethereumhpone.chat.components.FocusTransactionReferenceBubble
 import org.ethereumhpone.chat.components.FocusTransactionRequestBubble
 import org.ethereumhpone.chat.components.ReactionPicker
 import org.ethereumhpone.chat.components.GroupDetailsSheet
-import org.ethereumhpone.chat.components.OverlaySendScreen
 import org.ethereumhpone.chat.components.TransactionAction
 import org.ethereumhpone.chat.components.message.ComposablePosition
 import org.ethereumhpone.chat.components.message.OverlayMessageItem
@@ -337,7 +335,7 @@ fun ChatScreen(
     var currentAction by remember { mutableStateOf(Actions.IDLE) }
     val shouldRotateAction = remember { mutableStateOf(false) }
     
-    // Note: Transaction request is now handled via RequestTransactionOverlay in ChatOverlays
+    // Transaction send/request flows are handled via dedicated routes.
 
     val keyboardController = LocalSoftwareKeyboardController.current
     
@@ -1060,7 +1058,7 @@ fun ChatScreen(
         primaryColor = primaryColor,
         secondaryColor = secondaryColor,
         onSendTransaction = {
-            // This is triggered by the terminal button in OverlaySendScreen
+            // Triggered when terminal action completes.
             // The actual sending is handled by the ChatSendViewModel
         },
         onSendTransactionRequest = { request ->
