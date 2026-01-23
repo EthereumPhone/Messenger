@@ -715,7 +715,7 @@ fun ChatScreen(
                             } else {
                                 Modifier.widthIn(
                                     min = with(density) { msgWidth.toDp() },
-                                    max = 300.dp
+                                    max = 320.dp
                                 )
                             }
                             

@@ -34,12 +34,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.body2_fontSize
-import com.example.dgenlibrary.ui.theme.header3_fontSize
 import com.example.dgenlibrary.ui.theme.label_fontSize
 import com.example.dgenlibrary.ui.theme.pulseOpacity
 import com.example.dgenlibrary.ui.theme.smalllabel_fontSize
@@ -100,7 +100,7 @@ fun TransactionRequestBubble(
                 .background(bubbleBackground)
                 .border(1.dp, borderColor, bubbleShape)
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp)
-                .widthIn(min = 150.dp, max = 260.dp)
+                .widthIn(min = 150.dp, max = 320.dp)
         )
         {
             Row(
@@ -154,12 +154,14 @@ fun TransactionRequestBubble(
                 else -> null
             }
             if (amountText != null) {
+                val fontSize = calculateAmountFontSize(amountText)
                 Text(
                     text = amountText,
                     style = TextStyle(
                         fontFamily = PitagonsSans,
                         fontWeight = FontWeight.Bold,
-                        fontSize = header3_fontSize,
+                        fontSize = fontSize,
+                        lineHeight = fontSize,
                         color = if (isUserMe) dgenWhite else primaryColor
                     ),
                     modifier = Modifier.fillMaxWidth()
@@ -284,6 +286,35 @@ private fun chainIdToLogoRes(chainId: Long): Int? = when (chainId) {
 }
 
 /**
+ * Calculates font size for amount text based on the length of the text to display.
+ * Font stays at normal size until 8 characters, then shrinks for longer text.
+ * Mirrors the sizing logic from WalletManager's IdleCardView, scaled for bubble context.
+ */
+private fun calculateAmountFontSize(text: String): TextUnit {
+    return when {
+        text.length <= 8 -> 40.sp   // Normal size up to 8 characters
+        text.length <= 10 -> 36.sp  // Start shrinking after 8 chars
+        text.length <= 12 -> 32.sp
+        text.length <= 14 -> 28.sp
+        else -> 24.sp               // Long amounts get smallest font
+    }
+}
+
+/**
+ * Calculates font size for amount text in focus/overlay mode.
+ * Font stays at normal size until 8 characters, then shrinks for longer text.
+ */
+private fun calculateFocusAmountFontSize(text: String): TextUnit {
+    return when {
+        text.length <= 8 -> 36.sp   // Normal size up to 8 characters
+        text.length <= 10 -> 32.sp  // Start shrinking after 8 chars
+        text.length <= 12 -> 28.sp
+        text.length <= 14 -> 24.sp
+        else -> 20.sp
+    }
+}
+
+/**
  * Focus/Overlay version of TransactionRequestBubble.
  * Used when the message is selected in the overlay.
  * Constrained sizing for better overlay presentation.
@@ -350,12 +381,14 @@ fun FocusTransactionRequestBubble(
                 else -> null
             }
             if (amountText != null) {
+                val fontSize = calculateFocusAmountFontSize(amountText)
                 Text(
                     text = amountText,
                     style = TextStyle(
                         fontFamily = PitagonsSans,
                         fontWeight = FontWeight.Bold,
-                        fontSize = header3_fontSize,
+                        fontSize = fontSize,
+                        lineHeight = fontSize,
                         color = if (isUserMe) dgenWhite else primaryColor
                     ),
                     modifier = Modifier.fillMaxWidth()
