@@ -396,7 +396,11 @@ fun UnifiedTransactionOverlay(
         withContext(Dispatchers.IO) {
             try {
                 val tokens = OwnedTokenProviderContract.getAllOwnedTokens(context.contentResolver)
-                ownedTokens = tokens.sortedByDescending { it.fiatValue }
+                // Sort by adjusted fiat value (balance adjusted for decimals * price)
+                ownedTokens = tokens.sortedByDescending { token ->
+                    val adjustedBalance = adjustBalanceForDecimals(token.balance, token.decimals, token)
+                    adjustedBalance.toDouble() * token.price
+                }
                 Log.d("UnifiedTransactionOverlay", "Loaded ${tokens.size} tokens")
                 
                 // Set default token to first available token
@@ -426,9 +430,12 @@ fun UnifiedTransactionOverlay(
             ownedTokens
         }
         
-        // For SEND mode, only show owned tokens (balance > 0)
+        // For SEND mode, only show owned tokens (adjusted balance > 0)
         val baseTokens = when (mode) {
-            TransactionMode.SEND -> tokensToFilter.filter { it.balance > BigDecimal.ZERO }
+            TransactionMode.SEND -> tokensToFilter.filter { token ->
+                val adjustedBalance = adjustBalanceForDecimals(token.balance, token.decimals, token)
+                adjustedBalance > BigDecimal.ZERO
+            }
             TransactionMode.REQUEST -> tokensToFilter
         }
         
@@ -455,8 +462,8 @@ fun UnifiedTransactionOverlay(
         TransactionScreenState.AMOUNT_INPUT -> {
             val tokenSymbol = selectedToken?.symbol?.uppercase() ?: "TOKEN"
             when (mode) {
-                TransactionMode.SEND -> "SEND $tokenSymbol"
-                TransactionMode.REQUEST -> "REQUEST $tokenSymbol"
+                TransactionMode.SEND -> "SEND TOKEN"
+                TransactionMode.REQUEST -> "REQUEST TOKEN"
             }
         }
     }
@@ -528,7 +535,9 @@ fun UnifiedTransactionOverlay(
                         useMaxAmount = useMaxAmount,
                         onMaxClick = {
                             selectedToken?.let { token ->
-                                amount = token.balance.toPlainString()
+                                // Use adjusted balance (human-readable format)
+                                val adjustedBalance = adjustBalanceForDecimals(token.balance, token.decimals, token)
+                                amount = adjustedBalance.stripTrailingZeros().toPlainString()
                                 useMaxAmount = true
                             }
                         },
@@ -765,8 +774,17 @@ private fun TokenRow(
     secondaryColor: Color,
     onClick: () -> Unit
 ) {
-    val isOwned = token.balance > BigDecimal.ZERO
+    // Adjust balance for decimals (convert from raw to human-readable)
+    val adjustedBalance = adjustBalanceForDecimals(token.balance, token.decimals, token)
+    val isOwned = adjustedBalance > BigDecimal.ZERO
+    
+    // Recalculate fiat value using adjusted balance
+    val adjustedFiatValue = adjustedBalance.toDouble() * token.price
+    
     val tokenOption = token.toTokenOption()
+    
+    // Truncate symbol for display
+    val displaySymbol = truncateSymbol(token.symbol)
 
     Row(
         modifier = Modifier
@@ -803,12 +821,13 @@ private fun TokenRow(
             )
             
             Text(
-                text = "\$${token.symbol}",
+                text = "\$$displaySymbol",
                 fontFamily = PitagonsSans,
                 color = dgenWhite.copy(alpha = pulseOpacity),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
                 letterSpacing = 1.sp,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -819,16 +838,16 @@ private fun TokenRow(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = "${formatTokenBalance(token.balance)} ${token.symbol}",
+                    text = "${formatTokenBalance(adjustedBalance)} $displaySymbol",
                     fontFamily = PitagonsSans,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
                     maxLines = 1
                 )
-                if (token.fiatValue > 0.0) {
+                if (adjustedFiatValue > 0.0) {
                     Text(
-                        text = "\$${formatFiatValue(token.fiatValue)}",
+                        text = "\$${formatFiatValue(adjustedFiatValue)}",
                         fontFamily = PitagonsSans,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
@@ -886,8 +905,9 @@ private fun TokenSelector(
                     showChainOverlay = true
                 )
                 
-                // Token symbol
-                val tokenSymbol = if (token.symbol == "ETH") "ETH" else "\$${token.symbol}"
+                // Token symbol - truncate if longer than 10 chars
+                val displaySymbol = truncateSymbol(token.symbol)
+                val tokenSymbol = if (token.symbol == "ETH") "ETH" else "\$$displaySymbol"
                 Text(
                     text = tokenSymbol,
                     fontFamily = SpaceMono,
@@ -950,6 +970,14 @@ private fun AmountInputContent(
         amountFocusRequester.requestFocus()
     }
     
+    // Calculate adjusted balance and fiat value for selected token
+    val adjustedBalance = selectedToken?.let { token ->
+        adjustBalanceForDecimals(token.balance, token.decimals, token)
+    }
+    val adjustedFiatValue = adjustedBalance?.let { balance ->
+        balance.toDouble() * (selectedToken?.price ?: 0.0)
+    }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -964,8 +992,8 @@ private fun AmountInputContent(
                 val amountDouble = amount.toDoubleOrNull() ?: 0.0
                 String.format("%.2f", amountDouble * it.price) 
             } ?: "0.00",
-            formattedMaxAmount = selectedToken?.balance?.let { formatTokenBalance(it) } ?: "0.00",
-            formattedMaxFiatAmount = selectedToken?.fiatValue?.let { formatFiatValue(it) } ?: "0.00",
+            formattedMaxAmount = adjustedBalance?.let { formatTokenBalance(it) } ?: "0.00",
+            formattedMaxFiatAmount = adjustedFiatValue?.let { formatFiatValue(it) } ?: "0.00",
             useMaxAmount = useMaxAmount,
             title = "AMOUNT",
             showMaxAmount = mode == TransactionMode.SEND,
@@ -1007,21 +1035,97 @@ private fun AmountInputContent(
 
 // Utility functions
 
-private fun formatTokenBalance(balance: BigDecimal): String {
-    return if (balance < BigDecimal("0.0001") && balance > BigDecimal.ZERO) {
-        "<0.0001"
+/**
+ * Truncates token symbol to max 10 characters with "..." if longer
+ */
+private fun truncateSymbol(symbol: String, maxLength: Int = 10): String {
+    return if (symbol.length > maxLength) {
+        symbol.take(maxLength) + "..."
     } else {
-        balance.setScale(4, java.math.RoundingMode.DOWN).stripTrailingZeros().toPlainString()
+        symbol
     }
 }
 
-private fun formatFiatValue(value: Double): String {
-    return when {
-        value < 0.01 && value > 0 -> "<0.01"
-        value < 1000 -> String.format("%.2f", value)
-        value < 1000000 -> String.format("%.1fK", value / 1000)
-        else -> String.format("%.2fM", value / 1000000)
+/**
+ * Adjusts token balance by decimals to convert from raw (wei) to human-readable format.
+ * ETH (native token) balances from the content provider are already in the correct format.
+ * ERC20 tokens need to be divided by 10^decimals.
+ */
+private fun adjustBalanceForDecimals(rawBalance: BigDecimal, decimals: Int, token: OwnedTokenProviderContract.OwnedTokenData): BigDecimal {
+    // Check if this is ETH (native token) - balances are already in the correct format
+    val isEthToken = token.contractAddress.lowercase() == "0x0000000000000000000000000000000000000000" ||
+                     token.symbol.uppercase() == "ETH" ||
+                     token.name.uppercase() == "ETHEREUM" ||
+                     token.contractAddress == token.chainId.toString()
+    
+    // For ETH, return the balance as-is (already correct)
+    if (isEthToken) {
+        return rawBalance
     }
+    
+    // For other tokens, adjust by decimals
+    return if (decimals == 0) {
+        rawBalance
+    } else {
+        rawBalance.divide(BigDecimal.TEN.pow(decimals), decimals, java.math.RoundingMode.DOWN)
+    }
+}
+
+/**
+ * Formats token balance using the same approach as WalletManager (formatWithSuffix).
+ * Supports K, M, B, T suffixes for large values.
+ * For values < 1000: shows up to maxDecimals decimal places.
+ */
+private fun formatTokenBalance(balance: BigDecimal): String {
+    return formatWithSuffix(balance.toDouble(), maxDecimals = 4)
+}
+
+/**
+ * Formats fiat value matching WalletManager's TokenRow style.
+ * Returns just the formatted number (caller adds "$" prefix).
+ */
+private fun formatFiatValue(value: Double): String {
+    return formatWithSuffix(value, maxDecimals = 2)
+}
+
+/**
+ * Formats numbers with K/M/B/T suffixes for large values - matches WalletManager's formatWithSuffix.
+ * - For values >= 1000: uses K, M, B, T suffixes with 2 decimals
+ * - For values < 1000: uses up to maxDecimals
+ * - Uses HALF_UP rounding
+ * - Doesn't round tiny numbers to zero (falls back to full precision)
+ */
+private fun formatWithSuffix(value: Double, maxDecimals: Int = 4): String {
+    val absValue = kotlin.math.abs(value)
+    
+    val (divisor, suffix) = when {
+        absValue >= 1_000_000_000_000 -> 1_000_000_000_000.0 to "T"
+        absValue >= 1_000_000_000     -> 1_000_000_000.0     to "B"
+        absValue >= 1_000_000         -> 1_000_000.0         to "M"
+        absValue >= 1_000             -> 1_000.0             to "K"
+        else                          -> 1.0                 to ""
+    }
+    
+    val decimals = if (suffix.isNotEmpty()) 2 else maxDecimals
+    val scaled = value / divisor
+    val bd = BigDecimal.valueOf(scaled)
+    
+    // Avoid rounding tiny numbers to zero
+    val scaledAndRounded = if (suffix.isNotEmpty()) {
+        // With suffix (e.g., "K", "M") – we can safely round to the desired decimals
+        bd.setScale(decimals, java.math.RoundingMode.HALF_UP).stripTrailingZeros()
+    } else {
+        // Without suffix (values < 1K): be careful not to round tiny numbers down to zero
+        val candidate = bd.setScale(decimals, java.math.RoundingMode.HALF_UP)
+        if (candidate.compareTo(BigDecimal.ZERO) == 0 && bd.compareTo(BigDecimal.ZERO) != 0) {
+            // Rounding wiped out all significant digits – fall back to full precision
+            bd.stripTrailingZeros()
+        } else {
+            candidate.stripTrailingZeros()
+        }
+    }
+    
+    return scaledAndRounded.toPlainString() + suffix
 }
 
 private fun buildTransactionRequest(
@@ -1037,11 +1141,6 @@ private fun buildTransactionRequest(
         .toBigInteger()
     val valueHex = "0x${amountInBaseUnits.toString(16)}"
     
-    val actionDescription = when (mode) {
-        TransactionMode.SEND -> "Send ${token.symbol}"
-        TransactionMode.REQUEST -> "Request ${token.symbol}"
-    }
-    
     return if (token.contractAddress == null) {
         // Native token transfer
         TransactionRequest(
@@ -1054,7 +1153,7 @@ private fun buildTransactionRequest(
                 )
             ),
             metadata = TransactionMetadata(
-                description = description ?: actionDescription,
+                description = description,
                 tokenSymbol = token.symbol,
                 tokenAmount = amount,
                 tokenDecimals = token.decimals
@@ -1077,7 +1176,7 @@ private fun buildTransactionRequest(
                 )
             ),
             metadata = TransactionMetadata(
-                description = description ?: actionDescription,
+                description = description,
                 tokenSymbol = token.symbol,
                 tokenAmount = amount,
                 tokenDecimals = token.decimals

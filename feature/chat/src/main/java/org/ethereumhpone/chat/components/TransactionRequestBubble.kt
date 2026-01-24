@@ -194,9 +194,9 @@ fun TransactionRequestBubble(
                 }
             }
             
-            // Description (if available)
+            // Description (if available and not blank)
             val description = metadata?.description
-            if (description != null) {
+            if (!description.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = description,
@@ -421,9 +421,9 @@ fun FocusTransactionRequestBubble(
                 }
             }
             
-            // Description (if available) - with constrained lines for focus mode
+            // Description (if available and not blank) - with constrained lines for focus mode
             val description = metadata?.description
-            if (description != null) {
+            if (!description.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = description,
