@@ -31,6 +31,7 @@ data class TransactionReference(
  * @property toAddress Recipient address
  * @property tokenContract Contract address for ERC20 tokens (null for native transfers)
  * @property blockExplorerUrl Optional URL to view on block explorer
+ * @property description Human-readable note/description for the transaction
  */
 @Serializable
 data class TransactionReferenceMetadata(
@@ -41,7 +42,8 @@ data class TransactionReferenceMetadata(
     val fromAddress: String? = null,
     val toAddress: String? = null,
     val tokenContract: String? = null,
-    val blockExplorerUrl: String? = null
+    val blockExplorerUrl: String? = null,
+    val description: String? = null
 )
 
 /**

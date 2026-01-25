@@ -25,6 +25,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.TextUnit
@@ -144,6 +145,22 @@ fun TransactionReferenceBubble(
                         modifier = Modifier.size(12.dp)
                     )
                 }
+            }
+            
+            // Description/Note (if available and not blank)
+            val description = metadata?.description
+            if (!description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = description,
+                    style = TextStyle(
+                        fontFamily = PitagonsSans,
+                        fontSize = 13.sp,
+                        color = if (isUserMe) dgenWhite.copy(alpha = 0.8f) else primaryColor.copy(alpha = 0.8f)
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
 
@@ -370,6 +387,22 @@ fun FocusTransactionReferenceBubble(
                         modifier = Modifier.size(12.dp)
                     )
                 }
+            }
+            
+            // Description/Note (if available and not blank) - with constrained lines for focus mode
+            val description = metadata?.description
+            if (!description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = description,
+                    style = TextStyle(
+                        fontFamily = PitagonsSans,
+                        fontSize = 12.sp,
+                        color = if (isUserMe) dgenWhite.copy(alpha = 0.8f) else primaryColor.copy(alpha = 0.8f)
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
 
