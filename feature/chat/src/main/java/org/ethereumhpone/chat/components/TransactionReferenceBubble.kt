@@ -164,14 +164,50 @@ fun TransactionReferenceBubble(
     }
 }
 
-private fun formatAmount(amount: Long, decimals: Int): String {
-    val divisor = Math.pow(10.0, decimals.toDouble())
-    val result = amount.toDouble() / divisor
-    return if (result == result.toLong().toDouble()) {
-        result.toLong().toString()
-    } else {
-        String.format("%.6f", result).trimEnd('0').trimEnd('.')
+private fun formatAmount(amountStr: String, decimals: Int): String {
+    return try {
+        val amount = java.math.BigDecimal(amountStr)
+        val divisor = java.math.BigDecimal.TEN.pow(decimals)
+        val result = amount.divide(divisor, decimals, java.math.RoundingMode.DOWN)
+        // Apply suffix formatting for large values (same as WalletManager's formatWithSuffix)
+        formatWithSuffix(result.toDouble())
+    } catch (e: Exception) {
+        amountStr // Fallback to original string if parsing fails
     }
+}
+
+/**
+ * Formats a number with K, M, B, T suffixes for large values.
+ * Matches the formatting from WalletManager's IdleCardView.
+ */
+private fun formatWithSuffix(value: Double, maxDecimals: Int = 4): String {
+    val absValue = kotlin.math.abs(value)
+    
+    val (divisor, suffix) = when {
+        absValue >= 1_000_000_000_000 -> 1_000_000_000_000.0 to "T"
+        absValue >= 1_000_000_000     -> 1_000_000_000.0     to "B"
+        absValue >= 1_000_000         -> 1_000_000.0         to "M"
+        absValue >= 1_000             -> 1_000.0             to "K"
+        else                          -> 1.0                 to ""
+    }
+    
+    val decimals = if (suffix.isNotEmpty()) 2 else maxDecimals
+    val scaled = value / divisor
+    val bd = java.math.BigDecimal.valueOf(scaled)
+    
+    // Avoid rounding to 0 if small
+    val scaledAndRounded = if (suffix.isNotEmpty()) {
+        bd.setScale(decimals, java.math.RoundingMode.HALF_UP).stripTrailingZeros()
+    } else {
+        val candidate = bd.setScale(decimals, java.math.RoundingMode.HALF_UP)
+        if (candidate.compareTo(java.math.BigDecimal.ZERO) == 0 && bd.compareTo(java.math.BigDecimal.ZERO) != 0) {
+            bd.stripTrailingZeros()
+        } else {
+            candidate.stripTrailingZeros()
+        }
+    }
+    
+    return scaledAndRounded.toPlainString() + suffix
 }
 
 private fun truncateAddress(address: String): String {
@@ -372,7 +408,7 @@ fun TransactionReferenceBubblePreview() {
         metadata = TransactionReferenceMetadata(
             transactionType = TransactionTypes.TRANSFER,
             currency = "ETH",
-            amount = 1000000000000000L, // 0.001 ETH
+            amount = "1000000000000000", // 0.001 ETH
             decimals = 18,
             fromAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f7e5ca",
             toAddress = "0xAbC123CryptoBroWallet000000000000000000",
@@ -423,7 +459,7 @@ fun TransactionReferenceBubbleSwapPreview() {
         metadata = TransactionReferenceMetadata(
             transactionType = TransactionTypes.SWAP,
             currency = "ETH → USDC",
-            amount = 500000000000000000L, // 0.5 ETH
+            amount = "500000000000000000", // 0.5 ETH
             decimals = 18,
             fromAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f7e5ca",
             blockExplorerUrl = "https://etherscan.io/tx/0xabcdef..."

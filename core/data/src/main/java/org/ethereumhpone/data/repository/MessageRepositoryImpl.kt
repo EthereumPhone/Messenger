@@ -417,13 +417,17 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
     
-    private fun formatAmount(amount: Long, decimals: Int): String {
-        val divisor = Math.pow(10.0, decimals.toDouble())
-        val result = amount.toDouble() / divisor
-        return if (result == result.toLong().toDouble()) {
-            result.toLong().toString()
-        } else {
-            String.format("%.6f", result).trimEnd('0').trimEnd('.')
+    private fun formatAmount(amount: String, decimals: Int): String {
+        return try {
+            val divisor = Math.pow(10.0, decimals.toDouble())
+            val result = amount.toDouble() / divisor
+            if (result == result.toLong().toDouble()) {
+                result.toLong().toString()
+            } else {
+                String.format("%.6f", result).trimEnd('0').trimEnd('.')
+            }
+        } catch (e: NumberFormatException) {
+            amount // Return original string if parsing fails
         }
     }
     

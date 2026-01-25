@@ -96,14 +96,18 @@ fun RequestTransactionScreenRoute(
 
 private fun buildTransactionReference(payload: DebugSendPayload): TransactionReference {
     val amount = payload.amount.toBigDecimalOrNull() ?: BigDecimal.ZERO
-    val baseUnits = try {
+    // Convert human-readable amount to base units (e.g., 10000 tokens with 18 decimals = 10^22)
+    // Using String to avoid Long overflow for large amounts
+    val baseUnitsStr = try {
         amount
             .setScale(payload.tokenDecimals, RoundingMode.DOWN)
             .multiply(BigDecimal.TEN.pow(payload.tokenDecimals))
-            .toLong()
+            .toBigInteger()
+            .toString()
     } catch (_: Exception) {
-        0L
+        "0"
     }
+    
     val reference = "0x" + "0".repeat(64)
 
     return TransactionReference(
@@ -113,7 +117,7 @@ private fun buildTransactionReference(payload: DebugSendPayload): TransactionRef
         metadata = TransactionReferenceMetadata(
             transactionType = TransactionTypes.TRANSFER,
             currency = payload.tokenSymbol,
-            amount = baseUnits,
+            amount = baseUnitsStr,
             decimals = payload.tokenDecimals
         )
     )

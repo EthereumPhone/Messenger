@@ -25,7 +25,7 @@ data class TransactionReference(
  * 
  * @property transactionType Type of transaction (transfer, swap, mint, lend, etc.)
  * @property currency Token/currency symbol
- * @property amount Amount in base units (integer)
+ * @property amount Amount in base units as String (to handle values > Long.MAX_VALUE for high-decimal tokens)
  * @property decimals Token decimals for display
  * @property fromAddress Sender address
  * @property toAddress Recipient address
@@ -36,7 +36,7 @@ data class TransactionReference(
 data class TransactionReferenceMetadata(
     val transactionType: String? = null,
     val currency: String? = null,
-    val amount: Long? = null,
+    val amount: String? = null,
     val decimals: Int? = null,
     val fromAddress: String? = null,
     val toAddress: String? = null,

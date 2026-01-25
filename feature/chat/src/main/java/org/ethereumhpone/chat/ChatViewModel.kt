@@ -797,13 +797,14 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     
     /**
      * Create and send a transaction reference after a successful transaction execution.
+     * @param amountWei Amount in base units as String (to handle values > Long.MAX_VALUE)
      */
     fun sendTransactionConfirmation(
         txHash: String,
         chainId: Long,
         fromAddress: String,
         toAddress: String,
-        amountWei: Long,
+        amountWei: String,
         tokenSymbol: String = "ETH",
         tokenDecimals: Int = 18
     ) {
