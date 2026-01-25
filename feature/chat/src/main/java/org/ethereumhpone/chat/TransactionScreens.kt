@@ -118,7 +118,8 @@ private fun buildTransactionReference(payload: DebugSendPayload): TransactionRef
             transactionType = TransactionTypes.TRANSFER,
             currency = payload.tokenSymbol,
             amount = baseUnitsStr,
-            decimals = payload.tokenDecimals
+            decimals = payload.tokenDecimals,
+            description = payload.description.takeIf { it.isNotBlank() }
         )
     )
 }
