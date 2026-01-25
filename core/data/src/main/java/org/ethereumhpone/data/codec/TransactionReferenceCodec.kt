@@ -92,13 +92,17 @@ class TransactionReferenceCodec : ContentCodec<TransactionReference> {
         else -> "Chain $chainId"
     }
     
-    private fun formatAmount(amount: Long, decimals: Int): String {
-        val divisor = Math.pow(10.0, decimals.toDouble())
-        val result = amount.toDouble() / divisor
-        return if (result == result.toLong().toDouble()) {
-            result.toLong().toString()
-        } else {
-            String.format("%.6f", result).trimEnd('0').trimEnd('.')
+    private fun formatAmount(amount: String, decimals: Int): String {
+        return try {
+            val divisor = Math.pow(10.0, decimals.toDouble())
+            val result = amount.toDouble() / divisor
+            if (result == result.toLong().toDouble()) {
+                result.toLong().toString()
+            } else {
+                String.format("%.6f", result).trimEnd('0').trimEnd('.')
+            }
+        } catch (e: NumberFormatException) {
+            amount // Return original string if parsing fails
         }
     }
     
@@ -117,18 +121,20 @@ class TransactionReferenceCodec : ContentCodec<TransactionReference> {
 
 /**
  * Builder helper for creating TransactionReference objects.
+ * Note: Amount parameters are String to handle values > Long.MAX_VALUE for high-decimal tokens.
  */
 object TransactionReferenceBuilder {
     
     /**
      * Create a native token transfer reference.
+     * @param amountWei Amount in wei as String (to handle large values)
      */
     fun nativeTransfer(
         networkId: Long,
         txHash: String,
         fromAddress: String,
         toAddress: String,
-        amountWei: Long,
+        amountWei: String,
         tokenSymbol: String = "ETH"
     ): TransactionReference {
         return TransactionReference(
@@ -149,6 +155,7 @@ object TransactionReferenceBuilder {
     
     /**
      * Create an ERC20 token transfer reference.
+     * @param amount Amount in base units as String (to handle large values)
      */
     fun erc20Transfer(
         networkId: Long,
@@ -156,7 +163,7 @@ object TransactionReferenceBuilder {
         tokenContract: String,
         fromAddress: String,
         toAddress: String,
-        amount: Long,
+        amount: String,
         tokenSymbol: String,
         tokenDecimals: Int
     ): TransactionReference {
@@ -179,6 +186,7 @@ object TransactionReferenceBuilder {
     
     /**
      * Create a swap transaction reference.
+     * @param amountIn Amount in base units as String (to handle large values)
      */
     fun swap(
         networkId: Long,
@@ -186,7 +194,7 @@ object TransactionReferenceBuilder {
         fromAddress: String,
         tokenInSymbol: String,
         tokenOutSymbol: String,
-        amountIn: Long,
+        amountIn: String,
         decimalsIn: Int
     ): TransactionReference {
         return TransactionReference(
