@@ -83,7 +83,12 @@ import org.ethereumphone.model.TransactionMetadata
 import org.ethereumphone.model.TransactionRequest
 import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
 import org.ethereumphone.dgenlibrary.components.AmountTextFieldBasic
+import org.web3j.abi.FunctionEncoder
+import org.web3j.abi.datatypes.Address
+import org.web3j.abi.datatypes.Function
+import org.web3j.abi.datatypes.generated.Uint256
 import java.math.BigDecimal
+import java.math.BigInteger
 
 /**
  * Transaction mode enum to distinguish between send and request flows
@@ -99,110 +104,6 @@ enum class TransactionMode {
 private enum class TransactionScreenState {
     AMOUNT_INPUT,
     TOKEN_SEARCH
-}
-
-/**
- * Mock common tokens for UI debugging purposes
- */
-object MockCommonTokens {
-    val tokens = listOf(
-        OwnedTokenProviderContract.OwnedTokenData(
-            contractAddress = "0x0000000000000000000000000000000000000000",
-            decimals = 18,
-            name = "Ethereum",
-            symbol = "ETH",
-            logo = null,
-            chainId = 1,
-            swappable = true,
-            balance = BigDecimal("1.5432"),
-            price = 3500.0,
-            chains = listOf(1, 8453, 10, 42161)
-        ),
-        OwnedTokenProviderContract.OwnedTokenData(
-            contractAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-            decimals = 6,
-            name = "USD Coin",
-            symbol = "USDC",
-            logo = null,
-            chainId = 8453,
-            swappable = true,
-            balance = BigDecimal("250.00"),
-            price = 1.0,
-            chains = listOf(1, 8453, 10, 42161)
-        ),
-        OwnedTokenProviderContract.OwnedTokenData(
-            contractAddress = "0x0000000000000000000000000000000000000000",
-            decimals = 18,
-            name = "Ethereum",
-            symbol = "ETH",
-            logo = null,
-            chainId = 8453,
-            swappable = true,
-            balance = BigDecimal("0.8765"),
-            price = 3500.0,
-            chains = listOf(1, 8453, 10, 42161)
-        ),
-        OwnedTokenProviderContract.OwnedTokenData(
-            contractAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-            decimals = 6,
-            name = "Tether USD",
-            symbol = "USDT",
-            logo = null,
-            chainId = 1,
-            swappable = true,
-            balance = BigDecimal("500.00"),
-            price = 1.0,
-            chains = listOf(1, 10, 42161)
-        ),
-        OwnedTokenProviderContract.OwnedTokenData(
-            contractAddress = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-            decimals = 8,
-            name = "Wrapped BTC",
-            symbol = "WBTC",
-            logo = null,
-            chainId = 1,
-            swappable = true,
-            balance = BigDecimal("0.0234"),
-            price = 65000.0,
-            chains = listOf(1, 10, 42161)
-        ),
-        OwnedTokenProviderContract.OwnedTokenData(
-            contractAddress = "0x0000000000000000000000000000000000000000",
-            decimals = 18,
-            name = "Ethereum",
-            symbol = "ETH",
-            logo = null,
-            chainId = 10,
-            swappable = true,
-            balance = BigDecimal("0.4321"),
-            price = 3500.0,
-            chains = listOf(1, 8453, 10, 42161)
-        ),
-        OwnedTokenProviderContract.OwnedTokenData(
-            contractAddress = "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
-            decimals = 18,
-            name = "Aave",
-            symbol = "AAVE",
-            logo = null,
-            chainId = 1,
-            swappable = true,
-            balance = BigDecimal("12.5"),
-            price = 180.0,
-            chains = listOf(1, 10, 137)
-        ),
-        OwnedTokenProviderContract.OwnedTokenData(
-            contractAddress = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-            decimals = 18,
-            name = "Uniswap",
-            symbol = "UNI",
-            logo = null,
-            chainId = 1,
-            swappable = true,
-            balance = BigDecimal("45.0"),
-            price = 8.50,
-            chains = listOf(1, 10, 42161)
-        )
-    )
 }
 
 /**
@@ -229,9 +130,10 @@ fun UnifiedTransactionOverlayRoute(
         } else ""
     }
     
+    // Use getOtherRecipientAddress() to get the contact's address, not the user's own address
     val recipientAddress = remember(conversationState) {
         if (conversationState is ConversationUiState.Success) {
-            (conversationState as ConversationUiState.Success).conversation.recipients.firstOrNull()?.address ?: ""
+            (conversationState as ConversationUiState.Success).conversation.getOtherRecipientAddress() ?: ""
         } else ""
     }
     
@@ -259,18 +161,25 @@ fun UnifiedTransactionOverlayRoute(
     
     // Display terminal button when overlay opens (like WalletManager pattern)
     // Terminal button is shown immediately when overlay appears
+    // Also display the send LED matrix pattern on secondary screen
     LaunchedEffect(mode) {
         when (mode) {
-            TransactionMode.SEND -> viewModel.onScreenOpened()
+            TransactionMode.SEND -> {
+                viewModel.onScreenOpened()
+                viewModel.displaySendLedPattern()
+            }
             TransactionMode.REQUEST -> viewModel.onRequestScreenOpened()
         }
     }
     
-    // Ensure terminal button is removed when composable is disposed
+    // Ensure terminal button is removed and LED matrix is cleared when composable is disposed
     DisposableEffect(mode) {
         onDispose {
             when (mode) {
-                TransactionMode.SEND -> viewModel.onScreenClosed()
+                TransactionMode.SEND -> {
+                    viewModel.onScreenClosed()
+                    viewModel.clearLedMatrix()
+                }
                 TransactionMode.REQUEST -> viewModel.onRequestScreenClosed()
             }
         }
@@ -418,29 +327,16 @@ fun UnifiedTransactionOverlay(
         isLoadingTokens = false
     }
     
-    // Set default token from mock tokens if no real tokens available
-    LaunchedEffect(isLoadingTokens, ownedTokens) {
-        if (!isLoadingTokens && ownedTokens.isEmpty() && selectedToken == null) {
-            selectedToken = MockCommonTokens.tokens.firstOrNull()
-        }
-    }
     
     // Filter tokens based on search query
     val filteredTokens = remember(ownedTokens, searchQuery, mode, selectedChainId) {
-        // For now, use mock tokens for debugging - comment this out to use real tokens
-        val tokensToFilter = if (ownedTokens.isEmpty()) {
-            MockCommonTokens.tokens
-        } else {
-            ownedTokens
-        }
-        
         // For SEND mode, only show owned tokens (adjusted balance > 0)
         val baseTokens = when (mode) {
-            TransactionMode.SEND -> tokensToFilter.filter { token ->
+            TransactionMode.SEND -> ownedTokens.filter { token ->
                 val adjustedBalance = adjustBalanceForDecimals(token.balance, token.decimals, token)
                 adjustedBalance > BigDecimal.ZERO
             }
-            TransactionMode.REQUEST -> tokensToFilter
+            TransactionMode.REQUEST -> ownedTokens
         }
         
         val chainFilteredTokens = if (selectedChainId == null) {
@@ -668,20 +564,10 @@ private fun TokenSearchContent(
             }
             
             tokens.isEmpty() -> {
-                // No assets available - commented out for now, showing mock tokens instead
-                // InfoScreen(
-                //     gifEnabledLoader = gifEnabledLoader,
-                //     primaryColor = primaryColor,
-                //     description = "No assets available"
-                // )
-                
-                // Show mock tokens for UI debugging
-                TokenListView(
-                    tokens = MockCommonTokens.tokens,
+                InfoScreen(
+                    gifEnabledLoader = gifEnabledLoader,
                     primaryColor = primaryColor,
-                    secondaryColor = secondaryColor,
-                    scrollState = scrollState,
-                    onTokenSelected = onTokenSelected
+                    description = "No assets available"
                 )
             }
             
@@ -1164,11 +1050,8 @@ private fun buildTransactionRequest(
             )
         )
     } else {
-        // ERC20 transfer
-        val functionSelector = "a9059cbb" // transfer(address,uint256)
-        val paddedTo = recipientAddress.removePrefix("0x").lowercase().padStart(64, '0')
-        val paddedAmount = amountInBaseUnits.toString(16).padStart(64, '0')
-        val data = "0x$functionSelector$paddedTo$paddedAmount"
+        // ERC20 transfer - encode using web3j FunctionEncoder (like WalletManager)
+        val data = encodeErc20Transfer(recipientAddress, amountInBaseUnits)
         
         TransactionRequest(
             chainId = token.chainId,
@@ -1187,4 +1070,26 @@ private fun buildTransactionRequest(
             )
         )
     }
+}
+
+/**
+ * Encodes an ERC20 transfer function call using web3j's FunctionEncoder.
+ * 
+ * The transfer function signature is: transfer(address recipient, uint256 amount)
+ * Function selector: 0xa9059cbb
+ * 
+ * @param recipientAddress The address to transfer tokens to
+ * @param amount The amount of tokens to transfer (in base units/wei)
+ * @return The encoded function call data as a hex string with 0x prefix
+ */
+private fun encodeErc20Transfer(recipientAddress: String, amount: BigInteger): String {
+    val function = Function(
+        "transfer",
+        listOf(
+            Address(recipientAddress),
+            Uint256(amount)
+        ),
+        emptyList() // Return types not needed for encoding
+    )
+    return FunctionEncoder.encode(function)
 }

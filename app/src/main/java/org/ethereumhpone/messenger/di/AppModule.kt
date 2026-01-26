@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.annotation.Nullable
 import com.google.protobuf.ByteString
+import com.messenger.terminalsdk.ReflectiveLedPattern
 import com.messenger.terminalsdk.TerminalSDK
 import dagger.Binds
 import dagger.Module
@@ -142,6 +143,16 @@ object AppModule {
         }
     }
 
+    @Provides
+    @Singleton
+    fun provideReflectiveLedPattern(): ReflectiveLedPattern? {
+        return try {
+            ReflectiveLedPattern()
+        } catch (e: Exception) {
+            // If the LED pattern class is not available on the device, gracefully fall back
+            null
+        }
+    }
 
 }
 

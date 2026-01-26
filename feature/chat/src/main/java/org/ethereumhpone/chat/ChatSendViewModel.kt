@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.messenger.terminalsdk.ReflectiveLedPattern
 import com.messenger.terminalsdk.TerminalSDK
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,6 +47,7 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
     private val activeConversationManager: ActiveConversationManager,
     private var walletSDK: WalletSDK,
     private val terminalSDK: TerminalSDK?,
+    private val reflectiveLedPattern: ReflectiveLedPattern?,
     private val _getAllTokensUseCase: GetAllTokensUseCase,
     @ApplicationContext private val context: Context
 ): ViewModel() {
@@ -352,7 +354,86 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
         }
     }
 
+    //-----------------------------LED MATRIX PATTERNS--------------------------------
 
+    /**
+     * Display the arrow up LED pattern on the secondary screen (send indication)
+     */
+    fun displaySendLedPattern() {
+        viewModelScope.launch {
+            try {
+                reflectiveLedPattern?.displayArrowUp()
+                Log.d(TAG, "Displayed arrow up LED pattern")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error displaying arrow up LED pattern", e)
+            }
+        }
+    }
+
+    /**
+     * Display success LED pattern after successful transaction
+     */
+    fun showSuccessMatrix() {
+        viewModelScope.launch {
+            try {
+                reflectiveLedPattern?.displaySuccess()
+                delay(2000)
+                reflectiveLedPattern?.clear()
+                reflectiveLedPattern?.displayArrowUp()
+                Log.d(TAG, "Displayed success LED pattern")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error displaying success LED pattern", e)
+            }
+        }
+    }
+
+    /**
+     * Display error LED pattern after failed transaction
+     */
+    fun showFailedMatrix() {
+        viewModelScope.launch {
+            try {
+                reflectiveLedPattern?.displayError()
+                delay(2000)
+                reflectiveLedPattern?.clear()
+                reflectiveLedPattern?.displayArrowUp()
+                Log.d(TAG, "Displayed error LED pattern")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error displaying error LED pattern", e)
+            }
+        }
+    }
+
+    /**
+     * Display warning LED pattern
+     */
+    fun showWarningMatrix() {
+        viewModelScope.launch {
+            try {
+                reflectiveLedPattern?.displayWarning()
+                delay(2000)
+                reflectiveLedPattern?.clear()
+                reflectiveLedPattern?.displayArrowUp()
+                Log.d(TAG, "Displayed warning LED pattern")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error displaying warning LED pattern", e)
+            }
+        }
+    }
+
+    /**
+     * Clear the LED matrix
+     */
+    fun clearLedMatrix() {
+        viewModelScope.launch {
+            try {
+                reflectiveLedPattern?.clear()
+                Log.d(TAG, "Cleared LED matrix")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error clearing LED matrix", e)
+            }
+        }
+    }
 
 }
 

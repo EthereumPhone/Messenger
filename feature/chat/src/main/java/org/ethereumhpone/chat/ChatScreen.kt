@@ -474,24 +474,18 @@ fun ChatScreen(
                             showGroupDetails = true
                         } else {
                             // Copy recipient's address to clipboard when title is clicked
-                            when (recipientUiState) {
-                                is RecipientUiState.Success -> {
-                                    val recipients = recipientUiState.recipients
-                                    if (recipients.isNotEmpty()) {
-                                        // Get the first recipient's address (for single chats)
-                                        val address = recipients.first().address
-                                        
-                                        // Copy to clipboard
-                                        val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("Recipient Address", address)
-                                        clipboardManager.setPrimaryClip(clip)
-                                    }
-                                }
-                                else -> {
-                                    // Fallback to previous behavior
-                                    focusManager.clearFocus()
-                                    keyboardController?.hide()
-                                }
+                            // Use getOtherRecipientAddress() to get the contact's address, not the user's own
+                            val address = chatConversion?.getOtherRecipientAddress()
+                            if (!address.isNullOrBlank()) {
+                                val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("Recipient Address", address)
+                                clipboardManager.setPrimaryClip(clip)
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showDgenToast(context, "Address copied")
+                            } else {
+                                // Fallback to previous behavior if no address available
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
                             }
                         }
                     },
