@@ -62,14 +62,16 @@ import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenGreen
 import org.ethereumphone.dgenlibrary.theme.dgenRed
+import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
+import com.example.dgenlibrary.ui.theme.PitagonsSans
 import kotlin.coroutines.cancellation.CancellationException
 import coil.ImageLoader
 import coil.compose.AsyncImage
 
-enum class TransactionStatus {
-    PENDING,
-    SUCCESS,
-    FAILURE
+sealed class TransactionStatus {
+    object PENDING : TransactionStatus()
+    object SUCCESS : TransactionStatus()
+    data class FAILURE(val errorMessage: String? = null) : TransactionStatus()
 }
 
 @Composable
@@ -94,7 +96,7 @@ fun TransactionStatusOverlay(
     // This effect handles the dismissal logic based on our *internal* state.
     // It won't be cancelled prematurely by the external status becoming null.
     LaunchedEffect(displayStatus) {
-        if (displayStatus == TransactionStatus.SUCCESS || displayStatus == TransactionStatus.FAILURE) {
+        if (displayStatus is TransactionStatus.SUCCESS || displayStatus is TransactionStatus.FAILURE) {
             delay(dismissDelay)
             onDismiss()
             displayStatus = null // Hide the overlay after the delay.
@@ -148,9 +150,9 @@ fun TransactionStatusOverlay(
                 )
 
                 val targetColor = when (currentStatus) {
-                    TransactionStatus.PENDING -> primaryColor
-                    TransactionStatus.SUCCESS -> dgenGreen
-                    TransactionStatus.FAILURE -> dgenRed
+                    is TransactionStatus.PENDING -> dgenTurqoise
+                    is TransactionStatus.SUCCESS -> dgenGreen
+                    is TransactionStatus.FAILURE -> dgenRed
                 }
 
                 val animatedBaseColor by animateColorAsState(
@@ -178,26 +180,78 @@ fun TransactionStatusOverlay(
                     },
                     label = "textAnimation"
                 ) { targetStatus ->
-                    val text = when (targetStatus) {
-                        TransactionStatus.PENDING -> "Transaction Pending..."
-                        TransactionStatus.SUCCESS -> "Transaction Confirmed!"
-                        TransactionStatus.FAILURE -> "Transaction Failed"
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(top = 0.dp)
+                    ) {
+                        val mainText = when (targetStatus) {
+                            is TransactionStatus.PENDING -> "Transaction Pending..."
+                            is TransactionStatus.SUCCESS -> "Transaction Confirmed!"
+                            is TransactionStatus.FAILURE -> {
+                                // Check if we have a custom error message
+                                if (!targetStatus.errorMessage.isNullOrEmpty()) {
+                                    targetStatus.errorMessage
+                                } else {
+                                    "Transaction Failed"
+                                }
+                            }
+                        }
+                        Text(
+                            text = mainText.uppercase(),
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = primaryColor.copy(alpha = blinkingAlpha),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None,
+                                textAlign = TextAlign.Center
+                            ),
+                            modifier = Modifier
+                                .padding(horizontal = 24.dp)
+                        )
+                        
+                        // Add additional help text based on error type
+                        if (targetStatus is TransactionStatus.FAILURE) {
+                            val helpText = when {
+                                targetStatus.errorMessage?.contains("gas", ignoreCase = true) == true -> 
+                                    "Add ETH to your wallet to pay for gas fees"
+                                targetStatus.errorMessage?.contains("nonce", ignoreCase = true) == true -> 
+                                    "Wait for pending transactions to complete"
+                                targetStatus.errorMessage?.contains("signature", ignoreCase = true) == true -> 
+                                    "Please try signing the transaction again"
+                                targetStatus.errorMessage?.contains("expired", ignoreCase = true) == true -> 
+                                    "Transaction took too long. Please try again"
+                                targetStatus.errorMessage?.contains("insufficient funds", ignoreCase = true) == true -> 
+                                    "Add more funds to your wallet"
+                                targetStatus.errorMessage?.contains("paymaster", ignoreCase = true) == true -> 
+                                    "Sponsorship service unavailable. Try again later"
+                                targetStatus.errorMessage?.contains("account not deployed", ignoreCase = true) == true -> 
+                                    "Your account needs to be activated first"
+                                targetStatus.errorMessage?.contains("throttled", ignoreCase = true) == true -> 
+                                    "Too many requests. Please wait and try again"
+                                else -> null
+                            }
+                            
+                            helpText?.let {
+                                Text(
+                                    text = it,
+                                    style = TextStyle(
+                                        fontFamily = PitagonsSans,
+                                        color = primaryColor.copy(alpha = blinkingAlpha * 0.7f),
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 14.sp,
+                                        letterSpacing = 0.sp,
+                                        textDecoration = TextDecoration.None,
+                                        textAlign = TextAlign.Center
+                                    ),
+                                    modifier = Modifier
+                                        .padding(horizontal = 24.dp)
+                                )
+                            }
+                        }
                     }
-                    Text(
-                        text = text.uppercase(),
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            color = primaryColor.copy(alpha = blinkingAlpha),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            letterSpacing = 0.sp,
-                            textDecoration = TextDecoration.None,
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = Modifier
-                            .offset(y = -48.dp)
-                            .padding(horizontal = 24.dp)
-                    )
                 }
             }
         }
@@ -227,4 +281,39 @@ fun TransactionStatusOverlayPreviewPending() {
 //        gifLoader = gifEnabledLoader,
 //        onDismiss = { status = null }
 //    )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000, widthDp = 420, heightDp = 420)
+@Composable
+fun TransactionStatusOverlayPreviewFailure() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(dgenBlack.copy(alpha = 0.85f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.globe_transfer_thick),
+                contentDescription = "Status Animation",
+                modifier = Modifier
+                    .size(120.dp)
+                    .aspectRatio(1f)
+            )
+            Text(
+                text = "Transaction Failed".uppercase(),
+                style = TextStyle(
+                    fontFamily = SpaceMono,
+                    color = dgenRed,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center
+                ),
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+        }
+    }
 }

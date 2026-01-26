@@ -76,7 +76,7 @@ fun SendTransactionScreenRoute(
     // Handle transaction status changes - navigate back after showing result
     LaunchedEffect(transactionStatus) {
         when (transactionStatus) {
-            TransactionStatus.SUCCESS -> {
+            is TransactionStatus.SUCCESS -> {
                 // Show success for a moment, then navigate back
                 delay(TransactionTiming.SUCCESS_DISPLAY_DURATION)
                 sendViewModel.onScreenClosed()
@@ -84,7 +84,7 @@ fun SendTransactionScreenRoute(
                 delay(TransactionTiming.FADE_TRANSITION_DURATION)
                 chatViewModel.clearTransactionStatus()
             }
-            TransactionStatus.FAILURE -> {
+            is TransactionStatus.FAILURE -> {
                 // Show failure for a moment, then navigate back
                 delay(TransactionTiming.FAILURE_DISPLAY_DURATION)
                 sendViewModel.onScreenClosed()

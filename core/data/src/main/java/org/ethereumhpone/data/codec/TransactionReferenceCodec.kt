@@ -37,6 +37,8 @@ class TransactionReferenceCodec : ContentCodec<TransactionReference> {
 
     override fun encode(content: TransactionReference): Content.EncodedContent {
         val jsonString = json.encodeToString(content)
+        // Generate user-friendly fallback message for clients that don't support this content type
+        val fallbackText = buildFallbackMessage(content)
         return Content.EncodedContent.newBuilder()
             .setType(
                 Content.ContentTypeId.newBuilder()
@@ -47,7 +49,36 @@ class TransactionReferenceCodec : ContentCodec<TransactionReference> {
                     .build()
             )
             .setContent(jsonString.toByteArray().toByteString())
+            .setFallback(fallbackText)
             .build()
+    }
+    
+    /**
+     * Build a user-friendly fallback message for clients that don't support TransactionReference.
+     * This is included in the encoded content so older clients display this text.
+     */
+    private fun buildFallbackMessage(content: TransactionReference): String {
+        val metadata = content.metadata
+        val amount = metadata?.amount
+        val decimals = metadata?.decimals
+        val currency = metadata?.currency
+        val blockExplorerUrl = metadata?.blockExplorerUrl
+        
+        val amountText = if (amount != null && decimals != null && currency != null) {
+            val humanAmount = formatAmount(amount, decimals)
+            "$humanAmount $currency"
+        } else {
+            "tokens"
+        }
+        
+        val message = "I sent you $amountText"
+        
+        // Append block explorer link if available
+        return if (!blockExplorerUrl.isNullOrBlank()) {
+            "$message\n$blockExplorerUrl"
+        } else {
+            message
+        }
     }
 
     override fun decode(content: Content.EncodedContent): TransactionReference {

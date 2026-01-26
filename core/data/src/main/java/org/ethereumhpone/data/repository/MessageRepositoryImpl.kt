@@ -280,6 +280,7 @@ class MessageRepositoryImpl @Inject constructor(
         
         try {
             // Prepare the transaction request message
+            // The codec includes a fallback message for clients that don't support this content type
             val messageId = xmtpConversation.prepareMessage(
                 content = transactionRequest,
                 options = SendOptions(contentType = ContentTypeTransactionRequest)
@@ -356,6 +357,7 @@ class MessageRepositoryImpl @Inject constructor(
         
         try {
             // Prepare the transaction reference message
+            // The codec includes a fallback message for clients that don't support this content type
             val messageId = xmtpConversation.prepareMessage(
                 content = transactionReference,
                 options = SendOptions(contentType = ContentTypeTransactionReference)
