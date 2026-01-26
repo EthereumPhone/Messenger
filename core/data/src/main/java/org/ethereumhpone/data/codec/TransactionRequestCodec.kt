@@ -37,6 +37,8 @@ class TransactionRequestCodec : ContentCodec<TransactionRequest> {
 
     override fun encode(content: TransactionRequest): Content.EncodedContent {
         val jsonString = json.encodeToString(content)
+        // Generate user-friendly fallback message for clients that don't support this content type
+        val fallbackText = buildFallbackMessage(content)
         return Content.EncodedContent.newBuilder()
             .setType(
                 Content.ContentTypeId.newBuilder()
@@ -47,7 +49,23 @@ class TransactionRequestCodec : ContentCodec<TransactionRequest> {
                     .build()
             )
             .setContent(jsonString.toByteArray().toByteString())
+            .setFallback(fallbackText)
             .build()
+    }
+    
+    /**
+     * Build a user-friendly fallback message for clients that don't support TransactionRequest.
+     * This is included in the encoded content so older clients display this text.
+     */
+    private fun buildFallbackMessage(content: TransactionRequest): String {
+        val chainName = chainIdToName(content.chainId)
+        val metadata = content.metadata
+        
+        return if (metadata?.tokenAmount != null && metadata.tokenSymbol != null) {
+            "I'm requesting ${metadata.tokenAmount} ${metadata.tokenSymbol} from you on $chainName"
+        } else {
+            "I'm requesting a transaction from you on $chainName"
+        }
     }
 
     override fun decode(content: Content.EncodedContent): TransactionRequest {

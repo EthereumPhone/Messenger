@@ -70,6 +70,11 @@ import org.ethereumphone.model.TransactionTypes
 import org.ethereumhpone.data.util.GasEstimationHelper
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
 
 @HiltViewModel
@@ -694,7 +699,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                     val switchResult = chainWalletSDK.changeChain(targetChainId, rpcUrl, bundlerUrl)
                     if (switchResult == "decline") {
                         Log.e("ChatViewModel", "User declined chain switch")
-                        _transactionStatus.value = TransactionStatus.FAILURE
+                        _transactionStatus.value = TransactionStatus.FAILURE("Chain switch declined")
                         return@launch
                     }
                 }
@@ -741,10 +746,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 // Check result
                 when {
                     result.startsWith("0x") -> {
-                        _transactionStatus.value = TransactionStatus.SUCCESS
-                        Log.d("ChatViewModel", "Transaction successful: $result")
+                        Log.d("ChatViewModel", "Transaction submitted, checking inclusion: $result")
                         
-                        // Send a proper TransactionReference message
+                        // Prepare transaction details for confirmation message
                         val metadata = transactionRequest.metadata
                         val toAddress = transactionRequest.calls.firstOrNull()?.to ?: ""
                         val fromAddress = chainWalletSDK.getAddress()
@@ -757,29 +761,46 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                             tokenDecimals
                         )
                         
-                        sendTransactionConfirmation(
-                            txHash = result,
-                            chainId = targetChainId.toLong(),
-                            fromAddress = fromAddress,
-                            toAddress = toAddress,
-                            amountWei = amountWei,
-                            tokenSymbol = tokenSymbol,
-                            tokenDecimals = tokenDecimals
-                        )
+                        // Check transaction inclusion via bundler before confirming success
+                        checkTransactionInclusion(result, targetChainId) { hasBeenIncluded ->
+                            if (hasBeenIncluded) {
+                                Log.d("ChatViewModel", "Transaction confirmed on-chain: $result")
+                                _transactionStatus.value = TransactionStatus.SUCCESS
+                                
+                                // Send a proper TransactionReference message
+                                sendTransactionConfirmation(
+                                    txHash = result,
+                                    chainId = targetChainId.toLong(),
+                                    fromAddress = fromAddress,
+                                    toAddress = toAddress,
+                                    amountWei = amountWei,
+                                    tokenSymbol = tokenSymbol,
+                                    tokenDecimals = tokenDecimals
+                                )
+                            } else {
+                                Log.e("ChatViewModel", "Transaction not confirmed or failed: $result")
+                                _transactionStatus.value = TransactionStatus.FAILURE("Transaction not confirmed")
+                            }
+                        }
                     }
                     result.equals("decline", ignoreCase = true) -> {
-                        _transactionStatus.value = TransactionStatus.FAILURE
+                        val errorMessage = parseAAErrorCode(result) ?: "Transaction declined"
+                        _transactionStatus.value = TransactionStatus.FAILURE(errorMessage)
                         Log.d("ChatViewModel", "Transaction declined by user")
                     }
                     else -> {
-                        _transactionStatus.value = TransactionStatus.FAILURE
-                        Log.e("ChatViewModel", "Transaction failed: $result")
+                        // Parse AA error codes for user-friendly messages
+                        val errorMessage = parseAAErrorCode(result)
+                        _transactionStatus.value = TransactionStatus.FAILURE(errorMessage)
+                        Log.e("ChatViewModel", "Transaction failed: $result, parsed: $errorMessage")
                     }
                 }
                 
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Transaction execution failed", e)
-                _transactionStatus.value = TransactionStatus.FAILURE
+                // Parse exception message for AA error codes
+                val errorMessage = parseAAErrorCode(e.message ?: "")
+                _transactionStatus.value = TransactionStatus.FAILURE(errorMessage)
             }
         }
     }
@@ -910,6 +931,223 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         } catch (e: Exception) {
             Log.e("ChatViewModel", "Failed to convert token amount to wei: $tokenAmount", e)
             "0"
+        }
+    }
+    
+    /**
+     * Parse ERC-4337 EntryPoint v0.6.0 error codes and return user-friendly messages.
+     * Matches WalletManager's implementation for consistency.
+     */
+    private fun parseAAErrorCode(errorString: String): String? {
+        return when {
+            // AA1x: Errors during account creation/sender validation
+            errorString.contains("AA10 sender already constructed", ignoreCase = true) || 
+            errorString.contains("AA10", ignoreCase = true) -> 
+                "Account already created"
+                
+            errorString.contains("AA13 initCode failed or OOG", ignoreCase = true) || 
+            errorString.contains("AA13", ignoreCase = true) -> 
+                "Account creation failed"
+                
+            errorString.contains("AA14 initCode must return sender", ignoreCase = true) || 
+            errorString.contains("AA14", ignoreCase = true) -> 
+                "Invalid account factory"
+                
+            errorString.contains("AA15 initCode must create sender", ignoreCase = true) || 
+            errorString.contains("AA15", ignoreCase = true) -> 
+                "Account creation error"
+                
+            // AA2x: Errors during account validation
+            errorString.contains("AA20 account not deployed", ignoreCase = true) || 
+            errorString.contains("AA20", ignoreCase = true) -> 
+                "Account not deployed"
+                
+            errorString.contains("AA21 didn't pay prefund", ignoreCase = true) || 
+            errorString.contains("AA21", ignoreCase = true) -> 
+                "Not enough ETH for gas"
+                
+            errorString.contains("AA22 expired or not due", ignoreCase = true) || 
+            errorString.contains("AA22", ignoreCase = true) -> 
+                "Transaction expired"
+                
+            errorString.contains("AA23 reverted (or OOG)", ignoreCase = true) || 
+            errorString.contains("AA23", ignoreCase = true) -> 
+                "Validation failed"
+                
+            errorString.contains("AA24 signature error", ignoreCase = true) || 
+            errorString.contains("AA24", ignoreCase = true) -> 
+                "Invalid signature"
+                
+            errorString.contains("AA25 invalid account nonce", ignoreCase = true) || 
+            errorString.contains("AA25", ignoreCase = true) -> 
+                "Invalid nonce"
+                
+            // AA3x: Errors during paymaster validation
+            errorString.contains("AA30 paymaster not deployed", ignoreCase = true) || 
+            errorString.contains("AA30", ignoreCase = true) -> 
+                "Paymaster not found"
+                
+            errorString.contains("AA31 paymaster deposit too low", ignoreCase = true) || 
+            errorString.contains("AA31", ignoreCase = true) -> 
+                "Paymaster funds too low"
+                
+            errorString.contains("AA32 paymaster expired", ignoreCase = true) || 
+            errorString.contains("AA32", ignoreCase = true) -> 
+                "Paymaster expired"
+                
+            errorString.contains("AA33 reverted (or OOG)", ignoreCase = true) || 
+            errorString.contains("AA33", ignoreCase = true) -> 
+                "Paymaster rejected"
+                
+            errorString.contains("AA34 signature error", ignoreCase = true) || 
+            errorString.contains("AA34", ignoreCase = true) -> 
+                "Paymaster signature invalid"
+                
+            // AA4x: Errors related to verification gas and execution
+            errorString.contains("AA40 over verificationGasLimit", ignoreCase = true) || 
+            errorString.contains("AA40", ignoreCase = true) -> 
+                "Gas limit exceeded"
+                
+            errorString.contains("AA41 too little verificationGas", ignoreCase = true) || 
+            errorString.contains("AA41", ignoreCase = true) -> 
+                "Verification gas too low"
+                
+            // AA5x: Errors related to gas calculation
+            errorString.contains("AA50 postOp revert", ignoreCase = true) || 
+            errorString.contains("AA50", ignoreCase = true) -> 
+                "Post-operation failed"
+                
+            errorString.contains("AA51 prefund below actualGasCost", ignoreCase = true) || 
+            errorString.contains("AA51", ignoreCase = true) -> 
+                "Insufficient gas payment"
+                
+            // AA9x: Bundler/Validation errors
+            errorString.contains("AA90 invalid beneficiary", ignoreCase = true) || 
+            errorString.contains("AA90", ignoreCase = true) -> 
+                "Invalid beneficiary"
+                
+            errorString.contains("AA91 failed send to beneficiary", ignoreCase = true) || 
+            errorString.contains("AA91", ignoreCase = true) -> 
+                "Payment transfer failed"
+                
+            errorString.contains("AA92 internal call only", ignoreCase = true) || 
+            errorString.contains("AA92", ignoreCase = true) -> 
+                "Invalid call method"
+                
+            errorString.contains("AA93 invalid paymasterAndData", ignoreCase = true) || 
+            errorString.contains("AA93", ignoreCase = true) -> 
+                "Invalid paymaster data"
+                
+            errorString.contains("AA94 gas values overflow", ignoreCase = true) || 
+            errorString.contains("AA94", ignoreCase = true) -> 
+                "Gas calculation error"
+                
+            errorString.contains("AA95 out of gas", ignoreCase = true) || 
+            errorString.contains("AA95", ignoreCase = true) -> 
+                "Transaction out of gas"
+                
+            errorString.contains("AA96 invalid aggregator", ignoreCase = true) || 
+            errorString.contains("AA96", ignoreCase = true) -> 
+                "Invalid signature aggregator"
+                
+            // Other common errors
+            errorString.contains("insufficient funds", ignoreCase = true) -> 
+                "Insufficient funds"
+            errorString.contains("decline", ignoreCase = true) -> 
+                "Transaction declined"
+            errorString.contains("reverted", ignoreCase = true) -> 
+                "Transaction reverted"
+            errorString.contains("gas too low", ignoreCase = true) -> 
+                "Gas limit too low"
+            errorString.contains("nonce too low", ignoreCase = true) -> 
+                "Nonce too low"
+            errorString.contains("replacement transaction underpriced", ignoreCase = true) -> 
+                "Gas price too low"
+            errorString.contains("already known", ignoreCase = true) -> 
+                "Transaction already submitted"
+            errorString.contains("FailedOp", ignoreCase = true) -> 
+                "Operation failed"
+            
+            // Generic error for unrecognized messages
+            errorString.contains("error", ignoreCase = true) && errorString.length > 10 ->
+                "Transaction error occurred"
+                
+            else -> null // Use default message
+        }
+    }
+    
+    /**
+     * Check if a transaction has been included on-chain via the bundler.
+     * Polls the Pimlico bundler's pimlico_getUserOperationStatus RPC method.
+     * 
+     * @param txHash The transaction/userOp hash to check
+     * @param chainId The chain ID for the transaction
+     * @param callback Called with true if "included", false if "failed", "rejected", or timeout
+     */
+    private fun checkTransactionInclusion(txHash: String, chainId: Int, callback: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val client = OkHttpClient()
+            val contentType = "application/json; charset=utf-8".toMediaType()
+            
+            val startTime = System.currentTimeMillis()
+            val timeoutMillis = 60000L // 1 minute timeout
+            
+            while (System.currentTimeMillis() - startTime < timeoutMillis) {
+                val bodyJson = """
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "pimlico_getUserOperationStatus",
+                        "params": ["$txHash"],
+                        "id": 1
+                    }
+                """.trimIndent()
+                
+                val request = Request.Builder()
+                    .url(chainIdToBundler(chainId))
+                    .post(bodyJson.toRequestBody(contentType))
+                    .build()
+                
+                val status = try {
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            Log.w("ChatViewModel", "Bundler request failed: ${response.code}")
+                            null
+                        } else {
+                            val jsonString = response.body?.string() ?: return@use null
+                            val json = JSONObject(jsonString)
+                            val resultObj = json.optJSONObject("result")
+                            val statusValue = resultObj?.optString("status")
+                            Log.d("ChatViewModel", "Transaction status: $statusValue")
+                            statusValue
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("ChatViewModel", "Error checking transaction status", e)
+                    null
+                }
+                
+                when (status) {
+                    "included" -> {
+                        Log.d("ChatViewModel", "Transaction included on-chain: $txHash")
+                        withContext(Dispatchers.Main) { callback(true) }
+                        return@launch
+                    }
+                    "failed", "rejected" -> {
+                        Log.e("ChatViewModel", "Transaction $status: $txHash")
+                        withContext(Dispatchers.Main) { callback(false) }
+                        return@launch
+                    }
+                }
+                
+                // Wait 4 seconds before next poll
+                delay(4000)
+            }
+            
+            // Timeout reached
+            Log.e("ChatViewModel", "Transaction inclusion check timed out: $txHash")
+            withContext(Dispatchers.Main) {
+                callback(false)
+            }
         }
     }
 }
