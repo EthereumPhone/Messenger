@@ -83,8 +83,12 @@ dependencies {
     implementation(libs.model)
 
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    
+    // Web3j for Ethereum RPC
+    implementation(libs.core)
 
 
     implementation(project(":core:domain"))
@@ -113,5 +117,8 @@ dependencies {
     implementation(project(":dgenlibrary"))
     implementation("androidx.compose.ui:ui-graphics") // Required for showDgenToast Color parameter
     implementation("com.github.Nicola-Ceornea:BaseNameResolver:1.0.2")
+
+    implementation(libs.core)
+
 
 }
