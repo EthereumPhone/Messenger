@@ -237,7 +237,12 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     private val _transactionStatus = MutableStateFlow<TransactionStatus?>(null)
     val transactionStatus: StateFlow<TransactionStatus?> = _transactionStatus.asStateFlow()
 
-
+    /**
+     * Clear the transaction status, e.g., when the overlay is dismissed or navigation completes.
+     */
+    fun clearTransactionStatus() {
+        _transactionStatus.value = null
+    }
 
 
     fun parseContact(contactEntity: ContactEntity) {
@@ -710,10 +715,30 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 when {
                     result.startsWith("0x") -> {
                         _transactionStatus.value = TransactionStatus.SUCCESS
-                        // Send confirmation message
-                        val confirmationMessage = buildTransactionConfirmationMessage(transactionRequest, result, targetChainId)
-                        sendMessage(confirmationMessage)
                         Log.d("ChatViewModel", "Transaction successful: $result")
+                        
+                        // Send a proper TransactionReference message
+                        val metadata = transactionRequest.metadata
+                        val toAddress = transactionRequest.calls.firstOrNull()?.to ?: ""
+                        val fromAddress = walletSDK.getAddress()
+                        
+                        // Convert token amount to wei (base units)
+                        val tokenDecimals = metadata?.tokenDecimals ?: 18
+                        val tokenSymbol = metadata?.tokenSymbol ?: "ETH"
+                        val amountWei = convertTokenAmountToWei(
+                            metadata?.tokenAmount,
+                            tokenDecimals
+                        )
+                        
+                        sendTransactionConfirmation(
+                            txHash = result,
+                            chainId = targetChainId.toLong(),
+                            fromAddress = fromAddress,
+                            toAddress = toAddress,
+                            amountWei = amountWei,
+                            tokenSymbol = tokenSymbol,
+                            tokenDecimals = tokenDecimals
+                        )
                     }
                     result.equals("decline", ignoreCase = true) -> {
                         _transactionStatus.value = TransactionStatus.FAILURE
@@ -829,20 +854,6 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         return "https://api.pimlico.io/v2/$chainId/rpc?apikey=${BuildConfig.BUNDLER_API}"
     }
     
-    private fun buildTransactionConfirmationMessage(
-        txRequest: TransactionRequest,
-        txHash: String,
-        chainId: Int
-    ): String {
-        val etherscanUrl = chainIdToEtherscan(chainId)
-        val metadata = txRequest.metadata
-        
-        return if (metadata?.tokenAmount != null && metadata.tokenSymbol != null) {
-            "Sent ${metadata.tokenAmount} ${metadata.tokenSymbol}: $etherscanUrl/tx/$txHash"
-        } else {
-            "Transaction executed: $etherscanUrl/tx/$txHash"
-        }
-    }
     
     private fun hexToDecimalString(hex: String): String {
         return try {
@@ -852,6 +863,25 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 hex
             }
         } catch (e: Exception) {
+            "0"
+        }
+    }
+    
+    /**
+     * Convert a human-readable token amount (e.g., "0.1") to wei/base units as a String.
+     * This handles the conversion properly without floating point precision issues.
+     */
+    private fun convertTokenAmountToWei(tokenAmount: String?, decimals: Int): String {
+        if (tokenAmount.isNullOrBlank()) return "0"
+        
+        return try {
+            // Use BigDecimal for precise conversion
+            val amount = BigDecimal(tokenAmount)
+            // Multiply by 10^decimals and convert to integer string
+            val weiAmount = amount.multiply(BigDecimal.TEN.pow(decimals))
+            weiAmount.toBigInteger().toString()
+        } catch (e: Exception) {
+            Log.e("ChatViewModel", "Failed to convert token amount to wei: $tokenAmount", e)
             "0"
         }
     }
