@@ -166,4 +166,51 @@ class TransactionStatusCheckerTest {
         println("Block number: ${receipt.blockNumber}")
         println("Gas used: ${receipt.gasUsed}")
     }
+
+    // ==================== Internal Revert Detection Tests ====================
+
+
+    @Test
+    fun `getDetailedTxStatus returns REVERTED for transaction with internal revert`() = runTest {
+        val status = checker.getDetailedTxStatus(
+            web3j = web3j,
+            rpcUrl = rpcMainnetUrl,
+            txHash = knwonRevertedTxHash,
+            checkInternalReverts = true,
+            pollIntervalMs = 100L,
+            timeoutMs = 10_000L
+        )
+
+        assertEquals(TxStatus.REVERTED, status)
+    }
+
+    @Test
+    fun `getDetailedTxStatus returns SUCCESS for clean transaction`() = runTest {
+        val status = checker.getDetailedTxStatus(
+            web3j = web3j,
+            rpcUrl = rpcMainnetUrl,
+            txHash = knownSuccessfulTxHash,
+            checkInternalReverts = true,
+            pollIntervalMs = 100L,
+            timeoutMs = 10_000L
+        )
+
+        assertEquals(TxStatus.SUCCESS, status)
+    }
+
+    @Test
+    fun `getDetailedTxStatus without internal revert check returns SUCCESS even for reverted tx`() = runTest {
+        // When checkInternalReverts is false, we only check the receipt status
+        val status = checker.getDetailedTxStatus(
+            web3j = web3j,
+            rpcUrl = rpcMainnetUrl,
+            txHash = knwonRevertedTxHash,
+            checkInternalReverts = false,  // Disable internal revert checking
+            pollIntervalMs = 100L,
+            timeoutMs = 10_000L
+        )
+
+        // Should return SUCCESS since the receipt status is 0x1
+        assertEquals(TxStatus.SUCCESS, status)
+    }
 }
