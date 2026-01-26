@@ -150,9 +150,15 @@ import org.ethereumphone.dgenlibrary.theme.dgenRed
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import android.util.Log
+import android.os.Build
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalDensity
+import coil.ImageLoader
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
+import org.ethereumphone.dgenlibrary.components.TransactionStatus
+import org.ethereumphone.dgenlibrary.components.TransactionStatusOverlay
 
 
 @Composable
@@ -176,6 +182,7 @@ fun ChatRoute(
     val selectedMessages by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
     val selectMode by chatViewModel.selectMode.collectAsStateWithLifecycle()
     val myInboxId by chatViewModel.myInboxId.collectAsStateWithLifecycle()
+    val transactionStatus by chatViewModel.transactionStatus.collectAsStateWithLifecycle()
 
     val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
 
@@ -234,7 +241,9 @@ fun ChatRoute(
         myInboxId = myInboxId,
         onSendTransactionRequest = chatViewModel::sendTransactionRequest,
         onNavigateToSend = onNavigateToSend,
-        onNavigateToRequest = onNavigateToRequest
+        onNavigateToRequest = onNavigateToRequest,
+        transactionStatus = transactionStatus,
+        onClearTransactionStatus = chatViewModel::clearTransactionStatus
     )
 
     // Mark messages as seen when leaving the chat screen
@@ -291,6 +300,8 @@ fun ChatScreen(
     onSendTransactionRequest: (TransactionRequest) -> Unit = {},
     onNavigateToSend: (String) -> Unit = {},
     onNavigateToRequest: (String) -> Unit = {},
+    transactionStatus: TransactionStatus? = null,
+    onClearTransactionStatus: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -1069,6 +1080,29 @@ fun ChatScreen(
         },
         onSendTransactionRequest = { request ->
             onSendTransactionRequest(request)
+        }
+    )
+    
+    // Transaction Status Overlay - shows pending/success/failure state for transactions executed from chat
+    // GIF-enabled image loader for the overlay animation
+    val gifEnabledLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                if (Build.VERSION.SDK_INT >= 28) {
+                    add(ImageDecoderDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }.build()
+    }
+    
+    TransactionStatusOverlay(
+        status = transactionStatus,
+        gifLoader = gifEnabledLoader,
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor,
+        onDismiss = {
+            onClearTransactionStatus()
         }
     )
 

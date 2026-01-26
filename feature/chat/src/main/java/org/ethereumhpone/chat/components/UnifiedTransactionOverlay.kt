@@ -383,7 +383,11 @@ fun UnifiedTransactionOverlay(
             )
             onComplete(request)
             onTerminalActionConsumed()
-            onDismiss()
+            // For SEND mode, don't dismiss - let the parent handle showing TransactionStatusOverlay
+            // For REQUEST mode, dismiss immediately as there's no transaction to wait for
+            if (mode == TransactionMode.REQUEST) {
+                onDismiss()
+            }
         } else if (terminalActionTriggered) {
             // Terminal button pressed but not ready - consume the action
             onTerminalActionConsumed()
