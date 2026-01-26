@@ -382,7 +382,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         42161 -> "https://arbiscan.io"
         137 -> "https://polygonscan.com"
         8453 -> "https://basescan.org"
+        7777777 -> "https://explorer.zora.energy"
         5 -> "https://goerli.etherscan.io"
+        56 -> "https://bscscan.com"
+        43114 -> "https://snowtrace.io"
         else -> ""
     }
 
@@ -393,8 +396,14 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         42161 -> "arb-mainnet"
         137 -> "polygon-mainnet"
         8453 -> "base-mainnet"
+        7777777 -> "zora-mainnet"
         5 -> "eth-goerli"
-        else -> "eth-mainnet"
+        56 -> "bnb-mainnet"
+        43114 -> "avax-mainnet"
+        else -> {
+            Log.w("ChatViewModel", "Unknown chainId: $chainId, falling back to eth-mainnet")
+            "eth-mainnet"
+        }
     }
 
     fun chainIdToReadableName(chainId: Int): String = when(chainId) {
@@ -404,8 +413,11 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         42161 -> "Arbitrum Mainnet"
         137 -> "Polygon Mainnet"
         8453 -> "Base Mainnet"
+        7777777 -> "Zora Mainnet"
         5 -> "Ethereum Goerli"
-        else -> "Ethereum Mainnet"
+        56 -> "BNB Chain"
+        43114 -> "Avalanche C-Chain"
+        else -> "Chain $chainId"
     }
 
     fun chainIdToRPC(chainId: Int): String {
@@ -648,6 +660,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     
     /**
      * Execute a transaction request received via XMTP message.
+     * 
+     * IMPORTANT: Creates a fresh WalletSDK instance for each transaction with the correct
+     * chain's RPC and bundler URL. This matches how WalletManager handles transactions
+     * and ensures proper web3j configuration for ERC20 transfers on different chains.
      */
     fun executeTransaction(transactionRequest: TransactionRequest) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -655,24 +671,33 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 _transactionStatus.value = TransactionStatus.PENDING
                 Log.d("ChatViewModel", "Executing transaction request: chainId=${transactionRequest.chainId}, calls=${transactionRequest.calls.size}")
                 
-                // Switch chain if necessary
                 val targetChainId = transactionRequest.chainId.toInt()
-                val currentChain = walletSDK.getChainId()
+                val rpcUrl = chainIdToRPC(targetChainId)
+                val bundlerUrl = chainIdToBundler(targetChainId)
                 
+                Log.d("ChatViewModel", "Creating chain-specific WalletSDK for chainId=$targetChainId")
+                Log.d("ChatViewModel", "RPC URL: $rpcUrl")
+                Log.d("ChatViewModel", "Bundler URL: $bundlerUrl")
+                
+                // Create a fresh WalletSDK instance with the correct chain configuration
+                // This is critical for ERC20 transfers - the web3j instance must match the target chain
+                val chainWalletSDK = WalletSDK(
+                    context = context,
+                    web3jInstance = Web3j.build(HttpService(rpcUrl)),
+                    bundlerRPCUrl = bundlerUrl
+                )
+                
+                // Ensure the wallet is on the correct chain
+                val currentChain = chainWalletSDK.getChainId()
                 if (currentChain != targetChainId) {
-                    Log.d("ChatViewModel", "Switching chain from $currentChain to $targetChainId")
-                    val rpcUrl = chainIdToRPC(targetChainId)
-                    val bundlerUrl = chainIdToBundler(targetChainId)
-                    val switchResult = walletSDK.changeChain(targetChainId, rpcUrl, bundlerUrl)
+                    Log.d("ChatViewModel", "Switching WalletSDK from chain $currentChain to $targetChainId")
+                    val switchResult = chainWalletSDK.changeChain(targetChainId, rpcUrl, bundlerUrl)
                     if (switchResult == "decline") {
                         Log.e("ChatViewModel", "User declined chain switch")
                         _transactionStatus.value = TransactionStatus.FAILURE
                         return@launch
                     }
                 }
-                
-                val rpcUrl = chainIdToRPC(targetChainId)
-                val bundlerUrl = chainIdToBundler(targetChainId)
                 
                 // Build transaction params list
                 val txParamsList = transactionRequest.calls.map { call ->
@@ -683,15 +708,16 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                     )
                 }
                 
-                // Create gas provider
+                // Create gas provider using the target chain's RPC
                 val gasProvider: suspend (WalletSDK.UserOperation) -> WalletSDK.GasEstimation = { userOp ->
                     GasEstimationHelper.estimateGas(userOp, rpcUrl)
                 }
                 
-                // Send the transaction
+                // Send the transaction using the chain-specific WalletSDK
                 val result = if (txParamsList.size == 1) {
                     val tx = txParamsList.first()
-                    walletSDK.sendTransaction(
+                    Log.d("ChatViewModel", "Sending single transaction: to=${tx.to}, value=${tx.value}, data=${tx.data.take(20)}...")
+                    chainWalletSDK.sendTransaction(
                         to = tx.to,
                         value = tx.value,
                         data = tx.data,
@@ -701,7 +727,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                     )
                 } else {
                     // Batched transaction
-                    walletSDK.sendTransaction(
+                    Log.d("ChatViewModel", "Sending batched transaction with ${txParamsList.size} calls")
+                    chainWalletSDK.sendTransaction(
                         txParamsList = txParamsList,
                         callGas = null,
                         chainId = targetChainId,
@@ -720,7 +747,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                         // Send a proper TransactionReference message
                         val metadata = transactionRequest.metadata
                         val toAddress = transactionRequest.calls.firstOrNull()?.to ?: ""
-                        val fromAddress = walletSDK.getAddress()
+                        val fromAddress = chainWalletSDK.getAddress()
                         
                         // Convert token amount to wei (base units)
                         val tokenDecimals = metadata?.tokenDecimals ?: 18
