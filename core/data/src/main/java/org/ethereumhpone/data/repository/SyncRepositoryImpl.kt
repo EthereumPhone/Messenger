@@ -775,7 +775,16 @@ class SyncRepositoryImpl @Inject constructor(
             ContentTypeTransactionRequest -> {
                 try {
                     val txRequest = content as TransactionRequest
+                    
+                    // Debug logging for received transaction request
+                    Log.d(TAG, "=== RECEIVED TRANSACTION REQUEST DEBUG ===")
+                    Log.d(TAG, "chainId: ${txRequest.chainId}")
+                    Log.d(TAG, "metadata: ${txRequest.metadata}")
+                    Log.d(TAG, "metadata.requesterAddress: ${txRequest.metadata?.requesterAddress}")
+                    Log.d(TAG, "calls[0].to: ${txRequest.calls.firstOrNull()?.to}")
+                    
                     val txRequestJson = jsonSerializer.encodeToString(txRequest)
+                    Log.d(TAG, "Serialized JSON: $txRequestJson")
                     
                     // Create a body message for fallback display
                     val fallbackBody = buildTransactionRequestBody(txRequest)

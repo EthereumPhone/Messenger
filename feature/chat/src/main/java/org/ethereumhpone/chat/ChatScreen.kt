@@ -139,6 +139,7 @@ import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
 import org.ethereumphone.model.Recipient
 import org.ethereumphone.model.TransactionRequest
+import org.ethereumphone.model.TransactionRequestStatus
 import java.io.ByteArrayOutputStream
 import kotlin.time.Duration.Companion.seconds
 import com.messenger.terminalsdk.TerminalLEDController
@@ -235,7 +236,16 @@ fun ChatRoute(
         onUpdateGroupDescription = chatViewModel::updateGroupDescription,
         onRemoveGroupMember = chatViewModel::removeGroupMember,
         onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) },
-        onExecuteTransaction = chatViewModel::executeTransaction,
+        onExecuteTransaction = { request, messageId ->
+            // Route to the appropriate method based on whether this is paying a request
+            if (messageId != null) {
+                // Paying a transaction request - sends TransactionReference as proof
+                chatViewModel.payTransactionRequest(request, messageId)
+            } else {
+                // Regular transaction execution
+                chatViewModel.executeTransaction(request)
+            }
+        },
         onRejectTransaction = chatViewModel::rejectTransaction,
         onSendReaction = chatViewModel::sendReaction,
         myInboxId = myInboxId,
@@ -293,7 +303,7 @@ fun ChatScreen(
     onUpdateGroupDescription: (String) -> Unit = {},
     onRemoveGroupMember: (String) -> Unit = {},
     onLeaveGroup: () -> Unit = {},
-    onExecuteTransaction: (TransactionRequest) -> Unit = {},
+    onExecuteTransaction: (TransactionRequest, String?) -> Unit = { _, _ -> },
     onRejectTransaction: (Message) -> Unit = {},
     onSendReaction: (messageId: String, emoji: String) -> Unit = { _, _ -> },
     myInboxId: String = "",
@@ -811,8 +821,8 @@ fun ChatScreen(
                                             isUserMe = selected.isMe,
                                             primaryColor = primaryColor,
                                             secondaryColor = secondaryColor,
-                                            onExecuteTransaction = { txRequest ->
-                                                onExecuteTransaction(txRequest)
+                                            onExecuteTransaction = { txRequest, messageId ->
+                                                onExecuteTransaction(txRequest, messageId)
                                                 showOverlay.value = false
                                                 longPressedMessage.value = null
                                             },
@@ -943,15 +953,17 @@ fun ChatScreen(
 //                }
                 
                 // Show SEND button for transaction request messages (not transaction reference)
+                // Only show if not already paid
                 longPressedMessage.value?.let { msg ->
-                    if (msg.isTransactionRequest() && msg.transactionRequest != null) {
+                    if (msg.isTransactionRequest() && msg.transactionRequest != null && 
+                        msg.transactionStatus != TransactionRequestStatus.SUCCESS) {
                         SelectionBarColumn(
                             icon = R.drawable.send_arrow,
                             title = "Send",
                             primaryColor = primaryColor,
                             onClick = {
                                 msg.transactionRequest?.let { txRequest ->
-                                    onExecuteTransaction(txRequest)
+                                    onExecuteTransaction(txRequest, msg.id)
                                 }
                                 showOverlay.value = false
                                 longPressedMessage.value = null

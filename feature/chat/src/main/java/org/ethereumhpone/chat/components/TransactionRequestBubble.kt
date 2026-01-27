@@ -23,8 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
@@ -39,14 +37,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.body2_fontSize
 import com.example.dgenlibrary.ui.theme.label_fontSize
-import com.example.dgenlibrary.ui.theme.pulseOpacity
-import com.example.dgenlibrary.ui.theme.smalllabel_fontSize
 import kotlinx.datetime.Instant
 import org.ethereumhpone.chat.components.message.AuthorNameTimestamp
 import org.ethereumhpone.chat.R
-import org.ethereumphone.dgenlibrary.theme.dgenGreen
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.DeliveryStatus
@@ -61,6 +55,9 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Composable for rendering a transaction request message bubble.
  * Displays transaction request details.
+ * 
+ * Note: The original request message stays immutable. Proof of payment is shown
+ * via a TransactionReference message sent as a reply (with "You paid" header).
  */
 @Composable
 fun TransactionRequestBubble(
@@ -70,7 +67,7 @@ fun TransactionRequestBubble(
     isUserMe: Boolean,
     primaryColor: Color,
     secondaryColor: Color,
-    onExecuteTransaction: (TransactionRequest) -> Unit,
+    onExecuteTransaction: (TransactionRequest, String?) -> Unit, // Passes messageId for reply linking
     onRejectTransaction: () -> Unit = {},
     isFirstMessageByAuthor: Boolean = false,
     onLongClick: () -> Unit = {}
@@ -117,28 +114,6 @@ fun TransactionRequestBubble(
                         color = primaryColor
                     )
                 )
-
-
-                // DO NOT DELETE
-                //TODO: displaying status of the request
-//                if (false)
-//                Text(
-//                    modifier = Modifier
-//                        .drawBehind {
-//                            drawRoundRect(
-//                                primaryColor,
-//                                cornerRadius = CornerRadius(3.dp.toPx())
-//                            )
-//                        }
-//                        .padding(horizontal = 6.dp, vertical = 2.dp),
-//                    text = "PAID",
-//                    style = TextStyle(
-//                        fontFamily = SpaceMono,
-//                        fontWeight = FontWeight.Bold,
-//                        fontSize = smalllabel_fontSize,
-//                        color = secondaryColor
-//                    )
-//                )
             }
 
             
@@ -211,29 +186,33 @@ fun TransactionRequestBubble(
                 Spacer(modifier = Modifier.height(0.dp))
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { onExecuteTransaction(transactionRequest) }
-                    .heightIn(min = 48.dp)
-                    .padding(vertical = 4.dp)
-            ) {
-                Text(
-                    text = "SEND",
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = label_fontSize,
-                        color = primaryColor
+            // Only show SEND button when you're NOT the requester (you can't pay yourself)
+            // Proof of payment is shown via TransactionReference reply message
+            if (!isUserMe) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable { onExecuteTransaction(transactionRequest, message.id) }
+                        .heightIn(min = 48.dp)
+                        .padding(vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "SEND",
+                        style = TextStyle(
+                            fontFamily = SpaceMono,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = label_fontSize,
+                            color = primaryColor
+                        )
                     )
-                )
-                Icon(
-                    painter = painterResource(id = R.drawable.send_arrow),
-                    contentDescription = "Send",
-                    tint = primaryColor,
-                    modifier = Modifier.size(24.dp)
-                )
+                    Icon(
+                        painter = painterResource(id = R.drawable.send_arrow),
+                        contentDescription = "Send",
+                        tint = primaryColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
         
@@ -318,6 +297,9 @@ private fun calculateFocusAmountFontSize(text: String): TextUnit {
  * Focus/Overlay version of TransactionRequestBubble.
  * Used when the message is selected in the overlay.
  * Constrained sizing for better overlay presentation.
+ * 
+ * Note: The original request message stays immutable. Proof of payment is shown
+ * via a TransactionReference message sent as a reply (with "You paid" header).
  */
 @Composable
 fun FocusTransactionRequestBubble(
@@ -327,7 +309,7 @@ fun FocusTransactionRequestBubble(
     isUserMe: Boolean,
     primaryColor: Color,
     secondaryColor: Color,
-    onExecuteTransaction: (TransactionRequest) -> Unit = {}
+    onExecuteTransaction: (TransactionRequest, String?) -> Unit = { _, _ -> } // Passes messageId for reply linking
 ) {
     val metadata = transactionRequest.metadata
     val chainName = chainIdToName(transactionRequest.chainId)
@@ -352,21 +334,15 @@ fun FocusTransactionRequestBubble(
                 .fillMaxWidth() // Fill parent width (controlled by parent)
         )
         {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ){
-                Text(
-                    text = headerText.uppercase(),
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = label_fontSize,
-                        color = primaryColor
-                    )
+            Text(
+                text = headerText.uppercase(),
+                style = TextStyle(
+                    fontFamily = SpaceMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = label_fontSize,
+                    color = primaryColor
                 )
-            }
+            )
 
             
             Spacer(modifier = Modifier.height(4.dp))
@@ -437,29 +413,33 @@ fun FocusTransactionRequestBubble(
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { onExecuteTransaction(transactionRequest) }
-                    .heightIn(min = 40.dp) // Slightly smaller for focus mode
-                    .padding(vertical = 4.dp)
-            ) {
-                Text(
-                    text = "SEND",
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = label_fontSize,
-                        color = primaryColor
+            // Only show SEND button when you're NOT the requester (you can't pay yourself)
+            // Proof of payment is shown via TransactionReference reply message
+            if (!isUserMe) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable { onExecuteTransaction(transactionRequest, message.id) }
+                        .heightIn(min = 40.dp)
+                        .padding(vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "SEND",
+                        style = TextStyle(
+                            fontFamily = SpaceMono,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = label_fontSize,
+                            color = primaryColor
+                        )
                     )
-                )
-                Icon(
-                    painter = painterResource(id = R.drawable.send_arrow),
-                    contentDescription = "Send",
-                    tint = primaryColor,
-                    modifier = Modifier.size(20.dp) // Slightly smaller icon
-                )
+                    Icon(
+                        painter = painterResource(id = R.drawable.send_arrow),
+                        contentDescription = "Send",
+                        tint = primaryColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
         
@@ -530,7 +510,7 @@ fun TransactionRequestBubblePreview() {
         isUserMe = false,
         primaryColor = Color(0xFF00FF88),
         secondaryColor = Color(0xFF1A1A2E),
-        onExecuteTransaction = {},
+        onExecuteTransaction = { _, _ -> },
         onRejectTransaction = {}
     )
 }

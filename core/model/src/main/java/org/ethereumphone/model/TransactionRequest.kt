@@ -38,13 +38,17 @@ data class TransactionCall(
  * @property tokenSymbol Symbol of the token being transferred (e.g., "ETH", "USDC")
  * @property tokenAmount Human-readable amount (e.g., "0.1")
  * @property tokenDecimals Token decimals for display purposes
+ * @property requesterAddress The address of the person who made the request (who should receive tokens)
+ * @property tokenContractAddress The contract address for ERC20 tokens (null for native tokens)
  */
 @Serializable
 data class TransactionMetadata(
     val description: String? = null,
     val tokenSymbol: String? = null,
     val tokenAmount: String? = null,
-    val tokenDecimals: Int? = null
+    val tokenDecimals: Int? = null,
+    val requesterAddress: String? = null,
+    val tokenContractAddress: String? = null
 )
 
 /**

@@ -38,6 +38,7 @@ import org.xmtp.android.library.codecs.ReactionAction
 import org.xmtp.android.library.codecs.ReactionCodec
 import org.xmtp.android.library.codecs.ReactionSchema
 import org.xmtp.android.library.codecs.Reply
+import org.xmtp.android.library.codecs.ContentTypeReply
 import org.xmtp.android.library.libxmtp.DecodedMessage
 import org.ethereumhpone.data.codec.ContentTypeTransactionRequest
 import org.ethereumhpone.data.codec.ContentTypeTransactionReference
@@ -350,24 +351,63 @@ class MessageRepositoryImpl @Inject constructor(
     override suspend fun sendTransactionReference(
         xmtpConversation: Conversation,
         threadId: String,
-        transactionReference: TransactionReference
+        transactionReference: TransactionReference,
+        replyReference: String?
     ): String? = coroutineScope {
+        AndroidLog.d("MessageRepository", "╔══════════════════════════════════════════════════════════════╗")
+        AndroidLog.d("MessageRepository", "║       sendTransactionReference() - STARTED                  ║")
+        AndroidLog.d("MessageRepository", "╚══════════════════════════════════════════════════════════════╝")
+        AndroidLog.d("MessageRepository", "[REPO-1] Parameters:")
+        AndroidLog.d("MessageRepository", "  - threadId: $threadId")
+        AndroidLog.d("MessageRepository", "  - replyReference: $replyReference")
+        AndroidLog.d("MessageRepository", "  - transactionReference.reference: ${transactionReference.reference}")
+        AndroidLog.d("MessageRepository", "  - transactionReference.networkId: ${transactionReference.networkId}")
+        AndroidLog.d("MessageRepository", "  - metadata: ${transactionReference.metadata}")
+        
         // Wait until the XMTP client is ready
+        AndroidLog.d("MessageRepository", "[REPO-2] Waiting for XMTP client to be ready...")
         xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+        AndroidLog.d("MessageRepository", "[REPO-2] XMTP client is ready")
         
         try {
             // Prepare the transaction reference message
+            // If this is a reply to a request (payment confirmation), wrap it in a Reply
             // The codec includes a fallback message for clients that don't support this content type
-            val messageId = xmtpConversation.prepareMessage(
-                content = transactionReference,
-                options = SendOptions(contentType = ContentTypeTransactionReference)
-            )
+            AndroidLog.d("MessageRepository", "[REPO-3] Preparing message (replyReference: $replyReference)...")
+            val messageId = if (replyReference != null) {
+                // Wrap in Reply to link this payment to the original request
+                // This allows both parties to see the transaction as a reply to the request
+                AndroidLog.d("MessageRepository", "[REPO-3] Sending TransactionReference as REPLY to: $replyReference")
+                xmtpConversation.prepareMessage(
+                    content = Reply(
+                        reference = replyReference,
+                        content = transactionReference,
+                        contentType = ContentTypeTransactionReference
+                    ),
+                    options = SendOptions(contentType = ContentTypeReply)
+                )
+            } else {
+                // Send as standalone transaction reference
+                AndroidLog.d("MessageRepository", "[REPO-3] Sending TransactionReference as STANDALONE message")
+                xmtpConversation.prepareMessage(
+                    content = transactionReference,
+                    options = SendOptions(contentType = ContentTypeTransactionReference)
+                )
+            }
             
-            Log.d("TRANSACTION REFERENCE MESSAGE ID", messageId)
+            AndroidLog.d("MessageRepository", "[REPO-4] Message prepared with ID: $messageId")
             
             // Build fallback body for display
-            val fallbackBody = buildTransactionReferenceBody(transactionReference)
+            // If this is a payment for a request, indicate that in the body
+            val fallbackBody = if (replyReference != null) {
+                buildPaidRequestBody(transactionReference)
+            } else {
+                buildTransactionReferenceBody(transactionReference)
+            }
+            AndroidLog.d("MessageRepository", "[REPO-5] Fallback body: $fallbackBody")
+            
             val txReferenceJson = jsonSerializer.encodeToString(transactionReference)
+            AndroidLog.d("MessageRepository", "[REPO-5] JSON encoded reference length: ${txReferenceJson.length}")
             
             val messageEntity = MessageEntity(
                 id = messageId,
@@ -378,19 +418,53 @@ class MessageRepositoryImpl @Inject constructor(
                 body = fallbackBody,
                 deliveryStatus = DecodedMessage.MessageDeliveryStatus.UNPUBLISHED,
                 isMe = true,
-                replyReference = null,
+                replyReference = replyReference,
                 seen = true,
                 read = true,
                 transactionReference = txReferenceJson
             )
+            AndroidLog.d("MessageRepository", "[REPO-6] MessageEntity created, upserting to database...")
             
-            launch { messageDao.upsertMessages(listOf(messageEntity)) }
-            launch { xmtpConversation.publishMessages() }
+            launch { 
+                messageDao.upsertMessages(listOf(messageEntity))
+                AndroidLog.d("MessageRepository", "[REPO-6] Message upserted to database")
+            }
             
+            AndroidLog.d("MessageRepository", "[REPO-7] Publishing message to XMTP network...")
+            launch { 
+                xmtpConversation.publishMessages()
+                AndroidLog.d("MessageRepository", "[REPO-7] Message published to XMTP network")
+            }
+            
+            AndroidLog.d("MessageRepository", "[REPO-8] SUCCESS - Returning messageId: $messageId")
+            AndroidLog.d("MessageRepository", "╔══════════════════════════════════════════════════════════════╗")
+            AndroidLog.d("MessageRepository", "║       sendTransactionReference() - COMPLETED                ║")
+            AndroidLog.d("MessageRepository", "╚══════════════════════════════════════════════════════════════╝")
             messageId
         } catch (e: Exception) {
-            AndroidLog.e("MessageRepository", "Failed to send transaction reference", e)
+            AndroidLog.e("MessageRepository", "[REPO-ERROR] Failed to send transaction reference")
+            AndroidLog.e("MessageRepository", "[REPO-ERROR] Error: ${e.message}")
+            AndroidLog.e("MessageRepository", "[REPO-ERROR] Stack trace: ${e.stackTraceToString()}")
             null
+        }
+    }
+    
+    private fun buildPaidRequestBody(txReference: TransactionReference): String {
+        val chainName = chainIdToName(txReference.networkId)
+        val metadata = txReference.metadata
+        
+        val amount = metadata?.amount
+        val decimals = metadata?.decimals
+        val currency = metadata?.currency
+        
+        return when {
+            amount != null && currency != null && decimals != null -> {
+                val humanAmount = formatAmount(amount, decimals)
+                "Paid request: $humanAmount $currency on $chainName"
+            }
+            else -> {
+                "Paid request on $chainName"
+            }
         }
     }
     

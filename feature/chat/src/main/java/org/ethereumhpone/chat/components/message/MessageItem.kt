@@ -111,10 +111,11 @@ fun MessageItem(
     openGLColor: Color,
     fullWidth: Boolean = true,
     applyOuterPadding: Boolean = true,
-    onExecuteTransaction: (TransactionRequest) -> Unit = {},
+    onExecuteTransaction: (TransactionRequest, String?) -> Unit = { _, _ -> },
     onRejectTransaction: (Message) -> Unit = {},
     myInboxId: String = "",
-    onReactionClick: (String) -> Unit = {}
+    onReactionClick: (String) -> Unit = {},
+    onScrollToMessage: (String) -> Unit = {}
 ) {
 
     var positionComp by remember { mutableStateOf(Offset.Zero) }
@@ -237,7 +238,8 @@ fun MessageItem(
                             composablePositionState.value.offset = Offset(positionComp.x, positionComp.y)
                             composablePositionState.value.isFirstByAuthor = isFirstMessageByAuthor
                             onLongClick()
-                        }
+                        },
+                        onScrollToMessage = onScrollToMessage
                     )
                 }
             } else {

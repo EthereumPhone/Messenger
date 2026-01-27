@@ -63,11 +63,13 @@ interface MessageRepository {
     
     /**
      * Send a transaction reference (completed transaction) via XMTP.
+     * @param replyReference Optional message ID this transaction is paying (for payment confirmations)
      */
     suspend fun sendTransactionReference(
         xmtpConversation: Conversation,
         threadId: String,
-        transactionReference: TransactionReference
+        transactionReference: TransactionReference,
+        replyReference: String? = null
     ): String?
     
     /**

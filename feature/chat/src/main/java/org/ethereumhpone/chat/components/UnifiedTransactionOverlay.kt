@@ -123,6 +123,7 @@ fun UnifiedTransactionOverlayRoute(
     val sendTransactionTriggered by viewModel.sendTransactionTriggered.collectAsStateWithLifecycle()
     val sendRequestTriggered by viewModel.sendRequestTriggered.collectAsStateWithLifecycle()
     val conversationState by viewModel.conversation.collectAsStateWithLifecycle()
+    val userWalletAddress by viewModel.userWalletAddress.collectAsStateWithLifecycle()
     
     val recipientDisplay = remember(conversationState) {
         if (conversationState is ConversationUiState.Success) {
@@ -199,6 +200,7 @@ fun UnifiedTransactionOverlayRoute(
         assetsUiState = assetsUiState,
         recipientDisplay = recipientDisplay,
         recipientAddress = recipientAddress,
+        userWalletAddress = userWalletAddress,
         terminalActionTriggered = terminalActionTriggered,
         onTerminalActionConsumed = { terminalActionTriggered = false },
         onReadyToSendChanged = { ready ->
@@ -234,6 +236,7 @@ fun UnifiedTransactionOverlay(
     assetsUiState: AssetsUiState,
     recipientDisplay: String,
     recipientAddress: String,
+    userWalletAddress: String = "",
     terminalActionTriggered: Boolean = false,
     onTerminalActionConsumed: () -> Unit = {},
     onReadyToSendChanged: (Boolean) -> Unit
@@ -272,7 +275,9 @@ fun UnifiedTransactionOverlay(
     var description by remember { mutableStateOf("") }
     var useMaxAmount by remember { mutableStateOf(false) }
     
-    val isReadyToComplete = amount.isNotEmpty() && selectedToken != null
+    // For REQUEST mode, also ensure wallet address is loaded
+    val isReadyToComplete = amount.isNotEmpty() && selectedToken != null && 
+        (mode == TransactionMode.SEND || userWalletAddress.isNotBlank())
     
     // Notify parent when ready state changes
     LaunchedEffect(isReadyToComplete) {
@@ -287,6 +292,7 @@ fun UnifiedTransactionOverlay(
                 amount = amount,
                 token = selectedToken!!.toTokenOption(),
                 recipientAddress = recipientAddress,
+                requesterAddress = userWalletAddress,
                 description = description.ifEmpty { null },
                 mode = mode
             )
@@ -294,6 +300,8 @@ fun UnifiedTransactionOverlay(
             onTerminalActionConsumed()
             // For SEND mode, don't dismiss - let the parent handle showing TransactionStatusOverlay
             // For REQUEST mode, dismiss immediately as there's no transaction to wait for
+
+
             if (mode == TransactionMode.REQUEST) {
                 onDismiss()
             }
@@ -453,6 +461,7 @@ fun UnifiedTransactionOverlay(
                                     amount = amount,
                                     token = token.toTokenOption(),
                                     recipientAddress = recipientAddress,
+                                    requesterAddress = userWalletAddress,
                                     description = description.ifEmpty { null },
                                     mode = mode
                                 )
@@ -1018,18 +1027,49 @@ private fun formatWithSuffix(value: Double, maxDecimals: Int = 4): String {
     return scaledAndRounded.toPlainString() + suffix
 }
 
+/**
+ * Builds a TransactionRequest for either SEND or REQUEST mode.
+ * 
+ * For SEND mode: builds a transaction that will transfer tokens from the user to recipientAddress.
+ * For REQUEST mode: stores the requesterAddress in metadata so the payer knows who to send to.
+ * 
+ * @param amount The amount to transfer (human-readable format)
+ * @param token The token to transfer
+ * @param recipientAddress The address of the chat recipient (used for SEND mode)
+ * @param requesterAddress The address of the person making the request (used for REQUEST mode)
+ * @param description Optional description for the transaction
+ * @param mode Whether this is a SEND or REQUEST transaction
+ */
 private fun buildTransactionRequest(
     amount: String,
     token: TokenOption,
     recipientAddress: String,
+    requesterAddress: String,
     description: String?,
     mode: TransactionMode
 ): TransactionRequest {
+    // Debug logging for building transaction request
+    android.util.Log.d("UnifiedTxOverlay", "=== BUILD TRANSACTION REQUEST DEBUG ===")
+    android.util.Log.d("UnifiedTxOverlay", "mode: $mode")
+    android.util.Log.d("UnifiedTxOverlay", "recipientAddress: $recipientAddress")
+    android.util.Log.d("UnifiedTxOverlay", "requesterAddress: $requesterAddress")
+    android.util.Log.d("UnifiedTxOverlay", "amount: $amount, token: ${token.symbol}")
+    
     val amountDouble = amount.toDoubleOrNull() ?: 0.0
     val amountInBaseUnits = BigDecimal(amountDouble)
         .multiply(BigDecimal.TEN.pow(token.decimals))
         .toBigInteger()
     val valueHex = "0x${amountInBaseUnits.toString(16)}"
+    
+    // For REQUEST mode, we store the requester's address so the payer knows who to send to
+    // For SEND mode, the transaction targets the recipientAddress directly
+    val targetAddress = when (mode) {
+        TransactionMode.SEND -> recipientAddress
+        TransactionMode.REQUEST -> requesterAddress // Placeholder - will be replaced when executing
+    }
+    
+    android.util.Log.d("UnifiedTxOverlay", "targetAddress (for call.to): $targetAddress")
+    android.util.Log.d("UnifiedTxOverlay", "metadata.requesterAddress will be: ${if (mode == TransactionMode.REQUEST) requesterAddress else "null"}")
     
     return if (token.contractAddress == null) {
         // Native token transfer
@@ -1037,7 +1077,7 @@ private fun buildTransactionRequest(
             chainId = token.chainId,
             calls = listOf(
                 TransactionCall(
-                    to = recipientAddress,
+                    to = targetAddress,
                     value = valueHex,
                     data = "0x"
                 )
@@ -1046,12 +1086,14 @@ private fun buildTransactionRequest(
                 description = description,
                 tokenSymbol = token.symbol,
                 tokenAmount = amount,
-                tokenDecimals = token.decimals
+                tokenDecimals = token.decimals,
+                requesterAddress = if (mode == TransactionMode.REQUEST) requesterAddress else null,
+                tokenContractAddress = null
             )
         )
     } else {
         // ERC20 transfer - encode using web3j FunctionEncoder (like WalletManager)
-        val data = encodeErc20Transfer(recipientAddress, amountInBaseUnits)
+        val data = encodeErc20Transfer(targetAddress, amountInBaseUnits)
         
         TransactionRequest(
             chainId = token.chainId,
@@ -1066,7 +1108,9 @@ private fun buildTransactionRequest(
                 description = description,
                 tokenSymbol = token.symbol,
                 tokenAmount = amount,
-                tokenDecimals = token.decimals
+                tokenDecimals = token.decimals,
+                requesterAddress = if (mode == TransactionMode.REQUEST) requesterAddress else null,
+                tokenContractAddress = token.contractAddress
             )
         )
     }

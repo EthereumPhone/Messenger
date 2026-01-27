@@ -31,7 +31,12 @@ class TransactionStatusChecker {
         val deadline = System.currentTimeMillis() + timeoutMs
 
         while (System.currentTimeMillis() < deadline) {
-            checkStatus(web3j, txHash)?.let { return it }
+            val status = checkStatus(web3j, txHash)
+            // Only return early for terminal states (SUCCESS, FAILED, REVERTED)
+            // Continue polling for PENDING, UNKNOWN, or null (error)
+            if (status != null && status != TxStatus.PENDING && status != TxStatus.UNKNOWN) {
+                return status
+            }
             delay(pollIntervalMs)
         }
 
@@ -55,7 +60,11 @@ class TransactionStatusChecker {
 
         while (System.currentTimeMillis() < deadline) {
             val status = checkDetailedStatus(web3j, rpcUrl, txHash, checkInternalReverts)
-            if (status != null) return status
+            // Only return early for terminal states (SUCCESS, FAILED, REVERTED)
+            // Continue polling for PENDING, UNKNOWN, or null (error)
+            if (status != null && status != TxStatus.PENDING && status != TxStatus.UNKNOWN) {
+                return status
+            }
             delay(pollIntervalMs)
         }
 
