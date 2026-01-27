@@ -183,7 +183,11 @@ fun TransactionRequestBubble(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(0.dp))
+            }
+            
+            // Add bottom padding when no SEND button will be shown
+            if (isUserMe) {
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Only show SEND button when you're NOT the requester (you can't pay yourself)
@@ -411,6 +415,11 @@ fun FocusTransactionRequestBubble(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+            
+            // Add bottom padding when no SEND button will be shown
+            if (isUserMe) {
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
             // Only show SEND button when you're NOT the requester (you can't pay yourself)
