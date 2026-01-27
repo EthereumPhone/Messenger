@@ -132,6 +132,18 @@ class ChatSendViewModel @SuppressLint("StaticFieldLeak")
     val transactionStatus: StateFlow<TransactionStatus?> = _transactionStatus.asStateFlow()
 
 
+    /**
+     * Get the current user's wallet address.
+     */
+    val userWalletAddress: StateFlow<String> = flow {
+        val address = walletSDK.getAddress()
+        emit(address)
+    }.flowOn(Dispatchers.IO).stateIn(
+        scope = viewModelScope,
+        initialValue = "",
+        started = SharingStarted.WhileSubscribed(5_000)
+    )
+
     val currentChainId: StateFlow<Int> = flow {
         while (true) {
             val chainId = walletSDK.getChainId()

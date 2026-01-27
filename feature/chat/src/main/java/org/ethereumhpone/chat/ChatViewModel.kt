@@ -68,6 +68,9 @@ import org.ethereumphone.model.TransactionReference
 import org.ethereumphone.model.TransactionReferenceMetadata
 import org.ethereumphone.model.TransactionTypes
 import org.ethereumhpone.data.util.GasEstimationHelper
+import org.web3j.abi.FunctionEncoder
+import org.web3j.abi.datatypes.Function
+import org.web3j.abi.datatypes.generated.Uint256
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
 import okhttp3.MediaType.Companion.toMediaType
@@ -727,47 +730,29 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     }
     
     /**
-     * Execute a transaction request received via XMTP message.
+     * Execute a regular transaction (send money to someone).
+     * Use this when the user initiates a send, not when paying a request.
+     * After successful execution, sends a TransactionReference as proof.
      * 
-     * IMPORTANT: Creates a fresh WalletSDK instance for each transaction with the correct
-     * chain's RPC and bundler URL. This matches how WalletManager handles transactions
-     * and ensures proper web3j configuration for ERC20 transfers on different chains.
+     * @param transactionRequest The transaction to execute
      */
     fun executeTransaction(transactionRequest: TransactionRequest) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 _transactionStatus.value = TransactionStatus.PENDING
-                Log.d("ChatViewModel", "Executing transaction request: chainId=${transactionRequest.chainId}, calls=${transactionRequest.calls.size}")
+                
+                Log.d("ChatViewModel", "=== EXECUTE TRANSACTION (SEND) ===")
+                Log.d("ChatViewModel", "chainId=${transactionRequest.chainId}, calls=${transactionRequest.calls.size}")
                 
                 val targetChainId = transactionRequest.chainId.toInt()
-                val rpcUrl = chainIdToRPC(targetChainId)
-                val bundlerUrl = chainIdToBundler(targetChainId)
+                val chainWalletSDK = createChainWalletSDK(targetChainId)
                 
-                Log.d("ChatViewModel", "Creating chain-specific WalletSDK for chainId=$targetChainId")
-                Log.d("ChatViewModel", "RPC URL: $rpcUrl")
-                Log.d("ChatViewModel", "Bundler URL: $bundlerUrl")
-                
-                // Create a fresh WalletSDK instance with the correct chain configuration
-                // This is critical for ERC20 transfers - the web3j instance must match the target chain
-                val chainWalletSDK = WalletSDK(
-                    context = context,
-                    web3jInstance = Web3j.build(HttpService(rpcUrl)),
-                    bundlerRPCUrl = bundlerUrl
-                )
-                
-                // Ensure the wallet is on the correct chain
-                val currentChain = chainWalletSDK.getChainId()
-                if (currentChain != targetChainId) {
-                    Log.d("ChatViewModel", "Switching WalletSDK from chain $currentChain to $targetChainId")
-                    val switchResult = chainWalletSDK.changeChain(targetChainId, rpcUrl, bundlerUrl)
-                    if (switchResult == "decline") {
-                        Log.e("ChatViewModel", "User declined chain switch")
-                        _transactionStatus.value = TransactionStatus.FAILURE("Chain switch declined")
-                        return@launch
-                    }
+                // Switch chain if needed
+                if (!ensureCorrectChain(chainWalletSDK, targetChainId)) {
+                    return@launch
                 }
                 
-                // Build transaction params list
+                // Build transaction params from the request as-is
                 val txParamsList = transactionRequest.calls.map { call ->
                     WalletSDK.TxParams(
                         to = call.to,
@@ -776,95 +761,385 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                     )
                 }
                 
-                // Create gas provider using the target chain's RPC
-                val gasProvider: suspend (WalletSDK.UserOperation) -> WalletSDK.GasEstimation = { userOp ->
-                    GasEstimationHelper.estimateGas(userOp, rpcUrl)
-                }
-                
-                // Send the transaction using the chain-specific WalletSDK
-                val result = if (txParamsList.size == 1) {
-                    val tx = txParamsList.first()
-                    Log.d("ChatViewModel", "Sending single transaction: to=${tx.to}, value=${tx.value}, data=${tx.data.take(20)}...")
-                    chainWalletSDK.sendTransaction(
-                        to = tx.to,
-                        value = tx.value,
-                        data = tx.data,
-                        callGas = null,
-                        chainId = targetChainId,
-                        gasProvider = gasProvider
-                    )
-                } else {
-                    // Batched transaction
-                    Log.d("ChatViewModel", "Sending batched transaction with ${txParamsList.size} calls")
-                    chainWalletSDK.sendTransaction(
-                        txParamsList = txParamsList,
-                        callGas = null,
-                        chainId = targetChainId,
-                        gasProvider = gasProvider
-                    )
-                }
+                // Execute the transaction
+                val result = sendWalletTransaction(chainWalletSDK, txParamsList, targetChainId)
                 
                 Log.d("ChatViewModel", "Transaction result: $result")
                 
-                // Check result
                 when {
                     result.startsWith("0x") -> {
-                        Log.d("ChatViewModel", "Transaction submitted, checking inclusion: $result")
+                        Log.d("ChatViewModel", "Transaction submitted with hash: $result")
                         
-                        // Prepare transaction details for confirmation message
-                        val metadata = transactionRequest.metadata
-                        val toAddress = transactionRequest.calls.firstOrNull()?.to ?: ""
+                        // Get transaction details for the TransactionReference
                         val fromAddress = chainWalletSDK.getAddress()
-                        
-                        // Convert token amount to wei (base units)
-                        val tokenDecimals = metadata?.tokenDecimals ?: 18
+                        val metadata = transactionRequest.metadata
                         val tokenSymbol = metadata?.tokenSymbol ?: "ETH"
-                        val amountWei = convertTokenAmountToWei(
-                            metadata?.tokenAmount,
-                            tokenDecimals
-                        )
+                        val tokenDecimals = metadata?.tokenDecimals ?: 18
                         
-                        // Check transaction inclusion via bundler before confirming success
-                        checkTransactionInclusion(result, targetChainId) { hasBeenIncluded ->
-                            if (hasBeenIncluded) {
-                                Log.d("ChatViewModel", "Transaction confirmed on-chain: $result")
-                                _transactionStatus.value = TransactionStatus.SUCCESS
-                                
-                                // Send a proper TransactionReference message
-                                sendTransactionConfirmation(
-                                    txHash = result,
-                                    chainId = targetChainId.toLong(),
-                                    fromAddress = fromAddress,
-                                    toAddress = toAddress,
-                                    amountWei = amountWei,
-                                    tokenSymbol = tokenSymbol,
-                                    tokenDecimals = tokenDecimals
-                                )
-                            } else {
-                                Log.e("ChatViewModel", "Transaction not confirmed or failed: $result")
-                                _transactionStatus.value = TransactionStatus.FAILURE("Transaction not confirmed")
-                            }
+                        // Get recipient address:
+                        // - For native token transfers: use call.to directly
+                        // - For ERC20 transfers: get recipient from conversation (since call.to is token contract)
+                        val toAddress = if (metadata?.tokenContractAddress != null) {
+                            // ERC20 transfer - get recipient from conversation
+                            (conversation.value as? ConversationUiState.Success)?.conversation?.getOtherRecipientAddress() ?: ""
+                        } else {
+                            // Native transfer - use call.to
+                            transactionRequest.calls.firstOrNull()?.to ?: ""
                         }
+                        
+                        // Calculate amount in base units (wei)
+                        val amountWei = if (metadata?.tokenAmount != null) {
+                            convertTokenAmountToWei(metadata.tokenAmount, tokenDecimals)
+                        } else {
+                            hexToDecimalString(transactionRequest.calls.firstOrNull()?.value ?: "0")
+                        }
+                        
+                        // Send TransactionReference as proof of the transaction
+                        Log.d("ChatViewModel", "Sending TransactionReference as proof of send...")
+                        Log.d("ChatViewModel", "From: $fromAddress, To: $toAddress, Amount: $amountWei $tokenSymbol")
+                        
+                        try {
+                            sendTransactionReferenceAndAwait(
+                                txHash = result,
+                                chainId = targetChainId.toLong(),
+                                fromAddress = fromAddress,
+                                toAddress = toAddress,
+                                amountWei = amountWei,
+                                tokenSymbol = tokenSymbol,
+                                tokenDecimals = tokenDecimals,
+                                requestMessageId = null // Not a payment for a request
+                            )
+                            Log.d("ChatViewModel", "TransactionReference sent successfully")
+                        } catch (e: Exception) {
+                            Log.e("ChatViewModel", "Failed to send TransactionReference, but transaction succeeded", e)
+                            // Don't fail the transaction status if only the reference failed
+                        }
+                        
+                        _transactionStatus.value = TransactionStatus.SUCCESS
                     }
                     result.equals("decline", ignoreCase = true) -> {
-                        val errorMessage = parseAAErrorCode(result) ?: "Transaction declined"
-                        _transactionStatus.value = TransactionStatus.FAILURE(errorMessage)
+                        _transactionStatus.value = TransactionStatus.FAILURE("Transaction declined")
                         Log.d("ChatViewModel", "Transaction declined by user")
                     }
                     else -> {
-                        // Parse AA error codes for user-friendly messages
                         val errorMessage = parseAAErrorCode(result)
                         _transactionStatus.value = TransactionStatus.FAILURE(errorMessage)
-                        Log.e("ChatViewModel", "Transaction failed: $result, parsed: $errorMessage")
+                        Log.e("ChatViewModel", "Transaction failed: $result")
                     }
                 }
                 
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Transaction execution failed", e)
-                // Parse exception message for AA error codes
                 val errorMessage = parseAAErrorCode(e.message ?: "")
                 _transactionStatus.value = TransactionStatus.FAILURE(errorMessage)
             }
+        }
+    }
+    
+    /**
+     * Pay a transaction request received from another user.
+     * This executes the payment and sends a TransactionReference as proof.
+     * 
+     * @param transactionRequest The payment request to fulfill
+     * @param requestMessageId The message ID of the original request (for linking the payment)
+     */
+    fun payTransactionRequest(transactionRequest: TransactionRequest, requestMessageId: String) {
+        Log.d("ChatViewModel", "╔══════════════════════════════════════════════════════════════╗")
+        Log.d("ChatViewModel", "║           PAY TRANSACTION REQUEST - STARTED                 ║")
+        Log.d("ChatViewModel", "╚══════════════════════════════════════════════════════════════╝")
+        Log.d("ChatViewModel", "[STEP 1] payTransactionRequest() called")
+        Log.d("ChatViewModel", "[STEP 1] requestMessageId: $requestMessageId")
+        Log.d("ChatViewModel", "[STEP 1] transactionRequest.chainId: ${transactionRequest.chainId}")
+        Log.d("ChatViewModel", "[STEP 1] transactionRequest.calls.size: ${transactionRequest.calls.size}")
+        Log.d("ChatViewModel", "[STEP 1] metadata: ${transactionRequest.metadata}")
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d("ChatViewModel", "[STEP 2] Inside coroutine - setting status to PENDING")
+                _transactionStatus.value = TransactionStatus.PENDING
+                
+                val metadata = transactionRequest.metadata
+                val requesterAddress = metadata?.requesterAddress
+                
+                Log.d("ChatViewModel", "[STEP 3] Checking requesterAddress: $requesterAddress")
+                
+                if (requesterAddress.isNullOrBlank()) {
+                    Log.e("ChatViewModel", "[STEP 3] FAILED - Cannot pay request: no requester address")
+                    Log.e("ChatViewModel", "[STEP 3] metadata dump: $metadata")
+                    _transactionStatus.value = TransactionStatus.FAILURE("Invalid request: missing recipient")
+                    return@launch
+                }
+                
+                Log.d("ChatViewModel", "[STEP 4] Payment details:")
+                Log.d("ChatViewModel", "  - Paying to requester: $requesterAddress")
+                Log.d("ChatViewModel", "  - Request message ID: $requestMessageId")
+                Log.d("ChatViewModel", "  - Token: ${metadata.tokenSymbol}")
+                Log.d("ChatViewModel", "  - Amount: ${metadata.tokenAmount}")
+                Log.d("ChatViewModel", "  - Decimals: ${metadata.tokenDecimals}")
+                Log.d("ChatViewModel", "  - TokenContractAddress: ${metadata.tokenContractAddress}")
+                
+                val targetChainId = transactionRequest.chainId.toInt()
+                Log.d("ChatViewModel", "[STEP 5] Creating WalletSDK for chainId: $targetChainId")
+                val chainWalletSDK = createChainWalletSDK(targetChainId)
+                
+                // Switch chain if needed
+                Log.d("ChatViewModel", "[STEP 6] Ensuring correct chain...")
+                if (!ensureCorrectChain(chainWalletSDK, targetChainId)) {
+                    Log.e("ChatViewModel", "[STEP 6] FAILED - Chain switch declined")
+                    return@launch
+                }
+                Log.d("ChatViewModel", "[STEP 6] Chain is correct")
+                
+                // Build transaction params for the payment
+                Log.d("ChatViewModel", "[STEP 7] Building transaction params...")
+                val txParamsList = transactionRequest.calls.map { call ->
+                    val tokenContractAddress = metadata.tokenContractAddress
+                    if (tokenContractAddress != null) {
+                        // ERC20 transfer
+                        val tokenAmount = metadata.tokenAmount ?: "0"
+                        val tokenDecimals = metadata.tokenDecimals ?: 18
+                        val amountInBaseUnits = BigDecimal(tokenAmount.toDoubleOrNull() ?: 0.0)
+                            .multiply(BigDecimal.TEN.pow(tokenDecimals))
+                            .toBigInteger()
+                        val encodedData = encodeErc20Transfer(requesterAddress, amountInBaseUnits)
+                        Log.d("ChatViewModel", "[STEP 7] ERC20 transfer - to: $tokenContractAddress, amount: $amountInBaseUnits")
+                        WalletSDK.TxParams(
+                            to = tokenContractAddress,
+                            value = "0",
+                            data = encodedData
+                        )
+                    } else {
+                        // Native token transfer
+                        val valueDecimal = hexToDecimalString(call.value)
+                        Log.d("ChatViewModel", "[STEP 7] Native transfer - to: $requesterAddress, value: $valueDecimal")
+                        WalletSDK.TxParams(
+                            to = requesterAddress,
+                            value = valueDecimal,
+                            data = call.data
+                        )
+                    }
+                }
+                
+                // Execute the transaction
+                Log.d("ChatViewModel", "[STEP 8] Executing wallet transaction...")
+                val result = sendWalletTransaction(chainWalletSDK, txParamsList, targetChainId)
+                
+                Log.d("ChatViewModel", "[STEP 9] Transaction result: $result")
+                
+                when {
+                    result.startsWith("0x") -> {
+                        Log.d("ChatViewModel", "[STEP 10] SUCCESS - Payment submitted with hash: $result")
+                        
+                        // Get payment details for the TransactionReference
+                        val fromAddress = chainWalletSDK.getAddress()
+                        val tokenSymbol = metadata.tokenSymbol ?: "ETH"
+                        val tokenDecimals = metadata.tokenDecimals ?: 18
+                        
+                        // Calculate amount in base units (wei)
+                        val amountWei = if (metadata.tokenAmount != null) {
+                            convertTokenAmountToWei(metadata.tokenAmount, tokenDecimals)
+                        } else {
+                            hexToDecimalString(transactionRequest.calls.firstOrNull()?.value ?: "0")
+                        }
+                        
+                        Log.d("ChatViewModel", "[STEP 11] Preparing TransactionReference:")
+                        Log.d("ChatViewModel", "  - txHash: $result")
+                        Log.d("ChatViewModel", "  - chainId: $targetChainId")
+                        Log.d("ChatViewModel", "  - fromAddress: $fromAddress")
+                        Log.d("ChatViewModel", "  - toAddress: $requesterAddress")
+                        Log.d("ChatViewModel", "  - amountWei: $amountWei")
+                        Log.d("ChatViewModel", "  - tokenSymbol: $tokenSymbol")
+                        Log.d("ChatViewModel", "  - tokenDecimals: $tokenDecimals")
+                        Log.d("ChatViewModel", "  - requestMessageId: $requestMessageId")
+                        
+                        // Send TransactionReference as proof of payment (awaited)
+                        Log.d("ChatViewModel", "[STEP 12] Calling sendTransactionReferenceAndAwait()...")
+                        sendTransactionReferenceAndAwait(
+                            txHash = result,
+                            chainId = targetChainId.toLong(),
+                            fromAddress = fromAddress,
+                            toAddress = requesterAddress,
+                            amountWei = amountWei,
+                            tokenSymbol = tokenSymbol,
+                            tokenDecimals = tokenDecimals,
+                            requestMessageId = requestMessageId
+                        )
+                        Log.d("ChatViewModel", "[STEP 12] sendTransactionReferenceAndAwait() completed")
+                        
+                        Log.d("ChatViewModel", "[STEP 13] Setting status to SUCCESS")
+                        _transactionStatus.value = TransactionStatus.SUCCESS
+                        Log.d("ChatViewModel", "╔══════════════════════════════════════════════════════════════╗")
+                        Log.d("ChatViewModel", "║           PAY TRANSACTION REQUEST - COMPLETED               ║")
+                        Log.d("ChatViewModel", "╚══════════════════════════════════════════════════════════════╝")
+                    }
+                    result.equals("decline", ignoreCase = true) -> {
+                        _transactionStatus.value = TransactionStatus.FAILURE("Payment declined")
+                        Log.d("ChatViewModel", "[STEP 9] DECLINED - Payment declined by user")
+                    }
+                    else -> {
+                        val errorMessage = parseAAErrorCode(result)
+                        _transactionStatus.value = TransactionStatus.FAILURE(errorMessage)
+                        Log.e("ChatViewModel", "[STEP 9] FAILED - Payment failed: $result")
+                        Log.e("ChatViewModel", "[STEP 9] Parsed error: $errorMessage")
+                    }
+                }
+                
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "[EXCEPTION] Payment execution failed", e)
+                Log.e("ChatViewModel", "[EXCEPTION] Error message: ${e.message}")
+                Log.e("ChatViewModel", "[EXCEPTION] Stack trace: ${e.stackTraceToString()}")
+                val errorMessage = parseAAErrorCode(e.message ?: "")
+                _transactionStatus.value = TransactionStatus.FAILURE(errorMessage)
+            }
+        }
+    }
+    
+    /**
+     * Creates a WalletSDK instance configured for the specified chain.
+     */
+    private fun createChainWalletSDK(chainId: Int): WalletSDK {
+        val rpcUrl = chainIdToRPC(chainId)
+        val bundlerUrl = chainIdToBundler(chainId)
+        
+        Log.d("ChatViewModel", "Creating WalletSDK for chainId=$chainId")
+        Log.d("ChatViewModel", "RPC: $rpcUrl, Bundler: $bundlerUrl")
+        
+        return WalletSDK(
+            context = context,
+            web3jInstance = Web3j.build(HttpService(rpcUrl)),
+            bundlerRPCUrl = bundlerUrl
+        )
+    }
+    
+    /**
+     * Ensures the wallet is on the correct chain. Returns false if user declines switch.
+     */
+    private suspend fun ensureCorrectChain(walletSDK: WalletSDK, targetChainId: Int): Boolean {
+        val currentChain = walletSDK.getChainId()
+        if (currentChain != targetChainId) {
+            Log.d("ChatViewModel", "Switching from chain $currentChain to $targetChainId")
+            val rpcUrl = chainIdToRPC(targetChainId)
+            val bundlerUrl = chainIdToBundler(targetChainId)
+            val switchResult = walletSDK.changeChain(targetChainId, rpcUrl, bundlerUrl)
+            if (switchResult == "decline") {
+                Log.e("ChatViewModel", "User declined chain switch")
+                _transactionStatus.value = TransactionStatus.FAILURE("Chain switch declined")
+                return false
+            }
+        }
+        return true
+    }
+    
+    /**
+     * Sends a transaction using the WalletSDK.
+     */
+    private suspend fun sendWalletTransaction(
+        walletSDK: WalletSDK,
+        txParamsList: List<WalletSDK.TxParams>,
+        chainId: Int
+    ): String {
+        val rpcUrl = chainIdToRPC(chainId)
+        val gasProvider: suspend (WalletSDK.UserOperation) -> WalletSDK.GasEstimation = { userOp ->
+            GasEstimationHelper.estimateGas(userOp, rpcUrl)
+        }
+        
+        return if (txParamsList.size == 1) {
+            val tx = txParamsList.first()
+            Log.d("ChatViewModel", "Sending single tx: to=${tx.to}, value=${tx.value}")
+            walletSDK.sendTransaction(
+                to = tx.to,
+                value = tx.value,
+                data = tx.data,
+                callGas = null,
+                chainId = chainId,
+                gasProvider = gasProvider
+            )
+        } else {
+            Log.d("ChatViewModel", "Sending batched tx with ${txParamsList.size} calls")
+            walletSDK.sendTransaction(
+                txParamsList = txParamsList,
+                callGas = null,
+                chainId = chainId,
+                gasProvider = gasProvider
+            )
+        }
+    }
+    
+    /**
+     * Sends a TransactionReference and waits for completion.
+     * This is a suspend function that should be called from within a coroutine.
+     */
+    private suspend fun sendTransactionReferenceAndAwait(
+        txHash: String,
+        chainId: Long,
+        fromAddress: String,
+        toAddress: String,
+        amountWei: String,
+        tokenSymbol: String,
+        tokenDecimals: Int,
+        requestMessageId: String?
+    ) {
+        Log.d("ChatViewModel", "  ┌─────────────────────────────────────────────────────────────┐")
+        Log.d("ChatViewModel", "  │ sendTransactionReferenceAndAwait() - STARTED               │")
+        Log.d("ChatViewModel", "  └─────────────────────────────────────────────────────────────┘")
+        Log.d("ChatViewModel", "  [REF-1] Checking xmtpConversation initialization...")
+        
+        if (!::xmtpConversation.isInitialized) {
+            Log.e("ChatViewModel", "  [REF-1] FAILED - xmtpConversation not initialized!")
+            Log.e("ChatViewModel", "  [REF-1] This means the XMTP conversation was never set up")
+            return
+        }
+        Log.d("ChatViewModel", "  [REF-1] xmtpConversation is initialized")
+        
+        Log.d("ChatViewModel", "  [REF-2] Building TransactionReference object...")
+        val blockExplorerUrl = "${chainIdToEtherscan(chainId.toInt())}/tx/$txHash"
+        Log.d("ChatViewModel", "  [REF-2] Block explorer URL: $blockExplorerUrl")
+        
+        val txReference = TransactionReference(
+            namespace = "eip155",
+            networkId = chainId,
+            reference = txHash,
+            metadata = TransactionReferenceMetadata(
+                transactionType = TransactionTypes.TRANSFER,
+                currency = tokenSymbol,
+                amount = amountWei,
+                decimals = tokenDecimals,
+                fromAddress = fromAddress,
+                toAddress = toAddress,
+                blockExplorerUrl = blockExplorerUrl
+            )
+        )
+        Log.d("ChatViewModel", "  [REF-2] TransactionReference built: $txReference")
+        
+        try {
+            Log.d("ChatViewModel", "  [REF-3] Calling messageRepository.sendTransactionReference()...")
+            Log.d("ChatViewModel", "  [REF-3] threadId: $threadId")
+            Log.d("ChatViewModel", "  [REF-3] replyReference (requestMessageId): $requestMessageId")
+            
+            val messageId = messageRepository.sendTransactionReference(
+                xmtpConversation = xmtpConversation,
+                threadId = threadId,
+                transactionReference = txReference,
+                replyReference = requestMessageId
+            )
+            
+            if (messageId == null) {
+                Log.e("ChatViewModel", "  [REF-4] FAILED - sendTransactionReference returned null")
+                throw RuntimeException("Failed to send TransactionReference: repository returned null")
+            }
+            
+            Log.d("ChatViewModel", "  [REF-4] SUCCESS - TransactionReference sent!")
+            Log.d("ChatViewModel", "  [REF-4] messageId: $messageId")
+            Log.d("ChatViewModel", "  [REF-4] txHash: $txHash")
+            Log.d("ChatViewModel", "  [REF-4] replyTo: $requestMessageId")
+            Log.d("ChatViewModel", "  ┌─────────────────────────────────────────────────────────────┐")
+            Log.d("ChatViewModel", "  │ sendTransactionReferenceAndAwait() - COMPLETED             │")
+            Log.d("ChatViewModel", "  └─────────────────────────────────────────────────────────────┘")
+        } catch (e: Exception) {
+            Log.e("ChatViewModel", "  [REF-3] EXCEPTION - Failed to send TransactionReference")
+            Log.e("ChatViewModel", "  [REF-3] Error: ${e.message}")
+            Log.e("ChatViewModel", "  [REF-3] Stack trace: ${e.stackTraceToString()}")
+            throw e
         }
     }
     
@@ -910,8 +1185,9 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     /**
      * Send a transaction reference (completed transaction) to the current conversation.
      * This allows users to share proof of a completed transaction.
+     * @param requestMessageId Optional message ID of the request being paid (for payment confirmations)
      */
-    fun sendTransactionReference(transactionReference: TransactionReference) {
+    fun sendTransactionReference(transactionReference: TransactionReference, requestMessageId: String? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (!::xmtpConversation.isInitialized) {
@@ -922,9 +1198,10 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 messageRepository.sendTransactionReference(
                     xmtpConversation = xmtpConversation,
                     threadId = threadId,
-                    transactionReference = transactionReference
+                    transactionReference = transactionReference,
+                    replyReference = requestMessageId
                 )
-                Log.d("ChatViewModel", "Transaction reference sent: ${transactionReference.reference}")
+                Log.d("ChatViewModel", "Transaction reference sent: ${transactionReference.reference}, replyTo: $requestMessageId")
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Failed to send transaction reference", e)
             }
@@ -934,6 +1211,7 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
     /**
      * Create and send a transaction reference after a successful transaction execution.
      * @param amountWei Amount in base units as String (to handle values > Long.MAX_VALUE)
+     * @param requestMessageId Optional message ID of the request being paid (for payment confirmations)
      */
     fun sendTransactionConfirmation(
         txHash: String,
@@ -942,7 +1220,8 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
         toAddress: String,
         amountWei: String,
         tokenSymbol: String = "ETH",
-        tokenDecimals: Int = 18
+        tokenDecimals: Int = 18,
+        requestMessageId: String? = null
     ) {
         val txReference = TransactionReference(
             namespace = "eip155",
@@ -958,7 +1237,114 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 blockExplorerUrl = "${chainIdToEtherscan(chainId.toInt())}/tx/$txHash"
             )
         )
-        sendTransactionReference(txReference)
+        sendTransactionReference(txReference, requestMessageId)
+    }
+    
+    /**
+     * Simple method to send a payment proof (TransactionReference) after paying.
+     * Automatically gets sender address from wallet and recipient from conversation.
+     * 
+     * @param txHash The transaction hash (0x...)
+     * @param amount The human-readable amount (e.g., "0.1", "100")
+     * @param tokenSymbol The token symbol (e.g., "ETH", "USDC")
+     * @param tokenDecimals The token decimals (default 18 for ETH)
+     * @param chainId The chain ID (default uses current chain)
+     * @param requestMessageId Optional message ID if this is paying a request
+     */
+    fun sendPaymentProof(
+        txHash: String,
+        amount: String,
+        tokenSymbol: String = "ETH",
+        tokenDecimals: Int = 18,
+        chainId: Int? = null,
+        requestMessageId: String? = null
+    ) {
+        Log.d("ChatViewModel", "╔══════════════════════════════════════════════════════════════╗")
+        Log.d("ChatViewModel", "║             SEND PAYMENT PROOF - STARTED                    ║")
+        Log.d("ChatViewModel", "╚══════════════════════════════════════════════════════════════╝")
+        Log.d("ChatViewModel", "[PROOF-1] sendPaymentProof() called with:")
+        Log.d("ChatViewModel", "  - txHash: $txHash")
+        Log.d("ChatViewModel", "  - amount: $amount")
+        Log.d("ChatViewModel", "  - tokenSymbol: $tokenSymbol")
+        Log.d("ChatViewModel", "  - tokenDecimals: $tokenDecimals")
+        Log.d("ChatViewModel", "  - chainId: $chainId")
+        Log.d("ChatViewModel", "  - requestMessageId: $requestMessageId")
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d("ChatViewModel", "[PROOF-2] Inside coroutine, checking xmtpConversation...")
+                if (!::xmtpConversation.isInitialized) {
+                    Log.e("ChatViewModel", "[PROOF-2] FAILED - xmtpConversation not initialized!")
+                    return@launch
+                }
+                Log.d("ChatViewModel", "[PROOF-2] xmtpConversation is initialized")
+                
+                // Get chain ID (use provided or current)
+                val targetChainId = chainId ?: currentChainId.value
+                Log.d("ChatViewModel", "[PROOF-3] Target chainId: $targetChainId")
+                
+                // Get sender address from wallet
+                Log.d("ChatViewModel", "[PROOF-4] Getting sender address from wallet...")
+                val fromAddress = walletSDK.getAddress()
+                Log.d("ChatViewModel", "[PROOF-4] fromAddress: $fromAddress")
+                
+                // Get recipient address from conversation
+                Log.d("ChatViewModel", "[PROOF-5] Getting recipient address from conversation...")
+                val conversationState = conversation.value
+                Log.d("ChatViewModel", "[PROOF-5] conversationState type: ${conversationState::class.simpleName}")
+                val toAddress = (conversationState as? ConversationUiState.Success)
+                    ?.conversation?.getOtherRecipientAddress() ?: ""
+                Log.d("ChatViewModel", "[PROOF-5] toAddress: $toAddress")
+                
+                if (toAddress.isBlank()) {
+                    Log.e("ChatViewModel", "[PROOF-5] WARNING - toAddress is blank!")
+                }
+                
+                // Convert human-readable amount to wei/base units
+                val amountWei = convertTokenAmountToWei(amount, tokenDecimals)
+                Log.d("ChatViewModel", "[PROOF-6] Converted amount to wei: $amountWei")
+                
+                Log.d("ChatViewModel", "[PROOF-7] Building TransactionReference...")
+                val blockExplorerUrl = "${chainIdToEtherscan(targetChainId)}/tx/$txHash"
+                Log.d("ChatViewModel", "[PROOF-7] Block explorer URL: $blockExplorerUrl")
+                
+                val txReference = TransactionReference(
+                    namespace = "eip155",
+                    networkId = targetChainId.toLong(),
+                    reference = txHash,
+                    metadata = TransactionReferenceMetadata(
+                        transactionType = TransactionTypes.TRANSFER,
+                        currency = tokenSymbol,
+                        amount = amountWei,
+                        decimals = tokenDecimals,
+                        fromAddress = fromAddress,
+                        toAddress = toAddress,
+                        blockExplorerUrl = blockExplorerUrl
+                    )
+                )
+                Log.d("ChatViewModel", "[PROOF-7] TransactionReference built: $txReference")
+                
+                Log.d("ChatViewModel", "[PROOF-8] Calling messageRepository.sendTransactionReference()...")
+                Log.d("ChatViewModel", "[PROOF-8] threadId: $threadId")
+                Log.d("ChatViewModel", "[PROOF-8] replyReference: $requestMessageId")
+                
+                messageRepository.sendTransactionReference(
+                    xmtpConversation = xmtpConversation,
+                    threadId = threadId,
+                    transactionReference = txReference,
+                    replyReference = requestMessageId
+                )
+                
+                Log.d("ChatViewModel", "[PROOF-9] SUCCESS - Payment proof sent!")
+                Log.d("ChatViewModel", "╔══════════════════════════════════════════════════════════════╗")
+                Log.d("ChatViewModel", "║             SEND PAYMENT PROOF - COMPLETED                  ║")
+                Log.d("ChatViewModel", "╚══════════════════════════════════════════════════════════════╝")
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "[PROOF-ERROR] Failed to send payment proof")
+                Log.e("ChatViewModel", "[PROOF-ERROR] Error: ${e.message}")
+                Log.e("ChatViewModel", "[PROOF-ERROR] Stack trace: ${e.stackTraceToString()}")
+            }
+        }
     }
     
     private fun chainIdToBundler(chainId: Int): String {
@@ -1212,6 +1598,28 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 callback(false)
             }
         }
+    }
+    
+    /**
+     * Encodes an ERC20 transfer function call using web3j's FunctionEncoder.
+     * 
+     * The transfer function signature is: transfer(address recipient, uint256 amount)
+     * Function selector: 0xa9059cbb
+     * 
+     * @param recipientAddress The address to transfer tokens to
+     * @param amount The amount of tokens to transfer (in base units/wei)
+     * @return The encoded function call data as a hex string with 0x prefix
+     */
+    private fun encodeErc20Transfer(recipientAddress: String, amount: BigInteger): String {
+        val function = Function(
+            "transfer",
+            listOf(
+                org.web3j.abi.datatypes.Address(recipientAddress),
+                Uint256(amount)
+            ),
+            emptyList() // Return types not needed for encoding
+        )
+        return FunctionEncoder.encode(function)
     }
 }
 

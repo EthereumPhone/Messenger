@@ -75,10 +75,11 @@ fun MessageList(
     openGLColor: Color,
     deletedMessageIds: Map<String, Boolean>,
     onUpdateSeenCount: (Int) -> Unit,
-    onExecuteTransaction: (TransactionRequest) -> Unit = {},
+    onExecuteTransaction: (TransactionRequest, String?) -> Unit = { _, _ -> },
     onRejectTransaction: (Message) -> Unit = {},
     myInboxId: String = "",
-    onReactionClick: (messageId: String, emoji: String) -> Unit = { _, _ -> }
+    onReactionClick: (messageId: String, emoji: String) -> Unit = { _, _ -> },
+    onScrollToMessage: (String) -> Unit = {}
 ) {
     // Lock the divider position/count for the lifetime of this screen
     val lockedDividerIndexState = remember { mutableStateOf<Int?>(null) }
@@ -100,6 +101,18 @@ fun MessageList(
     val firstUnseenIndex = lockedDividerIndexState.value
     val unseenCount = lockedUnseenCountState.value
     val coroutineScope = rememberCoroutineScope()
+    
+    // Scroll to a specific message by ID (used for double-tap on payment confirmations)
+    val scrollToMessage: (String) -> Unit = { messageId ->
+        val index = messages.indexOfFirst { it.id == messageId }
+        if (index >= 0) {
+            coroutineScope.launch {
+                scrollState.animateScrollToItem(index)
+            }
+        }
+        // Also call the external callback if provided
+        onScrollToMessage(messageId)
+    }
 
     val showFab by remember {
         derivedStateOf {
@@ -181,7 +194,8 @@ fun MessageList(
                             onExecuteTransaction = onExecuteTransaction,
                             onRejectTransaction = onRejectTransaction,
                             myInboxId = myInboxId,
-                            onReactionClick = { emoji -> onReactionClick(message.id, emoji) }
+                            onReactionClick = { emoji -> onReactionClick(message.id, emoji) },
+                            onScrollToMessage = scrollToMessage
                     )
                 }
             }

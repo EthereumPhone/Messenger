@@ -50,6 +50,7 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Composable for rendering a transaction reference message bubble.
  * Displays completed transaction details.
+ * If the message has a replyReference (paid a request), double-click scrolls to the original request.
  */
 @Composable
 fun TransactionReferenceBubble(
@@ -60,7 +61,8 @@ fun TransactionReferenceBubble(
     primaryColor: Color,
     secondaryColor: Color,
     isFirstMessageByAuthor: Boolean = false,
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    onScrollToMessage: (String) -> Unit = {}
 ) {
     val metadata = transactionReference.metadata
     val chainName = chainIdToName(transactionReference.networkId)
@@ -69,14 +71,28 @@ fun TransactionReferenceBubble(
     val bubbleBackground = secondaryColor
     val borderColor = primaryColor //.copy(alpha = pulseOpacity)
     val senderName = resolveSenderName(message)
-    val headerText = if (isUserMe) "You sent" else "$senderName sent"
+    
+    // Check if this is a payment for a request (has replyReference)
+    val isPaidRequest = message.replyReference != null
+    val headerText = when {
+        isPaidRequest && isUserMe -> "You paid"
+        isPaidRequest && !isUserMe -> "$senderName paid"
+        isUserMe -> "You sent"
+        else -> "$senderName sent"
+    }
     
     Column(
         horizontalAlignment = if (isUserMe) Alignment.End else Alignment.Start,
         modifier = modifier
-            .pointerInput(Unit) {
+            .pointerInput(message.replyReference) {
                 detectTapGestures(
-                    onLongPress = { onLongClick() }
+                    onLongPress = { onLongClick() },
+                    onDoubleTap = {
+                        // If this is a payment confirmation, scroll to the original request
+                        message.replyReference?.let { requestId ->
+                            onScrollToMessage(requestId)
+                        }
+                    }
                 )
             }
     ) {
@@ -160,6 +176,19 @@ fun TransactionReferenceBubble(
                     ),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            // Show "Double-tap to see request" hint if this is a payment for a request
+            if (isPaidRequest) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Double-tap to see request",
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        fontSize = 10.sp,
+                        color = primaryColor.copy(alpha = 0.6f)
+                    )
                 )
             }
         }
@@ -316,7 +345,15 @@ fun FocusTransactionReferenceBubble(
     val bubbleBackground = secondaryColor
     val borderColor = primaryColor //.copy(alpha = pulseOpacity)
     val senderName = resolveSenderName(message)
-    val headerText = if (isUserMe) "You sent" else "$senderName sent"
+    
+    // Check if this is a payment for a request (has replyReference)
+    val isPaidRequest = message.replyReference != null
+    val headerText = when {
+        isPaidRequest && isUserMe -> "You paid"
+        isPaidRequest && !isUserMe -> "$senderName paid"
+        isUserMe -> "You sent"
+        else -> "$senderName sent"
+    }
     
     Column(
         horizontalAlignment = Alignment.Start, // Always left-align in focus mode
