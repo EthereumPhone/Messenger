@@ -14,8 +14,10 @@ import org.ethereumhpone.data.codec.TransactionRequestCodec
 import org.ethereumhpone.data.manager.GeneratedWallet
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.ipc.IXmtpIdentityService
-import org.web3j.crypto.Keys
+import org.web3j.crypto.ECKeyPair
 import org.xmtp.android.library.Client
+import java.math.BigInteger
+import java.security.SecureRandom
 import org.xmtp.android.library.codecs.AttachmentCodec
 import org.xmtp.android.library.codecs.GroupUpdatedCodec
 import org.xmtp.android.library.codecs.ReactionCodec
@@ -55,8 +57,11 @@ class ThirdPartyIdentityService : Service() {
                         return@runBlocking existingAddress
                     }
 
-                    // Generate new keypair
-                    val ecKeyPair = Keys.createEcKeyPair()
+                    // Generate new keypair using SecureRandom + ECKeyPair.create()
+                    // to avoid Android's stripped BouncyCastle missing "ECDSA"
+                    val privateKeyBytes = ByteArray(32)
+                    SecureRandom().nextBytes(privateKeyBytes)
+                    val ecKeyPair = ECKeyPair.create(BigInteger(1, privateKeyBytes))
                     val wallet = GeneratedWallet(ecKeyPair)
 
                     // Store private key and address

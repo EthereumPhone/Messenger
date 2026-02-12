@@ -9,6 +9,7 @@ import org.web3j.crypto.Sign
 import org.xmtp.android.library.SignerType
 import org.xmtp.android.library.libxmtp.IdentityKind
 import java.math.BigInteger
+import java.security.SecureRandom
 
 class GeneratedWalletTest {
 
@@ -153,5 +154,61 @@ class GeneratedWalletTest {
     fun `blockNumber is null by default`() {
         val wallet = GeneratedWallet(Keys.createEcKeyPair())
         assertNull(wallet.blockNumber)
+    }
+
+    // --- Tests using SecureRandom key generation (Android-compatible path) ---
+
+    private fun createAndroidStyleKeyPair(): ECKeyPair {
+        val privateKeyBytes = ByteArray(32)
+        SecureRandom().nextBytes(privateKeyBytes)
+        return ECKeyPair.create(BigInteger(1, privateKeyBytes))
+    }
+
+    @Test
+    fun `SecureRandom keypair produces valid address`() {
+        val wallet = GeneratedWallet(createAndroidStyleKeyPair())
+
+        assertTrue(wallet.address.startsWith("0x"))
+        assertEquals(42, wallet.address.length)
+        assertTrue(wallet.address.removePrefix("0x").matches(Regex("[0-9a-fA-F]{40}")))
+    }
+
+    @Test
+    fun `SecureRandom keypair roundtrips through hex`() {
+        val keyPair = createAndroidStyleKeyPair()
+        val hex = keyPair.privateKey.toString(16)
+        val original = GeneratedWallet(keyPair)
+        val restored = GeneratedWallet.fromPrivateKeyHex(hex)
+
+        assertEquals(original.address.lowercase(), restored.address.lowercase())
+    }
+
+    @Test
+    fun `SecureRandom keypair produces recoverable signature`() = runBlocking {
+        val keyPair = createAndroidStyleKeyPair()
+        val wallet = GeneratedWallet(keyPair)
+        val message = "XMTP : Create Identity"
+
+        val sigBytes = wallet.sign(message).rawData
+        assertEquals(65, sigBytes.size)
+
+        val r = ByteArray(32)
+        val s = ByteArray(32)
+        System.arraycopy(sigBytes, 0, r, 0, 32)
+        System.arraycopy(sigBytes, 32, s, 0, 32)
+        val v = sigBytes[64]
+
+        val messageBytes = message.toByteArray(Charsets.UTF_8)
+        val prefix = "\u0019Ethereum Signed Message:\n${messageBytes.size}".toByteArray(Charsets.UTF_8)
+        val prefixedHash = org.web3j.crypto.Hash.sha3(prefix + messageBytes)
+
+        val recoveredKey = Sign.recoverFromSignature(
+            (v - 27).toInt(),
+            org.web3j.crypto.ECDSASignature(BigInteger(1, r), BigInteger(1, s)),
+            prefixedHash
+        )
+
+        val recoveredAddress = "0x" + Keys.getAddress(recoveredKey)
+        assertEquals(wallet.address.lowercase(), recoveredAddress.lowercase())
     }
 }
