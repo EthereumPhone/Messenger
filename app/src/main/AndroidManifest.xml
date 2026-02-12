@@ -4,6 +4,28 @@
     coreApp="true"
     >
 
+    <!-- Custom permission group for messaging capabilities -->
+    <permission-group
+        android:name="org.ethereumhpone.messenger.permission-group.MESSAGING"
+        android:label="@string/perm_group_messaging_label"
+        android:description="@string/perm_group_messaging_desc" />
+
+    <!-- Permission: Send messages as the logged-in user -->
+    <permission
+        android:name="org.ethereumhpone.messenger.permission.SEND_MESSAGE_AS_USER"
+        android:label="@string/perm_send_message_label"
+        android:description="@string/perm_send_message_desc"
+        android:permissionGroup="org.ethereumhpone.messenger.permission-group.MESSAGING"
+        android:protectionLevel="dangerous" />
+
+    <!-- Permission: Generate an isolated XMTP identity -->
+    <permission
+        android:name="org.ethereumhpone.messenger.permission.GENERATE_XMTP_IDENTITY"
+        android:label="@string/perm_generate_identity_label"
+        android:description="@string/perm_generate_identity_desc"
+        android:permissionGroup="org.ethereumhpone.messenger.permission-group.MESSAGING"
+        android:protectionLevel="dangerous" />
+
     <uses-feature
         android:name="android.hardware.telephony"
         android:required="false" />
@@ -101,6 +123,28 @@
                 <action android:name="com.ethos.action.FOCUS_TEXT_FIELD" />
             </intent-filter>
         </receiver>
+
+        <!-- Third-party messaging service: send messages as the logged-in user -->
+        <service
+            android:name="org.ethereumhpone.data.services.ThirdPartyMessagingService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="org.ethereumhpone.messenger.permission.SEND_MESSAGE_AS_USER">
+            <intent-filter>
+                <action android:name="org.ethereumhpone.messenger.action.BIND_MESSAGING" />
+            </intent-filter>
+        </service>
+
+        <!-- Third-party identity service: generate isolated XMTP identity -->
+        <service
+            android:name="org.ethereumhpone.data.services.ThirdPartyIdentityService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="org.ethereumhpone.messenger.permission.GENERATE_XMTP_IDENTITY">
+            <intent-filter>
+                <action android:name="org.ethereumhpone.messenger.action.BIND_IDENTITY" />
+            </intent-filter>
+        </service>
 
     </application>
 

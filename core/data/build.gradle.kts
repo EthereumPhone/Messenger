@@ -83,6 +83,10 @@ dependencies {
     implementation(libs.model)
 
     testImplementation(libs.junit)
+    testImplementation("io.mockk:mockk:1.13.9")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("org.robolectric:robolectric:4.11.1")
+    testImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
@@ -102,6 +106,7 @@ dependencies {
 
     implementation(libs.xmtp)
     implementation(libs.walletsdk)
+    implementation(libs.core) // web3j - needed for GeneratedWallet keypair operations
     implementation(libs.kotlin.serialization)
     implementation(libs.kotlinx.datetime)
     implementation(libs.androidx.lifecycle.process)

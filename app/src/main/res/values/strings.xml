@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">XMTP Messenger</string>
+
+    <!-- Permission group -->
+    <string name="perm_group_messaging_label">Messaging</string>
+    <string name="perm_group_messaging_desc">Access to XMTP messaging capabilities</string>
+
+    <!-- SEND_MESSAGE_AS_USER permission -->
+    <string name="perm_send_message_label">Send XMTP messages as you</string>
+    <string name="perm_send_message_desc">Allows this app to send XMTP messages using your logged-in identity. Messages will appear as sent by you.</string>
+
+    <!-- GENERATE_XMTP_IDENTITY permission -->
+    <string name="perm_generate_identity_label">Create an XMTP identity</string>
+    <string name="perm_generate_identity_desc">Allows this app to generate its own isolated XMTP identity through Messenger and send messages from that identity.</string>
 </resources>
