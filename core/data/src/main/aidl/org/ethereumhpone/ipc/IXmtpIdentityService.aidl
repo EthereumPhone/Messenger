@@ -1,7 +1,7 @@
 // IXmtpIdentityService.aidl
 // AIDL interface for third-party apps to generate an isolated XMTP identity
-// and send messages through it. Each calling app gets its own unique identity.
-// Requires the GENERATE_XMTP_IDENTITY permission.
+// and send messages through it. Each calling app gets its own unique identity
+// keyed by package name + signing certificate hash. No permission required.
 
 package org.ethereumhpone.ipc;
 

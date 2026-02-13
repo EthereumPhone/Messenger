@@ -1,17 +1,17 @@
 # Third-Party XMTP Messaging Integration Guide
 
-This document explains how third-party Android apps can integrate with the XMTP Messenger app to send messages. Two permissions are available, each unlocking a different level of access.
+This document explains how third-party Android apps can integrate with the XMTP Messenger app to send messages. Two integration levels are available:
 
 ---
 
 ## Overview
 
-| Permission | Purpose | Identity used |
+| Integration | Permission required | Identity used |
 |---|---|---|
-| `SEND_MESSAGE_AS_USER` | Send messages as the Messenger's logged-in user | The user's own XMTP identity |
-| `GENERATE_XMTP_IDENTITY` | Create an isolated XMTP identity and send from it | A new, app-specific identity |
+| Send as user | `SEND_MESSAGE_AS_USER` (dangerous) | The user's own XMTP identity |
+| Isolated identity | None | A new, app-specific identity |
 
-Both permissions use Android's standard runtime permission flow (dangerous protection level) and expose bound AIDL services that your app connects to via IPC.
+Both expose bound AIDL services that your app connects to via IPC. The "Send as user" path requires a runtime permission; the isolated-identity path is permission-free — any app can bind and create its own identity.
 
 ---
 
@@ -21,12 +21,11 @@ Both permissions use Android's standard runtime permission flow (dangerous prote
 ┌─────────────────────┐              ┌────────────────────────────────┐
 │  Your App            │              │  XMTP Messenger                │
 │                      │              │                                │
-│ 1. <uses-permission> │              │ 1. <permission> defined        │
-│ 2. requestPerms()    │── Dialog ──▶ │ 2. Android shows grant dialog  │
-│ 3. bindService()     │── IPC ────▶ │ 3. Bound AIDL Service          │
-│ 4. sendMessage()     │── IPC ────▶ │ 4. checkCallingPermission()    │
-│                      │              │ 5. Sends via XMTP protocol     │
+│ 1. bindService()     │── IPC ────▶ │ 1. Bound AIDL Service          │
+│ 2. sendMessage()     │── IPC ────▶ │ 2. Sends via XMTP protocol     │
 └─────────────────────┘              └────────────────────────────────┘
+
+For "Send as user" only, a runtime permission dialog is shown before binding.
 ```
 
 ---
@@ -175,22 +174,16 @@ override fun onDestroy() {
 
 ---
 
-## Permission 2: Isolated XMTP Identity
+## Isolated XMTP Identity (no permission required)
 
-Use this when your app needs **its own XMTP identity** that is separate from the user. Messages are sent from a new Ethereum address that is unique to your app. The user's own identity is never used.
+Use this when your app needs **its own XMTP identity** that is separate from the user. Messages are sent from a new Ethereum address that is unique to your app. The user's own identity is never used. No runtime permission is required — any app can bind to this service.
 
 This is ideal for:
 - Bots or automated agents that need their own presence on XMTP
 - Apps that want to send/receive messages without impersonating the user
 - Multi-tenant scenarios where each app has its own messaging identity
 
-### Step 1: Declare the permission
-
-```xml
-<uses-permission android:name="org.ethereumhpone.messenger.permission.GENERATE_XMTP_IDENTITY" />
-```
-
-### Step 2: Copy the AIDL interface
+### Step 1: Copy the AIDL interface
 
 Create `src/main/aidl/org/ethereumhpone/ipc/IXmtpIdentityService.aidl`:
 
@@ -206,23 +199,7 @@ interface IXmtpIdentityService {
 }
 ```
 
-### Step 3: Request the permission at runtime
-
-```kotlin
-private const val GENERATE_IDENTITY_PERMISSION =
-    "org.ethereumhpone.messenger.permission.GENERATE_XMTP_IDENTITY"
-private const val REQUEST_CODE = 1002
-
-if (checkSelfPermission(GENERATE_IDENTITY_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
-    ActivityCompat.requestPermissions(
-        this,
-        arrayOf(GENERATE_IDENTITY_PERMISSION),
-        REQUEST_CODE
-    )
-}
-```
-
-### Step 4: Bind to the identity service
+### Step 2: Bind to the identity service
 
 ```kotlin
 import org.ethereumhpone.ipc.IXmtpIdentityService
@@ -247,7 +224,7 @@ fun bindIdentityService() {
 }
 ```
 
-### Step 5: Create an identity and send messages
+### Step 3: Create an identity and send messages
 
 ```kotlin
 // Create the identity (only needed once — subsequent calls return the existing one)
@@ -279,7 +256,7 @@ suspend fun sendMessage(recipientAddress: String, body: String): String? {
 }
 ```
 
-### Step 6: Unbind when done
+### Step 4: Unbind when done
 
 ```kotlin
 override fun onDestroy() {
@@ -290,7 +267,7 @@ override fun onDestroy() {
 
 ---
 
-## Complete Example: Activity with Both Permissions
+## Complete Example: Activity with Both Services
 
 ```kotlin
 class MessagingActivity : AppCompatActivity() {
@@ -319,19 +296,14 @@ class MessagingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Request both permissions
-        val permsNeeded = mutableListOf<String>()
+        // The identity service can be bound immediately (no permission needed).
+        // The messaging service requires SEND_MESSAGE_AS_USER permission.
         if (checkSelfPermission(PERM_SEND) != PackageManager.PERMISSION_GRANTED) {
-            permsNeeded.add(PERM_SEND)
-        }
-        if (checkSelfPermission(PERM_IDENTITY) != PackageManager.PERMISSION_GRANTED) {
-            permsNeeded.add(PERM_IDENTITY)
-        }
-        if (permsNeeded.isNotEmpty()) {
-            requestPermissions(permsNeeded.toTypedArray(), 100)
+            requestPermissions(arrayOf(PERM_SEND), 100)
         } else {
-            bindServices()
+            bindMessagingService()
         }
+        bindIdentityService()
     }
 
     override fun onRequestPermissionsResult(
@@ -340,24 +312,24 @@ class MessagingActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-            bindServices()
+        if (requestCode == 100 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+            bindMessagingService()
         }
     }
 
-    private fun bindServices() {
-        // Bind messaging service
-        val msgIntent = Intent("org.ethereumhpone.messenger.action.BIND_MESSAGING")
+    private fun bindMessagingService() {
+        val intent = Intent("org.ethereumhpone.messenger.action.BIND_MESSAGING")
             .setPackage("org.ethereumhpone.messenger")
-        bindService(msgIntent, messagingConnection, Context.BIND_AUTO_CREATE)
-
-        // Bind identity service
-        val idIntent = Intent("org.ethereumhpone.messenger.action.BIND_IDENTITY")
-            .setPackage("org.ethereumhpone.messenger")
-        bindService(idIntent, identityConnection, Context.BIND_AUTO_CREATE)
+        bindService(intent, messagingConnection, Context.BIND_AUTO_CREATE)
     }
 
-    // Example: send as the logged-in user
+    private fun bindIdentityService() {
+        val intent = Intent("org.ethereumhpone.messenger.action.BIND_IDENTITY")
+            .setPackage("org.ethereumhpone.messenger")
+        bindService(intent, identityConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    // Example: send as the logged-in user (requires permission)
     fun sendAsUser(address: String, message: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             val messageId = messagingService?.sendMessage(address, message)
@@ -370,7 +342,7 @@ class MessagingActivity : AppCompatActivity() {
         }
     }
 
-    // Example: send from isolated identity
+    // Example: send from isolated identity (no permission needed)
     fun sendFromIsolatedIdentity(address: String, message: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             // Ensure identity exists
@@ -396,8 +368,6 @@ class MessagingActivity : AppCompatActivity() {
     companion object {
         private const val PERM_SEND =
             "org.ethereumhpone.messenger.permission.SEND_MESSAGE_AS_USER"
-        private const val PERM_IDENTITY =
-            "org.ethereumhpone.messenger.permission.GENERATE_XMTP_IDENTITY"
     }
 }
 ```
@@ -434,12 +404,12 @@ class MessagingActivity : AppCompatActivity() {
 All AIDL methods that involve network operations (`sendMessage`, `createIdentity`, etc.) are **blocking**. Always call them from a background thread (coroutine with `Dispatchers.IO`, `AsyncTask`, `ExecutorService`, etc.). Calling from the main thread will cause an ANR.
 
 ### Identity Lifecycle
-- **Send as user:** No setup needed beyond the permission. The Messenger app must have a logged-in user.
-- **Isolated identity:** Call `createIdentity()` once. The identity persists across app restarts and Messenger restarts. Subsequent calls to `createIdentity()` return the same address.
+- **Send as user:** No setup needed beyond the permission grant. The Messenger app must have a logged-in user.
+- **Isolated identity:** No permission needed. Call `createIdentity()` once. The identity persists across app restarts, Messenger restarts, and even app reinstalls (as long as the same signing key is used). Subsequent calls to `createIdentity()` return the same address.
 
 ### Error Handling
 - Methods return `null` on failure (network errors, client not ready, etc.)
-- A `SecurityException` is thrown if the permission hasn't been granted
+- For `SEND_MESSAGE_AS_USER`: a `SecurityException` is thrown if the permission hasn't been granted
 - The `isClientReady()` method can be polled to check if the Messenger's XMTP client is available
 
 ### Service Binding
@@ -450,7 +420,7 @@ All AIDL methods that involve network operations (`sendMessage`, `createIdentity
 ### Messenger App Requirements
 - The Messenger app must be installed on the device
 - For `SEND_MESSAGE_AS_USER`: the user must have completed XMTP onboarding (identity generated)
-- For `GENERATE_XMTP_IDENTITY`: the Messenger app must be installed, but the user does not need to be logged in
+- For the isolated-identity service: the Messenger app must be installed, but the user does not need to be logged in
 
 ### Build Configuration
 Your app's `build.gradle.kts` must have AIDL enabled:

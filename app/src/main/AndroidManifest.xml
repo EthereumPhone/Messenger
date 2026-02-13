@@ -18,13 +18,6 @@
         android:permissionGroup="org.ethereumhpone.messenger.permission-group.MESSAGING"
         android:protectionLevel="dangerous" />
 
-    <!-- Permission: Generate an isolated XMTP identity -->
-    <permission
-        android:name="org.ethereumhpone.messenger.permission.GENERATE_XMTP_IDENTITY"
-        android:label="@string/perm_generate_identity_label"
-        android:description="@string/perm_generate_identity_desc"
-        android:permissionGroup="org.ethereumhpone.messenger.permission-group.MESSAGING"
-        android:protectionLevel="dangerous" />
 
     <uses-feature
         android:name="android.hardware.telephony"
@@ -139,8 +132,7 @@
         <service
             android:name="org.ethereumhpone.data.services.ThirdPartyIdentityService"
             android:enabled="true"
-            android:exported="true"
-            android:permission="org.ethereumhpone.messenger.permission.GENERATE_XMTP_IDENTITY">
+            android:exported="true">
             <intent-filter>
                 <action android:name="org.ethereumhpone.messenger.action.BIND_IDENTITY" />
             </intent-filter>

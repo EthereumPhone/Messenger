@@ -8,8 +8,4 @@
     <!-- SEND_MESSAGE_AS_USER permission -->
     <string name="perm_send_message_label">Full access to your XMTP identity</string>
     <string name="perm_send_message_desc">WARNING: This app will be able to read all your messages and send messages as you. Recipients cannot tell the difference between messages you send and messages this app sends on your behalf. Only grant this to apps you fully trust.</string>
-
-    <!-- GENERATE_XMTP_IDENTITY permission -->
-    <string name="perm_generate_identity_label">Create an XMTP identity</string>
-    <string name="perm_generate_identity_desc">Allows this app to generate its own isolated XMTP identity through Messenger and send messages from that identity.</string>
 </resources>
