@@ -113,8 +113,46 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncContacts() {
-        val contacts = getContacts()
-        contactDao.insertContacts(contacts)
+        val phoneContacts = getContacts()
+        val phoneLookupKeys = phoneContacts.map { it.lookupKey }.toSet()
+
+        // Also get contacts that have ETH addresses but no phone numbers
+        val ethOnlyContacts = contactCursor.getContactsWithEthAddress()
+            .filter { it.lookupKey !in phoneLookupKeys }
+
+        val allContacts = phoneContacts + ethOnlyContacts
+        contactDao.insertContacts(allContacts)
+
+        // Re-link recipients to contacts by matching ETH addresses.
+        // This handles the case where a contact is added after the conversation was created.
+        relinkRecipientsToContacts(allContacts)
+    }
+
+    /**
+     * Updates recipients' contactLookupKey by matching their Ethereum address
+     * to contacts' ethAddress. This ensures that when a new contact is added
+     * (e.g. via ContactsSdk), existing conversations show the contact name.
+     */
+    private suspend fun relinkRecipientsToContacts(contacts: List<ContactEntity>) {
+        val contactsByEth = contacts
+            .filter { !it.ethAddress.isNullOrBlank() }
+            .associateBy { it.ethAddress!!.lowercase() }
+
+        if (contactsByEth.isEmpty()) return
+
+        val recipients = recipientDao.getRecipients().first()
+        val updatedRecipients = recipients.mapNotNull { recipient ->
+            val matchedContact = contactsByEth[recipient.address.lowercase()]
+            if (matchedContact != null && recipient.contactLookupKey != matchedContact.lookupKey) {
+                recipient.copy(contactLookupKey = matchedContact.lookupKey)
+            } else {
+                null
+            }
+        }
+
+        if (updatedRecipients.isNotEmpty()) {
+            recipientDao.insertRecipients(updatedRecipients)
+        }
     }
 
     private suspend fun getContacts(): List<ContactEntity> {
@@ -336,20 +374,22 @@ class SyncRepositoryImpl @Inject constructor(
 
                             // recipients portion
 
-                            //TODO: Add refs to contacts
                             val members = conversation.members()
+                            val contacts = contactDao.getContacts().first()
 
-                            Log.d(TAG, "Conversation members count: ${members.size}")
                             val recipientEntities = members.map { member ->
-                                //TODO: Might fire too often.
                                 val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
                                 val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
 
+                                val matchedContact = contacts.firstOrNull { contact ->
+                                    contact.ethAddress?.equals(address, ignoreCase = true) == true
+                                }
+
                                 RecipientEntity(
                                     inboxId = member.inboxId,
-                                    address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier,
+                                    address = address,
                                     ens = ensAddress,
-                                    contactLookupKey = null // TODO: Get contact lookupKeys
+                                    contactLookupKey = matchedContact?.lookupKey
                                 )
                             }
                             recipientDao.insertRecipients(recipientEntities)

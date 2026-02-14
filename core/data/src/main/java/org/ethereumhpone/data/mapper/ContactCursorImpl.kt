@@ -95,4 +95,53 @@ class ContactCursorImpl @Inject constructor(
         )
     }
 
+    /**
+     * Query contacts that have an ETH address in DATA15, even if they have no phone number.
+     * This catches contacts added via ContactsSdk with only a name + ETH address.
+     */
+    @SuppressLint("Range")
+    override fun getContactsWithEthAddress(): List<ContactEntity> {
+        if (!permissionManager.hasContacts()) return emptyList()
+
+        val contentResolver = context.contentResolver
+        val contacts = mutableMapOf<String, ContactEntity>()
+
+        // Query StructuredName rows that have DATA15 set (ETH address or ENS)
+        val projection = arrayOf(
+            ContactsContract.Data.LOOKUP_KEY,
+            ContactsContract.Data.DISPLAY_NAME,
+            ContactsContract.Data.PHOTO_URI,
+            ContactsContract.Data.DATA15
+        )
+        val selection = "${ContactsContract.Data.MIMETYPE} = ? AND ${ContactsContract.Data.DATA15} IS NOT NULL AND ${ContactsContract.Data.DATA15} != ''"
+        val selectionArgs = arrayOf(ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+
+        contentResolver.query(
+            ContactsContract.Data.CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            null
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val lookupKey = cursor.getString(cursor.getColumnIndex(ContactsContract.Data.LOOKUP_KEY)) ?: continue
+                val displayName = cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DISPLAY_NAME)) ?: ""
+                val photoUri = cursor.getString(cursor.getColumnIndex(ContactsContract.Data.PHOTO_URI))
+                val data15 = cursor.getString(cursor.getColumnIndex(ContactsContract.Data.DATA15))?.trim()
+
+                if (!data15.isNullOrBlank() && !contacts.containsKey(lookupKey)) {
+                    contacts[lookupKey] = ContactEntity(
+                        lookupKey = lookupKey,
+                        name = displayName,
+                        photoUri = photoUri,
+                        numbers = emptyList(),
+                        ethAddress = data15
+                    )
+                }
+            }
+        }
+
+        return contacts.values.toList()
+    }
+
 }

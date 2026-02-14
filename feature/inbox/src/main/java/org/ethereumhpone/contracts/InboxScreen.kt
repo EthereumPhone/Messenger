@@ -104,6 +104,7 @@ import androidx.compose.material.icons.filled.Check
 import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
 import org.ethereumphone.dgenlibrary.screens.InfoScreen
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ContactRoute(
     onConversationClick: (String) -> Unit,
@@ -118,6 +119,21 @@ fun ContactRoute(
 
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
+
+    // Request contacts permission and sync contacts when granted
+    val contactsPermissionState = rememberMultiplePermissionsState(
+        permissions = listOf(Manifest.permission.READ_CONTACTS)
+    )
+    LaunchedEffect(Unit) {
+        if (!contactsPermissionState.allPermissionsGranted) {
+            contactsPermissionState.launchMultiplePermissionRequest()
+        }
+    }
+    LaunchedEffect(contactsPermissionState.allPermissionsGranted) {
+        if (contactsPermissionState.allPermissionsGranted) {
+            viewModel.syncContacts()
+        }
+    }
 
     InboxScreen(
         modifier = modifier,
@@ -191,12 +207,6 @@ fun InboxScreen(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-
-    val contactsPermissionsToRequest = listOf(
-        Manifest.permission.READ_CONTACTS,
-    )
-
-    val contactsPermissionState = rememberMultiplePermissionsState(permissions = contactsPermissionsToRequest)
 
     var showNewConversationSheet by remember { mutableStateOf(false) }
 

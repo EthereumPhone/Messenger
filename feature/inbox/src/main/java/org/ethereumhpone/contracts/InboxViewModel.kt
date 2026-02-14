@@ -108,6 +108,12 @@ class InboxViewModel @Inject constructor(
         }
     }
 
+    fun syncContacts() {
+        viewModelScope.launch(Dispatchers.IO) {
+            syncRepository.syncContacts()
+        }
+    }
+
 }
 
 sealed interface ConversationUIState {

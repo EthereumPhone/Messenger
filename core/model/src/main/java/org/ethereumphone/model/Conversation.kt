@@ -39,9 +39,6 @@ data class Conversation(
         val otherRecipient = recipients.firstOrNull { it.id != clientInbox }
 
         otherRecipient?.let { recipient ->
-            // 1) Prefer the local contact name (if the user has saved one)
-            // 2) Otherwise prefer the resolved ENS name
-            // 3) Finally fall back to displaying the raw address             
             return recipient.contact?.name?.takeIf { it.isNotBlank() }
                 ?: recipient.ens?.takeIf { it.isNotBlank() }
                 ?: recipient.address

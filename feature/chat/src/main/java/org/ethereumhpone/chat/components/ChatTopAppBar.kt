@@ -54,7 +54,11 @@ fun ChatTopAppBar(
             val recipients = recipientUiState.recipients
 
             val header = title.ifBlank {
-                val displayNames = recipients.map { "${it.contact?.name}" } //TODO FIX display name
+                val displayNames = recipients.map { recipient ->
+                    recipient.contact?.name?.takeIf { it.isNotBlank() }
+                        ?: recipient.ens?.takeIf { it.isNotBlank() }
+                        ?: recipient.address
+                }
                 displayNames.joinToString(", ")
             }
 
