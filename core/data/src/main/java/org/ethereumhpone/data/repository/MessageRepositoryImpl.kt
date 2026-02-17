@@ -165,7 +165,7 @@ class MessageRepositoryImpl @Inject constructor(
                 launch { messageDao.upsertMessages(listOf(messageEntity)) }
                 launch {
                     conversation.publishMessages()
-                    notifyThirdPartyRecipients(conversation)
+                    notifyThirdPartyRecipients(conversation, body.orEmpty())
                 }
 
                 messageId
@@ -232,7 +232,7 @@ class MessageRepositoryImpl @Inject constructor(
                 launch { messageDao.upsertMessages(listOf(messageEntity)) }
                 launch {
                     xmtpConversation.publishMessages()
-                    notifyThirdPartyRecipients(xmtpConversation)
+                    notifyThirdPartyRecipients(xmtpConversation, body.orEmpty())
                 }
 
                 messageId
@@ -244,10 +244,21 @@ class MessageRepositoryImpl @Inject constructor(
      * After a message is published, checks if any conversation member is a
      * registered third-party isolated identity and immediately notifies that
      * app via the callback registry and an explicit broadcast.
+     *
+     * @param messageBody the text of the message that was just sent
      */
-    private suspend fun notifyThirdPartyRecipients(conversation: Conversation) {
+    private suspend fun notifyThirdPartyRecipients(conversation: Conversation, messageBody: String) {
         try {
             val members = conversation.members()
+
+            // Resolve the sender's (user's) ETH address
+            val myInboxId = xmtpClientManager.client.inboxId
+            val senderAddress = members
+                .firstOrNull { it.inboxId == myInboxId }
+                ?.identities
+                ?.firstOrNull { it.kind == IdentityKind.ETHEREUM }
+                ?.identifier
+
             for (member in members) {
                 val address = member.identities
                     .firstOrNull { it.kind == IdentityKind.ETHEREUM }
@@ -262,7 +273,8 @@ class MessageRepositoryImpl @Inject constructor(
                 val packageName = callerKey.substringBeforeLast('_')
                 val relayIntent = Intent("org.ethereumhpone.messenger.action.RELAY_TO_THIRD_PARTY").apply {
                     putExtra("target_package", packageName)
-                    putExtra("message_count", 1)
+                    putExtra("sender_address", senderAddress ?: "")
+                    putExtra("message_text", messageBody)
                 }
                 context.sendBroadcast(relayIntent)
             }

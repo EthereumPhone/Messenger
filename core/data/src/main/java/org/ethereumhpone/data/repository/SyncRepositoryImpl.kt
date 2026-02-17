@@ -558,6 +558,8 @@ class SyncRepositoryImpl @Inject constructor(
             for (callerKey in callerKeys) {
                 launch {
                     try {
+                        val ownAddress = ThirdPartyIdentityService.loadAddressForSync(context, callerKey)
+                            ?: return@launch
                         val isolatedClient = getOrCreateIsolatedStreamClient(callerKey) ?: return@launch
 
                         // Sync before streaming to pick up any backlog
@@ -571,14 +573,29 @@ class SyncRepositoryImpl @Inject constructor(
 
                                 Log.d(TAG, "Real-time isolated message for $callerKey: ${message.id}")
 
+                                // Resolve sender's ETH address from conversation members
+                                val conversation = isolatedClient.conversations
+                                    .findConversation(message.conversationId)
+                                val senderAddress = conversation?.members()
+                                    ?.flatMap { it.identities }
+                                    ?.filter { it.kind == IdentityKind.ETHEREUM }
+                                    ?.map { it.identifier }
+                                    ?.firstOrNull { !it.equals(ownAddress, ignoreCase = true) }
+
+                                if (senderAddress == null) {
+                                    Log.w(TAG, "Could not resolve sender address for message ${message.id}")
+                                    return@collect
+                                }
+
                                 // Notify via callback (reaches bound SDK clients)
                                 IdentityCallbackRegistry.notifyNewMessages(callerKey, 1)
 
-                                // Relay broadcast through OS service (wakes app even if stopped)
+                                // Relay broadcast through OS service with actual message content
                                 val packageName = callerKey.substringBeforeLast('_')
                                 val relayIntent = Intent("org.ethereumhpone.messenger.action.RELAY_TO_THIRD_PARTY").apply {
                                     putExtra("target_package", packageName)
-                                    putExtra("message_count", 1)
+                                    putExtra("sender_address", senderAddress)
+                                    putExtra("message_text", message.body)
                                 }
                                 context.sendBroadcast(relayIntent)
 

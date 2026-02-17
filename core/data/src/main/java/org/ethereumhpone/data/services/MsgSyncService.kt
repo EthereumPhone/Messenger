@@ -26,6 +26,7 @@ import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.ipc.IMsgSyncService
 import org.ethereumphone.walletsdk.WalletSDK
 import org.xmtp.android.library.Client
+import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.android.library.codecs.GroupUpdatedCodec
 import org.xmtp.android.library.codecs.ReadReceiptCodec
 import org.xmtp.android.library.codecs.ReactionCodec
@@ -280,6 +281,9 @@ class MsgSyncService : Service() {
 
             for (callerKey in callerKeys) {
                 try {
+                    val ownAddress = ThirdPartyIdentityService.loadAddressForSync(
+                        this@MsgSyncService, callerKey
+                    ) ?: continue
                     val client = getOrCreateIsolatedClient(callerKey) ?: continue
                     client.conversations.syncAllConversations()
                     Log.d(TAG, "Synced isolated identity for caller $callerKey")
@@ -289,32 +293,45 @@ class MsgSyncService : Service() {
                     val lastWatermarkNs = watermarkPrefs.getLong(watermarkKey, 0L)
                     val nowNs = System.currentTimeMillis() * 1_000_000L
 
-                    var newMessageCount = 0
                     val conversations = client.conversations.list()
+                    var relayedAny = false
+
                     for (conversation in conversations) {
                         val messages = conversation.messages(afterNs = lastWatermarkNs)
-                        // Count non-empty messages not sent by ourselves
-                        newMessageCount += messages.count { msg ->
+                        val newFromOthers = messages.filter { msg ->
                             !msg.body.isNullOrBlank() && msg.senderInboxId != client.inboxId
                         }
-                    }
+                        if (newFromOthers.isEmpty()) continue
 
-                    if (newMessageCount > 0) {
-                        Log.i(TAG, "Detected $newMessageCount new message(s) for caller $callerKey")
-                        IdentityCallbackRegistry.notifyNewMessages(callerKey, newMessageCount)
+                        // Resolve peer's ETH address (the sender)
+                        val senderAddress = conversation.members()
+                            .flatMap { it.identities }
+                            .filter { it.kind == IdentityKind.ETHEREUM }
+                            .map { it.identifier }
+                            .firstOrNull { !it.equals(ownAddress, ignoreCase = true) }
+                            ?: continue
 
-                        // Relay broadcast through OS service to wake the caller app
+                        // Relay the most recent new message from this conversation
+                        val lastMsg = newFromOthers.last()
+                        Log.i(TAG, "Relaying new message for $callerKey from $senderAddress: \"${lastMsg.body?.take(80)}\"")
+
+                        IdentityCallbackRegistry.notifyNewMessages(callerKey, newFromOthers.size)
+
                         val packageName = callerKey.substringBeforeLast('_')
                         val relayIntent = Intent("org.ethereumhpone.messenger.action.RELAY_TO_THIRD_PARTY").apply {
                             putExtra("target_package", packageName)
-                            putExtra("message_count", newMessageCount)
+                            putExtra("sender_address", senderAddress)
+                            putExtra("message_text", lastMsg.body)
                         }
                         sendBroadcast(relayIntent)
+                        relayedAny = true
+                    }
 
-                        watermarkPrefs.edit().putLong(watermarkKey, nowNs).apply()
-                    } else {
-                        // Still advance watermark so we don't re-scan old messages
-                        watermarkPrefs.edit().putLong(watermarkKey, nowNs).apply()
+                    // Always advance watermark
+                    watermarkPrefs.edit().putLong(watermarkKey, nowNs).apply()
+
+                    if (!relayedAny) {
+                        Log.d(TAG, "No new messages for caller $callerKey")
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to sync isolated identity for caller $callerKey", e)
