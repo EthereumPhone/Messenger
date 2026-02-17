@@ -325,5 +325,18 @@ class ThirdPartyIdentityService : Service() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             return prefs.getString("${KEY_PREFIX}${callerKey}_address", null)
         }
+
+        /**
+         * Returns the caller key whose isolated identity matches [address],
+         * or null if no registered identity uses that address.
+         */
+        fun findCallerKeyByAddress(context: Context, address: String): String? {
+            val callerKeys = getAllCallerKeys(context)
+            for (key in callerKeys) {
+                val stored = loadAddressForSync(context, key)
+                if (stored.equals(address, ignoreCase = true)) return key
+            }
+            return null
+        }
     }
 }

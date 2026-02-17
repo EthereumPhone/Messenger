@@ -43,6 +43,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import javax.inject.Inject
+import android.content.Intent
+import org.ethereumhpone.data.services.IdentityCallbackRegistry
+import org.ethereumhpone.data.services.ThirdPartyIdentityService
+import org.xmtp.android.library.libxmtp.IdentityKind
 
 class MessageRepositoryImpl @Inject constructor(
     private val messageDao: MessageDao,
@@ -159,7 +163,10 @@ class MessageRepositoryImpl @Inject constructor(
                 )
 
                 launch { messageDao.upsertMessages(listOf(messageEntity)) }
-                launch { conversation.publishMessages() }
+                launch {
+                    conversation.publishMessages()
+                    notifyThirdPartyRecipients(conversation)
+                }
 
                 messageId
             }
@@ -223,10 +230,44 @@ class MessageRepositoryImpl @Inject constructor(
                 )
 
                 launch { messageDao.upsertMessages(listOf(messageEntity)) }
-                launch { xmtpConversation.publishMessages() }
+                launch {
+                    xmtpConversation.publishMessages()
+                    notifyThirdPartyRecipients(xmtpConversation)
+                }
 
                 messageId
             }
+        }
+    }
+
+    /**
+     * After a message is published, checks if any conversation member is a
+     * registered third-party isolated identity and immediately notifies that
+     * app via the callback registry and an explicit broadcast.
+     */
+    private suspend fun notifyThirdPartyRecipients(conversation: Conversation) {
+        try {
+            val members = conversation.members()
+            for (member in members) {
+                val address = member.identities
+                    .firstOrNull { it.kind == IdentityKind.ETHEREUM }
+                    ?.identifier ?: continue
+
+                val callerKey = ThirdPartyIdentityService.findCallerKeyByAddress(context, address)
+                    ?: continue
+
+                AndroidLog.d("MessageRepository", "Notifying third-party $callerKey of new message")
+                IdentityCallbackRegistry.notifyNewMessages(callerKey, 1)
+
+                val packageName = callerKey.substringBeforeLast('_')
+                val wakeIntent = Intent("org.ethereumhpone.messenger.action.NEW_XMTP_MESSAGES").apply {
+                    setPackage(packageName)
+                    putExtra("message_count", 1)
+                }
+                context.sendBroadcast(wakeIntent)
+            }
+        } catch (e: Exception) {
+            AndroidLog.w("MessageRepository", "Failed to notify third-party recipients", e)
         }
     }
 
