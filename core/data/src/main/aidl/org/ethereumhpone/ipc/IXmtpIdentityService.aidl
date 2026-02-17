@@ -5,6 +5,8 @@
 
 package org.ethereumhpone.ipc;
 
+import org.ethereumhpone.ipc.IIdentityMessageCallback;
+
 interface IXmtpIdentityService {
 
     // Creates a new isolated XMTP identity for the calling app.
@@ -45,4 +47,10 @@ interface IXmtpIdentityService {
     // Returns null if no identity exists or on failure.
     // BLOCKING: Must be called from a background thread.
     String getMessages(String conversationId, long afterNs);
+
+    // Registers a callback to be notified when new messages arrive during background sync.
+    void registerMessageCallback(IIdentityMessageCallback callback);
+
+    // Unregisters a previously registered message callback.
+    void unregisterMessageCallback(IIdentityMessageCallback callback);
 }

@@ -56,6 +56,8 @@ class MsgSyncService : Service() {
         private const val SYNC_TIMEOUT_MS = 55_000L // 55 seconds (OS has 60s wake lock)
         private const val WAKE_LOCK_TAG = "MsgSyncService:sync"
         private const val MAX_CONSECUTIVE_SYNC_RUNS = 5
+        private const val CALLBACK_PREFS = "IdentityCallbackWatermarks"
+        private const val WATERMARK_PREFIX = "last_callback_ns_"
     }
 
     @Inject lateinit var syncRepository: SyncRepository
@@ -262,6 +264,10 @@ class MsgSyncService : Service() {
      * messages sent to those identities are pulled from the network.
      * This ensures third-party apps see new messages even when they aren't
      * actively bound to the identity service.
+     *
+     * After sync, detects new messages using a watermark timestamp and
+     * fires [IdentityCallbackRegistry] callbacks for each caller key
+     * that has new messages.
      */
     private suspend fun syncIsolatedIdentities() {
         try {
@@ -270,11 +276,37 @@ class MsgSyncService : Service() {
 
             Log.i(TAG, "Syncing ${callerKeys.size} isolated identity client(s)...")
 
+            val watermarkPrefs = getSharedPreferences(CALLBACK_PREFS, Context.MODE_PRIVATE)
+
             for (callerKey in callerKeys) {
                 try {
                     val client = getOrCreateIsolatedClient(callerKey) ?: continue
                     client.conversations.syncAllConversations()
                     Log.d(TAG, "Synced isolated identity for caller $callerKey")
+
+                    // Detect new messages since last callback watermark
+                    val watermarkKey = "$WATERMARK_PREFIX$callerKey"
+                    val lastWatermarkNs = watermarkPrefs.getLong(watermarkKey, 0L)
+                    val nowNs = System.currentTimeMillis() * 1_000_000L
+
+                    var newMessageCount = 0
+                    val conversations = client.conversations.list()
+                    for (conversation in conversations) {
+                        val messages = conversation.messages(afterNs = lastWatermarkNs)
+                        // Count non-empty messages not sent by ourselves
+                        newMessageCount += messages.count { msg ->
+                            !msg.body.isNullOrBlank() && msg.senderInboxId != client.inboxId
+                        }
+                    }
+
+                    if (newMessageCount > 0) {
+                        Log.i(TAG, "Detected $newMessageCount new message(s) for caller $callerKey")
+                        IdentityCallbackRegistry.notifyNewMessages(callerKey, newMessageCount)
+                        watermarkPrefs.edit().putLong(watermarkKey, nowNs).apply()
+                    } else {
+                        // Still advance watermark so we don't re-scan old messages
+                        watermarkPrefs.edit().putLong(watermarkKey, nowNs).apply()
+                    }
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to sync isolated identity for caller $callerKey", e)
                 }

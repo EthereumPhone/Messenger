@@ -13,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import org.ethereumhpone.data.codec.TransactionRequestCodec
 import org.ethereumhpone.data.manager.GeneratedWallet
 import org.ethereumhpone.data.manager.XmtpClientManager
+import org.ethereumhpone.ipc.IIdentityMessageCallback
 import org.ethereumhpone.ipc.IXmtpIdentityService
 import org.web3j.crypto.ECKeyPair
 import org.xmtp.android.library.Client
@@ -180,6 +181,14 @@ class ThirdPartyIdentityService : Service() {
                     null
                 }
             }
+        }
+
+        override fun registerMessageCallback(callback: IIdentityMessageCallback) {
+            IdentityCallbackRegistry.register(callerKey(), callback)
+        }
+
+        override fun unregisterMessageCallback(callback: IIdentityMessageCallback) {
+            IdentityCallbackRegistry.unregister(callerKey(), callback)
         }
 
         override fun getMessages(conversationId: String, afterNs: Long): String? {
