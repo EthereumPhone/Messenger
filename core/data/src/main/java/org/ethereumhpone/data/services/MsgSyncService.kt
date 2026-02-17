@@ -302,6 +302,15 @@ class MsgSyncService : Service() {
                     if (newMessageCount > 0) {
                         Log.i(TAG, "Detected $newMessageCount new message(s) for caller $callerKey")
                         IdentityCallbackRegistry.notifyNewMessages(callerKey, newMessageCount)
+
+                        // Send explicit broadcast to wake the caller app
+                        val packageName = callerKey.substringBeforeLast('_')
+                        val wakeIntent = Intent("org.ethereumhpone.messenger.action.NEW_XMTP_MESSAGES").apply {
+                            setPackage(packageName)
+                            putExtra("message_count", newMessageCount)
+                        }
+                        sendBroadcast(wakeIntent)
+
                         watermarkPrefs.edit().putLong(watermarkKey, nowNs).apply()
                     } else {
                         // Still advance watermark so we don't re-scan old messages
