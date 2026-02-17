@@ -18,12 +18,22 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import org.ethereumhpone.data.manager.GeneratedWallet
 import org.ethereumhpone.data.manager.XmtpClientManager
 import org.ethereumhpone.datastore.MessengerPreferences
 import org.ethereumhpone.domain.manager.NotificationManager
 import org.ethereumhpone.domain.repository.SyncRepository
 import org.ethereumhpone.ipc.IMsgSyncService
 import org.ethereumphone.walletsdk.WalletSDK
+import org.xmtp.android.library.Client
+import org.xmtp.android.library.codecs.GroupUpdatedCodec
+import org.xmtp.android.library.codecs.ReadReceiptCodec
+import org.xmtp.android.library.codecs.ReactionCodec
+import org.xmtp.android.library.codecs.ReplyCodec
+import org.xmtp.android.library.codecs.AttachmentCodec
+import org.xmtp.android.library.codecs.RemoteAttachmentCodec
+import org.ethereumhpone.data.codec.TransactionRequestCodec
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 /**
@@ -53,6 +63,9 @@ class MsgSyncService : Service() {
     @Inject lateinit var walletSDK: WalletSDK
     @Inject lateinit var messengerPreferences: MessengerPreferences
     @Inject lateinit var notificationManager: NotificationManager
+
+    /** Cached XMTP clients for isolated third-party identities, keyed by caller key. */
+    private val isolatedClients = ConcurrentHashMap<String, Client>()
 
     private val serviceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
@@ -196,6 +209,9 @@ class MsgSyncService : Service() {
                     )
                 }
 
+                // Also sync all isolated third-party identity clients
+                syncIsolatedIdentities()
+
                 if (drainStats.totalNewMessages > 0) {
                     return@withContext SyncResult.Success(drainStats.totalNewMessages)
                 }
@@ -239,6 +255,60 @@ class MsgSyncService : Service() {
             passes = passes,
             fullyDrained = false,
         )
+    }
+
+    /**
+     * Syncs all stored isolated third-party identity clients so that
+     * messages sent to those identities are pulled from the network.
+     * This ensures third-party apps see new messages even when they aren't
+     * actively bound to the identity service.
+     */
+    private suspend fun syncIsolatedIdentities() {
+        try {
+            val callerKeys = ThirdPartyIdentityService.getAllCallerKeys(this@MsgSyncService)
+            if (callerKeys.isEmpty()) return
+
+            Log.i(TAG, "Syncing ${callerKeys.size} isolated identity client(s)...")
+
+            for (callerKey in callerKeys) {
+                try {
+                    val client = getOrCreateIsolatedClient(callerKey) ?: continue
+                    client.conversations.syncAllConversations()
+                    Log.d(TAG, "Synced isolated identity for caller $callerKey")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to sync isolated identity for caller $callerKey", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to enumerate isolated identities for sync", e)
+        }
+    }
+
+    /**
+     * Returns a cached or newly created XMTP client for the given isolated identity.
+     */
+    private suspend fun getOrCreateIsolatedClient(callerKey: String): Client? {
+        isolatedClients[callerKey]?.let { return it }
+
+        val privateKeyHex = ThirdPartyIdentityService.loadPrivateKeyForSync(this, callerKey)
+            ?: return null
+        val address = ThirdPartyIdentityService.loadAddressForSync(this, callerKey)
+            ?: return null
+
+        val wallet = GeneratedWallet.fromPrivateKeyHex(privateKeyHex)
+
+        Client.register(codec = GroupUpdatedCodec())
+        Client.register(codec = ReadReceiptCodec())
+        Client.register(codec = ReactionCodec())
+        Client.register(codec = ReplyCodec())
+        Client.register(codec = AttachmentCodec())
+        Client.register(codec = RemoteAttachmentCodec())
+        Client.register(codec = TransactionRequestCodec())
+
+        val options = XmtpClientManager.clientOptions(this, address)
+        val client = Client.create(account = wallet, options = options)
+        isolatedClients[callerKey] = client
+        return client
     }
 
     private sealed class SyncResult {

@@ -24,8 +24,11 @@ import org.xmtp.android.library.codecs.ReactionCodec
 import org.xmtp.android.library.codecs.ReadReceiptCodec
 import org.xmtp.android.library.codecs.RemoteAttachmentCodec
 import org.xmtp.android.library.codecs.ReplyCodec
+import org.xmtp.android.library.Conversation
 import org.xmtp.android.library.libxmtp.IdentityKind
 import org.xmtp.android.library.libxmtp.PublicIdentity
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
@@ -130,6 +133,91 @@ class ThirdPartyIdentityService : Service() {
             }
         }
 
+        override fun syncConversations() {
+            val key = callerKey()
+            runBlocking(Dispatchers.IO) {
+                try {
+                    val client = getOrCreateClient(key)
+                    if (client == null) {
+                        Log.w(TAG, "syncConversations: no identity for caller $key")
+                        return@runBlocking
+                    }
+                    client.conversations.syncAllConversations()
+                    Log.d(TAG, "syncConversations: synced for caller $key")
+                } catch (e: Exception) {
+                    Log.e(TAG, "syncConversations failed for caller $key", e)
+                }
+            }
+        }
+
+        override fun getConversations(): String? {
+            val key = callerKey()
+            return runBlocking(Dispatchers.IO) {
+                try {
+                    val client = getOrCreateClient(key)
+                    if (client == null) {
+                        Log.w(TAG, "getConversations: no identity for caller $key")
+                        return@runBlocking null
+                    }
+                    val conversations = client.conversations.list()
+                    val jsonArray = JSONArray()
+                    for (conversation in conversations) {
+                        val obj = JSONObject()
+                        obj.put("id", conversation.id)
+                        obj.put("createdAtMs", conversation.createdAt.time)
+                        // Extract peer address from members (the one that isn't us)
+                        val peerAddress = conversation.members()
+                            .flatMap { it.identities }
+                            .filter { it.kind == IdentityKind.ETHEREUM }
+                            .map { it.identifier }
+                            .firstOrNull { !it.equals(loadAddress(key), ignoreCase = true) }
+                        obj.put("peerAddress", peerAddress ?: "")
+                        jsonArray.put(obj)
+                    }
+                    jsonArray.toString()
+                } catch (e: Exception) {
+                    Log.e(TAG, "getConversations failed for caller $key", e)
+                    null
+                }
+            }
+        }
+
+        override fun getMessages(conversationId: String, afterNs: Long): String? {
+            val key = callerKey()
+            return runBlocking(Dispatchers.IO) {
+                try {
+                    val client = getOrCreateClient(key)
+                    if (client == null) {
+                        Log.w(TAG, "getMessages: no identity for caller $key")
+                        return@runBlocking null
+                    }
+                    val conversation = client.conversations.findConversation(conversationId)
+                    if (conversation == null) {
+                        Log.w(TAG, "getMessages: conversation $conversationId not found")
+                        return@runBlocking null
+                    }
+                    val messages = conversation.messages(afterNs = afterNs)
+                    val myAddress = loadAddress(key)
+                    val jsonArray = JSONArray()
+                    for (msg in messages) {
+                        // Skip empty messages
+                        if (msg.body.isNullOrBlank()) continue
+                        val obj = JSONObject()
+                        obj.put("id", msg.id)
+                        obj.put("senderInboxId", msg.senderInboxId)
+                        obj.put("body", msg.body)
+                        obj.put("sentAtMs", msg.sentAtNs / 1_000_000)
+                        obj.put("isMe", msg.senderInboxId == client.inboxId)
+                        jsonArray.put(obj)
+                    }
+                    jsonArray.toString()
+                } catch (e: Exception) {
+                    Log.e(TAG, "getMessages failed for caller $key", e)
+                    null
+                }
+            }
+        }
+
     }
 
     /**
@@ -200,5 +288,33 @@ class ThirdPartyIdentityService : Service() {
         private const val TAG = "ThirdPartyIdentity"
         private const val PREFS_NAME = "IsolatedIdentities"
         private const val KEY_PREFIX = "identity_"
+
+        /**
+         * Returns all stored caller keys that have a private key + address.
+         * Used by MsgSyncService to sync all isolated identity clients.
+         */
+        fun getAllCallerKeys(context: Context): List<String> {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.all.keys
+                .filter { it.startsWith(KEY_PREFIX) && it.endsWith("_key") }
+                .map { it.removePrefix(KEY_PREFIX).removeSuffix("_key") }
+        }
+
+        /**
+         * Loads the private key hex for a given caller key.
+         * Used by MsgSyncService to create clients for sync.
+         */
+        fun loadPrivateKeyForSync(context: Context, callerKey: String): String? {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getString("${KEY_PREFIX}${callerKey}_key", null)
+        }
+
+        /**
+         * Loads the address for a given caller key.
+         */
+        fun loadAddressForSync(context: Context, callerKey: String): String? {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getString("${KEY_PREFIX}${callerKey}_address", null)
+        }
     }
 }
