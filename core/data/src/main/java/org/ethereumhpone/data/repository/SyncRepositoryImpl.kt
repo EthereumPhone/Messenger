@@ -574,13 +574,13 @@ class SyncRepositoryImpl @Inject constructor(
                                 // Notify via callback (reaches bound SDK clients)
                                 IdentityCallbackRegistry.notifyNewMessages(callerKey, 1)
 
-                                // Send broadcast (wakes app if not running)
+                                // Relay broadcast through OS service (wakes app even if stopped)
                                 val packageName = callerKey.substringBeforeLast('_')
-                                val wakeIntent = Intent("org.ethereumhpone.messenger.action.NEW_XMTP_MESSAGES").apply {
-                                    setPackage(packageName)
+                                val relayIntent = Intent("org.ethereumhpone.messenger.action.RELAY_TO_THIRD_PARTY").apply {
+                                    putExtra("target_package", packageName)
                                     putExtra("message_count", 1)
                                 }
-                                context.sendBroadcast(wakeIntent)
+                                context.sendBroadcast(relayIntent)
 
                                 // Advance watermark so the 5-min sync doesn't re-notify
                                 val nowNs = System.currentTimeMillis() * 1_000_000L

@@ -303,13 +303,13 @@ class MsgSyncService : Service() {
                         Log.i(TAG, "Detected $newMessageCount new message(s) for caller $callerKey")
                         IdentityCallbackRegistry.notifyNewMessages(callerKey, newMessageCount)
 
-                        // Send explicit broadcast to wake the caller app
+                        // Relay broadcast through OS service to wake the caller app
                         val packageName = callerKey.substringBeforeLast('_')
-                        val wakeIntent = Intent("org.ethereumhpone.messenger.action.NEW_XMTP_MESSAGES").apply {
-                            setPackage(packageName)
+                        val relayIntent = Intent("org.ethereumhpone.messenger.action.RELAY_TO_THIRD_PARTY").apply {
+                            putExtra("target_package", packageName)
                             putExtra("message_count", newMessageCount)
                         }
-                        sendBroadcast(wakeIntent)
+                        sendBroadcast(relayIntent)
 
                         watermarkPrefs.edit().putLong(watermarkKey, nowNs).apply()
                     } else {

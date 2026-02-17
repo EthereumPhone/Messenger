@@ -260,11 +260,11 @@ class MessageRepositoryImpl @Inject constructor(
                 IdentityCallbackRegistry.notifyNewMessages(callerKey, 1)
 
                 val packageName = callerKey.substringBeforeLast('_')
-                val wakeIntent = Intent("org.ethereumhpone.messenger.action.NEW_XMTP_MESSAGES").apply {
-                    setPackage(packageName)
+                val relayIntent = Intent("org.ethereumhpone.messenger.action.RELAY_TO_THIRD_PARTY").apply {
+                    putExtra("target_package", packageName)
                     putExtra("message_count", 1)
                 }
-                context.sendBroadcast(wakeIntent)
+                context.sendBroadcast(relayIntent)
             }
         } catch (e: Exception) {
             AndroidLog.w("MessageRepository", "Failed to notify third-party recipients", e)
