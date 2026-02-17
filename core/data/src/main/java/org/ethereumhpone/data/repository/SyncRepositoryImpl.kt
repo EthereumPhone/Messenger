@@ -64,6 +64,11 @@ import javax.inject.Inject
 import org.ethereumhpone.domain.manager.NetworkManager
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withTimeoutOrNull
+import android.content.Intent
+import org.ethereumhpone.data.manager.GeneratedWallet
+import org.ethereumhpone.data.services.IdentityCallbackRegistry
+import org.ethereumhpone.data.services.ThirdPartyIdentityService
+import java.util.concurrent.ConcurrentHashMap
 
 
 class SyncRepositoryImpl @Inject constructor(
@@ -92,8 +97,14 @@ class SyncRepositoryImpl @Inject constructor(
 ): SyncRepository {
     private val _isSyncing = MutableStateFlow(false)
     override val isSyncing: Flow<Boolean> = _isSyncing.asStateFlow()
+
+    /** Cached XMTP clients for isolated third-party identity streams. */
+    private val isolatedStreamClients = ConcurrentHashMap<String, org.xmtp.android.library.Client>()
+
     companion object {
         private const val TAG = "SyncRepositoryImpl"
+        private const val CALLBACK_PREFS = "IdentityCallbackWatermarks"
+        private const val WATERMARK_PREFIX = "last_callback_ns_"
     }
 
 
@@ -520,7 +531,88 @@ class SyncRepositoryImpl @Inject constructor(
 
                         }
                 }
+
+                // Stream messages for all isolated third-party identity clients
+                launch {
+                    streamIsolatedIdentities()
+                }
             }
+    }
+
+    /**
+     * Starts real-time message streams for all registered isolated third-party
+     * identity clients. When a new message arrives, notifies the caller app
+     * via the callback registry and an explicit-package broadcast.
+     *
+     * Also advances the watermark so the 5-minute background sync in
+     * [MsgSyncService] does not re-fire for the same messages.
+     */
+    private suspend fun streamIsolatedIdentities() {
+        val callerKeys = ThirdPartyIdentityService.getAllCallerKeys(context)
+        if (callerKeys.isEmpty()) return
+
+        Log.i(TAG, "Starting real-time streams for ${callerKeys.size} isolated identity(ies)")
+        val watermarkPrefs = context.getSharedPreferences(CALLBACK_PREFS, Context.MODE_PRIVATE)
+
+        coroutineScope {
+            for (callerKey in callerKeys) {
+                launch {
+                    try {
+                        val isolatedClient = getOrCreateIsolatedStreamClient(callerKey) ?: return@launch
+
+                        // Sync before streaming to pick up any backlog
+                        isolatedClient.conversations.syncAllConversations()
+
+                        isolatedClient.conversations
+                            .streamAllMessages()
+                            .collect { message ->
+                                if (message.body.isNullOrBlank()) return@collect
+                                if (message.senderInboxId == isolatedClient.inboxId) return@collect
+
+                                Log.d(TAG, "Real-time isolated message for $callerKey: ${message.id}")
+
+                                // Notify via callback (reaches bound SDK clients)
+                                IdentityCallbackRegistry.notifyNewMessages(callerKey, 1)
+
+                                // Send broadcast (wakes app if not running)
+                                val packageName = callerKey.substringBeforeLast('_')
+                                val wakeIntent = Intent("org.ethereumhpone.messenger.action.NEW_XMTP_MESSAGES").apply {
+                                    setPackage(packageName)
+                                    putExtra("message_count", 1)
+                                }
+                                context.sendBroadcast(wakeIntent)
+
+                                // Advance watermark so the 5-min sync doesn't re-notify
+                                val nowNs = System.currentTimeMillis() * 1_000_000L
+                                watermarkPrefs.edit()
+                                    .putLong("$WATERMARK_PREFIX$callerKey", nowNs)
+                                    .apply()
+                            }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to stream isolated identity for $callerKey", e)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns a cached or newly created XMTP client for the given isolated identity.
+     * Used for real-time streaming in [streamIsolatedIdentities].
+     */
+    private suspend fun getOrCreateIsolatedStreamClient(callerKey: String): org.xmtp.android.library.Client? {
+        isolatedStreamClients[callerKey]?.let { return it }
+
+        val privateKeyHex = ThirdPartyIdentityService.loadPrivateKeyForSync(context, callerKey)
+            ?: return null
+        val address = ThirdPartyIdentityService.loadAddressForSync(context, callerKey)
+            ?: return null
+
+        val wallet = GeneratedWallet.fromPrivateKeyHex(privateKeyHex)
+        val options = XmtpClientManager.clientOptions(context, address)
+        val client = org.xmtp.android.library.Client.create(account = wallet, options = options)
+        isolatedStreamClients[callerKey] = client
+        return client
     }
 
 
