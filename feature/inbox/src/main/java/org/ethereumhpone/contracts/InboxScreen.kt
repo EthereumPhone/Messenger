@@ -86,12 +86,10 @@ import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.datetime.Instant
-import org.ethereumhpone.contracts.ui.ChatListInfo
 import org.ethereumhpone.contracts.ui.ConversationActionButton
 import org.ethereumphone.contacts.NewConversationSheet
 import org.ethereumphone.dgenlibrary.SystemColorManager
 import org.ethereumphone.dgenlibrary.components.SearchHeader
-import org.ethereumphone.dgenlibrary.components.SwipeableListItem
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
@@ -101,8 +99,11 @@ import org.ethereumphone.model.Recipient
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import androidx.compose.material.icons.filled.Check
-import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
-import org.ethereumphone.dgenlibrary.screens.InfoScreen
+import com.example.dgenlibrary.ConfirmationOverlay
+import com.example.dgenlibrary.InfoScreen
+import com.example.dgenlibrary.components.ChatListInfo
+import com.example.dgenlibrary.components.SwipeableListItem
+import org.ethereumhpone.contracts.utils.printFormattedDateInfo
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -262,7 +263,6 @@ fun InboxScreen(
             // Show no internet screen when offline
             if (!isOnline) {
                 InfoScreen(
-                    gifEnabledLoader = gifEnabledLoader,
                     primaryColor = primaryColor,
                     description = "Connect your device to the internet."
                 )
@@ -276,7 +276,6 @@ fun InboxScreen(
                     }
                     is ConversationUIState.Empty ->{
                         InfoScreen(
-                            gifEnabledLoader = gifEnabledLoader,
                             primaryColor = primaryColor,
                             description = "Start a conversation."
                         )
@@ -428,7 +427,7 @@ fun InboxScreen(
                                                                 isGroup = conversation.recipients.size > 1,
                                                                 header = conversation.getHeader(),
                                                                 subheader = conversation.getSummary(),
-                                                                time = conversation.lastMessage?.date,
+                                                                time = printFormattedDateInfo(conversation.lastMessage?.date),
                                                                 readConversation = conversation.lastMessage?.seen == true,
                                                                 onClick = { conversationClicked(conversation.id) },
                                                             )
@@ -472,7 +471,6 @@ fun InboxScreen(
                                         }
                                         else{
                                             InfoScreen(
-                                                gifEnabledLoader = gifEnabledLoader,
                                                 primaryColor = primaryColor,
                                                 description = "Start a conversation with somebody"
                                             )
@@ -531,11 +529,10 @@ fun InboxScreen(
                                                             },
                                                         ) {
                                                             ChatListInfo(
-                                                                //TODO: Improve group identification
                                                                 isGroup = conversation.recipients.size > 1,
                                                                 header = conversation.getHeader(),
                                                                 subheader = conversation.getSummary(),
-                                                                time = conversation.lastMessage?.date,
+                                                                time = printFormattedDateInfo(conversation.lastMessage?.date),
                                                                 readConversation = conversation.lastMessage?.seen == true,
                                                                 onClick = { conversationClicked(conversation.id) },
                                                                 primaryColor = primaryColor
@@ -580,7 +577,6 @@ fun InboxScreen(
                                             InfoScreen(
                                                 modifier = Modifier.offset(y=16.dp),
                                                 imageSize = 200.dp,
-                                                gifEnabledLoader = gifEnabledLoader,
                                                 primaryColor = primaryColor,
                                                 description = "No requests"
                                             )
@@ -622,11 +618,11 @@ fun InboxScreen(
                 description = deleteMessage,
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
-                onDelete = {
+                onCancel = {
                     showDeleteConfirmation = false
                     conversationToDelete?.let { deleteConversation(it) }
                 },
-                onCancel = { showDeleteConfirmation = false }
+                onConfirm = { showDeleteConfirmation = false }
             )
         }
     }

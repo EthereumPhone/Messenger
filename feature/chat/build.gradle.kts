@@ -144,6 +144,7 @@ dependencies {
 
 
 
+    implementation(libs.dgen.component.library)
 
 
 }

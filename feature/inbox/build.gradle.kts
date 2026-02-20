@@ -121,6 +121,7 @@ dependencies {
     implementation(project(":core:model"))
 
     implementation(libs.kotlinx.datetime)
+    implementation(libs.dgen.component.library)
 
 
 

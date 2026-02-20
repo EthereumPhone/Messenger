@@ -64,6 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import com.example.dgenlibrary.InfoScreen
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
 import com.example.dgenlibrary.ui.theme.pulseOpacity
@@ -75,7 +76,6 @@ import org.ethereumhpone.chat.ChatSendViewModel
 import org.ethereumhpone.chat.ConversationUiState
 import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
-import org.ethereumphone.dgenlibrary.screens.InfoScreen
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import org.ethereumphone.model.TransactionCall
@@ -565,7 +565,6 @@ private fun TokenSearchContent(
             
             tokens.isEmpty() -> {
                 InfoScreen(
-                    gifEnabledLoader = gifEnabledLoader,
                     primaryColor = primaryColor,
                     description = "No assets available"
                 )

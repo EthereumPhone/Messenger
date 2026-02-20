@@ -115,5 +115,8 @@ dependencies {
     implementation("com.github.Nicola-Ceornea:BaseNameResolver:1.0.2")
 
 
+    implementation(libs.dgen.component.library)
+
+
 
 }
