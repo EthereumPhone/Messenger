@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
@@ -89,12 +90,12 @@ fun SelectableMemberItem(
                 .size(24.dp)
                 .background(
                     color = if (isSelected) primaryColor else Color.Transparent,
-                    shape = CircleShape
+                    shape = RoundedCornerShape(0.dp)
                 )
                 .then(
                     if (!isSelected) {
                         Modifier.drawBehind {
-                            drawCircle(
+                            drawRect(
                                 color = primaryColor,
                                 style = Stroke(width = 2.dp.toPx())
                             )

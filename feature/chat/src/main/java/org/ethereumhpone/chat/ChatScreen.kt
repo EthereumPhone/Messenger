@@ -124,11 +124,6 @@ import org.ethereumphone.dgenlibrary.components.TimeHeader
 import org.ethereumphone.dgenlibrary.components.verticalLazyListScrollbar
 import org.ethereumphone.dgenlibrary.components.SelectionOverlay
 import org.ethereumphone.dgenlibrary.components.SelectionBarColumn
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.ContentCopy
-// removed LocalDensity/zIndex imports; overlay content is centered, not positioned
-import org.ethereumphone.dgenlibrary.theme.dgenRed
-import org.ethereumphone.dgenlibrary.components.ConfirmationOverlay
 import org.ethereumphone.dgenlibrary.showDgenToast
 // removed SharedMessageItem; using measured overlay clone
 // removed unused: LocalDensity/width/height
@@ -157,6 +152,7 @@ import androidx.compose.ui.platform.LocalDensity
 import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import com.example.dgenlibrary.ConfirmationOverlay
 import org.ethereumphone.dgenlibrary.components.TransactionStatus
 import org.ethereumphone.dgenlibrary.components.TransactionStatusOverlay
 
@@ -989,7 +985,7 @@ fun ChatScreen(
             extraDescription = "This will hide the message and show 'Deleted Message'.",
             primaryColor = primaryColor,
             secondaryColor = secondaryColor,
-            onDelete = {
+            onCancel = {
                 longPressedMessage.value?.id?.let { msgId ->
                     softDeletedMessageIds[msgId] = true
                 }
@@ -998,7 +994,7 @@ fun ChatScreen(
                 longPressedMessage.value = null
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             },
-            onCancel = {
+            onConfirm = {
                 showDeleteConfirmation.value = false
             }
         )

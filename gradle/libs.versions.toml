@@ -42,6 +42,7 @@ junitKtx = "1.2.1"
 kotlinxDatetime = "0.6.1"
 compose-foundation = "1.5.4"
 compose-runtime-saveable = "1.5.4"
+dgencomponentlibrary = "e8a4860729"
 
 
 
@@ -131,6 +132,8 @@ compose-foundation = { group = "androidx.compose.foundation", name = "foundation
 compose-runtimeSaveable = { group = "androidx.compose.runtime", name = "runtime-saveable", version.ref = "compose-runtime-saveable" }
 compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "compose" }
 
+#dgen component library
+dgen-component-library = { group = "com.github.EthereumPhone", name = "Dgen-component-library", version.ref = "dgencomponentlibrary" }
 
 
 [plugins]

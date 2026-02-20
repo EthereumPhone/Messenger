@@ -57,8 +57,8 @@ import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import android.os.Build.VERSION.SDK_INT
+import com.example.dgenlibrary.InfoScreen
 import org.ethereumphone.dgenlibrary.components.DgenPrimaryButton
-import org.ethereumphone.dgenlibrary.screens.InfoScreen
 
 @Composable
 fun OnboardingRoute(
@@ -136,7 +136,6 @@ fun OnboardingScreen(
         if (offline) {
             // Show an informational screen prompting the user to connect to the internet.
             InfoScreen(
-                gifEnabledLoader = gifEnabledLoader,
                 primaryColor = primaryColor,
                 description = "Connect to the internet to proceed"
             )
