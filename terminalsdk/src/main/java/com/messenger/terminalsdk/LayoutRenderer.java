@@ -107,6 +107,70 @@ public class LayoutRenderer {
     }
 
     /**
+     * Renders the next terminal layout into a bitmap
+     * @return A bitmap of size 428x142 pixels containing the rendered layout
+     */
+    public Bitmap renderNext() {
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.next_terminal_layout, null);
+
+        int accentColor = getColorForRender();
+
+        ImageView nextIcon = view.findViewById(R.id.next_icon);
+        if (nextIcon != null) {
+            nextIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
+        }
+
+        TextView nextLabel = view.findViewById(R.id.next_label);
+        if (nextLabel != null) {
+            nextLabel.setTextColor(accentColor);
+        }
+
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(428, View.MeasureSpec.EXACTLY);
+        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(142, View.MeasureSpec.EXACTLY);
+        view.measure(widthMeasureSpec, heightMeasureSpec);
+        view.layout(0, 0, 428, 142);
+
+        Bitmap bitmap = Bitmap.createBitmap(428, 142, Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+
+        return bitmap;
+    }
+
+    /**
+     * Renders the confirm terminal layout into a bitmap
+     * @return A bitmap of size 428x142 pixels containing the rendered layout
+     */
+    public Bitmap renderConfirm() {
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.confirm_terminal_layout, null);
+
+        int accentColor = getColorForRender();
+
+        ImageView confirmIcon = view.findViewById(R.id.delete_icon);
+        if (confirmIcon != null) {
+            confirmIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
+        }
+
+        TextView confirmLabel = view.findViewById(R.id.delete_label);
+        if (confirmLabel != null) {
+            confirmLabel.setTextColor(accentColor);
+        }
+
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(428, View.MeasureSpec.EXACTLY);
+        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(142, View.MeasureSpec.EXACTLY);
+        view.measure(widthMeasureSpec, heightMeasureSpec);
+        view.layout(0, 0, 428, 142);
+
+        Bitmap bitmap = Bitmap.createBitmap(428, 142, Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+
+        return bitmap;
+    }
+
+    /**
      * Iterate over all pixels and set any pixel that is not close to black to the provided color.
      * @param bmp         The bitmap to manipulate.
      * @param toColor     The color to apply to non-black pixels.

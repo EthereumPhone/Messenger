@@ -42,7 +42,7 @@ junitKtx = "1.2.1"
 kotlinxDatetime = "0.6.1"
 compose-foundation = "1.5.4"
 compose-runtime-saveable = "1.5.4"
-dgencomponentlibrary = "e8a4860729"
+dgencomponentlibrary = "38f4511ed2"
 
 
 
