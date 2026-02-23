@@ -84,7 +84,7 @@ dependencies {
 
     implementation(libs.kotlinx.datetime)
 
-
+    implementation(libs.dgen.component.library)
 
 
 

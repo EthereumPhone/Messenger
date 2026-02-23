@@ -190,7 +190,67 @@ class TerminalSDK(private val context: Context) {
         destroyTouchHandler()
     }
 
+    suspend fun displayNext(onNext: () -> Unit) {
+        println("ETHOSDEBUGTERMINAL displayNext")
+        destroyTouchHandler()
 
+        val layoutRenderer = LayoutRenderer(context)
+        val nextBitmap = layoutRenderer.renderNext()
+
+        refresh(nextBitmap, ID_PERSISTENT)
+
+        miniDisplayTouchHandler = MiniDisplayTouchHandler(
+            context,
+            MiniDisplayTouchHandler.OnTouchListener { x, y, action ->
+                if (action != MotionEvent.ACTION_DOWN) {
+                    return@OnTouchListener
+                }
+                try {
+                    performHapticFeedback()
+                    onNext()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        )
+    }
+
+    suspend fun removeNext() {
+        println("ETHOSDEBUGTERMINAL removeNext")
+        resume(ID_STATUSBAR)
+        destroyTouchHandler()
+    }
+
+    suspend fun displayConfirm(onConfirm: () -> Unit) {
+        println("ETHOSDEBUGTERMINAL displayConfirm")
+        destroyTouchHandler()
+
+        val layoutRenderer = LayoutRenderer(context)
+        val confirmBitmap = layoutRenderer.renderConfirm()
+
+        refresh(confirmBitmap, ID_PERSISTENT)
+
+        miniDisplayTouchHandler = MiniDisplayTouchHandler(
+            context,
+            MiniDisplayTouchHandler.OnTouchListener { x, y, action ->
+                if (action != MotionEvent.ACTION_DOWN) {
+                    return@OnTouchListener
+                }
+                try {
+                    performHapticFeedback()
+                    onConfirm()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        )
+    }
+
+    suspend fun removeConfirm() {
+        println("ETHOSDEBUGTERMINAL removeConfirm")
+        resume(ID_STATUSBAR)
+        destroyTouchHandler()
+    }
 
     /**
      * Manually destroy the current touch handler

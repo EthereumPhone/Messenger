@@ -65,10 +65,10 @@ import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.geometry.Rect
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.body2_fontSize
+import com.example.dgenlibrary.util.CustomTextSelectionMenuContent
+import com.example.dgenlibrary.util.CustomTextToolbar
+import com.example.dgenlibrary.util.CustomTextToolbarState
 import org.ethereumphone.dgenlibrary.theme.dgenGray
-import org.ethosmobile.contacts.ui.components.CustomTextSelectionMenuContent
-import org.ethosmobile.contacts.ui.components.CustomTextToolbar
-import org.ethosmobile.contacts.ui.components.CustomTextToolbarState
 
 @Composable
 fun DgenCursorTextfield(
@@ -272,3 +272,4 @@ fun DgenCursorTextfield(
     // Render custom selection menu
     CustomTextSelectionMenuContent(textToolbarState)
 }
+

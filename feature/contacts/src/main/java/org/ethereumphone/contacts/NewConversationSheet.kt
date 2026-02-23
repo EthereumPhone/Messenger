@@ -1,22 +1,15 @@
 package org.ethereumphone.contacts
 
 import android.os.Build.VERSION.SDK_INT
-import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,9 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,22 +37,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -72,9 +53,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.ImageLoader
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import com.example.dgenlibrary.ui.theme.body1_fontSize
-import com.example.dgenlibrary.ui.theme.mediumEnterDuration
-import com.example.dgenlibrary.ui.theme.mediumExitDuration
 import com.example.dgenlibrary.ui.theme.pulseOpacity
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
@@ -82,21 +60,16 @@ import org.ethereumphone.dgenlibrary.theme.dgenWhite
 import kotlinx.coroutines.flow.collectLatest
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumphone.contacts.components.CreateGroupSheet
-import org.ethereumphone.contacts.components.NewConversationHeader
 import org.ethereumphone.contacts.components.SelectMembersSheet
-import org.ethereumphone.dgenlibrary.components.SecondaryScreenHeader
-import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
 import org.ethereumhpone.database.model.ContactEntity
-import org.ethereumphone.dgenlibrary.components.ActionButton
-import org.ethereumphone.dgenlibrary.components.DgenLoadingMatrix
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import com.example.dgenlibrary.DgenSearchRow
 import com.example.dgenlibrary.InfoScreen
 import com.example.dgenlibrary.ui.backgrounds.DgenHeaderBackground
 import com.example.dgenlibrary.ui.backgrounds.FadeDirection
 import com.example.dgenlibrary.ui.backgrounds.FadeEdge
 import com.example.dgenlibrary.ui.theme.label_fontSize
-import org.ethereumphone.dgenlibrary.R
 import org.ethereumphone.dgenlibrary.showDgenToast
 
 
@@ -162,11 +135,7 @@ internal fun ConversationSheet(
 ) {
     val context = LocalContext.current
 
-    //variables for searchbar
     var isSearchFocused by remember { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val focusManager = LocalFocusManager.current
 
     var multiSelectMode by remember { mutableStateOf(false) }
     val selectedItems = remember { mutableStateListOf<ContactEntity>() }
@@ -206,23 +175,6 @@ internal fun ConversationSheet(
 
 
 
-
-    val animatedColor by animateColorAsState(
-        targetValue = if (isSearchFocused) secondaryColor else Color.Transparent,
-        animationSpec = tween(durationMillis = mediumEnterDuration),
-        label = "color"
-    )
-
-    // Lambda to clear the current search value and notify the change upstream
-
-    LaunchedEffect(isSearchFocused) {
-        if (isSearchFocused) {
-            focusRequester.requestFocus()
-        } else {
-            keyboardController?.hide()
-            focusManager.clearFocus()
-        }
-    }
 
     val gifEnabledLoader = remember(context) {
         ImageLoader.Builder(context)
@@ -269,128 +221,35 @@ internal fun ConversationSheet(
                                 .padding(top = 24.dp,bottom = 16.dp) // fab size 64.dp
                         )
                         {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(start = 12.dp,end = 12.dp)
-                            )
-                            {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .drawBehind {
-                                            drawRoundRect(
-                                                cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
-                                                color = animatedColor,
-                                            )
-                                        }
-                                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier.size(32.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.searchicon),
-                                            contentDescription = "Search",
-                                            tint = primaryColor,
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .pointerInput(Unit) {
-                                                    detectTapGestures {
-                                                        isSearchFocused = true
-                                                    }
-                                                }
-                                        )
-
-                                    }
-
-
-                                    DgenCursorSearchTextfield(
-                                        value = textState,
-                                        onValueChange = { newTextFieldValue ->
-                                            // Process the text to remove spaces after periods
-                                            val processedText =
-                                                newTextFieldValue.text.replace(Regex("\\.\\s+"), ".")
-
-                                            // Create a new TextFieldValue with the processed text and updated selection
-                                            val newProcessedTextFieldValue =
-                                                newTextFieldValue.copy(text = processedText)
-                                            textState = newProcessedTextFieldValue
-                                            onSearchQueryChanged(newProcessedTextFieldValue.text)
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .focusRequester(focusRequester),
-                                        singleLine = true,
-                                        maxFieldHeight = 50.dp,
-                                        cursorColor = primaryColor,
-                                        cursorWidth = 16.dp,
-                                        cursorHeight = 48.dp,
-                                        textfieldFocusManager = focusManager,
-                                        onFocusChanged = { focused ->
-                                            isSearchFocused = focused
-                                        },
-                                        placeholder = {
-                                            Text(
-                                                text = "Search name, ENS or inbox ID".uppercase(),
-                                                style = TextStyle(
-                                                    fontFamily = SpaceMono,
-                                                    color = primaryColor.copy(alpha = 0.45f),
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 20.sp
-                                                )
-                                            )
-                                        },
-                                        textStyle = TextStyle(
-                                            fontFamily = PitagonsSans,
-                                            color = dgenWhite,
+                            DgenSearchRow(
+                                searchValue = textState,
+                                onValueChange = { newTextFieldValue ->
+                                    val processedText =
+                                        newTextFieldValue.text.replace(Regex("\\.\\s+"), ".")
+                                    val newProcessedTextFieldValue =
+                                        newTextFieldValue.copy(text = processedText)
+                                    textState = newProcessedTextFieldValue
+                                    onSearchQueryChanged(newProcessedTextFieldValue.text)
+                                },
+                                onClearValue = { onSearchQueryChanged("") },
+                                modifier = Modifier.padding(start = 12.dp, end = 12.dp),
+                                primaryColor = primaryColor,
+                                secondaryColor = secondaryColor,
+                                placeholder = {
+                                    Text(
+                                        text = "Search name, ENS or inbox ID".uppercase(),
+                                        style = TextStyle(
+                                            fontFamily = SpaceMono,
+                                            color = primaryColor.copy(alpha = 0.45f),
                                             fontWeight = FontWeight.SemiBold,
-                                            fontSize = 20.sp,
-                                            lineHeight = 20.sp,
-                                            letterSpacing = 0.sp,
-                                            textDecoration = TextDecoration.None
-                                        ),
+                                            fontSize = 20.sp
+                                        )
                                     )
-
-
-                                    AnimatedVisibility(
-                                        modifier = Modifier,
-                                        visible = isSearchFocused,
-                                        enter = fadeIn(animationSpec = tween(mediumEnterDuration)),
-                                        exit = fadeOut(animationSpec = tween(mediumExitDuration))
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .padding(end = 4.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-
-                                            ActionButton(
-                                                modifier = Modifier
-                                                    .size(24.dp)
-                                                    .drawBehind {
-                                                        drawCircle(
-                                                            color = primaryColor,
-                                                        )
-                                                    },
-                                                onClick = { onSearchQueryChanged("") },
-                                                icon = {
-                                                    Icon(
-                                                        contentDescription = "Clear",
-                                                        imageVector = Icons.Rounded.Clear,
-                                                        tint = secondaryColor,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                }
-                                            )
-                                        }
-                                    }
+                                },
+                                onFocusChanged = { focused ->
+                                    isSearchFocused = focused
                                 }
-                            }
+                            )
 
                             Row(
                                 modifier = Modifier

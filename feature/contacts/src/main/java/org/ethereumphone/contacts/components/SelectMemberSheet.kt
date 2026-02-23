@@ -2,8 +2,6 @@ package org.ethereumphone.contacts.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,7 +9,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,55 +24,48 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextStyle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dgenlibrary.DgenSearchRow
 import com.example.dgenlibrary.ui.backgrounds.DgenHeaderBackground
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
-import org.ethereumphone.dgenlibrary.components.ActionButton
-import org.ethosmobile.contacts.ui.components.DgenCursorSearchTextfield
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenRed
 import org.ethereumphone.dgenlibrary.theme.dgenOcean
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
+import com.messenger.terminalsdk.TerminalSDK
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.contacts.QueryResultUiState
-import org.ethereumphone.contacts.R
-
-private const val mediumEnterDuration = 300
-private const val mediumExitDuration = 150
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -92,7 +82,6 @@ fun SelectMembersSheet(
     var currentInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
     val dismissKeyboard = { currentInputSelector = InputSelector.NONE }
 
-    // Intercept back navigation if there's a InputSelector visible
     if (currentInputSelector != InputSelector.NONE) {
         BackHandler(onBack = dismissKeyboard)
     }
@@ -101,31 +90,82 @@ fun SelectMembersSheet(
         mutableStateOf(TextFieldValue())
     }
 
-    // Search focus state
-    var isSearchFocused by remember { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val focusManager = LocalFocusManager.current
-
-    val buttonAlpha by animateFloatAsState(
-        if (selectedItems.size > 0) 1f else 0f,
-        tween(300)
-    )
     var showFinalGroupSheet by remember { mutableStateOf(false) }
 
-    // Animated background color for search field
-    val animatedColor by androidx.compose.animation.animateColorAsState(
-        targetValue = if (isSearchFocused) secondaryColor else Color.Transparent,
-        animationSpec = tween(durationMillis = mediumEnterDuration),
-        label = "color"
-    )
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val terminalSDK = remember {
+        try { TerminalSDK(context) } catch (_: Exception) { null }
+    }
 
-    LaunchedEffect(isSearchFocused) {
-        if (isSearchFocused) {
-            focusRequester.requestFocus()
+    val hasSelectedItems = selectedItems.isNotEmpty()
+    DisposableEffect(hasSelectedItems) {
+        if (hasSelectedItems) {
+            coroutineScope.launch {
+                try {
+                    if (terminalSDK?.isAvailable() == true) {
+                        terminalSDK.displayNext {
+                            showFinalGroupSheet = true
+                            onContactsSelected(selectedItems.toList())
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         } else {
-            keyboardController?.hide()
-            focusManager.clearFocus()
+            coroutineScope.launch {
+                try {
+                    if (terminalSDK?.isAvailable() == true) {
+                        terminalSDK.removeNext()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+        onDispose {
+            coroutineScope.launch {
+                try {
+                    if (terminalSDK?.isAvailable() == true) {
+                        terminalSDK.removeNext()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        var isFirstResume = true
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (isFirstResume) {
+                    isFirstResume = false
+                    return@LifecycleEventObserver
+                }
+                if (selectedItems.isNotEmpty()) {
+                    coroutineScope.launch {
+                        delay(500)
+                        try {
+                            if (terminalSDK?.isAvailable() == true) {
+                                terminalSDK.displayNext {
+                                    showFinalGroupSheet = true
+                                    onContactsSelected(selectedItems.toList())
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -144,59 +184,6 @@ fun SelectMembersSheet(
         ) { open ->
             if (!open){
                 DgenHeaderBackground(
-//                    headerContent = {
-//                        Text(
-//                            text = "SELECT MEMBERS",
-//                            style = TextStyle(
-//                                fontFamily = PitagonsSans,
-//                                color = primaryColor,
-//                                fontWeight = FontWeight.SemiBold,
-//                                fontSize = 20.sp,
-//                                lineHeight = 20.sp,
-//                                letterSpacing = 0.sp,
-//                                textDecoration = TextDecoration.None
-//                            ),
-//                            maxLines = 1,
-//                            overflow = TextOverflow.Ellipsis,
-//                            modifier = Modifier,
-//                        )
-//
-//                        Surface(
-//                            color = primaryColor,
-//                            shape = CircleShape,
-//                            modifier = Modifier
-//                                .height(25.dp)
-//                                .alpha(buttonAlpha)
-//                                .pointerInput(Unit) {
-//                                    detectTapGestures {
-//                                        if (selectedItems.size > 1) {
-//                                            // Need at least 2 members for a group
-//                                            onContactsSelected(selectedItems.toList())
-//                                        }
-//                                    }
-//                                }
-//                        ){
-//                            Row(
-//                                modifier = Modifier.padding(horizontal = 8.dp),
-//                                horizontalArrangement = Arrangement.Center
-//                            ) {
-//                                Text(
-//                                    text= "NEXT (${selectedItems.size})",
-//                                    color = secondaryColor,
-//                                    style = TextStyle(
-//                                        fontFamily = SpaceMono,
-//                                        color = dgenWhite,
-//                                        fontWeight = FontWeight.Normal,
-//                                        fontSize = 16.sp,
-//                                        lineHeight = 16.sp,
-//                                        letterSpacing = 0.sp,
-//                                        textDecoration = TextDecoration.None
-//                                    ),
-//                                    modifier = Modifier.padding(horizontal = 8.dp)
-//                                )
-//                            }
-//                        }
-//                    },
                     title = "SELECT MEMBERS",
                     primaryColor = primaryColor,
                     onBackClick = onBackClick
@@ -209,149 +196,35 @@ fun SelectMembersSheet(
                             .padding(top = 24.dp,bottom = 16.dp) // fab size 64.dp
                     )
                     {
-                        // Search Row with clear button
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(start = 12.dp,end = 12.dp)
-                        )
-                        {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .drawBehind {
-                                        drawRoundRect(
-                                            cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
-                                            color = animatedColor,
-                                        )
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier.size(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.searchicon),
-                                        contentDescription = "Search",
-                                        tint = primaryColor,
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .pointerInput(Unit) {
-                                                detectTapGestures {
-                                                    isSearchFocused = true
-                                                }
-                                            }
-                                    )
-                                }
-
-                                DgenCursorSearchTextfield(
-                                    value = textState,
-                                    onValueChange = { newTextFieldValue ->
-                                        // Process the text to remove spaces after periods
-                                        val processedText = newTextFieldValue.text.replace(Regex("\\.\\s+"), ".")
-                                        val newProcessedTextFieldValue = newTextFieldValue.copy(text = processedText)
-                                        textState = newProcessedTextFieldValue
-                                        onSearchQueryChanged(newProcessedTextFieldValue.text)
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .focusRequester(focusRequester),
-                                    singleLine = true,
-                                    maxFieldHeight = 50.dp,
-                                    cursorColor = primaryColor,
-                                    cursorWidth = 16.dp,
-                                    cursorHeight = 48.dp,
-                                    textfieldFocusManager = focusManager,
-                                    onFocusChanged = { focused ->
-                                        isSearchFocused = focused
-                                    },
-                                    placeholder = {
-                                        Text(
-                                            text = "Search name, ENS or address".uppercase(),
-                                            style = TextStyle(
-                                                fontFamily = SpaceMono,
-                                                color = primaryColor.copy(alpha = 0.45f),
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 18.sp
-                                            ),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    },
-                                    textStyle = TextStyle(
-                                        fontFamily = PitagonsSans,
-                                        color = dgenWhite,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 20.sp,
-                                        lineHeight = 20.sp,
-                                        letterSpacing = 0.sp,
-                                        textDecoration = TextDecoration.None
-                                    ),
-                                )
-
-                                AnimatedVisibility(
-                                    modifier = Modifier,
-                                    visible = isSearchFocused && textState.text.isNotEmpty(),
-                                    enter = fadeIn(animationSpec = tween(mediumEnterDuration)),
-                                    exit = fadeOut(animationSpec = tween(mediumExitDuration))
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .padding(end = 4.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        ActionButton(
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .drawBehind {
-                                                    drawCircle(
-                                                        color = primaryColor,
-                                                    )
-                                                },
-                                            onClick = {
-                                                textState = TextFieldValue("")
-                                                onSearchQueryChanged("")
-                                            },
-                                            icon = {
-                                                Icon(
-                                                    contentDescription = "Clear",
-                                                    imageVector = Icons.Rounded.Clear,
-                                                    tint = secondaryColor,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Navigate to review sheet when members are selected
-                        if (selectedItems.isNotEmpty()) {
-                            Surface(
-                                color = primaryColor,
-                                shape = CircleShape,
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp)
-                                    .clickable { showFinalGroupSheet = true }
-                            ) {
+                        DgenSearchRow(
+                            searchValue = textState,
+                            onValueChange = { newTextFieldValue ->
+                                val processedText = newTextFieldValue.text.replace(Regex("\\.\\s+"), ".")
+                                val newProcessedTextFieldValue = newTextFieldValue.copy(text = processedText)
+                                textState = newProcessedTextFieldValue
+                                onSearchQueryChanged(newProcessedTextFieldValue.text)
+                            },
+                            onClearValue = {
+                                textState = TextFieldValue("")
+                                onSearchQueryChanged("")
+                            },
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp),
+                            primaryColor = primaryColor,
+                            secondaryColor = secondaryColor,
+                            placeholder = {
                                 Text(
-                                    text = "REVIEW SELECTED (${selectedItems.size})",
-                                    color = secondaryColor,
+                                    text = "Search name, ENS or address".uppercase(),
                                     style = TextStyle(
                                         fontFamily = SpaceMono,
+                                        color = primaryColor.copy(alpha = 0.45f),
                                         fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp
+                                        fontSize = 20.sp
                                     ),
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
+                        )
 
                         // Results list
                         LazyColumn(
@@ -359,7 +232,7 @@ fun SelectMembersSheet(
                                 .fillMaxWidth()
                                 .padding(start = 12.dp,end = 12.dp)
                                 ,
-                            verticalArrangement = Arrangement.spacedBy(9.dp)
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             when(queryResultUiState) {
                                 is QueryResultUiState.Loading -> {}
@@ -435,14 +308,7 @@ fun SelectMembersSheet(
                                                             ),
                                                         contentAlignment = Alignment.Center
                                                     ) {
-                                                        if (isManualSelected) {
-                                                            Text(
-                                                                text = "✓",
-                                                                color = secondaryColor,
-                                                                fontSize = 14.sp,
-                                                                fontWeight = FontWeight.Bold
-                                                            )
-                                                        }
+
                                                     }
                                                 }
                                             }
@@ -553,35 +419,6 @@ fun SelectMembersSheet(
                             }
                         }
 
-                        Surface(
-                            color = primaryColor,
-                            shape = CircleShape,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .align(Alignment.TopCenter)
-                                .clickable { onContactsSelected(selectedItems.toList()) }
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = "DEBUG: NEXT STEP",
-                                    color = secondaryColor,
-                                    style = TextStyle(
-                                        fontFamily = SpaceMono,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 16.sp,
-                                        lineHeight = 16.sp,
-                                        letterSpacing = 0.sp,
-                                        textDecoration = TextDecoration.None
-                                    )
-                                )
-                            }
-                        }
                     }
                 }
             }

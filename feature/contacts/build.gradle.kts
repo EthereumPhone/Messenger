@@ -61,6 +61,7 @@ dependencies {
 
 
     implementation(project(":dgenlibrary"))
+    implementation(project(":terminalsdk"))
 
 
 

@@ -49,6 +49,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.LocalContext
 import com.example.dgenlibrary.ui.theme.PitagonsSans
+import com.example.dgenlibrary.util.CustomTextSelectionMenuContent
+import com.example.dgenlibrary.util.CustomTextToolbar
+import com.example.dgenlibrary.util.CustomTextToolbarState
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 
 
