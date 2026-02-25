@@ -25,11 +25,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,16 +75,19 @@ fun GroupDetailsSheet(
     primaryColor: Color,
     secondaryColor: Color,
     canManageMembers: Boolean = false,
+    isSuperAdmin: Boolean = false,
     onBackClick: () -> Unit,
     onUpdateGroupName: (String) -> Unit,
     onUpdateGroupDescription: (String) -> Unit,
     onAddMembers: () -> Unit,
     onRemoveMember: (String) -> Unit,
     onLeaveGroup: () -> Unit,
+    onRemoveGroup: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isEditMode by remember { mutableStateOf(false) }
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
+    var showRemoveGroupConfirmDialog by remember { mutableStateOf(false) }
     var showRemoveMemberDialog by remember { mutableStateOf<Recipient?>(null) }
 
     val otherRecipientIds = remember(conversation.recipients) {
@@ -286,7 +287,9 @@ fun GroupDetailsSheet(
 
                                 MemberItem(
                                     modifier = Modifier.animateItemPlacement(),
-                                    header = if (isMe) "You" else {
+                                    header = if (isMe) {
+                                        if (isSuperAdmin) "You - Super Admin" else "You"
+                                    } else {
                                         recipient.contact?.name
                                             ?: recipient.ens
                                             ?: truncatedAddress
@@ -296,10 +299,6 @@ fun GroupDetailsSheet(
                                     } else if (recipient.contact?.name != null || recipient.ens != null) {
                                         truncatedAddress
                                     } else "",
-                                    onDelete = {
-                                        if (isMe) showLeaveConfirmDialog = true
-                                        else showRemoveMemberDialog = recipient
-                                    },
                                     primaryColor = primaryColor,
                                     actionButton = {
                                             if (isEditMode && canManageMembers) {
@@ -339,12 +338,27 @@ fun GroupDetailsSheet(
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                DgenSecondaryButton(
-                    text = "Leave Group",
-                    containerColor = dgenRed,
-                    onClick = { showLeaveConfirmDialog = true },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
+                if (isSuperAdmin) {
+                    DgenSecondaryButton(
+                        text = "Remove Group",
+                        containerColor = dgenRed,
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            showRemoveGroupConfirmDialog = true
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                } else {
+                    DgenSecondaryButton(
+                        text = "Leave Group",
+                        containerColor = dgenRed,
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            showLeaveConfirmDialog = true
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
             }
 
             FadeEdge(
@@ -360,58 +374,37 @@ fun GroupDetailsSheet(
         }
     }
 
-    // Leave Group Confirmation Dialog
-    if (showLeaveConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showLeaveConfirmDialog = false },
-            containerColor = dgenBlack,
-            title = {
-                Text(
-                    text = "Leave Group?",
-                    style = TextStyle(
-                        fontFamily = PitagonsSans,
-                        color = primaryColor,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp
-                    )
-                )
-            },
-            text = {
-                Text(
-                    text = "You will no longer receive messages from this group.",
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        color = primaryColor.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onLeaveGroup()
-                        showLeaveConfirmDialog = false
-                    }
-                ) {
-                    Text(
-                        text = "Leave",
-                        color = dgenRed,
-                        fontFamily = SpaceMono,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLeaveConfirmDialog = false }) {
-                    Text(
-                        text = "Cancel",
-                        color = primaryColor,
-                        fontFamily = SpaceMono
-                    )
-                }
-            }
-        )
-    }
+    // Leave Group Confirmation Overlay
+    ConfirmationOverlay(
+        visible = showLeaveConfirmDialog,
+        description = "Leave this group?",
+        extraDescription = "You will no longer receive messages from this group.",
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor,
+        cancelButtonText = "CANCEL",
+        confirmButtonText = "LEAVE",
+        onCancel = { showLeaveConfirmDialog = false },
+        onConfirm = {
+            onLeaveGroup()
+            showLeaveConfirmDialog = false
+        }
+    )
+
+    // Remove Group Confirmation Overlay (super admin)
+    ConfirmationOverlay(
+        visible = showRemoveGroupConfirmDialog,
+        description = "Remove this group?",
+        extraDescription = "All members will be removed and the group will be deleted.",
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor,
+        cancelButtonText = "CANCEL",
+        confirmButtonText = "REMOVE",
+        onCancel = { showRemoveGroupConfirmDialog = false },
+        onConfirm = {
+            onRemoveGroup()
+            showRemoveGroupConfirmDialog = false
+        }
+    )
 
     // Remove Member Confirmation Overlay
     showRemoveMemberDialog?.let { recipient ->
@@ -474,6 +467,7 @@ private fun PreviewGroupDetailsSheet() {
         onUpdateGroupDescription = {},
         onAddMembers = {},
         onRemoveMember = {},
-        onLeaveGroup = {}
+        onLeaveGroup = {},
+        onRemoveGroup = {}
     )
 }

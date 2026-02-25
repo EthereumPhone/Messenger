@@ -180,6 +180,7 @@ fun ChatRoute(
     val selectMode by chatViewModel.selectMode.collectAsStateWithLifecycle()
     val myInboxId by chatViewModel.myInboxId.collectAsStateWithLifecycle()
     val canManageMembers by chatViewModel.canManageMembers.collectAsStateWithLifecycle()
+    val isSuperAdmin by chatViewModel.isSuperAdmin.collectAsStateWithLifecycle()
     val transactionStatus by chatViewModel.transactionStatus.collectAsStateWithLifecycle()
 
     val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
@@ -234,6 +235,8 @@ fun ChatRoute(
         onAddGroupMembers = chatViewModel::addGroupMembers,
         onRemoveGroupMember = chatViewModel::removeGroupMember,
         onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) },
+        onRemoveGroup = { chatViewModel.removeGroup(onBackClick) },
+        isSuperAdmin = isSuperAdmin,
         onExecuteTransaction = chatViewModel::executeTransaction,
         onRejectTransaction = chatViewModel::rejectTransaction,
         onSendReaction = chatViewModel::sendReaction,
@@ -294,6 +297,8 @@ fun ChatScreen(
     onAddGroupMembers: (List<String>) -> Unit = {},
     onRemoveGroupMember: (String) -> Unit = {},
     onLeaveGroup: () -> Unit = {},
+    onRemoveGroup: () -> Unit = {},
+    isSuperAdmin: Boolean = false,
     onExecuteTransaction: (TransactionRequest) -> Unit = {},
     onRejectTransaction: (Message) -> Unit = {},
     onSendReaction: (messageId: String, emoji: String) -> Unit = { _, _ -> },
@@ -1028,6 +1033,7 @@ fun ChatScreen(
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
                 canManageMembers = canManageMembers,
+                isSuperAdmin = isSuperAdmin,
                 onBackClick = { showGroupDetails = false },
                 onUpdateGroupName = onUpdateGroupName,
                 onUpdateGroupDescription = onUpdateGroupDescription,
@@ -1038,6 +1044,10 @@ fun ChatScreen(
                 onRemoveMember = onRemoveGroupMember,
                 onLeaveGroup = {
                     onLeaveGroup()
+                    showGroupDetails = false
+                },
+                onRemoveGroup = {
+                    onRemoveGroup()
                     showGroupDetails = false
                 }
             )
