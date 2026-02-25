@@ -521,7 +521,7 @@ fun InboxScreen(
                                                                         expandedConversationId = null
                                                                     },
                                                                     icon = Icons.Filled.Check,
-                                                                    iconColor = secondaryColor,
+                                                                    iconColor = primaryColor,
                                                                     iconSize = 48.dp,
                                                                     modifier = Modifier.fillMaxHeight()
                                                                 )
@@ -623,6 +623,25 @@ fun InboxScreen(
                     conversationToDelete?.let { deleteConversation(it) }
                 },
                 onConfirm = { showDeleteConfirmation = false }
+            )
+        }
+
+        // Accept request confirmation overlay
+        AnimatedVisibility(
+            visible = showAcceptConfirmation,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            ConfirmationOverlay(
+                description = acceptMessage,
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                onCancel = { showAcceptConfirmation = false },
+                onConfirm = {
+                    showAcceptConfirmation = false
+                    conversationToAccept?.let { markAccepted(it, true) }
+                }
             )
         }
     }

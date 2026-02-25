@@ -68,6 +68,7 @@ interface ConversationRepository {
     suspend fun updatePinnedConversation(id: String, pinned: Boolean)
     suspend fun updateArchivedConversation(id: String, archived: Boolean)
     suspend fun updateBlockedConversation(id: String, blocked: Boolean)
+    suspend fun updateUnknownConversation(id: String, unknown: Boolean)
     suspend fun updateSeenConversation(id: String, seen: Boolean)
     suspend fun deleteConversation(id: String)
 
