@@ -1,5 +1,9 @@
 package org.ethereumphone.contacts.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +46,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dgenlibrary.DgenLoadingMatrix
 import com.example.dgenlibrary.SimpleDgenTextfield
 import com.example.dgenlibrary.ui.backgrounds.DgenHeaderBackground
 import com.example.dgenlibrary.ui.backgrounds.FadeDirection
@@ -63,6 +69,7 @@ fun CreateGroupSheet(
     members: List<ContactEntity>,
     onBackClick: () -> Unit,
     onCreateGroup: (List<ContactEntity>, String) -> Unit,
+    isCreationFailed: Boolean = false,
     primaryColor: Color = dgenTurqoise,
     secondaryColor: Color = dgenOcean
 ) {
@@ -71,6 +78,7 @@ fun CreateGroupSheet(
     }
 
     var isCreating by remember { mutableStateOf(false) }
+
     val focusManager = LocalFocusManager.current
     val view = LocalView.current
 
@@ -80,9 +88,21 @@ fun CreateGroupSheet(
         try { TerminalSDK(context) } catch (_: Exception) { null }
     }
 
+    LaunchedEffect(isCreationFailed) {
+        if (isCreationFailed && isCreating) {
+            isCreating = false
+            delay(100)
+            try {
+                if (terminalSDK?.isAvailable() == true) {
+                    terminalSDK.removeConfirm()
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
     val hasGroupName = textState.text.isNotBlank()
-    DisposableEffect(hasGroupName, isCreating) {
-        if (hasGroupName && !isCreating) {
+    DisposableEffect(hasGroupName, isCreating, isCreationFailed) {
+        if (hasGroupName && !isCreating && !isCreationFailed) {
             coroutineScope.launch {
                 try {
                     if (terminalSDK?.isAvailable() == true) {
@@ -262,30 +282,33 @@ fun CreateGroupSheet(
             }
         }
 
-        if (isCreating) {
+        AnimatedVisibility(
+            visible = isCreating,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300))
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(dgenBlack.copy(alpha = 0.7f))
+                    .background(dgenBlack)
                     .clickable(enabled = false) { },
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
-                        color = primaryColor,
-                        strokeWidth = 4.dp
+                    DgenLoadingMatrix(
+                        unactiveLEDColor = secondaryColor,
+                        activeLEDColor = primaryColor
                     )
                     Text(
-                        text = "Creating group...",
+                        text = "CREATING GROUP...",
                         style = TextStyle(
                             fontFamily = SpaceMono,
                             color = primaryColor,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp
+                            fontSize = label_fontSize
                         )
                     )
                 }

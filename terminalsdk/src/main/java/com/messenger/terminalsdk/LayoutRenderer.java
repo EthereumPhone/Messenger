@@ -171,6 +171,38 @@ public class LayoutRenderer {
     }
 
     /**
+     * Renders the add-member terminal layout into a bitmap.
+     * @return A bitmap of size 428x142 pixels containing the rendered layout
+     */
+    public Bitmap renderAddMember() {
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.add_member_terminal_layout, null);
+
+        int accentColor = getColorForRender();
+
+        ImageView addIcon = view.findViewById(R.id.add_member_icon);
+        if (addIcon != null) {
+            addIcon.setColorFilter(accentColor, PorterDuff.Mode.SRC_IN);
+        }
+
+        TextView addLabel = view.findViewById(R.id.add_member_label);
+        if (addLabel != null) {
+            addLabel.setTextColor(accentColor);
+        }
+
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(428, View.MeasureSpec.EXACTLY);
+        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(142, View.MeasureSpec.EXACTLY);
+        view.measure(widthMeasureSpec, heightMeasureSpec);
+        view.layout(0, 0, 428, 142);
+
+        Bitmap bitmap = Bitmap.createBitmap(428, 142, Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+
+        return bitmap;
+    }
+
+    /**
      * Iterate over all pixels and set any pixel that is not close to black to the provided color.
      * @param bmp         The bitmap to manipulate.
      * @param toColor     The color to apply to non-black pixels.

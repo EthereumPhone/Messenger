@@ -252,6 +252,37 @@ class TerminalSDK(private val context: Context) {
         destroyTouchHandler()
     }
 
+    suspend fun displayAddMember(onAddMember: () -> Unit) {
+        println("ETHOSDEBUGTERMINAL displayAddMember")
+        destroyTouchHandler()
+
+        val layoutRenderer = LayoutRenderer(context)
+        val addMemberBitmap = layoutRenderer.renderAddMember()
+
+        refresh(addMemberBitmap, ID_PERSISTENT)
+
+        miniDisplayTouchHandler = MiniDisplayTouchHandler(
+            context,
+            MiniDisplayTouchHandler.OnTouchListener { _, _, action ->
+                if (action != MotionEvent.ACTION_DOWN) {
+                    return@OnTouchListener
+                }
+                try {
+                    performHapticFeedback()
+                    onAddMember()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        )
+    }
+
+    suspend fun removeAddMember() {
+        println("ETHOSDEBUGTERMINAL removeAddMember")
+        resume(ID_STATUSBAR)
+        destroyTouchHandler()
+    }
+
     /**
      * Manually destroy the current touch handler
      */

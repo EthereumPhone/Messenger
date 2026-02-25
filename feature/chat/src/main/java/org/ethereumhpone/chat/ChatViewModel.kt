@@ -213,6 +213,30 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
+    // Whether the current user can manage group members (is admin or super admin)
+    val canManageMembers: StateFlow<Boolean> = xmtpClientManager.clientState
+        .map { state ->
+            if (state == XmtpClientManager.ClientState.Ready && threadId.isNotBlank()) {
+                try {
+                    val conv = xmtpClientManager.client.conversations.findConversation(threadId)
+                    if (conv?.type == org.xmtp.android.library.Conversation.Type.GROUP) {
+                        val group = (conv as org.xmtp.android.library.Conversation.Group).group
+                        val myInbox = xmtpClientManager.client.inboxId
+                        group.isAdmin(myInbox) || group.isSuperAdmin(myInbox)
+                    } else false
+                } catch (e: Exception) {
+                    Log.e("ChatViewModel", "Error checking admin status", e)
+                    false
+                }
+            } else false
+        }
+        .flowOn(Dispatchers.IO)
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = false,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
     fun toggleSelection(message: Message) {
         _selectedMessages.update { current ->
             if (current.contains(message)) current - message else current + message

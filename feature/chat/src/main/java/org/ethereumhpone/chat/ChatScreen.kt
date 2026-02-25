@@ -155,6 +155,7 @@ import coil.decode.ImageDecoderDecoder
 import com.example.dgenlibrary.ConfirmationOverlay
 import org.ethereumphone.dgenlibrary.components.TransactionStatus
 import org.ethereumphone.dgenlibrary.components.TransactionStatusOverlay
+import org.ethereumhpone.chat.components.AddMembersSheet
 
 
 @Composable
@@ -178,6 +179,7 @@ fun ChatRoute(
     val selectedMessages by chatViewModel.selectedMessages.collectAsStateWithLifecycle()
     val selectMode by chatViewModel.selectMode.collectAsStateWithLifecycle()
     val myInboxId by chatViewModel.myInboxId.collectAsStateWithLifecycle()
+    val canManageMembers by chatViewModel.canManageMembers.collectAsStateWithLifecycle()
     val transactionStatus by chatViewModel.transactionStatus.collectAsStateWithLifecycle()
 
     val converstation by chatViewModel.conversation.collectAsStateWithLifecycle()
@@ -229,12 +231,14 @@ fun ChatRoute(
         clearSelection = chatViewModel::clearSelection,
         onUpdateGroupName = chatViewModel::updateGroupName,
         onUpdateGroupDescription = chatViewModel::updateGroupDescription,
+        onAddGroupMembers = chatViewModel::addGroupMembers,
         onRemoveGroupMember = chatViewModel::removeGroupMember,
         onLeaveGroup = { chatViewModel.leaveGroup(onBackClick) },
         onExecuteTransaction = chatViewModel::executeTransaction,
         onRejectTransaction = chatViewModel::rejectTransaction,
         onSendReaction = chatViewModel::sendReaction,
         myInboxId = myInboxId,
+        canManageMembers = canManageMembers,
         onSendTransactionRequest = chatViewModel::sendTransactionRequest,
         onNavigateToSend = onNavigateToSend,
         onNavigateToRequest = onNavigateToRequest,
@@ -287,12 +291,14 @@ fun ChatScreen(
     clearSelection: () -> Unit,
     onUpdateGroupName: (String) -> Unit = {},
     onUpdateGroupDescription: (String) -> Unit = {},
+    onAddGroupMembers: (List<String>) -> Unit = {},
     onRemoveGroupMember: (String) -> Unit = {},
     onLeaveGroup: () -> Unit = {},
     onExecuteTransaction: (TransactionRequest) -> Unit = {},
     onRejectTransaction: (Message) -> Unit = {},
     onSendReaction: (messageId: String, emoji: String) -> Unit = { _, _ -> },
     myInboxId: String = "",
+    canManageMembers: Boolean = false,
     onSendTransactionRequest: (TransactionRequest) -> Unit = {},
     onNavigateToSend: (String) -> Unit = {},
     onNavigateToRequest: (String) -> Unit = {},
@@ -348,9 +354,13 @@ fun ChatScreen(
     
     // Group details sheet state
     var showGroupDetails by remember { mutableStateOf(false) }
+    var showAddMembersSheet by remember { mutableStateOf(false) }
 
-    BackHandler(showOverlay.value || showPicker.value || showActionOverlay || (WindowInsets.isImeVisible && !showBottomSheet) || selectMode || showGroupDetails) {
+    BackHandler(showOverlay.value || showPicker.value || showActionOverlay || (WindowInsets.isImeVisible && !showBottomSheet) || selectMode || showGroupDetails || showAddMembersSheet) {
         when {
+            showAddMembersSheet -> {
+                showAddMembersSheet = false
+            }
             showGroupDetails -> {
                 showGroupDetails = false
             }
@@ -381,6 +391,18 @@ fun ChatScreen(
         ConversationUiState.Loading -> null
         is ConversationUiState.Error -> null
         is ConversationUiState.Success -> converstation.conversation
+    }
+    val existingRecipientAddresses = remember(chatConversion?.recipients) {
+        chatConversion?.recipients
+            ?.map { it.address.trim().lowercase() }
+            ?.toSet()
+            ?: emptySet()
+    }
+    val eligibleContacts = remember(contactEntities, existingRecipientAddresses) {
+        contactEntities.filter { contact ->
+            val address = contact.ethAddress?.trim()
+            !address.isNullOrBlank() && address.lowercase() !in existingRecipientAddresses
+        }
     }
 
     // variables for ui
@@ -1005,18 +1027,44 @@ fun ChatScreen(
                 conversation = chatConversion,
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
+                canManageMembers = canManageMembers,
                 onBackClick = { showGroupDetails = false },
                 onUpdateGroupName = onUpdateGroupName,
                 onUpdateGroupDescription = onUpdateGroupDescription,
                 onAddMembers = {
-                    // TODO: Navigate to add members screen
                     showGroupDetails = false
+                    showAddMembersSheet = true
                 },
                 onRemoveMember = onRemoveGroupMember,
                 onLeaveGroup = {
                     onLeaveGroup()
                     showGroupDetails = false
                 }
+            )
+        }
+
+        // Add Members Sheet (opened from Group Details)
+        if (showAddMembersSheet) {
+            AddMembersSheet(
+                eligibleContacts = eligibleContacts,
+                onAddMembers = { selectedContacts ->
+                    val addressesToAdd = selectedContacts
+                        .mapNotNull { it.ethAddress?.trim() }
+                        .filter { it.isNotBlank() }
+                        .filter { it.lowercase() !in existingRecipientAddresses }
+                        .distinctBy { it.lowercase() }
+
+                    if (addressesToAdd.isNotEmpty()) {
+                        onAddGroupMembers(addressesToAdd)
+                    }
+
+                    showAddMembersSheet = false
+                },
+                onBackClick = {
+                    showAddMembersSheet = false
+                },
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
             )
         }
     }
@@ -1055,22 +1103,8 @@ fun ChatScreen(
                 }
             }
         },
-        chatConversion = chatConversion,
-        recipientUiState = recipientUiState,
-        media = media,
-        selectedIndex = selectedIndex,
-        prevMedia = prevMedia,
-        nextMedia = nextMedia,
-        selectMedia = selectMedia,
         primaryColor = primaryColor,
         secondaryColor = secondaryColor,
-        onSendTransaction = {
-            // Triggered when terminal action completes.
-            // The actual sending is handled by the ChatSendViewModel
-        },
-        onSendTransactionRequest = { request ->
-            onSendTransactionRequest(request)
-        }
     )
     
     // Transaction Status Overlay - shows pending/success/failure state for transactions executed from chat
@@ -1109,7 +1143,7 @@ private fun getImageUri(context: Context, bitmap: Bitmap): Uri? {
 }
 
 enum class Actions {
-    IDLE, SEND, TRANSFER_REQUEST, PHOTO, VIDEO, CONTACT, ACTION_MENU
+    IDLE, SEND, TRANSFER_REQUEST, ACTION_MENU
 }
 
 

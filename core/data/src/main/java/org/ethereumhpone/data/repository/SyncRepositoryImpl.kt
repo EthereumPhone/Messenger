@@ -273,6 +273,9 @@ class SyncRepositoryImpl @Inject constructor(
                     ConversationRecipientCrossRef(conversation.id, inboxId)
                 }
                 conversationDao.insertConversationMemberCrossRefs(refs)
+                if (members.isNotEmpty()) {
+                    conversationDao.deleteRemovedMemberCrossRefs(conversation.id, members)
+                }
 
 
                 val existing = conversationDao.getConversationEntityById(conversation.id)
@@ -302,10 +305,22 @@ class SyncRepositoryImpl @Inject constructor(
                 }
 
                 val isGroupConversation = conversation.type == Conversation.Type.GROUP
+
+                val groupDescription = if (isGroupConversation) {
+                    (conversation as Conversation.Group).group.description
+                } else {
+                    existing?.description
+                }
+                val groupImageUrl = if (isGroupConversation) {
+                    (conversation as Conversation.Group).group.imageUrl
+                } else {
+                    existing?.imageUrl
+                }
                 
                 val conversationEntity = ConversationEntity(
                     id = id as String,
                     title = title as String?,
+                    description = groupDescription,
                     members = members,
                     createdAt = createdAt as Long,
                     archived = archived as Boolean,
@@ -314,7 +329,8 @@ class SyncRepositoryImpl @Inject constructor(
                     clientInbox = client.inboxId,
                     deleted = existing?.deleted ?: false,
                     hideBefore = existing?.hideBefore ?: 0L,
-                    isGroup = isGroupConversation
+                    isGroup = isGroupConversation,
+                    imageUrl = groupImageUrl
                 )
 
                 Log.d("INSERT CONVERSATION", id)
@@ -442,10 +458,22 @@ class SyncRepositoryImpl @Inject constructor(
                             }
 
                             val isGroupConversation = conversation.type == Conversation.Type.GROUP
+
+                            val groupDescription = if (isGroupConversation) {
+                                (conversation as Conversation.Group).group.description
+                            } else {
+                                existing?.description
+                            }
+                            val groupImageUrl = if (isGroupConversation) {
+                                (conversation as Conversation.Group).group.imageUrl
+                            } else {
+                                existing?.imageUrl
+                            }
                             
                             val conversationEntity = ConversationEntity(
                                 id = id as String,
                                 title = title as String?,
+                                description = groupDescription,
                                 members = inboxIds,
                                 createdAt = createdAt as Long,
                                 archived = archived as Boolean,
@@ -454,7 +482,8 @@ class SyncRepositoryImpl @Inject constructor(
                                 clientInbox = client.inboxId,
                                 deleted = existing?.deleted ?: false,
                                 hideBefore = existing?.hideBefore ?: 0L,
-                                isGroup = isGroupConversation
+                                isGroup = isGroupConversation,
+                                imageUrl = groupImageUrl
                             )
                             conversationDao.insertConversation(conversationEntity)
                         }
@@ -826,10 +855,22 @@ class SyncRepositoryImpl @Inject constructor(
             }
             
             val isGroupConversation = conversation.type == Conversation.Type.GROUP
+
+            val groupDescription = if (isGroupConversation) {
+                (conversation as Conversation.Group).group.description
+            } else {
+                existing?.description
+            }
+            val groupImageUrl = if (isGroupConversation) {
+                (conversation as Conversation.Group).group.imageUrl
+            } else {
+                existing?.imageUrl
+            }
             
             val conversationEntity = ConversationEntity(
                 id = id as String,
                 title = title as String?,
+                description = groupDescription,
                 members = inboxIds,
                 createdAt = createdAt as Long,
                 archived = archived as Boolean,
@@ -838,7 +879,8 @@ class SyncRepositoryImpl @Inject constructor(
                 clientInbox = client.inboxId,
                 deleted = existing?.deleted ?: false,
                 hideBefore = existing?.hideBefore ?: 0L,
-                isGroup = isGroupConversation
+                isGroup = isGroupConversation,
+                imageUrl = groupImageUrl
             )
             
             conversationDao.insertConversation(conversationEntity)

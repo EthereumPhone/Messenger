@@ -327,10 +327,7 @@ class ContactViewModel @Inject constructor(
                         }
 
                         is Result.Error -> {
-                            // Suppress internal code from surfacing in UI; repository already shows a user-friendly toast
-                            if (result.message != "NOT_REGISTERED_WITH_XMTP") {
-                                _uiEvent.tryEmit(UiEvent.ShowError(result.message))
-                            }
+                            _uiEvent.tryEmit(UiEvent.ShowError(result.message))
                         }
                     }
                 }
