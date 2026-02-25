@@ -141,6 +141,9 @@ interface ConversationDao {
     @Query("UPDATE conversation SET blocked = :blocked WHERE id = :id")
     suspend fun updateBlockedStatus(id: String, blocked: Boolean)
 
+    @Query("UPDATE conversation SET unknown = :unknown WHERE id = :id")
+    suspend fun updateUnknownStatus(id: String, unknown: Boolean)
+
     @Query("SELECT * FROM conversation WHERE blocked = true")
     fun getBlockedConversations(): Flow<List<ConversationEntity>>
 

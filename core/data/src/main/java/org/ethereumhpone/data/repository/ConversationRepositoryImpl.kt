@@ -453,6 +453,10 @@ class ConversationRepositoryImpl @Inject constructor(
         conversationDao.updateBlockedStatus(id, blocked)
     }
 
+    override suspend fun updateUnknownConversation(id: String, unknown: Boolean) {
+        conversationDao.updateUnknownStatus(id, unknown)
+    }
+
     override suspend fun updateSeenConversation(id: String, seen: Boolean) {
         val conversation = conversationDao.getConversation(id).first()
         conversation?.lastMessageEntity?.let {

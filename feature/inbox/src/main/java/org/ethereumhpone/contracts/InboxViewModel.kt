@@ -89,8 +89,10 @@ class InboxViewModel @Inject constructor(
         savedStateHandle["hidden_conversation_ids"] = updated.toList()
     }
 
-    fun updateConsentState(conversationId: String, address: Boolean) {
-        TODO()
+    fun updateConsentState(conversationId: String, accepted: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            conversationRepository.updateUnknownConversation(conversationId, !accepted)
+        }
     }
 
     fun resolveENS(ensName: String): String {
