@@ -59,6 +59,12 @@ interface ConversationRepository {
      */
     suspend fun leaveGroup(conversationId: String): Result<Unit>
     
+    /**
+     * Removes a group conversation entirely (super admin only).
+     * Removes all other members, then soft-deletes locally.
+     */
+    suspend fun removeGroup(conversationId: String): Result<Unit>
+    
     suspend fun updatePinnedConversation(id: String, pinned: Boolean)
     suspend fun updateArchivedConversation(id: String, archived: Boolean)
     suspend fun updateBlockedConversation(id: String, blocked: Boolean)

@@ -237,6 +237,28 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
             started = SharingStarted.WhileSubscribed(5_000)
         )
 
+    val isSuperAdmin: StateFlow<Boolean> = xmtpClientManager.clientState
+        .map { state ->
+            if (state == XmtpClientManager.ClientState.Ready && threadId.isNotBlank()) {
+                try {
+                    val conv = xmtpClientManager.client.conversations.findConversation(threadId)
+                    if (conv?.type == org.xmtp.android.library.Conversation.Type.GROUP) {
+                        val group = (conv as org.xmtp.android.library.Conversation.Group).group
+                        group.isSuperAdmin(xmtpClientManager.client.inboxId)
+                    } else false
+                } catch (e: Exception) {
+                    Log.e("ChatViewModel", "Error checking super admin status", e)
+                    false
+                }
+            } else false
+        }
+        .flowOn(Dispatchers.IO)
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = false,
+            started = SharingStarted.WhileSubscribed(5_000)
+        )
+
     fun toggleSelection(message: Message) {
         _selectedMessages.update { current ->
             if (current.contains(message)) current - message else current + message
@@ -633,6 +655,23 @@ class ChatViewModel @SuppressLint("StaticFieldLeak")
                 }
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Failed to leave group", e)
+            }
+        }
+    }
+    
+    fun removeGroup(onComplete: () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = conversationRepository.removeGroup(threadId)
+                if (result is org.ethereumhpone.common.util.Result.Success) {
+                    withContext(Dispatchers.Main) {
+                        onComplete()
+                    }
+                } else if (result is org.ethereumhpone.common.util.Result.Error) {
+                    Log.e("ChatViewModel", "Failed to remove group: ${result.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Failed to remove group", e)
             }
         }
     }

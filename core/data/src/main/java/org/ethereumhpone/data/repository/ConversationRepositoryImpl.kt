@@ -636,7 +636,7 @@ class ConversationRepositoryImpl @Inject constructor(
             // (e.g. members removed by concurrent operations whose sync hadn't propagated yet)
             conversationDao.deleteRemovedMemberCrossRefs(conversationId, memberInboxIds)
             
-            showDgenToast(context, "Members added successfully")
+            showDgenToast(context, "Members added")
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e("ConversationRepo", "Failed to add group members", e)
@@ -719,12 +719,47 @@ class ConversationRepositoryImpl @Inject constructor(
             val cutoff = System.currentTimeMillis()
             conversationDao.softDeleteConversation(conversationId, cutoff)
             
-            showDgenToast(context, "Left the group")
+            showDgenToast(context, "Left group")
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e("ConversationRepo", "Failed to leave group", e)
             showDgenToast(context, "Failed to leave group: ${e.message}")
             Result.Error(e.message ?: "Failed to leave group")
+        }
+    }
+    
+    override suspend fun removeGroup(conversationId: String): Result<Unit> {
+        return try {
+            xmtpClientManager.clientState.first { it == XmtpClientManager.ClientState.Ready }
+            val client = xmtpClientManager.client
+            
+            val conversation = client.conversations.findConversation(conversationId)
+                ?: return Result.Error("Conversation not found")
+            
+            if (conversation.type != XmtpConversation.Type.GROUP) {
+                return Result.Error("Not a group conversation")
+            }
+            
+            val group = (conversation as XmtpConversation.Group).group
+            val myInboxId = client.inboxId
+            
+            val otherMembers = group.members()
+                .map { it.inboxId }
+                .filter { it != myInboxId }
+            
+            if (otherMembers.isNotEmpty()) {
+                group.removeMembers(otherMembers)
+            }
+            
+            val cutoff = System.currentTimeMillis()
+            conversationDao.softDeleteConversation(conversationId, cutoff)
+            
+            showDgenToast(context, "Group removed")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e("ConversationRepo", "Failed to remove group", e)
+            showDgenToast(context, "Failed to remove group: ${e.message}")
+            Result.Error(e.message ?: "Failed to remove group")
         }
     }
 }
