@@ -44,6 +44,7 @@ fun CompositeConversation.toExternalModel(): Conversation {
     return Conversation(
         id = conversationEntity.id,
         title = conversationEntity.title,
+        description = conversationEntity.description,
         recipients = recipients.map { it.recipientEntity.toExternalModel(it.contactEntity) },
         draft = conversationEntity.draft,
         lastMessage = senderRecipient?.let { lastMessageEntity?.toExternalModel(it.recipientEntity.toExternalModel(it.contactEntity)) },

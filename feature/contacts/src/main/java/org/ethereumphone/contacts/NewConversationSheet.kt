@@ -57,6 +57,7 @@ import com.example.dgenlibrary.ui.theme.pulseOpacity
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 import org.ethereumphone.dgenlibrary.theme.dgenWhite
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumphone.contacts.components.CreateGroupSheet
@@ -84,6 +85,8 @@ fun NewConversationSheet(
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val queryResultUiState by viewModel.queryResultUiState.collectAsStateWithLifecycle()
+    var resetGroupCreation by remember { mutableStateOf(0) }
+
     ConversationSheet(
         searchQuery = searchQuery,
         queryResultUiState = queryResultUiState,
@@ -92,11 +95,11 @@ fun NewConversationSheet(
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
         onDismiss = onDismiss,
         primaryColor = primaryColor,
-        secondaryColor = secondaryColor
+        secondaryColor = secondaryColor,
+        resetGroupCreationTrigger = resetGroupCreation
     )
 
     val context = LocalContext.current
-    // handles navigation and displaying of error
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
             when (event) {
@@ -105,8 +108,10 @@ fun NewConversationSheet(
                 }
 
                 is UiEvent.ShowError -> {
-                    // Show themed dgen toast
-                    showDgenToast(context, event.message)
+                    if (event.message != "NOT_REGISTERED_WITH_XMTP") {
+                        showDgenToast(context, event.message)
+                    }
+                    resetGroupCreation++
                 }
             }
         }
@@ -132,6 +137,7 @@ internal fun ConversationSheet(
     onDismiss: () -> Unit,
     primaryColor: Color,
     secondaryColor: Color,
+    resetGroupCreationTrigger: Int = 0,
 ) {
     val context = LocalContext.current
 
@@ -142,6 +148,15 @@ internal fun ConversationSheet(
     
     // Group creation state
     var showGroupCreation by remember { mutableStateOf(false) }
+    var groupCreationFailed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(resetGroupCreationTrigger) {
+        if (resetGroupCreationTrigger > 0 && showGroupCreation) {
+            groupCreationFailed = true
+            delay(400)
+            onDismiss()
+        }
+    }
     
     // Local TextFieldValue state that syncs with searchQuery
     var textState by remember { mutableStateOf(TextFieldValue(searchQuery)) }
@@ -478,6 +493,7 @@ internal fun ConversationSheet(
                                 onGroupCreated(addresses, groupName, null, null)
                             }
                         },
+                        isCreationFailed = groupCreationFailed,
                         primaryColor = primaryColor,
                         secondaryColor = secondaryColor
                     )

@@ -67,6 +67,11 @@ import org.ethereumhpone.chat.components.InputSelector
 import org.ethereumhpone.database.model.ContactEntity
 import org.ethereumphone.contacts.QueryResultUiState
 
+enum class SelectMembersTerminalAction {
+    NEXT,
+    ADD_MEMBER
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SelectMembersSheet(
@@ -75,7 +80,8 @@ fun SelectMembersSheet(
     onContactsSelected: (List<ContactEntity>) -> Unit,
     onBackClick: () -> Unit,
     primaryColor: Color = dgenTurqoise,
-    secondaryColor: Color = dgenOcean
+    secondaryColor: Color = dgenOcean,
+    terminalAction: SelectMembersTerminalAction = SelectMembersTerminalAction.NEXT
 ) {
     val selectedItems = remember { mutableStateListOf<ContactEntity>() }
 
@@ -97,18 +103,33 @@ fun SelectMembersSheet(
     val terminalSDK = remember {
         try { TerminalSDK(context) } catch (_: Exception) { null }
     }
+    val terminalActionHandler = {
+        showFinalGroupSheet = true
+        onContactsSelected(selectedItems.toList())
+    }
+
+    suspend fun showTerminalActionButton() {
+        if (terminalSDK?.isAvailable() != true) return
+        when (terminalAction) {
+            SelectMembersTerminalAction.NEXT -> terminalSDK.displayNext(terminalActionHandler)
+            SelectMembersTerminalAction.ADD_MEMBER -> terminalSDK.displayAddMember(terminalActionHandler)
+        }
+    }
+
+    suspend fun hideTerminalActionButton() {
+        if (terminalSDK?.isAvailable() != true) return
+        when (terminalAction) {
+            SelectMembersTerminalAction.NEXT -> terminalSDK.removeNext()
+            SelectMembersTerminalAction.ADD_MEMBER -> terminalSDK.removeAddMember()
+        }
+    }
 
     val hasSelectedItems = selectedItems.isNotEmpty()
     DisposableEffect(hasSelectedItems) {
         if (hasSelectedItems) {
             coroutineScope.launch {
                 try {
-                    if (terminalSDK?.isAvailable() == true) {
-                        terminalSDK.displayNext {
-                            showFinalGroupSheet = true
-                            onContactsSelected(selectedItems.toList())
-                        }
-                    }
+                    showTerminalActionButton()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -116,9 +137,7 @@ fun SelectMembersSheet(
         } else {
             coroutineScope.launch {
                 try {
-                    if (terminalSDK?.isAvailable() == true) {
-                        terminalSDK.removeNext()
-                    }
+                    hideTerminalActionButton()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -127,9 +146,7 @@ fun SelectMembersSheet(
         onDispose {
             coroutineScope.launch {
                 try {
-                    if (terminalSDK?.isAvailable() == true) {
-                        terminalSDK.removeNext()
-                    }
+                    hideTerminalActionButton()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -150,12 +167,7 @@ fun SelectMembersSheet(
                     coroutineScope.launch {
                         delay(500)
                         try {
-                            if (terminalSDK?.isAvailable() == true) {
-                                terminalSDK.displayNext {
-                                    showFinalGroupSheet = true
-                                    onContactsSelected(selectedItems.toList())
-                                }
-                            }
+                            showTerminalActionButton()
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }

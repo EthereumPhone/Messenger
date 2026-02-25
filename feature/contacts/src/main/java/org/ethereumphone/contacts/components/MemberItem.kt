@@ -1,27 +1,16 @@
 package org.ethereumphone.contacts.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -29,7 +18,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dgenlibrary.ui.theme.PitagonsSans
-import org.ethereumphone.dgenlibrary.theme.dgenRed
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
 
 @Composable
@@ -38,25 +26,16 @@ fun MemberItem(
     onDelete: () -> Unit,
     header: String,
     subheader: String = "",
-    primaryColor: Color = dgenTurqoise
-){
-    var openDelete by remember { mutableStateOf(false) }
-    Row (
+    primaryColor: Color = dgenTurqoise,
+    actionButton: @Composable (() -> Unit)? = null
+) {
+    Row(
         modifier
             .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = {
-                        openDelete = !openDelete
-                    },
-                    onDoubleTap = {
-                        openDelete = !openDelete
-                    }
-                )
-            }
             .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(24.dp)
-    ){
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = header,
@@ -72,7 +51,7 @@ fun MemberItem(
                     textDecoration = TextDecoration.None
                 )
             )
-            if(subheader.isNotEmpty()){
+            if (subheader.isNotEmpty()) {
                 Text(
                     text = subheader,
                     overflow = TextOverflow.Ellipsis,
@@ -90,23 +69,8 @@ fun MemberItem(
                 )
             }
         }
-        AnimatedVisibility(
-            openDelete,
-            enter = fadeIn(),
-            exit = fadeOut(),
-        ) {
-            Icon(
-                Icons.Outlined.Delete,
-                "Delete",
-                tint = dgenRed,
-                modifier = Modifier
-                    .size(28.dp)
-                    .pointerInput(Unit) {
-                        detectTapGestures {
-                            onDelete()
-                        }
-                    }
-            )
+        if (actionButton != null) {
+            actionButton()
         }
     }
 }

@@ -166,6 +166,15 @@ interface ConversationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConversationMemberCrossRefs(refs: List<ConversationRecipientCrossRef>)
 
+    @Query("DELETE FROM ConversationRecipientCrossRef WHERE conversationId = :conversationId AND inboxId NOT IN (:keepInboxIds)")
+    suspend fun deleteRemovedMemberCrossRefs(conversationId: String, keepInboxIds: List<String>)
+
+    @Query("DELETE FROM ConversationRecipientCrossRef WHERE conversationId = :conversationId AND inboxId IN (:inboxIds)")
+    suspend fun deleteMemberCrossRefs(conversationId: String, inboxIds: List<String>)
+
+    @Query("DELETE FROM ConversationRecipientCrossRef WHERE conversationId = :conversationId")
+    suspend fun deleteAllMemberCrossRefs(conversationId: String)
+
     /**
      * Gets all conversations with unseen messages for notification purposes.
      * Includes both ALLOWED and UNKNOWN consent state conversations.

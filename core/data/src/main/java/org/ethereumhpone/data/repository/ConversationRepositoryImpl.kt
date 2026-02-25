@@ -632,6 +632,10 @@ class ConversationRepositoryImpl @Inject constructor(
             }
             conversationDao.insertConversationMemberCrossRefs(refs)
             
+            // Remove stale cross-refs for members no longer in the XMTP group
+            // (e.g. members removed by concurrent operations whose sync hadn't propagated yet)
+            conversationDao.deleteRemovedMemberCrossRefs(conversationId, memberInboxIds)
+            
             showDgenToast(context, "Members added successfully")
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -657,26 +661,38 @@ class ConversationRepositoryImpl @Inject constructor(
             
             val group = (conversation as XmtpConversation.Group).group
             
-            // Remove members from the group
+            // Remove members from the XMTP group
             group.removeMembers(inboxIds)
             
-            // Sync and update local database
-            group.sync()
+            // Immediately remove cross-refs for the removed members so the UI updates
+            // even if group.sync()/members() hasn't propagated the change yet
+            conversationDao.deleteMemberCrossRefs(conversationId, inboxIds)
             
-            val allMembers = group.members()
-            val memberInboxIds = allMembers.map { it.inboxId }
-            
-            // Update conversation members
+            // Update the conversation entity's member list
             val existing = conversationDao.getConversationEntityById(conversationId)
             if (existing != null) {
-                conversationDao.insertConversation(existing.copy(members = memberInboxIds))
+                val updatedMembers = existing.members.filterNot { it in inboxIds }
+                conversationDao.insertConversation(existing.copy(members = updatedMembers))
             }
             
-            showDgenToast(context, "Members removed successfully")
+            // Sync in background to reconcile with server state
+            try {
+                group.sync()
+                // After syncing, reconcile cross-refs with the authoritative XMTP member list
+                // to ensure no stale cross-refs remain
+                val currentMembers = group.members().map { it.inboxId }
+                if (currentMembers.isNotEmpty()) {
+                    conversationDao.deleteRemovedMemberCrossRefs(conversationId, currentMembers)
+                }
+            } catch (syncError: Exception) {
+                Log.w("ConversationRepo", "Post-remove sync failed (removal still succeeded)", syncError)
+            }
+            
+            showDgenToast(context, "Member removed")
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e("ConversationRepo", "Failed to remove group members", e)
-            showDgenToast(context, "Failed to remove members: ${e.message}")
+            showDgenToast(context, "Failed to remove member: ${e.message}")
             Result.Error(e.message ?: "Failed to remove group members")
         }
     }
@@ -697,8 +713,7 @@ class ConversationRepositoryImpl @Inject constructor(
             
             val group = (conversation as XmtpConversation.Group).group
             
-            // Remove self from the group
-            group.removeMembers(listOf(client.inboxId))
+            group.leaveGroup()
             
             // Mark the conversation as deleted locally
             val cutoff = System.currentTimeMillis()

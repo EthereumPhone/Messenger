@@ -1,7 +1,10 @@
 package org.ethereumhpone.chat.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,27 +13,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,16 +37,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dgenlibrary.ConfirmationOverlay
+import com.example.dgenlibrary.SimpleDgenTextfield
+import com.example.dgenlibrary.button.DgenSecondaryButton
+import com.example.dgenlibrary.components.MemberItem
+import com.example.dgenlibrary.ui.backgrounds.DgenNavigationBackground
+import com.example.dgenlibrary.ui.backgrounds.FadeDirection
+import com.example.dgenlibrary.ui.backgrounds.FadeEdge
 import com.example.dgenlibrary.ui.theme.PitagonsSans
 import com.example.dgenlibrary.ui.theme.SpaceMono
+import com.example.dgenlibrary.ui.theme.body2_fontSize
+import com.example.dgenlibrary.ui.theme.label_fontSize
+import com.example.dgenlibrary.ui.theme.smallDuration
 import org.ethereumphone.dgenlibrary.theme.dgenBlack
 import org.ethereumphone.dgenlibrary.theme.dgenRed
 import org.ethereumphone.dgenlibrary.theme.dgenTurqoise
@@ -57,12 +70,13 @@ import org.ethereumphone.model.Contact
 import org.ethereumphone.model.Conversation
 import org.ethereumphone.model.Recipient
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GroupDetailsSheet(
     conversation: Conversation,
     primaryColor: Color,
     secondaryColor: Color,
+    canManageMembers: Boolean = false,
     onBackClick: () -> Unit,
     onUpdateGroupName: (String) -> Unit,
     onUpdateGroupDescription: (String) -> Unit,
@@ -71,230 +85,281 @@ fun GroupDetailsSheet(
     onLeaveGroup: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showEditNameDialog by remember { mutableStateOf(false) }
-    var showEditDescriptionDialog by remember { mutableStateOf(false) }
+    var isEditMode by remember { mutableStateOf(false) }
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
     var showRemoveMemberDialog by remember { mutableStateOf<Recipient?>(null) }
-    
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(dgenBlack)
+
+    val otherRecipientIds = remember(conversation.recipients) {
+        conversation.getOtherRecipients().map { it.id }.toSet()
+    }
+
+    var editNameState by remember(isEditMode) {
+        mutableStateOf(TextFieldValue(conversation.title ?: ""))
+    }
+    var editDescriptionState by remember(isEditMode) {
+        mutableStateOf(TextFieldValue(conversation.description ?: ""))
+    }
+
+    val focusManager = LocalFocusManager.current
+    val view = LocalView.current
+    val haptics = LocalHapticFeedback.current
+    val scrollState = rememberScrollState()
+
+    DgenNavigationBackground(
+        modifier = modifier,
+        primaryColor = primaryColor,
+        focusManager = focusManager,
+        onBackClick = onBackClick,
+        headerContent = {
+            Row(
+                Modifier.fillMaxWidth()
+            ){
+                Text(
+                    text = "GROUP DETAILS",
+                    style = TextStyle(
+                        fontFamily = SpaceMono,
+                        color = primaryColor,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 24.sp,
+                        letterSpacing = 0.sp,
+                        textDecoration = TextDecoration.None
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                IconButton(onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (isEditMode) {
+                        onUpdateGroupName(editNameState.text.trim())
+                        onUpdateGroupDescription(editDescriptionState.text.trim())
+                    }
+                    isEditMode = !isEditMode
+                }) {
+                    Icon(
+                        imageVector = if (isEditMode) Icons.Default.Check else Icons.Default.Edit,
+                        contentDescription = if (isEditMode) "Save" else "Edit",
+                        tint = if (isEditMode) primaryColor else primaryColor.copy(alpha = 0.6f),
+                        modifier = if (isEditMode) Modifier.size(28.dp) else Modifier
+                    )
+                }
+            }
+
+        }
     ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = primaryColor
-                )
-            }
-            
-            Text(
-                text = "Group Details",
-                style = TextStyle(
-                    fontFamily = PitagonsSans,
-                    color = primaryColor,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 20.sp
-                ),
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
-        
-        // Group Info Section
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            // Group Name
-            Row(
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showEditNameDialog = true }
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .verticalScroll(scrollState)
+                    .padding(top = 24.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Group Name",
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            color = primaryColor.copy(alpha = 0.6f),
-                            fontSize = 12.sp
+                SimpleDgenTextfield(
+                    value = editNameState,
+                    onValueChange = { editNameState = it },
+                    keyboardtype = KeyboardType.Text,
+                    onEditDone = { },
+                    readOnly = !isEditMode,
+                    singleLine = true,
+                    cursorColor = primaryColor,
+                    activeColor = primaryColor,
+                    view = view,
+                    textfieldFocusManager = focusManager,
+                    placeholder = {
+                        Text(
+                            text = if (isEditMode) "Type group name" else "Unnamed Group",
+                            style = TextStyle(
+                                fontFamily = PitagonsSans,
+                                color = primaryColor.copy(alpha = 0.45f),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = body2_fontSize,
+                            )
                         )
-                    )
-                    Text(
-                        text = conversation.title ?: "Unnamed Group",
-                        style = TextStyle(
-                            fontFamily = PitagonsSans,
-                            color = primaryColor,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit name",
-                    tint = primaryColor.copy(alpha = 0.6f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Group Description
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showEditDescriptionDialog = true }
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Description",
-                        style = TextStyle(
-                            fontFamily = SpaceMono,
-                            color = primaryColor.copy(alpha = 0.6f),
-                            fontSize = 12.sp
+                    },
+                    labelContent = {
+                        Text(
+                            text = "GROUP NAME",
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = label_fontSize
+                            )
                         )
-                    )
-                    Text(
-                        text = conversation.description?.takeIf { it.isNotBlank() } ?: "No description",
-                        style = TextStyle(
-                            fontFamily = PitagonsSans,
-                            color = if (conversation.description.isNullOrBlank()) primaryColor.copy(alpha = 0.4f) else primaryColor,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp
-                        ),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    }
+                )
+
+                SimpleDgenTextfield(
+                    value = editDescriptionState,
+                    onValueChange = { editDescriptionState = it },
+                    keyboardtype = KeyboardType.Text,
+                    onEditDone = { },
+                    readOnly = !isEditMode,
+                    singleLine = false,
+                    maxLines = 4,
+                    cursorColor = primaryColor,
+                    activeColor = primaryColor,
+                    view = view,
+                    textfieldFocusManager = focusManager,
+                    placeholder = {
+                        Text(
+                            text = if (isEditMode) "Type description" else "No description",
+                            style = TextStyle(
+                                fontFamily = PitagonsSans,
+                                color = primaryColor.copy(alpha = 0.45f),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = body2_fontSize,
+                            )
+                        )
+                    },
+                    labelContent = {
+                        Text(
+                            text = "DESCRIPTION",
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = label_fontSize
+                            )
+                        )
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Column(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "MEMBERS ${conversation.getMemberCount()}",
+                            style = TextStyle(
+                                fontFamily = SpaceMono,
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                                lineHeight = 16.sp,
+                                letterSpacing = 0.sp,
+                                textDecoration = TextDecoration.None
+                            )
+                        )
+
+                        AnimatedVisibility(
+                            visible = isEditMode && canManageMembers,
+                            enter = fadeIn(tween(smallDuration)),
+                            exit = fadeOut(tween(smallDuration))
+                        ) {
+                            IconButton(onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onAddMembers()
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.PersonAdd,
+                                    contentDescription = "Add members",
+                                    tint = primaryColor
+                                )
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 300.dp)
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(
+                                items = conversation.recipients,
+                                key = { it.address }
+                            ) { recipient ->
+                                val isMe = recipient.id !in otherRecipientIds
+                                val truncatedAddress = recipient.address.take(10) + "..." + recipient.address.takeLast(6)
+
+                                MemberItem(
+                                    modifier = Modifier.animateItemPlacement(),
+                                    header = if (isMe) "You" else {
+                                        recipient.contact?.name
+                                            ?: recipient.ens
+                                            ?: truncatedAddress
+                                    },
+                                    subheader = if (isMe) {
+                                        truncatedAddress
+                                    } else if (recipient.contact?.name != null || recipient.ens != null) {
+                                        truncatedAddress
+                                    } else "",
+                                    onDelete = {
+                                        if (isMe) showLeaveConfirmDialog = true
+                                        else showRemoveMemberDialog = recipient
+                                    },
+                                    primaryColor = primaryColor,
+                                    actionButton = {
+                                            if (isEditMode && canManageMembers) {
+                                                IconButton(
+                                                    onClick = {
+                                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        if (isMe) showLeaveConfirmDialog = true
+                                                        else showRemoveMemberDialog = recipient
+                                                    },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.PersonRemove,
+                                                        contentDescription = if (isMe) "Leave group" else "Remove member",
+                                                        tint = dgenRed.copy(alpha = 0.7f),
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                            }
+                                    }
+                                )
+                            }
+                        }
+
+                        FadeEdge(
+                            FadeDirection.Top,
+                            Modifier.align(Alignment.TopCenter),
+                            size = 8.dp
+                        )
+                        FadeEdge(
+                            FadeDirection.Bottom,
+                            Modifier.align(Alignment.BottomCenter),
+                            size = 8.dp
+                        )
+                    }
                 }
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit description",
-                    tint = primaryColor.copy(alpha = 0.6f),
-                    modifier = Modifier.size(20.dp)
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                DgenSecondaryButton(
+                    text = "Leave Group",
+                    containerColor = dgenRed,
+                    onClick = { showLeaveConfirmDialog = true },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Members Section Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "MEMBERS (${conversation.getMemberCount()})",
-                style = TextStyle(
-                    fontFamily = SpaceMono,
-                    color = primaryColor.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    letterSpacing = 1.sp
-                )
+
+            FadeEdge(
+                FadeDirection.Top,
+                Modifier.align(Alignment.TopCenter),
+                size = 16.dp
             )
-            
-            IconButton(onClick = onAddMembers) {
-                Icon(
-                    imageVector = Icons.Default.PersonAdd,
-                    contentDescription = "Add members",
-                    tint = primaryColor
-                )
-            }
-        }
-        
-        // Members List
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 16.dp)
-        ) {
-            items(conversation.recipients) { recipient ->
-                GroupMemberItem(
-                    recipient = recipient,
-                    primaryColor = primaryColor,
-                    onRemoveClick = { showRemoveMemberDialog = recipient }
-                )
-            }
-        }
-        
-        // Leave Group Button
-        Button(
-            onClick = { showLeaveConfirmDialog = true },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = dgenRed.copy(alpha = 0.2f),
-                contentColor = dgenRed
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.ExitToApp,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Leave Group",
-                style = TextStyle(
-                    fontFamily = SpaceMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
+            FadeEdge(
+                FadeDirection.Bottom,
+                Modifier.align(Alignment.BottomCenter),
+                size = 16.dp
             )
         }
     }
-    
-    // Edit Name Dialog
-    if (showEditNameDialog) {
-        EditTextDialog(
-            title = "Edit Group Name",
-            initialValue = conversation.title ?: "",
-            primaryColor = primaryColor,
-            onDismiss = { showEditNameDialog = false },
-            onConfirm = { newName ->
-                onUpdateGroupName(newName)
-                showEditNameDialog = false
-            }
-        )
-    }
-    
-    // Edit Description Dialog
-    if (showEditDescriptionDialog) {
-        EditTextDialog(
-            title = "Edit Description",
-            initialValue = conversation.description ?: "",
-            primaryColor = primaryColor,
-            onDismiss = { showEditDescriptionDialog = false },
-            onConfirm = { newDescription ->
-                onUpdateGroupDescription(newDescription)
-                showEditDescriptionDialog = false
-            }
-        )
-    }
-    
+
     // Leave Group Confirmation Dialog
     if (showLeaveConfirmDialog) {
         AlertDialog(
@@ -347,205 +412,26 @@ fun GroupDetailsSheet(
             }
         )
     }
-    
-    // Remove Member Confirmation Dialog
+
+    // Remove Member Confirmation Overlay
     showRemoveMemberDialog?.let { recipient ->
-        AlertDialog(
-            onDismissRequest = { showRemoveMemberDialog = null },
-            containerColor = dgenBlack,
-            title = {
-                Text(
-                    text = "Remove Member?",
-                    style = TextStyle(
-                        fontFamily = PitagonsSans,
-                        color = primaryColor,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp
-                    )
-                )
-            },
-            text = {
-                Text(
-                    text = "Remove ${recipient.contact?.name ?: recipient.ens ?: recipient.address.take(10)}... from the group?",
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        color = primaryColor.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onRemoveMember(recipient.id)
-                        showRemoveMemberDialog = null
-                    }
-                ) {
-                    Text(
-                        text = "Remove",
-                        color = dgenRed,
-                        fontFamily = SpaceMono,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRemoveMemberDialog = null }) {
-                    Text(
-                        text = "Cancel",
-                        color = primaryColor,
-                        fontFamily = SpaceMono
-                    )
-                }
+        val memberName = recipient.contact?.name
+            ?: recipient.ens
+            ?: (recipient.address.take(10) + "..." + recipient.address.takeLast(6))
+        ConfirmationOverlay(
+            visible = true,
+            description = "Remove $memberName from the group?",
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor,
+            cancelButtonText = "CANCEL",
+            confirmButtonText = "REMOVE",
+            onCancel = { showRemoveMemberDialog = null },
+            onConfirm = {
+                onRemoveMember(recipient.id)
+                showRemoveMemberDialog = null
             }
         )
     }
-}
-
-@Composable
-private fun GroupMemberItem(
-    recipient: Recipient,
-    primaryColor: Color,
-    onRemoveClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Avatar placeholder
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(primaryColor.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = (recipient.contact?.name?.firstOrNull() 
-                    ?: recipient.ens?.firstOrNull() 
-                    ?: recipient.address.firstOrNull() 
-                    ?: '?').uppercase(),
-                style = TextStyle(
-                    fontFamily = PitagonsSans,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = recipient.contact?.name 
-                    ?: recipient.ens 
-                    ?: recipient.address.take(10) + "..." + recipient.address.takeLast(6),
-                style = TextStyle(
-                    fontFamily = PitagonsSans,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (recipient.contact?.name != null || recipient.ens != null) {
-                Text(
-                    text = recipient.address.take(10) + "..." + recipient.address.takeLast(6),
-                    style = TextStyle(
-                        fontFamily = SpaceMono,
-                        color = primaryColor.copy(alpha = 0.5f),
-                        fontSize = 11.sp
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-        
-        IconButton(
-            onClick = onRemoveClick,
-            modifier = Modifier.size(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.PersonRemove,
-                contentDescription = "Remove member",
-                tint = dgenRed.copy(alpha = 0.7f),
-                modifier = Modifier.size(18.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun EditTextDialog(
-    title: String,
-    initialValue: String,
-    primaryColor: Color,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var text by remember { mutableStateOf(initialValue) }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = dgenBlack,
-        title = {
-            Text(
-                text = title,
-                style = TextStyle(
-                    fontFamily = PitagonsSans,
-                    color = primaryColor,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp
-                )
-            )
-        },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.fillMaxWidth(),
-                textStyle = TextStyle(
-                    fontFamily = SpaceMono,
-                    color = primaryColor,
-                    fontSize = 14.sp
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = primaryColor,
-                    unfocusedBorderColor = primaryColor.copy(alpha = 0.3f),
-                    cursorColor = primaryColor
-                ),
-                singleLine = true
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(text) },
-                enabled = text.isNotBlank()
-            ) {
-                Text(
-                    text = "Save",
-                    color = if (text.isNotBlank()) primaryColor else primaryColor.copy(alpha = 0.3f),
-                    fontFamily = SpaceMono,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = "Cancel",
-                    color = primaryColor.copy(alpha = 0.7f),
-                    fontFamily = SpaceMono
-                )
-            }
-        }
-    )
 }
 
 @Preview
@@ -591,4 +477,3 @@ private fun PreviewGroupDetailsSheet() {
         onLeaveGroup = {}
     )
 }
-
