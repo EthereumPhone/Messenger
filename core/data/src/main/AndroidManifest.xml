@@ -97,6 +97,17 @@
             android:enabled="true"
             android:exported="true" />
 
+        <!-- XmtpSetupService: Bound by SetupWizard to trigger XMTP client creation.
+             The caller calls setupNow(callback) and receives onSetupComplete(success). -->
+        <service
+            android:name=".services.XmtpSetupService"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="org.ethereumhpone.messenger.action.BIND_XMTP_SETUP" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>
