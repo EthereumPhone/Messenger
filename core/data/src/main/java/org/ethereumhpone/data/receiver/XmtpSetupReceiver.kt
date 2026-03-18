@@ -27,7 +27,17 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
         if (intent.action != ACTION_SETUP_XMTP) return
 
         val walletAddress = intent.getStringExtra("wallet_address") ?: ""
-        val resultReceiver: ResultReceiver? = intent.getParcelableExtra("result_receiver")
+        // Use the framework classloader to deserialize the ResultReceiver — the
+        // default app classloader can't find SetupWizard's anonymous subclass.
+        val resultReceiver: ResultReceiver? = try {
+            intent.extras?.let { extras ->
+                extras.classLoader = ResultReceiver::class.java.classLoader
+                extras.getParcelable("result_receiver")
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("XmtpSetupReceiver", "Failed to extract ResultReceiver", e)
+            null
+        }
 
         // Use goAsync to allow asynchronous work if needed
         val pendingResult = goAsync()
