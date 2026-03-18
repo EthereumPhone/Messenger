@@ -81,12 +81,13 @@ object XmtpClientManager {
     @OptIn(DelicateCoroutinesApi::class)
     fun createClient(
         walletSDK: WalletSDK,
-        appContext: Context
+        appContext: Context,
+        overrideAddress: String = ""
     ) {
         if (clientState.value is ClientState.Ready) return
 
         GlobalScope.launch(Dispatchers.IO) {
-            val address = walletSDK.getAddress()
+            val address = if (overrideAddress.isNotEmpty()) overrideAddress else walletSDK.getAddress()
             Log.d("my address", address)
             try {
                 // Register codecs BEFORE creating the client

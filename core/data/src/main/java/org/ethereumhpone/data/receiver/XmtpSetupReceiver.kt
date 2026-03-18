@@ -26,12 +26,16 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
 
         if (intent.action != ACTION_SETUP_XMTP) return
 
+        val walletAddress = intent.getStringExtra("wallet_address") ?: ""
+
         // Use goAsync to allow asynchronous work if needed
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Kick off client creation
-                xmtpClientManager.createClient(walletSDK, context.applicationContext)
+                // Kick off client creation — pass the wallet address from SetupWizard
+                // so Messenger doesn't need to resolve it via WalletSDK (which returns
+                // empty during device setup).
+                xmtpClientManager.createClient(walletSDK, context.applicationContext, walletAddress)
 
                 // Wait until the client is fully ready (signature completed)
                 xmtpClientManager.clientState.first { it is XmtpClientManager.ClientState.Ready }
