@@ -38,10 +38,18 @@ class XmtpSetupService : Service() {
 
     private val binder = object : IXmtpSetupService.Stub() {
         override fun setupNow(callback: IXmtpSetupCallback?) {
-            Log.i(TAG, "setupNow() called")
+            doSetup("", callback)
+        }
+
+        override fun setupNowWithAddress(walletAddress: String?, callback: IXmtpSetupCallback?) {
+            doSetup(walletAddress ?: "", callback)
+        }
+
+        private fun doSetup(walletAddress: String, callback: IXmtpSetupCallback?) {
+            Log.i(TAG, "doSetup() called, address=${if (walletAddress.isNotEmpty()) walletAddress else "(from WalletSDK)"}")
             serviceScope.launch {
                 try {
-                    xmtpClientManager.createClient(walletSDK, applicationContext)
+                    xmtpClientManager.createClient(walletSDK, applicationContext, walletAddress)
 
                     // Wait until the client reports Ready or Error
                     val state = xmtpClientManager.clientState.first {
