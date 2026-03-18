@@ -2,6 +2,7 @@ package org.ethereumhpone.data.receiver
 
 import android.content.Context
 import android.content.Intent
+import android.os.Parcel
 import android.os.ResultReceiver
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -27,12 +28,14 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
         if (intent.action != ACTION_SETUP_XMTP) return
 
         val walletAddress = intent.getStringExtra("wallet_address") ?: ""
-        // Use the framework classloader to deserialize the ResultReceiver — the
-        // default app classloader can't find SetupWizard's anonymous subclass.
+        // Reconstruct the ResultReceiver from the raw IBinder extra — avoids
+        // ClassNotFoundException from trying to load SetupWizard's anonymous class.
         val resultReceiver: ResultReceiver? = try {
-            intent.extras?.let { extras ->
-                extras.classLoader = ResultReceiver::class.java.classLoader
-                extras.getParcelable("result_receiver")
+            intent.extras?.getBinder("result_receiver")?.let { binder ->
+                val parcel = Parcel.obtain()
+                parcel.writeStrongBinder(binder)
+                parcel.setDataPosition(0)
+                ResultReceiver.CREATOR.createFromParcel(parcel).also { parcel.recycle() }
             }
         } catch (e: Exception) {
             android.util.Log.w("XmtpSetupReceiver", "Failed to extract ResultReceiver", e)
