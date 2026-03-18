@@ -2,6 +2,7 @@ package org.ethereumhpone.data.receiver
 
 import android.content.Context
 import android.content.Intent
+import android.os.ResultReceiver
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,7 +13,6 @@ import org.ethereumphone.walletsdk.WalletSDK
 import javax.inject.Inject
 import androidx.core.content.edit
 import org.ethereumhpone.datastore.MessengerPreferences
-import org.ethereumhpone.domain.model.UserData
 
 @AndroidEntryPoint
 class XmtpSetupReceiver : HiltBroadcastReceiver() {
@@ -27,6 +27,7 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
         if (intent.action != ACTION_SETUP_XMTP) return
 
         val walletAddress = intent.getStringExtra("wallet_address") ?: ""
+        val resultReceiver: ResultReceiver? = intent.getParcelableExtra("result_receiver")
 
         // Use goAsync to allow asynchronous work if needed
         val pendingResult = goAsync()
@@ -50,15 +51,12 @@ class XmtpSetupReceiver : HiltBroadcastReceiver() {
                 prefs.setShouldHideOnboarding(true)
                 android.util.Log.d("XmtpSetupReceiver", "Set both useXmtp and shouldHideOnboarding to true")
 
-                // Now notify SetupWizard that XMTP setup is complete
-                val doneIntent = Intent("app.grapheneos.setupwizard.action.XMTP_SETUP_DONE").apply {
-                    `package` = "app.grapheneos.setupwizard" // restrict broadcast to SetupWizard app
-                }
-
-
-                context.sendBroadcast(doneIntent)
+                // Notify SetupWizard that XMTP setup is complete via ResultReceiver IPC
+                resultReceiver?.send(0, null)
+                android.util.Log.d("XmtpSetupReceiver", "Sent setup done callback to SetupWizard")
             } catch (e: Exception) {
                 e.printStackTrace()
+                resultReceiver?.send(1, null)
             } finally {
                 pendingResult.finish()
             }
