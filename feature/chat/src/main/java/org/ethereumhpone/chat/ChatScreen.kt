@@ -635,7 +635,14 @@ fun ChatScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .offset { IntOffset(startX.roundToInt(), yAnim.value.roundToInt()) },
+                                .offset { IntOffset(
+                                    x = if (selected.isMe) 0 else startX.roundToInt(),
+                                    y = yAnim.value.roundToInt()
+                                ) }
+                                .then(
+                                    if (selected.isMe) Modifier.fillMaxWidth().padding(end = 8.dp)
+                                    else Modifier
+                                ),
                             horizontalAlignment = if (selected.isMe) Alignment.End else Alignment.Start,
                             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
                         ) {
