@@ -20,6 +20,7 @@ import org.ethereumhpone.database.model.relation.toExternalModel
 import org.ethereumhpone.domain.repository.ConversationRepository
 import org.ethereumphone.model.Conversation
 import org.xmtp.android.library.libxmtp.IdentityKind
+import org.ethereumhpone.data.util.ethereumAddressOrNull
 import org.xmtp.android.library.libxmtp.PublicIdentity
 import javax.inject.Inject
 import org.ethereumhpone.common.util.Result
@@ -231,8 +232,9 @@ class ConversationRepositoryImpl @Inject constructor(
                     
                     // Create recipient entities for all members
                     val contacts = contactDao.getContacts().first()
-                    val recipientEntities = allMembers.map { member ->
-                        val memberAddress = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                    val recipientEntities = allMembers.mapNotNull { member ->
+                        val memberAddress = member.ethereumAddressOrNull()
+                            ?: return@mapNotNull null
                         
                         val matchedContact = contacts.firstOrNull { contact ->
                             contact.ethAddress?.equals(memberAddress, ignoreCase = true) == true
@@ -605,8 +607,9 @@ class ConversationRepositoryImpl @Inject constructor(
             
             // Create recipient entities for new members
             val contacts = contactDao.getContacts().first()
-            val recipientEntities = allMembers.map { member ->
-                val memberAddress = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+            val recipientEntities = allMembers.mapNotNull { member ->
+                val memberAddress = member.ethereumAddressOrNull()
+                    ?: return@mapNotNull null
                 
                 val matchedContact = contacts.firstOrNull { contact ->
                     contact.ethAddress?.equals(memberAddress, ignoreCase = true) == true

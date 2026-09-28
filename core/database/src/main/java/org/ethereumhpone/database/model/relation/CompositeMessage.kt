@@ -9,6 +9,7 @@ import org.ethereumhpone.database.model.RecipientEntity
 import org.ethereumhpone.database.model.toExternalModel
 import org.ethereumphone.model.DeliveryStatus
 import org.ethereumphone.model.Message
+import org.ethereumphone.model.Recipient
 
 data class CompositeMessage(
     @Embedded
@@ -19,7 +20,9 @@ data class CompositeMessage(
         entityColumn = "inboxId",
         entity = RecipientEntity::class
     )
-    val recipient: RecipientWithContact,
+    // Nullable: a message can be stored before its sender's recipient row exists
+    // (e.g. a message just sent into a brand-new conversation).
+    val recipient: RecipientWithContact?,
 
 
     @Relation(
@@ -36,7 +39,8 @@ fun CompositeMessage.toExternalMessage(): Message {
     return Message(
         id = message.id,
         threadId = message.threadId,
-        recipient = recipient.recipientEntity.toExternalModel(recipient.contactEntity),
+        recipient = recipient?.recipientEntity?.toExternalModel(recipient.contactEntity)
+            ?: Recipient(id = message.senderInboxId, address = "", ens = null, contact = null),
         dateSent = Instant.fromEpochMilliseconds(message.dateSent),
         date = Instant.fromEpochMilliseconds(message.date),
         seen = message.seen,

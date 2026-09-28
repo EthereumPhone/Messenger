@@ -1,10 +1,8 @@
 package org.ethereumhpone.data.repository
 
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log as AndroidLog
-import androidx.media3.common.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,6 +29,7 @@ import org.ethereumphone.model.Reaction
 import org.ethereumphone.model.TransactionRequest
 import org.xmtp.android.library.Conversation
 import org.xmtp.android.library.SendOptions
+import org.xmtp.android.library.codecs.ContentTypeReply
 import org.xmtp.android.library.codecs.ContentTypeText
 import org.xmtp.android.library.codecs.Reaction as XmtpReaction
 import org.xmtp.android.library.codecs.ReactionAction
@@ -108,7 +107,6 @@ class MessageRepositoryImpl @Inject constructor(
         TODO()
     }
 
-    @SuppressLint("UnsafeOptInUsageError")
     override suspend fun sendMessage(
         threadId: String,
         body: String?,
@@ -140,13 +138,15 @@ class MessageRepositoryImpl @Inject constructor(
                             reference = replyReference,
                             content = body.orEmpty(),
                             contentType = ContentTypeText
-                        )
+                        ),
+                        // Without an explicit content type the SDK encodes with the text codec and throws
+                        options = SendOptions(contentType = ContentTypeReply)
                     )
                 } else {
                     conversation.prepareMessage(body)
                 }
 
-                Log.d("MESSAGE ID", messageId)
+                AndroidLog.d("MESSAGE ID", messageId)
 
                 val messageEntity = MessageEntity(
                     id = messageId,
@@ -162,10 +162,15 @@ class MessageRepositoryImpl @Inject constructor(
                     read = true
                 )
 
-                launch { messageDao.upsertMessages(listOf(messageEntity)) }
+                messageDao.upsertMessages(listOf(messageEntity))
                 launch {
-                    conversation.publishMessages()
-                    notifyThirdPartyRecipients(conversation, body.orEmpty())
+                    try {
+                        conversation.publishMessages()
+                        notifyThirdPartyRecipients(conversation, body.orEmpty())
+                    } catch (e: Exception) {
+                        AndroidLog.e("MessageRepository", "Failed to publish message $messageId", e)
+                        messageDao.upsertMessages(listOf(messageEntity.copy(deliveryStatus = DecodedMessage.MessageDeliveryStatus.FAILED)))
+                    }
                 }
 
                 messageId
@@ -203,7 +208,9 @@ class MessageRepositoryImpl @Inject constructor(
                                 reference = replyReference,
                                 content = body.orEmpty(),
                                 contentType = ContentTypeText
-                            )
+                            ),
+                            // Without an explicit content type the SDK encodes with the text codec and throws
+                            options = SendOptions(contentType = ContentTypeReply)
                         )
                     } else {
                         xmtpConversation.prepareMessage(body)
@@ -213,7 +220,7 @@ class MessageRepositoryImpl @Inject constructor(
                     return@coroutineScope null
                 }
 
-                Log.d("MESSAGE ID", messageId)
+                AndroidLog.d("MESSAGE ID", messageId)
 
                 val messageEntity = MessageEntity(
                     id = messageId,
@@ -229,10 +236,15 @@ class MessageRepositoryImpl @Inject constructor(
                     read = true
                 )
 
-                launch { messageDao.upsertMessages(listOf(messageEntity)) }
+                messageDao.upsertMessages(listOf(messageEntity))
                 launch {
-                    xmtpConversation.publishMessages()
-                    notifyThirdPartyRecipients(xmtpConversation, body.orEmpty())
+                    try {
+                        xmtpConversation.publishMessages()
+                        notifyThirdPartyRecipients(xmtpConversation, body.orEmpty())
+                    } catch (e: Exception) {
+                        AndroidLog.e("MessageRepository", "Failed to publish message $messageId", e)
+                        messageDao.upsertMessages(listOf(messageEntity.copy(deliveryStatus = DecodedMessage.MessageDeliveryStatus.FAILED)))
+                    }
                 }
 
                 messageId
@@ -336,7 +348,7 @@ class MessageRepositoryImpl @Inject constructor(
                 options = SendOptions(contentType = ContentTypeTransactionRequest)
             )
             
-            Log.d("TRANSACTION REQUEST MESSAGE ID", messageId)
+            AndroidLog.d("TRANSACTION REQUEST MESSAGE ID", messageId)
             
             // Build fallback body for display
             val fallbackBody = buildTransactionRequestBody(transactionRequest)

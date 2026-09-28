@@ -57,6 +57,10 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    testOptions {
+        // android.util.Log etc. return defaults instead of throwing in JVM unit tests
+        unitTests.isReturnDefaultValues = true
+    }
 
 }
 
@@ -83,11 +87,12 @@ dependencies {
     implementation(libs.model)
 
     testImplementation(libs.junit)
-    testImplementation("io.mockk:mockk:1.13.9")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation("org.robolectric:robolectric:4.11.1")
     testImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.espresso.core)
 
 

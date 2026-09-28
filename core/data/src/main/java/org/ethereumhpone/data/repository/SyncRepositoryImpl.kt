@@ -59,6 +59,7 @@ import org.ethereumphone.model.TransactionRequest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.xmtp.android.library.libxmtp.IdentityKind
+import org.ethereumhpone.data.util.ethereumAddressOrNull
 import org.xmtp.proto.message.contents.Content
 import javax.inject.Inject
 import org.ethereumhpone.domain.manager.NetworkManager
@@ -242,8 +243,9 @@ class SyncRepositoryImpl @Inject constructor(
                 // Fetch contacts once to match ETH addresses (case-insensitive)
                 val contacts = contactDao.getContacts().first()
 
-                val recipientEntities = members.map { member ->
-                    val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                val recipientEntities = members.mapNotNull { member ->
+                    val address = member.ethereumAddressOrNull()
+                        ?: return@mapNotNull null
                     val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
 
                     // Try to find a contact with the same ETH address (ignoring case)
@@ -388,8 +390,9 @@ class SyncRepositoryImpl @Inject constructor(
                             val members = conversation.members()
                             val contacts = contactDao.getContacts().first()
 
-                            val recipientEntities = members.map { member ->
-                                val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+                            val recipientEntities = members.mapNotNull { member ->
+                                val address = member.ethereumAddressOrNull()
+                                    ?: return@mapNotNull null
                                 val ensAddress = ensResolver.reverseResolve(Address(address.removePrefix("0x")))
 
                                 val matchedContact = contacts.firstOrNull { contact ->
@@ -774,8 +777,9 @@ class SyncRepositoryImpl @Inject constructor(
             
             // Insert/update recipients
             val contacts = contactDao.getContacts().first()
-            val recipientEntities = members.map { member ->
-                val address = member.identities.first { it.kind == IdentityKind.ETHEREUM }.identifier
+            val recipientEntities = members.mapNotNull { member ->
+                val address = member.ethereumAddressOrNull()
+                    ?: return@mapNotNull null
                 val ensAddress = try {
                     ensResolver.reverseResolve(Address(address.removePrefix("0x")))
                 } catch (e: Exception) { null }
